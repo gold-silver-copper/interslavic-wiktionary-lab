@@ -15,6 +15,20 @@ const ORTHO: &str = "https://interslavic.fun/learn/orthography/";
 
 /// Generate an Interslavic candidate from a Proto-Slavic reconstruction.
 pub fn generate(proto_word: &str, pos: Pos, gender: Option<Gender>) -> Candidate {
+    generate_with_reflexes(proto_word, pos, gender, &[])
+}
+
+/// As [`generate`], but with the modern-cognate reflexes (phonemic Latin) as
+/// evidence for resolving lexically-ambiguous weak yers (§4.4 at the segment
+/// level): a weak yer that most reflexes vocalize is retained, not dropped, so
+/// e.g. *pьsati → pisati (which strict Havlík would render *psati, matching only
+/// Czech). Pass `&[]` for the pure rule-only derivation.
+pub fn generate_with_reflexes(
+    proto_word: &str,
+    pos: Pos,
+    gender: Option<Gender>,
+    reflexes: &[String],
+) -> Candidate {
     let mut trace = Vec::new();
     let mut s = clean(proto_word, &mut trace);
     s = x_to_h(&s, &mut trace);
@@ -22,7 +36,7 @@ pub fn generate(proto_word: &str, pos: Pos, gender: Option<Gender>) -> Candidate
     s = liquid_metathesis(&s, &mut trace);
     s = nasals(&s, &mut trace);
     s = prothesis(&s, &mut trace);
-    s = yers(&s, &mut trace);
+    s = yers(&s, reflexes, &mut trace);
     s = endings(&s, pos, gender, &mut trace);
     s = finalize(&s, &mut trace);
 
@@ -178,42 +192,71 @@ fn prothesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
     out
 }
 
-/// Yer treatment via Havlík's law: scanning yers right-to-left, they alternate
-/// weak/strong; weak yers drop, strong back yer → ȯ, strong front yer → e.
-fn yers(input: &str, trace: &mut Vec<RuleStep>) -> String {
+/// Yer resolution. Three fates:
+///   * **tense** (a yer before *j) always vocalizes: *ь→i, *ъ→y (novъjь→novy,
+///     pьjǫ→pij-);
+///   * **strong** (Havlík: alternating from the right, odd positions) vocalizes:
+///     *ъ→ȯ, *ь→e (sъnъ→sȯn, pьsъ→pes);
+///   * **weak** normally drops, unless the modern reflexes vote to keep a vowel
+///     at that position — a lexicalized retention the reflexes alone can resolve
+///     (pьsati→pisati vs bьrati→brati).
+fn yers(input: &str, reflexes: &[String], trace: &mut Vec<RuleStep>) -> String {
     let chars: Vec<char> = input.chars().collect();
     let n = chars.len();
-    // Determine strong/weak per yer position.
+    let is_yer = |c: char| c == 'ъ' || c == 'ь';
+
+    // Tense yers: immediately before *j.
+    let mut tense = vec![false; n];
+    for idx in 0..n {
+        if is_yer(chars[idx]) && idx + 1 < n && chars[idx + 1] == 'j' {
+            tense[idx] = true;
+        }
+    }
+
+    // Havlík strong/weak for the non-tense yers. A full vowel or a tense yer
+    // (which surfaces as a vowel) resets the alternation run.
     let mut strong = vec![false; n];
-    let mut counter = 0; // counts from the right; first yer (0) is weak
+    let mut counter = 0;
     for idx in (0..n).rev() {
-        if chars[idx] == 'ъ' || chars[idx] == 'ь' {
-            // Position in the alternation: even => weak, odd => strong.
+        let c = chars[idx];
+        if is_yer(c) && !tense[idx] {
             if counter % 2 == 1 {
                 strong[idx] = true;
             }
             counter += 1;
-        } else {
-            // A full vowel resets the alternation run.
-            if is_full_vowel(chars[idx]) {
-                counter = 0;
-            }
+        } else if is_full_vowel(c) || (is_yer(c) && tense[idx]) {
+            counter = 0;
         }
     }
+
     let mut out = String::new();
+    let mut cons_before = 0usize; // consonants seen so far, for reflex alignment
     for idx in 0..n {
         match chars[idx] {
             'ъ' => {
-                if strong[idx] {
+                if tense[idx] {
+                    out.push('y');
+                } else if strong[idx] {
                     out.push('ȯ');
+                } else if reflex_retains(reflexes, cons_before) {
+                    out.push('y');
                 }
             }
             'ь' => {
-                if strong[idx] {
+                if tense[idx] {
+                    out.push('i');
+                } else if strong[idx] {
                     out.push('e');
+                } else if reflex_retains(reflexes, cons_before) {
+                    out.push('i');
                 }
             }
-            other => out.push(other),
+            other => {
+                out.push(other);
+                if is_cons(other) {
+                    cons_before += 1;
+                }
+            }
         }
     }
     step(
@@ -221,7 +264,7 @@ fn yers(input: &str, trace: &mut Vec<RuleStep>) -> String {
         "yers",
         input,
         &out,
-        "Jery po Havlíkovom pravilu: slabe padajų, silne *ъ→ȯ, *ь→e.",
+        "Jery: napręžene (prěd j) *ь→i/*ъ→y; silne *ъ→ȯ/*ь→e; slabe padajų (ale ostajų, ako naslědniky drže glasnik).",
         STEEN,
     );
     out
@@ -306,6 +349,67 @@ fn debase_vowel(ch: char) -> char {
     }
 }
 
+/// Majority vote: do the reflexes keep a vowel right after `cons_before`
+/// consonants (the aligned yer position)? Reflexes that can't be aligned abstain.
+fn reflex_retains(reflexes: &[String], cons_before: usize) -> bool {
+    let (mut keep, mut drop) = (0i32, 0i32);
+    for r in reflexes {
+        match reflex_vowel_after(r, cons_before) {
+            Some(true) => keep += 1,
+            Some(false) => drop += 1,
+            None => {}
+        }
+    }
+    keep > 0 && keep > drop
+}
+
+/// In one reflex, is the segment right after `cons_before` consonants a vowel?
+fn reflex_vowel_after(r: &str, cons_before: usize) -> Option<bool> {
+    let cs: Vec<char> = r.chars().collect();
+    if cons_before == 0 {
+        return cs.first().map(|&c| is_reflex_vowel(c));
+    }
+    let mut cnt = 0;
+    for i in 0..cs.len() {
+        if is_reflex_cons(cs[i]) {
+            cnt += 1;
+            if cnt == cons_before {
+                return Some(cs.get(i + 1).map(|&c| is_reflex_vowel(c)).unwrap_or(false));
+            }
+        }
+    }
+    None
+}
+
+fn is_reflex_vowel(c: char) -> bool {
+    matches!(
+        c,
+        'a' | 'e'
+            | 'i'
+            | 'o'
+            | 'u'
+            | 'y'
+            | 'ě'
+            | 'ę'
+            | 'ǫ'
+            | 'ų'
+            | 'å'
+            | 'ȯ'
+            | 'á'
+            | 'é'
+            | 'í'
+            | 'ó'
+            | 'ú'
+            | 'ý'
+            | 'à'
+            | 'è'
+    )
+}
+
+fn is_reflex_cons(c: char) -> bool {
+    c.is_alphabetic() && !is_reflex_vowel(c) && c != 'j' && c != 'ъ' && c != 'ь'
+}
+
 fn is_cons(ch: char) -> bool {
     ch.is_alphabetic() && !is_full_vowel(ch) && ch != 'ъ' && ch != 'ь'
 }
@@ -370,5 +474,42 @@ mod tests {
         assert!(normalized_match(&gen("*voda", Pos::Noun), "voda"));
         assert!(normalized_match(&gen("*duša", Pos::Noun), "duša"));
         assert!(normalized_match(&gen("*pisati", Pos::Verb), "pisati"));
+    }
+
+    #[test]
+    fn tense_yer_before_j() {
+        // A yer before *j is tense and vocalizes: the hard definite adjective
+        // ending *-ъjь surfaces with y (novъjь → novy). Without the tense rule
+        // strict Havlík would misassign the ъ as strong (→ novȯj-).
+        assert!(normalized_match(&gen("*novъjь", Pos::Adjective), "novy"));
+    }
+
+    #[test]
+    fn reflex_guided_weak_yer() {
+        // Strict Havlík drops the weak yer of *pьsati → *psati (matching only
+        // Czech psát); the reflexes vocalize it, so with reflex evidence the
+        // engine derives pisati — no length hack needed.
+        let pure = generate("*pьsati", Pos::Verb, None).form;
+        assert!(normalized_match(&pure, "psati"), "pure Havlík was {pure}");
+        let guided = generate_with_reflexes(
+            "*pьsati",
+            Pos::Verb,
+            None,
+            &["pisati".into(), "pisat".into(), "pisac".into()],
+        )
+        .form;
+        assert!(
+            normalized_match(&guided, "pisati"),
+            "reflex-guided was {guided}"
+        );
+        // *bьrati: the reflexes also drop it (brati, brać), so the weak yer drops.
+        let brati = generate_with_reflexes(
+            "*bьrati",
+            Pos::Verb,
+            None,
+            &["brati".into(), "brat".into(), "brac".into()],
+        )
+        .form;
+        assert!(normalized_match(&brati, "brati"), "brati was {brati}");
     }
 }

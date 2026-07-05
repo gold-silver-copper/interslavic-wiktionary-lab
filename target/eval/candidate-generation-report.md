@@ -18,7 +18,7 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 | +prefixes | 32.23% | 40.34% | +0.33 pp | 49.10% | 0.238 |
 | +depleophony | 32.21% | 40.53% | +0.18 pp | 49.31% | 0.237 |
 | +nasals | 32.42% | 40.43% | -0.10 pp | 49.22% | 0.238 |
-| +proto-derived (production) | 34.15% | 40.77% | +0.34 pp | 51.17% | 0.238 |
+| +proto-derived (production) | 33.83% | 40.62% | +0.19 pp | 50.94% | 0.237 |
 
 - **baseline** — Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).
 - **+branch-consensus** — Branch-balanced skeleton vote + South-Slavic representative.
@@ -36,10 +36,10 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |
 |---|---:|---:|---:|---:|
-| prod+palatals | 33.77% | -0.38 pp | 40.25% | -0.52 pp |
-| prod+jat | 33.48% | -0.66 pp | 40.77% | +0.00 pp |
-| prod+adj-longform | 31.87% | -2.28 pp | 38.01% | -2.77 pp |
-| prod+y-recovery | 27.13% | -7.01 pp | 32.72% | -8.06 pp |
+| prod+palatals | 33.39% | -0.44 pp | 40.05% | -0.57 pp |
+| prod+jat | 33.19% | -0.64 pp | 40.62% | +0.00 pp |
+| prod+adj-longform | 31.56% | -2.28 pp | 37.85% | -2.77 pp |
+| prod+y-recovery | 26.74% | -7.10 pp | 32.44% | -8.18 pp |
 
 - **prod+palatals** — Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.
 - **prod+jat** — Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.
@@ -50,21 +50,21 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | POS | n | exact | normalized |
 |---|---:|---:|---:|
-| adj | 2896 | 22.76% | 29.87% |
-| adv | 657 | 18.87% | 28.16% |
-| noun | 8362 | 42.86% | 48.54% |
-| num | 112 | 8.93% | 22.32% |
-| pron | 99 | 36.36% | 37.37% |
-| verb | 4174 | 27.62% | 35.34% |
+| adj | 2896 | 22.79% | 29.87% |
+| adv | 657 | 19.18% | 28.46% |
+| noun | 8362 | 42.39% | 48.21% |
+| num | 112 | 9.82% | 23.21% |
+| pron | 99 | 32.32% | 33.33% |
+| verb | 4174 | 27.34% | 35.43% |
 
 ## Branch coverage vs accuracy (final config)
 
 | branches with the consensus form | n | normalized |
 |---:|---:|---:|
-| 0 | 214 | 32.24% |
-| 1 | 4458 | 22.66% |
-| 2 | 6521 | 37.59% |
-| 3 | 5107 | 61.01% |
+| 0 | 96 | 46.88% |
+| 1 | 4197 | 21.30% |
+| 2 | 6705 | 37.03% |
+| 3 | 5302 | 60.34% |
 
 ## Confidence calibration (final config)
 
@@ -72,36 +72,36 @@ High-confidence candidates should match the official dictionary more often than 
 
 | confidence | n | normalized match |
 |---|---:|---:|
-| high | 5820 | 63.66% |
-| medium | 8267 | 32.90% |
-| low | 2213 | 9.99% |
+| high | 5328 | 66.29% |
+| medium | 8708 | 32.85% |
+| low | 2264 | 10.07% |
 
 ## Before / after
 
 - Baseline normalized top-1: **34.96%**
-- Final normalized top-1: **40.77%** (+5.81 pp)
+- Final normalized top-1: **40.62%** (+5.66 pp)
 - Baseline exact top-1: **27.38%**
-- Final exact top-1: **34.15%** (+6.77 pp)
+- Final exact top-1: **33.83%** (+6.45 pp)
 
 ## Remaining systematic errors (final config)
 
-Of **9654** misses, **2783** (29%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6871** are farther (usually a different root chosen by Interslavic).
+Of **9679** misses, **2816** (29%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6863** are farther (usually a different root chosen by Interslavic).
 
 | Error class | count | share of misses |
 |---|---:|---:|
-| different root / derivation | 4508 | 46.7% |
-| extra letter (epenthesis / ending) | 2223 | 23.0% |
-| single-letter substitution | 1177 | 12.2% |
-| missing letter (fleeting vowel / cluster) | 1030 | 10.7% |
-| y / i distinction | 654 | 6.8% |
-| flavored letter (ě/ę/ų/å/ć/đ) not recovered | 62 | 0.6% |
+| different root / derivation | 4469 | 46.2% |
+| extra letter (epenthesis / ending) | 2189 | 22.6% |
+| single-letter substitution | 1244 | 12.9% |
+| missing letter (fleeting vowel / cluster) | 1056 | 10.9% |
+| y / i distinction | 667 | 6.9% |
+| flavored letter (ě/ę/ų/å/ć/đ) not recovered | 54 | 0.6% |
 
 ## Next recommended linguistic rules
 
-The Proto-Slavic-derived-form path (§4.4) is now implemented — consensus picks the root and the Proto-Slavic rule engine supplies the flavored form via a leakage-free descendant+gloss link — which is the source of the `+proto-derived` gain. Ranked next steps, from the remaining-error analysis:
+The Proto-Slavic-derived-form path (§4.4) is implemented — consensus picks the root and the Proto-Slavic rule engine supplies the flavored form via a leakage-free descendant+gloss link. Yer resolution now uses a genuine **tense-yer rule** (yer before *j → i/y) plus **reflex-guided vocalization** (a lexically-ambiguous weak yer is retained when the reflexes vote to keep it: `*pьsati`→`pisati` vs `*bьrati`→`brati`), and a length-free **reflex-shape-agreement** ranking rule replaced the earlier length heuristic. Ranked next steps, from the remaining-error analysis:
 
 1. **Expand Proto-Slavic link coverage.** Only meanings with a matched `sla-pro` reconstruction get the flavored derivation; raising cache coverage and loosening the link gate (without admitting bad links) directly grows the proto-derived slice.
-2. **Tense-yer / Havlík refinement.** Pure Havlík over-drops yers that Interslavic vocalizes (`*pьsati`→`pisati`); the current POS-aware length guard is a heuristic. A proper tense-yer rule (yers before *j and in specific stems → i/y) would let the proto form win more verbs safely.
-3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6871 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
+2. **Reduce the reconstruction's non-yer errors** (endings, palatalizations) so the proto form can be trusted even when it disagrees with the reflexes — currently such disagreements defer to the reflexes, capping the proto gain.
+3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6863 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
 4. **Secondary-imperfective verb stems** (`-yva-/-iva-/-ava-`) and the agentive `-telj`/abstract `-teljstvo` suffixes, seen repeatedly in the verb/noun error tail.
 5. **POS-specific gender/animacy inference** to pick the right nominal ending where the modern citation forms disagree.

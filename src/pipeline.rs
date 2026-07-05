@@ -29,7 +29,21 @@ pub fn generate(
     if cfg.proto_derived_form {
         if let Some(index) = proto {
             if let Some(l) = proto_link::link(index, input) {
-                let mut pc = crate::proto::generate(&l.entry.word, input.pos, input.gender);
+                // Feed the modern reflexes to the yer resolver so lexicalized
+                // weak-yer retentions (pьsati→pisati) are derived correctly rather
+                // than papered over downstream.
+                let reflexes: Vec<String> = input
+                    .forms
+                    .iter()
+                    .filter(|f| f.modern)
+                    .map(|f| f.norm.latin.clone())
+                    .collect();
+                let mut pc = crate::proto::generate_with_reflexes(
+                    &l.entry.word,
+                    input.pos,
+                    input.gender,
+                    &reflexes,
+                );
                 if !pc.form.is_empty() {
                     // §4.4: the regular derivation is authoritative for the *form*.
                     // A confidently-linked reconstruction therefore outranks the
@@ -38,25 +52,27 @@ pub fn generate(
                     // winning; below the confidence bar the proto form is only a
                     // scored alternative.
                     let consensus_top = candidates.iter().map(|c| c.score).fold(0.0_f32, f32::max);
-                    // Guard: a confident link only *overrides* consensus when the
-                    // derivation doesn't drop material the modern languages kept
-                    // (over-eager Havlík yer-fall, e.g. *pьsati → psati vs the
-                    // consensus/ISV pisati). Same-length flavor upgrades (y/i,
-                    // ě, ć) still win.
-                    let cons_len = candidates
+                    // The reconstruction overrides consensus only when it *agrees*
+                    // with the reflexes on the shape — then it merely supplies the
+                    // flavored letters the consensus guessed (język y/i, blago g/h).
+                    // When it diverges, the reflexes (consensus) win; the proto
+                    // form stays a scored alternative.
+                    let cons_form = candidates
                         .first()
-                        .map(|c| ortho::ascii_skeleton(&c.form).chars().count())
-                        .unwrap_or(0);
-                    let proto_len = ortho::ascii_skeleton(&pc.form).chars().count();
-                    // A shorter proto form is usually an over-dropped tense yer
-                    // for verbs/nouns (wrong), but a correctly-absent fleeting
-                    // vowel for adjectives (right) — so only penalize non-adjs.
-                    let dropped =
-                        proto_len + 1 <= cons_len && input.pos != crate::model::Pos::Adjective;
+                        .map(|c| c.form.clone())
+                        .unwrap_or_default();
+                    let agree = flavor_equivalent(&pc.form, &cons_form);
+                    // Reflex-shape agreement (a principled, length-free rule):
+                    // the reconstruction may supply flavored spelling only when it
+                    // agrees with the reflexes on the segments. On any segmental
+                    // disagreement the living evidence wins (empirically the
+                    // reconstruction's *other* rules are unreliable exactly when it
+                    // parts ways with the reflexes). Adjectives are exempt: their
+                    // consensus citation often carries a spurious fleeting vowel
+                    // the reconstruction rightly drops (dobry vs dobery).
+                    let demote = !agree && input.pos != crate::model::Pos::Adjective;
                     let base = 0.58 + 0.40 * l.confidence;
-                    let score = if dropped {
-                        // Over-eager yer-fall: the consensus kept a vowel proto
-                        // dropped (*pьsati→psati vs pisati). Demote below consensus.
+                    let score = if demote {
                         base.min(consensus_top - 0.03)
                     } else if l.confidence >= 0.60 {
                         base.max(consensus_top + 0.02)
@@ -181,6 +197,16 @@ fn dedupe(candidates: &mut Vec<Candidate>) {
 
 fn proto_rank(c: &Candidate) -> u8 {
     (c.source == CandidateSource::ProtoSlavicRule) as u8
+}
+
+/// True when two forms differ only in etymological *flavor* (ě/ę/ų/å/ȯ/ć/đ, which
+/// fold away in the standard alphabet) and/or the y↔i distinction. This is the
+/// safe condition under which the Proto-Slavic reconstruction may override the
+/// consensus: it refines the spelling of the *same* form rather than changing a
+/// segmental choice the reflexes made.
+fn flavor_equivalent(a: &str, b: &str) -> bool {
+    let fold = |s: &str| ortho::to_standard(&s.to_lowercase()).replace('y', "i");
+    fold(a) == fold(b)
 }
 
 fn round3(x: f32) -> f32 {

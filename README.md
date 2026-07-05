@@ -26,10 +26,10 @@ the official dictionary, **without ever showing the generator the answer**
 
 | Metric | Baseline (prototype) | Production | Δ |
 |---|---:|---:|---:|
-| exact top-1 | 27.38% | **34.15%** | +6.77 pp |
-| normalized top-1 | 34.96% | **40.77%** | +5.81 pp |
-| normalized top-3 | 42.89% | **51.17%** | +8.3 pp |
-| mean normalized edit distance | 0.253 | **0.238** | −0.015 |
+| exact top-1 | 27.38% | **33.83%** | +6.45 pp |
+| normalized top-1 | 34.96% | **40.62%** | +5.66 pp |
+| normalized top-3 | 42.89% | **50.94%** | +8.1 pp |
+| mean normalized edit distance | 0.253 | **0.237** | −0.016 |
 
 **Confidence calibration** (high-confidence candidates match far more often — as intended):
 
@@ -60,10 +60,14 @@ snapshot is under version control).
    Proto-Slavic rule engine derives the *form* with the correct flavored letters
    (`ě/ć/đ/å/ȯ/y`, prothetic `j-/v-`). Each meaning is linked to its `sla-pro`
    reconstruction by a **leakage-free** signal (descendant membership + derived-form
-   similarity + gloss overlap), and a confident link's derivation outranks the consensus
-   surface — with a POS-aware guard so over-eager yer-fall (`*pьsati`→`psati`) doesn't beat
-   the vocalized `pisati`, while an adjective's absent fleeting vowel (`dobry` vs `dobery`)
-   still wins. This rung alone adds **+1.7 pp exact / +2.0 pp top-3**.
+   similarity + gloss overlap), and the derivation supplies the flavored spelling for the
+   consensus form. Yer resolution uses a real **tense-yer rule** (yer before *j → `i`/`y`,
+   `novъjь`→`novy`) and **reflex-guided vocalization** — a lexically-ambiguous weak yer is
+   kept when the reflexes vote to keep it (`*pьsati`→`pisati`) and dropped when they drop
+   it (`*bьrati`→`brati`) — resolved by evidence, not a length heuristic. A length-free
+   **reflex-shape-agreement** rule governs when the reconstruction may override the
+   consensus. This rung adds **+1.4 pp exact / +1.7 pp top-3** over the consensus-only
+   config.
 
 ## What was rejected (regressed the benchmark)
 

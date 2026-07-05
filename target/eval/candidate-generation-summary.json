@@ -660,84 +660,84 @@
       "by_branch_coverage": [
         {
           "branch_coverage": 0,
-          "exact": 0.257009357213974,
-          "n": 214,
-          "normalized": 0.322429895401001
+          "exact": 0.3854166567325592,
+          "n": 96,
+          "normalized": 0.46875
         },
         {
           "branch_coverage": 1,
-          "exact": 0.18685509264469147,
-          "n": 4458,
-          "normalized": 0.22655899822711945
+          "exact": 0.17369548976421356,
+          "n": 4197,
+          "normalized": 0.2130092978477478
         },
         {
           "branch_coverage": 2,
-          "exact": 0.29903388023376465,
-          "n": 6521,
-          "normalized": 0.37586259841918945
+          "exact": 0.29321402311325073,
+          "n": 6705,
+          "normalized": 0.3703206479549408
         },
         {
           "branch_coverage": 3,
-          "exact": 0.5341687798500061,
-          "n": 5107,
-          "normalized": 0.6101429462432861
+          "exact": 0.5248962640762329,
+          "n": 5302,
+          "normalized": 0.603357195854187
         }
       ],
       "by_confidence": {
         "high": {
-          "n": 5820,
-          "normalized": 0.6365979313850403
+          "n": 5328,
+          "normalized": 0.662912905216217
         },
         "low": {
-          "n": 2213,
-          "normalized": 0.09986443817615509
+          "n": 2264,
+          "normalized": 0.10070671141147614
         },
         "medium": {
-          "n": 8267,
-          "normalized": 0.3290189802646637
+          "n": 8708,
+          "normalized": 0.32854846119880676
         }
       },
       "by_pos": {
         "adj": {
-          "exact": 0.22755524516105652,
+          "exact": 0.22790054976940155,
           "n": 2896,
           "normalized": 0.2986878454685211
         },
         "adv": {
-          "exact": 0.1887366771697998,
+          "exact": 0.19178082048892975,
           "n": 657,
-          "normalized": 0.28158295154571533
+          "normalized": 0.2846270799636841
         },
         "noun": {
-          "exact": 0.4286055862903595,
+          "exact": 0.42394164204597473,
           "n": 8362,
-          "normalized": 0.4854101836681366
+          "normalized": 0.4820617139339447
         },
         "num": {
-          "exact": 0.0892857164144516,
+          "exact": 0.0982142835855484,
           "n": 112,
-          "normalized": 0.2232142835855484
+          "normalized": 0.2321428507566452
         },
         "pron": {
-          "exact": 0.3636363744735718,
+          "exact": 0.3232323229312897,
           "n": 99,
-          "normalized": 0.3737373650074005
+          "normalized": 0.3333333432674408
         },
         "verb": {
-          "exact": 0.27623382210731506,
+          "exact": 0.27335888147354126,
           "n": 4174,
-          "normalized": 0.3533780574798584
+          "normalized": 0.35433638095855713
         }
       },
       "description": "Two-stage §4.4: consensus picks the root, the Proto-Slavic rule engine supplies the flavored form (ě/ć/đ/å/ȯ/y) via a leakage-free descendant+gloss link. Requires the proto cache.",
-      "exact_top1": 0.3414723873138428,
-      "mean_normalized_edit_distance": 0.2382388859987259,
+      "exact_top1": 0.3383435606956482,
+      "mean_normalized_edit_distance": 0.2373853623867035,
       "n": 16300,
       "name": "+proto-derived (production)",
-      "normalized_top1": 0.4077300727367401,
-      "normalized_top3": 0.5117177963256836,
-      "normalized_top5": 0.5139877200126648,
-      "skeleton_top1": 0.41153374314308167
+      "normalized_top1": 0.40619632601737976,
+      "normalized_top3": 0.5093864798545837,
+      "normalized_top5": 0.5118404626846313,
+      "skeleton_top1": 0.4095705449581146
     }
   ]
 }
