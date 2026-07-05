@@ -51,27 +51,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Build the site dataset by running the generator over the official
-    /// dictionary's Slavic evidence.
-    Build {
+    /// Generate the static website (one HTML page per meaning + client-side
+    /// search) — no server, GitHub Pages hostable.
+    Export {
         /// Official dictionary (full interslavic-dictionary.com export).
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        /// Output JSON data artifact.
-        #[arg(long, default_value = DEFAULT_DATA)]
-        output: PathBuf,
-        /// Optional Wiktextract dump (reserved for Proto-Slavic augmentation).
-        #[arg(long, default_value = DEFAULT_DUMP)]
-        dump: Option<PathBuf>,
-    },
-    /// Launch a local HTTP server over the generated dataset.
-    Serve {
-        #[arg(long, default_value = DEFAULT_DATA)]
-        data: PathBuf,
-        #[arg(long, default_value = "127.0.0.1")]
-        host: String,
-        #[arg(long, default_value_t = 8765)]
-        port: u16,
+        /// Output directory for the static site.
+        #[arg(long, default_value = "site")]
+        out: PathBuf,
     },
     /// Stream the Wiktextract dump once and cache all Proto-Slavic entries.
     ExtractProto {
@@ -118,12 +106,7 @@ enum Command {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Build {
-            official,
-            output,
-            dump: _dump,
-        } => site::build(&official, &output),
-        Command::Serve { data, host, port } => site::serve(&data, &host, port),
+        Command::Export { official, out } => site::export(&official, &out),
         Command::ExtractProto { dump, out } => dump::extract(&dump, &out),
         Command::Explain { query, official } => eval::explain(&official, &query),
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),

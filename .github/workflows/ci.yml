@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Build
+        run: cargo build --release
+      - name: Test
+        run: cargo test --release
+      - name: Accuracy regression floor (exact top-1 must stay >= 35.5%)
+        run: |
+          out=$(cargo run --release -- evaluate)
+          echo "$out" | tail -12
+          exact=$(echo "$out" | grep -oE 'exact top-1 [0-9]+\.[0-9]+%' | tail -1 | grep -oE '[0-9]+\.[0-9]+')
+          echo "measured exact top-1 = ${exact}%"
+          awk -v e="$exact" 'BEGIN { exit !(e + 0 >= 35.5) }' \
+            || { echo "::error::exact top-1 ${exact}% fell below the 35.5% regression floor"; exit 1; }

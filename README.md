@@ -6,8 +6,9 @@ local Wiktionary-style website that shows, for every meaning, the generated cand
 its rule trace, the Slavic evidence by branch, a calibrated confidence, and whether it
 matches the official dictionary.
 
-No SQLite / database. No hotlinked Wikimedia CSS/JS. Everything is native Rust with an
-in-memory index.
+No SQLite / database and no server: the website is a **statically generated** set of
+HTML pages (one per meaning + client-side search) hostable on GitHub Pages. No hotlinked
+Wikimedia CSS/JS.
 
 ## Core principle
 
@@ -108,7 +109,7 @@ src/
   overrides.rs     manual curation (TOML), excluded from pure-algorithm accuracy
   generator.rs     orchestrator: pipeline + overrides + official match status
   eval.rs          reproducible benchmark, ablation ladder, report writers
-  site.rs          build + serve the local Wiktionary-style website
+  site.rs          static site generator (export) — HTML pages + search index
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
   overrides.toml          manual curation file
@@ -135,9 +136,10 @@ cargo run --release -- evaluate \
   --dump /Users/kisaczka/Desktop/code/english/raw-wiktextract-data.jsonl \
   --official /Users/kisaczka/Desktop/code/interslavic-rs/crates/interslavic/data/dictionary_metadata.tsv
 
-# Build the website dataset and serve it:
-cargo run --release -- build --dump /Users/kisaczka/Desktop/code/english/raw-wiktextract-data.jsonl
-cargo run --release -- serve            # http://127.0.0.1:8765
+# Generate the static website (no server; GitHub Pages hostable):
+cargo run --release -- export --out site
+# Preview locally with any static server, e.g.:
+#   (cd site && python3 -m http.server 8765)   # or: make serve
 
 # Explain one word/gloss (manual spot-check with full rule trace):
 cargo run -- explain duša

@@ -5,4 +5,5 @@ data/wiktionary-lab.sample.json
 data/*.cache.json
 __pycache__/
 *.pyc
-data/proto-slavic.cache.json
+data/wiktionary-lab.json
+/site/
