@@ -47,12 +47,7 @@ impl OfficialEntry {
             && !w.contains('[')
             && matches!(
                 self.pos,
-                Pos::Noun
-                    | Pos::Verb
-                    | Pos::Adjective
-                    | Pos::Adverb
-                    | Pos::Numeral
-                    | Pos::Pronoun
+                Pos::Noun | Pos::Verb | Pos::Adjective | Pos::Adverb | Pos::Numeral | Pos::Pronoun
             )
     }
 
@@ -65,7 +60,9 @@ impl OfficialEntry {
                 "v" => Some(Branch::East),
                 "z" => Some(Branch::West),
                 "j" => Some(Branch::South),
-                other => crate::lang::branch_of(other.trim_end_matches(|c: char| !c.is_alphabetic())),
+                other => {
+                    crate::lang::branch_of(other.trim_end_matches(|c: char| !c.is_alphabetic()))
+                }
             };
             if let Some(br) = branch {
                 if !b.contains(&br) {
@@ -152,7 +149,9 @@ pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
             .unwrap_or_default()
     };
 
-    let lang_codes = ["ru", "be", "uk", "pl", "cs", "sk", "sl", "hr", "sr", "mk", "bg", "cu"];
+    let lang_codes = [
+        "ru", "be", "uk", "pl", "cs", "sk", "sl", "hr", "sr", "mk", "bg", "cu",
+    ];
     let mut out = Vec::new();
     for rec in it {
         if rec.iter().all(|f| f.trim().is_empty()) {

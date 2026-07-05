@@ -142,10 +142,13 @@ impl ConsensusConfig {
 /// Slovene/Croatian/Serbian keep *g and have the metathesized liquid
 /// diphthongs; Czech/Slovak add clean sibilants; East Slavic is last (pleophony).
 const REP_PRIORITY: &[&str] = &[
-    "sl", "hr", "sr", "cs", "sk", "pl", "bg", "mk", "ru", "uk", "be",
+    // *g-preserving languages first (Interslavic keeps *g as g); Czech/Slovak/
+    // Ukrainian/Belarusian, which shifted *g→h, come after so the surface keeps g.
+    "sl", "hr", "sr", "pl", "bg", "mk", "ru", "cs", "sk", "uk", "be",
 ];
-const REP_PRIORITY_NO_SOUTH_BIAS: &[&str] =
-    &["ru", "pl", "cs", "uk", "sk", "sl", "hr", "sr", "bg", "mk", "be"];
+const REP_PRIORITY_NO_SOUTH_BIAS: &[&str] = &[
+    "ru", "pl", "cs", "uk", "sk", "sl", "hr", "sr", "bg", "mk", "be",
+];
 /// Adjective representative priority: long-form languages first (they keep the
 /// full -y/-ý ending and the *y vowel), South last.
 const REP_PRIORITY_ADJ: &[&str] = &[
@@ -266,6 +269,7 @@ pub fn generate(input: &MeaningInput, cfg: &ConsensusConfig) -> Vec<Candidate> {
                 Some(DOC_DESIGN),
             ),
         );
+        cand.trace = trace;
 
         // Evidence: every source form, marked by branch.
         for f in &input.forms {
@@ -352,7 +356,9 @@ fn reconstruct(
                     "tj-dj-palatal",
                     form.clone(),
                     fixed.clone(),
-                    format!("Refleks *tj/*dj (ć/đ) vȯzstanovljeny iz južnoslovjanskej formy ({from})."),
+                    format!(
+                        "Refleks *tj/*dj (ć/đ) vȯzstanovljeny iz južnoslovjanskej formy ({from})."
+                    ),
                     Some(DOC_ORTHO),
                 ));
                 form = fixed;
@@ -387,7 +393,9 @@ fn reconstruct(
                     "y-recovery",
                     form.clone(),
                     fixed.clone(),
-                    format!("*y vȯzstanovljeny iz {donor} (jug slil *y→i, medžuslovjansky drži y)."),
+                    format!(
+                        "*y vȯzstanovljeny iz {donor} (jug slil *y→i, medžuslovjansky drži y)."
+                    ),
                     Some("https://interslavic.fun/learn/phonology/"),
                 ));
                 form = fixed;
@@ -406,7 +414,8 @@ fn reconstruct(
                     "jat-reflex",
                     form.clone(),
                     fixed.clone(),
-                    "Jať (ě) vȯzstanovljeny iz medžuvětvovogo refleksa (ru e / uk i / pl ie).".to_string(),
+                    "Jať (ě) vȯzstanovljeny iz medžuvětvovogo refleksa (ru e / uk i / pl ie)."
+                        .to_string(),
                     Some("https://interslavic.fun/learn/phonology/"),
                 ));
                 form = fixed;
@@ -513,9 +522,7 @@ fn nasal_from_polish(word: &str, pl: &str) -> Option<String> {
         return None;
     }
     let pl_slots = vowel_slots(pl);
-    let nasal = pl_slots
-        .iter()
-        .find(|(_, v, _)| *v == 'ę' || *v == 'ǫ')?;
+    let nasal = pl_slots.iter().find(|(_, v, _)| *v == 'ę' || *v == 'ǫ')?;
     let target = if nasal.1 == 'ę' { 'ę' } else { 'ų' };
     let word_slots = vowel_slots(word);
     let slot = word_slots
@@ -531,10 +538,7 @@ fn nasal_from_polish(word: &str, pl: &str) -> Option<String> {
 
 /// Reconstruct jat: if East shows `e`/`ě` at a vowel slot where Ukrainian shows
 /// `i` and/or Czech/Slovak/South shows a differing front vowel, mark ě.
-fn jat_reconstruction(
-    word: &str,
-    per_lang: &BTreeMap<&str, &SourceForm>,
-) -> Option<String> {
+fn jat_reconstruction(word: &str, per_lang: &BTreeMap<&str, &SourceForm>) -> Option<String> {
     // Signature: Russian has `e` and Ukrainian has `i` in the same slot.
     let ru = per_lang.get("ru")?;
     let uk = per_lang.get("uk")?;
@@ -568,10 +572,7 @@ fn jat_reconstruction(
 
 /// Recover *y where a South-Slavic representative has i but an East/West cognate
 /// (Russian/Polish/Czech, which preserve *y) has y at the aligned slot.
-fn recover_y(
-    word: &str,
-    per_lang: &BTreeMap<&str, &SourceForm>,
-) -> Option<(String, String)> {
+fn recover_y(word: &str, per_lang: &BTreeMap<&str, &SourceForm>) -> Option<(String, String)> {
     if !word.contains('i') {
         return None;
     }
@@ -632,7 +633,10 @@ fn vowel_slots(word: &str) -> Vec<(usize, char, usize)> {
 }
 
 fn is_vowelish(ch: char) -> bool {
-    matches!(ch, 'a' | 'e' | 'i' | 'o' | 'u' | 'y' | 'ě' | 'ę' | 'ǫ' | 'ų' | 'å' | 'ȯ')
+    matches!(
+        ch,
+        'a' | 'e' | 'i' | 'o' | 'u' | 'y' | 'ě' | 'ę' | 'ǫ' | 'ų' | 'å' | 'ȯ'
+    )
 }
 
 fn is_cons(ch: char) -> bool {

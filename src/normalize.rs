@@ -227,7 +227,10 @@ fn translit_latin(lang: &str, s: &str) -> String {
             t = t.replace("ch", "h").replace("dž", "dž");
         }
         "sl" | "hr" | "bs" => {
-            t = t.replace("dž", "dž").replace("lj", "lj").replace("nj", "nj");
+            t = t
+                .replace("dž", "dž")
+                .replace("lj", "lj")
+                .replace("nj", "nj");
         }
         _ => {}
     }

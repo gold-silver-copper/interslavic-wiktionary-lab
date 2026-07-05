@@ -251,11 +251,18 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
         .iter()
         .find(|e| e.isv.to_lowercase() == ql)
         .or_else(|| {
+            entries.iter().find(|e| {
+                e.english
+                    .to_lowercase()
+                    .split(&[',', ';'][..])
+                    .any(|g| g.trim() == ql)
+            })
+        })
+        .or_else(|| {
             entries
                 .iter()
-                .find(|e| e.english.to_lowercase().split(&[',', ';'][..]).any(|g| g.trim() == ql))
-        })
-        .or_else(|| entries.iter().find(|e| e.english.to_lowercase().contains(&ql)));
+                .find(|e| e.english.to_lowercase().contains(&ql))
+        });
 
     let Some(entry) = entry else {
         println!("No official entry found matching '{query}'.");
@@ -270,7 +277,11 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
     println!("Gloss:    {}", entry.english);
     println!("POS:      {} ({})", entry.pos.code(), entry.pos_raw);
     println!("Official: {}", entry.isv);
-    println!("Status:   {:?} ({})", gen.match_status, gen.match_status.label());
+    println!(
+        "Status:   {:?} ({})",
+        gen.match_status,
+        gen.match_status.label()
+    );
     println!("\nEvidence by branch:");
     for f in &input.forms {
         println!(
@@ -293,7 +304,10 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
             c.source.label()
         );
         for step in &c.trace {
-            println!("       · {}: {} -> {} ({})", step.id, step.before, step.after, step.explanation);
+            println!(
+                "       · {}: {} -> {} ({})",
+                step.id, step.before, step.after, step.explanation
+            );
         }
         for w in &c.warnings {
             println!("       ! {w}");
@@ -366,7 +380,9 @@ pub fn run(official_path: &Path, _dump: Option<&Path>, out_dir: &Path) -> Result
             let rb = &runs[b];
             Bucket::rate(ra.exact, ra.n)
                 .total_cmp(&Bucket::rate(rb.exact, rb.n))
-                .then(Bucket::rate(ra.normalized, ra.n).total_cmp(&Bucket::rate(rb.normalized, rb.n)))
+                .then(
+                    Bucket::rate(ra.normalized, ra.n).total_cmp(&Bucket::rate(rb.normalized, rb.n)),
+                )
         })
         .unwrap();
     let best = &runs[best_idx];
@@ -510,7 +526,10 @@ fn write_report_md(
     )?;
     let prod_norm = Bucket::rate(best.normalized, best.n);
     let prod_exact = Bucket::rate(best.exact, best.n);
-    writeln!(s, "| Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |")?;
+    writeln!(
+        s,
+        "| Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |"
+    )?;
     writeln!(s, "|---|---:|---:|---:|---:|")?;
     for r in rejected {
         writeln!(
@@ -659,8 +678,11 @@ fn classify_error(r: &EntryResult) -> &'static str {
 }
 
 fn write_diffs(out_dir: &Path, baseline: &RunMetrics, best: &RunMetrics) -> Result<()> {
-    let base_map: BTreeMap<&str, &EntryResult> =
-        baseline.results.iter().map(|r| (r.id.as_str(), r)).collect();
+    let base_map: BTreeMap<&str, &EntryResult> = baseline
+        .results
+        .iter()
+        .map(|r| (r.id.as_str(), r))
+        .collect();
     let mut regressions = String::from("id,gloss,pos,official,baseline_pred,final_pred\n");
     let mut improvements = String::from("id,gloss,pos,official,baseline_pred,final_pred\n");
     for r in &best.results {

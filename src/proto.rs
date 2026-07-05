@@ -52,13 +52,27 @@ fn clean(input: &str, trace: &mut Vec<RuleStep>) -> String {
         }
         out.push(debase_vowel(ch));
     }
-    step(trace, "clean", &before, &out, "Odstranjeny rekonstrukcijny znak i akcenty.", ORTHO);
+    step(
+        trace,
+        "clean",
+        &before,
+        &out,
+        "Odstranjeny rekonstrukcijny znak i akcenty.",
+        ORTHO,
+    );
     out
 }
 
 fn x_to_h(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let out = input.replace('x', "h").replace('X', "H");
-    step(trace, "x-to-h", input, &out, "Praslovjansky *x → medžuslovjansky h.", PHON);
+    step(
+        trace,
+        "x-to-h",
+        input,
+        &out,
+        "Praslovjansky *x → medžuslovjansky h.",
+        PHON,
+    );
     out
 }
 
@@ -83,7 +97,14 @@ fn palatals(input: &str, trace: &mut Vec<RuleStep>) -> String {
     }
     // Proto palatal ligatures if present.
     out = out.replace('ť', "ć").replace('ď', "đ");
-    step(trace, "tj-dj", input, &out, "Refleksy *tj→ć, *dj→đ, *kt→ć, *stj→šć.", ORTHO);
+    step(
+        trace,
+        "tj-dj",
+        input,
+        &out,
+        "Refleksy *tj→ć, *dj→đ, *kt→ć, *stj→šć.",
+        ORTHO,
+    );
     out
 }
 
@@ -124,7 +145,14 @@ fn liquid_metathesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
 
 fn nasals(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let out = input.replace('ǫ', "ų").replace('ę', "ę");
-    step(trace, "nasal-vowels", input, &out, "Nosove glasy: *ę→ę, *ǫ→ų.", PHON);
+    step(
+        trace,
+        "nasal-vowels",
+        input,
+        &out,
+        "Nosove glasy: *ę→ę, *ǫ→ų.",
+        PHON,
+    );
     out
 }
 
@@ -210,18 +238,29 @@ fn endings(input: &str, pos: Pos, gender: Option<Gender>, trace: &mut Vec<RuleSt
         }
         _ => {}
     }
-    step(trace, "endings", input, &out, "Prilagoženje zakončenja po časti rěči.", STEEN);
+    step(
+        trace,
+        "endings",
+        input,
+        &out,
+        "Prilagoženje zakončenja po časti rěči.",
+        STEEN,
+    );
     out
 }
 
 fn finalize(input: &str, trace: &mut Vec<RuleStep>) -> String {
     // Drop any yers that survived (e.g. no strong reflex chosen), tidy.
-    let out: String = input
-        .chars()
-        .filter(|c| *c != 'ъ' && *c != 'ь')
-        .collect();
+    let out: String = input.chars().filter(|c| *c != 'ъ' && *c != 'ь').collect();
     let out = out.trim_matches([' ', '-']).to_string();
-    step(trace, "finalize", input, &out, "Uklonjene ostatne jery i čiščenje.", ORTHO);
+    step(
+        trace,
+        "finalize",
+        input,
+        &out,
+        "Uklonjene ostatne jery i čiščenje.",
+        ORTHO,
+    );
     out
 }
 
@@ -258,4 +297,56 @@ fn is_full_vowel(ch: char) -> bool {
 
 fn ends_cons(s: &str) -> bool {
     s.chars().last().map(is_cons).unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::orthography::normalized_match;
+
+    fn gen(proto: &str, pos: Pos) -> String {
+        generate(proto, pos, None).form
+    }
+
+    #[test]
+    fn yer_fall_and_x_to_h() {
+        // Final weak yer drops; *x → h.
+        assert!(normalized_match(&gen("*bogъ", Pos::Noun), "bog"));
+        assert!(normalized_match(&gen("*duxъ", Pos::Noun), "duh"));
+    }
+
+    #[test]
+    fn strong_yer_vocalizes() {
+        // *sъnъ: final ъ weak (drops), first ъ strong → ȯ (→o standard).
+        assert!(normalized_match(&gen("*sъnъ", Pos::Noun), "son"));
+        // *pьsъ: strong front yer → e.
+        assert!(normalized_match(&gen("*pьsъ", Pos::Noun), "pes"));
+    }
+
+    #[test]
+    fn liquid_metathesis() {
+        assert!(normalized_match(&gen("*gordъ", Pos::Noun), "grad"));
+        assert!(normalized_match(&gen("*melko", Pos::Noun), "mleko"));
+        assert!(normalized_match(&gen("*bergъ", Pos::Noun), "breg"));
+    }
+
+    #[test]
+    fn palatal_outcomes() {
+        assert!(normalized_match(&gen("*světja", Pos::Noun), "svěća"));
+        assert!(normalized_match(&gen("*medja", Pos::Noun), "međa"));
+        assert!(normalized_match(&gen("*noktь", Pos::Noun), "noć"));
+    }
+
+    #[test]
+    fn nasal_vowels() {
+        assert!(normalized_match(&gen("*rǫka", Pos::Noun), "ruka"));
+        assert!(normalized_match(&gen("*pętь", Pos::Noun), "pet"));
+    }
+
+    #[test]
+    fn stable_words_and_infinitive() {
+        assert!(normalized_match(&gen("*voda", Pos::Noun), "voda"));
+        assert!(normalized_match(&gen("*duša", Pos::Noun), "duša"));
+        assert!(normalized_match(&gen("*pisati", Pos::Verb), "pisati"));
+    }
 }

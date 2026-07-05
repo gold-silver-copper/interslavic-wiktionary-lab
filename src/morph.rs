@@ -83,14 +83,24 @@ fn swap(word: &str, suffix: &str, rep: &str) -> String {
 fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &'static str)> {
     // Adjectival internationalisms (must run before generic -ny handling).
     if pos == Pos::Adjective {
-        for suf in ["ický", "icki", "ički", "ičky", "ičeskij", " yczny", "yczny", "ičen"] {
+        for suf in [
+            "ický", "icki", "ički", "ičky", "ičeskij", " yczny", "yczny", "ičen",
+        ] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ičny"), "intl-ic-ical", "Latinsky -ic/-ical → medžuslovjansky -ičny."));
+                return Some((
+                    swap(word, suf, "ičny"),
+                    "intl-ic-ical",
+                    "Latinsky -ic/-ical → medžuslovjansky -ičny.",
+                ));
             }
         }
         for suf in ["ično", "ično", "ičny", "ičné", "ične"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ičny"), "intl-ic-ical", "Prilagoženje pridavnika -ičny."));
+                return Some((
+                    swap(word, suf, "ičny"),
+                    "intl-ic-ical",
+                    "Prilagoženje pridavnika -ičny.",
+                ));
             }
         }
         // -al(is): includes the South-Slavic predicative short forms with the
@@ -99,29 +109,49 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
             "alny", "alni", "alné", "alno", "aľny", "alnyj", "alen", "alan", "aľen", "alën",
         ] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "alny"), "intl-al", "Latinsky -al(is) → -alny."));
+                return Some((
+                    swap(word, suf, "alny"),
+                    "intl-al",
+                    "Latinsky -al(is) → -alny.",
+                ));
             }
         }
         for suf in [
             "ativny", "ativni", "ativen", "ativan", "ativna", "ativno", "atȯvny",
         ] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ativny"), "intl-ative", "Latinsky -ative → -ativny."));
+                return Some((
+                    swap(word, suf, "ativny"),
+                    "intl-ative",
+                    "Latinsky -ative → -ativny.",
+                ));
             }
         }
         for suf in ["ivny", "ivni", "ivnyj", "ivné", "iven", "ivan"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ivny"), "intl-ive", "Latinsky -ive → -ivny."));
+                return Some((
+                    swap(word, suf, "ivny"),
+                    "intl-ive",
+                    "Latinsky -ive → -ivny.",
+                ));
             }
         }
         for suf in ["ozny", "ózny", "osny", "ozni"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ozny"), "intl-ous", "Latinsky -ous → -ozny."));
+                return Some((
+                    swap(word, suf, "ozny"),
+                    "intl-ous",
+                    "Latinsky -ous → -ozny.",
+                ));
             }
         }
         for suf in ["ijny", "ijni", "yjny", "ijné"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "ijny"), "intl-ijny", "Pridavnik od internacionalizma → -ijny."));
+                return Some((
+                    swap(word, suf, "ijny"),
+                    "intl-ijny",
+                    "Pridavnik od internacionalizma → -ijny.",
+                ));
             }
         }
     }
@@ -140,17 +170,29 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
         }
         for suf in ["cija", "cije", "cja", "cyja", "ciju", "cijo", "ция"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "cija"), "intl-tion", "Anglijsky -tion → -cija."));
+                return Some((
+                    swap(word, suf, "cija"),
+                    "intl-tion",
+                    "Anglijsky -tion → -cija.",
+                ));
             }
         }
         for suf in ["zija", "zije", "zja", "ziju"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "zija"), "intl-sion", "Anglijsky -sion → -zija."));
+                return Some((
+                    swap(word, suf, "zija"),
+                    "intl-sion",
+                    "Anglijsky -sion → -zija.",
+                ));
             }
         }
         for suf in ["sija", "sije", "sju"] {
             if word.ends_with(suf) {
-                return Some((swap(word, suf, "sija"), "intl-ssion", "Anglijsky -ssion → -sija."));
+                return Some((
+                    swap(word, suf, "sija"),
+                    "intl-ssion",
+                    "Anglijsky -ssion → -sija.",
+                ));
             }
         }
     }
@@ -158,16 +200,24 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
     // Verb internationalisms: Latin -ate/-ise/-ize / German -ieren → -ovati.
     if pos == Pos::Verb {
         for suf in [
-            "ovati", "ować", "ovať", "ovat", " irovati", "irovať", "izovati", "izovať",
-            "izirati", "izovat", "ovac",
+            "ovati", "ować", "ovať", "ovat", " irovati", "irovať", "izovati", "izovať", "izirati",
+            "izovat", "ovac",
         ] {
             if word.ends_with(suf) && !word.ends_with("ovati") {
                 // Normalize any -ova(ć/ť/t/c) tail to -ovati.
                 if let Some(pos_ova) = word.rfind("ova") {
                     let stem = &word[..pos_ova];
-                    return Some((format!("{stem}ovati"), "intl-verb", "Internacionalny glagol → -ovati."));
+                    return Some((
+                        format!("{stem}ovati"),
+                        "intl-verb",
+                        "Internacionalny glagol → -ovati.",
+                    ));
                 }
-                return Some((swap(word, suf, "ovati"), "intl-verb", "Internacionalny glagol → -ovati."));
+                return Some((
+                    swap(word, suf, "ovati"),
+                    "intl-verb",
+                    "Internacionalny glagol → -ovati.",
+                ));
             }
         }
     }
@@ -244,14 +294,30 @@ fn adjective_lemma(word: &str) -> (String, &'static str, &'static str) {
     };
     let soft = stem_is_soft(&stem);
     let ending = if soft { "i" } else { "y" };
-    (format!("{stem}{ending}"), if soft { "adj-soft-i" } else { "adj-hard-y" }, "Pridavnik: tvŕdy -y / mękky -i.")
+    (
+        format!("{stem}{ending}"),
+        if soft { "adj-soft-i" } else { "adj-hard-y" },
+        "Pridavnik: tvŕdy -y / mękky -i.",
+    )
 }
 
 fn adverb_lemma(word: &str) -> Option<(String, &'static str, &'static str)> {
     // Abstract/international adverbs: -alno, keep -o; convert -e→-o only after
     // hard stems is risky, so only normalize the clear -aľno case.
     if word.ends_with("alno") || word.ends_with("aľno") {
-        return Some((swap(word, if word.ends_with("aľno") { "aľno" } else { "alno" }, "alno"), "adv-alno", "Prislov -alno."));
+        return Some((
+            swap(
+                word,
+                if word.ends_with("aľno") {
+                    "aľno"
+                } else {
+                    "alno"
+                },
+                "alno",
+            ),
+            "adv-alno",
+            "Prislov -alno.",
+        ));
     }
     None
 }
@@ -260,12 +326,20 @@ fn noun_lemma(word: &str) -> Option<(String, &'static str, &'static str)> {
     // Abstract nouns in -ost take the soft ť; -alnost → -aľnosť.
     for suf in ["alnost", "aljnost", "alnosť", "aľnost"] {
         if word.ends_with(suf) {
-            return Some((swap(word, suf, "aľnosť"), "noun-alnost", "Odvlečeny imennik -aľnosť."));
+            return Some((
+                swap(word, suf, "aľnosť"),
+                "noun-alnost",
+                "Odvlečeny imennik -aľnosť.",
+            ));
         }
     }
     for suf in ["nost", "nast", "nosc", "ność", "ность"] {
         if word.ends_with(suf) {
-            return Some((swap(word, suf, "nosť"), "noun-ost", "Odvlečeny imennik -osť."));
+            return Some((
+                swap(word, suf, "nosť"),
+                "noun-ost",
+                "Odvlečeny imennik -osť.",
+            ));
         }
     }
     None
@@ -288,7 +362,11 @@ fn normalize_prefix(word: &str) -> Option<(String, &'static str, &'static str)> 
     // *perd- : pred-/pred → prěd- (jat).
     if let Some(rest) = word.strip_prefix("pred") {
         if rest.chars().count() >= 3 {
-            return Some((format!("prěd{rest}"), "prefix-perd", "Predpona *perd- → prěd-."));
+            return Some((
+                format!("prěd{rest}"),
+                "prefix-perd",
+                "Predpona *perd- → prěd-.",
+            ));
         }
     }
     None
@@ -301,8 +379,10 @@ fn is_letter(c: char) -> bool {
 /// A stem is grammatically soft when it ends in a hushing/soft consonant.
 fn stem_is_soft(stem: &str) -> bool {
     let last = stem.chars().last().unwrap_or(' ');
-    matches!(last, 'š' | 'ž' | 'č' | 'c' | 'j' | 'ć' | 'đ' | 'ń' | 'ľ' | 'ŕ')
-        || stem.ends_with("lj")
+    matches!(
+        last,
+        'š' | 'ž' | 'č' | 'c' | 'j' | 'ć' | 'đ' | 'ń' | 'ľ' | 'ŕ'
+    ) || stem.ends_with("lj")
         || stem.ends_with("nj")
         || stem.ends_with("dž")
 }
