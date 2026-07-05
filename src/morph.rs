@@ -17,17 +17,41 @@ const DERIV: &str = "https://interslavic.fun/learn/vocabulary/derivation/";
 const STEEN: &str = "https://steen.free.fr/interslavic/grammar.html";
 
 /// Normalize the lemma ending. `intl` gates the internationalism table; `endings`
-/// gates the native POS endings.
+/// gates the native POS endings; `prefixes` gates verbal/nominal prefix
+/// normalization.
 pub fn normalize_lemma(
     word: &str,
     pos: Pos,
     intl: bool,
     endings: bool,
+    prefixes: bool,
 ) -> (String, Vec<RuleStep>) {
     let mut trace = Vec::new();
     let mut w = word.to_string();
 
+    if prefixes {
+        if let Some((next, id, why)) = normalize_prefix(&w) {
+            if next != w {
+                trace.push(RuleStep::new(id, &w, &next, why, Some(STEEN)));
+                w = next;
+            }
+        }
+    }
+
     if intl {
+        // §5.1: the Latin/Greek diphthongs au/eu are adapted to av/ev. Native
+        // Slavic vocabulary has no /au/ or /eu/, so this only touches loanwords.
+        let loan = w.replace("eu", "ev").replace("au", "av").replace("th", "t");
+        if loan != w {
+            trace.push(RuleStep::new(
+                "intl-diphthong",
+                &w,
+                &loan,
+                "Grečsko-latinske au→av, eu→ev, th→t.",
+                Some(DERIV),
+            ));
+            w = loan;
+        }
         if let Some((next, id, why)) = international_ending(&w, pos) {
             if next != w {
                 trace.push(RuleStep::new(id, &w, &next, why, Some(DERIV)));
@@ -69,12 +93,23 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
                 return Some((swap(word, suf, "ičny"), "intl-ic-ical", "Prilagoženje pridavnika -ičny."));
             }
         }
-        for suf in ["alny", "alni", "alné", "alno", "aľny", "alnyj"] {
+        // -al(is): includes the South-Slavic predicative short forms with the
+        // fleeting vowel (-alen/-alan) that must collapse, not gain a -y.
+        for suf in [
+            "alny", "alni", "alné", "alno", "aľny", "alnyj", "alen", "alan", "aľen", "alën",
+        ] {
             if word.ends_with(suf) {
                 return Some((swap(word, suf, "alny"), "intl-al", "Latinsky -al(is) → -alny."));
             }
         }
-        for suf in ["ivny", "ivni", "ivnyj", "ivné"] {
+        for suf in [
+            "ativny", "ativni", "ativen", "ativan", "ativna", "ativno", "atȯvny",
+        ] {
+            if word.ends_with(suf) {
+                return Some((swap(word, suf, "ativny"), "intl-ative", "Latinsky -ative → -ativny."));
+            }
+        }
+        for suf in ["ivny", "ivni", "ivnyj", "ivné", "iven", "ivan"] {
             if word.ends_with(suf) {
                 return Some((swap(word, suf, "ivny"), "intl-ive", "Latinsky -ive → -ivny."));
             }
@@ -234,6 +269,33 @@ fn noun_lemma(word: &str) -> Option<(String, &'static str, &'static str)> {
         }
     }
     None
+}
+
+/// Normalize the common verbal/nominal prefixes to their Interslavic shape.
+/// Fires only word-initially and only when a plausible root follows.
+fn normalize_prefix(word: &str) -> Option<(String, &'static str, &'static str)> {
+    // *orz- : Russian raz-/ras-, Polish/Ukrainian roz-/ros- → ISV råz-.
+    for pre in ["raz", "ras", "roz", "ros", "rȯz", "råz"] {
+        if let Some(rest) = word.strip_prefix(pre) {
+            if rest.chars().count() >= 3 && rest.chars().next().map(is_letter).unwrap_or(false) {
+                if pre == "råz" {
+                    return None;
+                }
+                return Some((format!("råz{rest}"), "prefix-orz", "Predpona *orz- → råz-."));
+            }
+        }
+    }
+    // *perd- : pred-/pred → prěd- (jat).
+    if let Some(rest) = word.strip_prefix("pred") {
+        if rest.chars().count() >= 3 {
+            return Some((format!("prěd{rest}"), "prefix-perd", "Predpona *perd- → prěd-."));
+        }
+    }
+    None
+}
+
+fn is_letter(c: char) -> bool {
+    c.is_alphabetic()
 }
 
 /// A stem is grammatically soft when it ends in a hushing/soft consonant.

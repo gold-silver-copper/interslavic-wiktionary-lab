@@ -70,6 +70,8 @@ pub struct ConsensusConfig {
     pub internationalism: bool,
     /// Use the six-subgroup vote (§4.1) instead of three coarse branches.
     pub six_subgroup_vote: bool,
+    /// Normalize verbal/nominal prefixes (råz-, prěd-).
+    pub prefix_normalization: bool,
 }
 
 impl ConsensusConfig {
@@ -86,6 +88,7 @@ impl ConsensusConfig {
             lemma_endings: false,
             internationalism: false,
             six_subgroup_vote: false,
+            prefix_normalization: false,
         }
     }
 
@@ -100,6 +103,7 @@ impl ConsensusConfig {
             lemma_endings: true,
             internationalism: true,
             six_subgroup_vote: true,
+            prefix_normalization: true,
         }
     }
 }
@@ -357,9 +361,14 @@ fn reconstruct(
     // POS-aware lemma ending normalization: internationalism table (§5.2) and
     // native endings (§3), both individually gated so the benchmark can
     // attribute their effect.
-    if cfg.internationalism || cfg.lemma_endings {
-        let (fixed, steps) =
-            crate::morph::normalize_lemma(&form, input.pos, cfg.internationalism, cfg.lemma_endings);
+    if cfg.internationalism || cfg.lemma_endings || cfg.prefix_normalization {
+        let (fixed, steps) = crate::morph::normalize_lemma(
+            &form,
+            input.pos,
+            cfg.internationalism,
+            cfg.lemma_endings,
+            cfg.prefix_normalization,
+        );
         form = fixed;
         trace.extend(steps);
     } else {

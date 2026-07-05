@@ -38,7 +38,9 @@ fn ladder() -> Vec<Rung> {
     endings.lemma_endings = true;
     let mut intl = endings;
     intl.internationalism = true;
-    let mut deple = intl;
+    let mut prefix = intl;
+    prefix.prefix_normalization = true;
+    let mut deple = prefix;
     deple.depleophony = true;
     let mut nasal = deple;
     nasal.nasal_from_polish = true;
@@ -53,6 +55,7 @@ fn ladder() -> Vec<Rung> {
         Rung { name: "+six-subgroup", description: "Six dialect-subgroup vote with population tie-break (§4.1).", cfg: six },
         Rung { name: "+lemma-endings", description: "Native POS lemma endings: noun nom.sg, adj -y/-i, verb -ti (§3).", cfg: endings },
         Rung { name: "+internationalism", description: "Internationalism ending table: -izm/-cija/-ičny/-alny/-ovati (§5.2).", cfg: intl },
+        Rung { name: "+prefixes", description: "Normalize verbal/nominal prefixes råz-/prěd- (§2).", cfg: prefix },
         Rung { name: "+depleophony", description: "Undo East-Slavic pleophony / liquid metathesis (§2).", cfg: deple },
         Rung { name: "+nasals", description: "Recover ę/ų nasal vowels from Polish (§2 Phase C).", cfg: nasal },
         Rung { name: "+palatals", description: "Recover ć/đ (*tj/*dj) from South Slavic (§2 Phase B).", cfg: palatal },
