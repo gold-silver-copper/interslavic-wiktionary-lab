@@ -557,7 +557,9 @@ fn is_reflex_vowel(c: char) -> bool {
 }
 
 fn is_reflex_cons(c: char) -> bool {
-    c.is_alphabetic() && !is_reflex_vowel(c) && c != 'j' && c != 'ъ' && c != 'ь'
+    // Count `j` as a consonant so reflex alignment matches the proto-side
+    // consonant count (`is_cons` counts it too): *vojьna → vojna, not vojana.
+    c.is_alphabetic() && !is_reflex_vowel(c) && c != 'ъ' && c != 'ь'
 }
 
 fn is_cons(ch: char) -> bool {

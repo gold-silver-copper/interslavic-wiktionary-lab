@@ -86,6 +86,9 @@ pub struct ConsensusConfig {
     /// Prefer the internationalism cluster over native synonyms (ISV design
     /// criteria favor international roots for modern vocabulary).
     pub internationalism_preference: bool,
+    /// Drop a South-Slavic adjective's fleeting vowel before -y, gated on the
+    /// East/West long form showing the two consonants adjacent (dobar→dobry).
+    pub adj_fleeting_drop: bool,
 }
 
 impl ConsensusConfig {
@@ -107,6 +110,7 @@ impl ConsensusConfig {
             adj_longform_rep: false,
             proto_derived_form: false,
             internationalism_preference: false,
+            adj_fleeting_drop: false,
         }
     }
 
@@ -130,6 +134,7 @@ impl ConsensusConfig {
             // Proto-Slavic reconstruction (kept — improves exact match).
             proto_derived_form: true,
             internationalism_preference: true,
+            adj_fleeting_drop: true,
             // Rejected by the benchmark (regress accuracy in the consensus path):
             y_recovery: false,
             adj_longform_rep: false,
@@ -152,6 +157,7 @@ impl ConsensusConfig {
             adj_longform_rep: true,
             proto_derived_form: true,
             internationalism_preference: true,
+            adj_fleeting_drop: true,
         }
     }
 }
@@ -453,6 +459,27 @@ fn reconstruct(
         }
     }
 
+    // Repair 5: drop a South-Slavic adjective's fleeting vowel (dobar→dobr,
+    // besplatan→besplatn) before the -y ending is appended — but only when an
+    // East/West cognate confirms the two flanking consonants are adjacent (so
+    // real root vowels like zelen- are preserved). Fixes the epenthesis bug
+    // without the pl y/i noise the long-form-representative trap imported.
+    if cfg.adj_fleeting_drop && input.pos == Pos::Adjective {
+        if let Some(fixed) = drop_adj_fleeting(&form, per_lang) {
+            if fixed != form {
+                trace.push(RuleStep::new(
+                    "adj-fleeting-vowel",
+                    form.clone(),
+                    fixed.clone(),
+                    "Beglyj glasnik kratkoj južnoslovjanskoj formy prilagatelnogo padaje (dobar→dobr)."
+                        .to_string(),
+                    Some("https://interslavic.fun/learn/grammar/nouns/"),
+                ));
+                form = fixed;
+            }
+        }
+    }
+
     // POS-aware lemma ending normalization: internationalism table (§5.2) and
     // native endings (§3), both individually gated so the benchmark can
     // attribute their effect.
@@ -564,6 +591,41 @@ fn nasal_from_polish(word: &str, pl: &str) -> Option<String> {
         return Some(chars.into_iter().collect());
     }
     None
+}
+
+/// Drop the fleeting vowel of a South-Slavic short adjective (final C-V-C where
+/// the vowel is fleeting), confirmed by an East/West cognate showing the two
+/// consonants adjacent. `dobar`→`dobr` (ru `dobr-yj`), but `zelen` stays (ru
+/// `zelen-yj` keeps the vowel).
+fn drop_adj_fleeting(form: &str, per_lang: &BTreeMap<&str, &SourceForm>) -> Option<String> {
+    let chars: Vec<char> = form.chars().collect();
+    let n = chars.len();
+    if n < 3 {
+        return None;
+    }
+    // Pattern: ...C1 V C2$  (final consonant, preceded by a vowel, preceded by a
+    // consonant). The vowel is a candidate fleeting vowel.
+    let (c1, v, c2) = (chars[n - 3], chars[n - 2], chars[n - 1]);
+    if !(is_cons(c1) && ortho::is_vowel(v) && is_cons(c2)) {
+        return None;
+    }
+    if !matches!(v, 'a' | 'e' | 'o' | 'ȯ' | 'å') {
+        return None;
+    }
+    // Adjacency evidence: an East/West long form has C1C2 with no vowel between.
+    let pair = ortho::ascii_skeleton(&format!("{c1}{c2}"));
+    let has_adjacency = ["ru", "pl", "cs", "sk", "uk", "be"].iter().any(|d| {
+        per_lang
+            .get(*d)
+            .map(|f| ortho::ascii_skeleton(&f.norm.latin).contains(&pair))
+            .unwrap_or(false)
+    });
+    if !has_adjacency {
+        return None;
+    }
+    let mut out: String = chars[..n - 2].iter().collect();
+    out.push(c2);
+    Some(out)
 }
 
 /// Reconstruct jat: if East shows `e`/`ě` at a vowel slot where Ukrainian shows

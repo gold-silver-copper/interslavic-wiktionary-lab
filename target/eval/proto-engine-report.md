@@ -4,15 +4,15 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 
 - Benchmark entries with modern evidence: **16300**
 - Confidently linked to a Proto-Slavic entry: **2858** (17.5% coverage)
-- On the linked subset: **exact 43.25%**, **normalized 48.04%**
+- On the linked subset: **exact 43.39%**, **normalized 48.18%**
 
 ## Proto-engine accuracy by POS (linked subset)
 
 | POS | linked | exact | normalized |
 |---|---:|---:|---:|
-| adj | 322 | 28.26% | 30.43% |
+| adj | 322 | 28.57% | 30.75% |
 | adv | 65 | 10.77% | 15.38% |
-| noun | 1638 | 49.51% | 56.23% |
+| noun | 1638 | 49.69% | 56.41% |
 | num | 15 | 13.33% | 20.00% |
 | pron | 40 | 75.00% | 77.50% |
 | verb | 778 | 37.92% | 39.85% |
@@ -36,7 +36,7 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | brotherhood | bratstvo | bratrstvo | *bratrьstvo | 0.85 |
 | mill | mlyn | mlin | *mъlinъ | 0.83 |
 | hornbeam | grab | grabr | *grabrъ | 0.81 |
-| yoke | jaŕmo | armo | *arьmo | 0.81 |
+| yoke | jaŕmo | aramo | *arьmo | 0.81 |
 | mistletoe | jemela | emela | *emela | 0.81 |
 | goodness | dobrosť | dobrota | *dobrota | 0.81 |
 | infertile, barren | jalovy | jalov | *jalovъ | 0.81 |
@@ -46,7 +46,6 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | ram | oven | baran | *baranъ | 0.81 |
 | lead | svinec | olovo | *olovo | 0.81 |
 | today | tutdenj | danes | *dьnьsь | 0.81 |
-| war | vojna | vojana | *vojьna | 0.81 |
 | basis | zaklad | osnova | *osnova | 0.81 |
 | burn | žegti | paliti | *paliti | 0.81 |
 | grain | žito | zŕno | *zьrno | 0.81 |
@@ -57,7 +56,7 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | ash tree | jasenj | asenj | *asenь | 0.78 |
 | prince | knęź | knędz | *kъnędzь | 0.78 |
 | thread | nitka | nit | *nitь | 0.78 |
-| egg | jajce | ajece | *ajьce | 0.78 |
+| egg | jajce | ajace | *ajьce | 0.78 |
 | spider | pavųk | paųk | *paǫkъ | 0.78 |
 | herd, flock, drove | črěda | stado | *stado | 0.77 |
 | richness, wealth | bogatosť | bogatstvo | *bogatьstvo | 0.77 |
@@ -65,6 +64,7 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | child | čędo | dětę | *dětę | 0.77 |
 | limb | člen | ud | *udъ | 0.77 |
 | chisel | dlåto | dlěto | *delto | 0.77 |
+| friendship | družba | družaba | *družьba | 0.77 |
 | boldness, audacity | dŕzosť | smělost | *sъmělostь | 0.77 |
 | mind | duh | um | *umъ | 0.77 |
 | ready, prepared | gotovy | gotov | *gotovъ | 0.77 |
