@@ -1,8 +1,3 @@
-The MIT License below applies to the SOURCE CODE of this project. Bundled data
-and machine-generated content are licensed separately (Creative Commons
-Attribution-ShareAlike 4.0) because they derive from ShareAlike sources — see
-ATTRIBUTION.md for the details and required credits.
-
 MIT License
 
 Copyright (c) 2026 Stephen Korzen (gold-silver-copper)
@@ -24,3 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+NOTE: The MIT license above covers the SOURCE CODE only. Bundled data and
+machine-generated content are licensed under CC BY-SA 4.0 (+ GFDL where
+inherited from Wiktionary). See ATTRIBUTION.md for credits and reuse terms.
