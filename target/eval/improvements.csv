@@ -104,6 +104,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 17126,ark,noun,arka,kovčeg,arka
 5920,Arctic,adj,arktičny,arktyčny,arktičny
 5060,Armenian,adj,arměnsky,armanskij,armensky
+1851,arrogance,noun,arogancija,arogancja,arogancija
 15768,artistic,adj,artističny,artističnyj,artističny
 36762,asymmetrical,adj,asimetričny,asimmetričnyj,asimetričny
 16263,assimilation,noun,asimilacija,assimilacija,asimilacija
@@ -1087,6 +1088,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 4416,square,adj,kvadratny,kvadratnyj,kvadratny
 35736,quality,noun,kvalitet,kvaliteta,kvalitet
 35323,quantitative,adj,kvantitativny,kvantytatyvny,kvantitativny
+27024,quintessence,noun,kvintesencija,kvintessencija,kvintesencija
 406,throw,verb,kydati,kidati,kydati
 2352,throw,verb,kydnųti,kinuti,kydnųti
 360,stick,noun,kyj,kij,kyj
@@ -1132,6 +1134,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 317,Libya,noun,Libija,libia,libija
 8872,face,noun,lice,lico,lice
 27186,cant,verb,liceměriti,byt licomerny,licemeriti
+35778,"licence, license",noun,licencija,licencja,licencija
 770,personal,adj,ličny,ličnyj,ličny
 27192,"interest, profit",noun,lihva,urok,lihva
 32170,"usury, moneylending, gombeen",noun,lihva,lyhvarstvo,lihva
@@ -2155,6 +2158,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 12818,"gray, grey",adj,sědy,sivy,śědy
 21570,"reach, reach out for",verb,sęgnųti,sahnouti,segnuti
 18800,"chop, hack",verb,sěknųti,seknouti,seknuti
+35772,sequence,noun,sekvencija,sekvencja,sekvencija
 2947,axe,noun,sěkyra,siekiera,sekyra
 37174,celery,noun,seler,celer,seler
 18806,peasant,noun,seljanka,selanka,seljanka

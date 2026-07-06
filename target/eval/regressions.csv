@@ -204,7 +204,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 37105,icon,noun,ikona,ikona,ikono
 36953,name day,noun,imeniny,imeniny,imieniny
 17486,namely,adv,imenno,imenno,imiennie
-36856,impotence (erectile dysfunction),noun,impotencija,impotencija,impotenca
 3764,"otherwise, else",adv,inače,inače,inako
 15915,individual,noun,individ,individ,individua
 5309,initiative,noun,iniciativa,iniciativa,inicijativa
@@ -289,7 +288,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 535,"end, finish, complete",verb,končati,končati,končiti
 15683,conductor (train),noun,konduktor,konduktor,kondukter
 17676,"finiteness, finality",noun,konečnosť,konečnost,končnosť
-799,conference,noun,konferencija,konferencija,konferenca
 36684,conversion,noun,konversija,konversija,konversja
 839,cooperate,verb,kooperovati,kooperovati,sodelovati
 32080,kopek,noun,kopějka,kopejka,kopjejka

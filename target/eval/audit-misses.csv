@@ -20,7 +20,6 @@ accompaniment,noun,akompanement,akompaniament,7,right-cluster-wrong-form
 accompany,verb,akompanovati,pråtiti,10,wrong-cluster
 acrobatic,adj,akrobatsky,akrobatičny,4,wrong-cluster
 axial,adj,aksiaľny,aksijalny,6,right-cluster-wrong-form
-axiom,noun,aksioma,aksiom,4,right-cluster-wrong-form
 activity,noun,aktivitet,aktivnosť,6,root-absent
 shark,noun,akula,ajkula,4,right-cluster-wrong-form
 accumulate,verb,akumulovati,hromaditi,13,wrong-cluster
@@ -65,11 +64,9 @@ arrange (music),verb,aranževati,aranžovati,7,right-cluster-wrong-form
 arbiter,noun,arbiter,arbitr,6,right-cluster-wrong-form
 archduke,noun,arcivojevoda,erchercog,4,wrong-cluster
 arrest,verb,areštovati,arestovati,6,right-cluster-wrong-form
-arrogance,noun,arogancija,aroganca,12,right-cluster-wrong-form
 artillery,noun,artilerija,artiljerija,3,right-cluster-wrong-form
 artist,noun,artist,hųdog,8,wrong-cluster
 astronaut,noun,astronavt,astronaut,2,wrong-cluster
-attack,noun,ataka,atak,3,right-cluster-wrong-form
 Athens,noun,Atiny,atene,2,right-cluster-wrong-form
 Atlantic,adj,atlantičny,atlanticky,4,wrong-cluster
 trump,noun,atut,kozir,5,wrong-cluster
@@ -88,7 +85,7 @@ car bomb,noun,avtobomba,avtomobil-bomba,13,wrong-cluster
 car industry,noun,avtopromysl,avtomobilovi prumisl,10,root-absent
 authoritatively,adv,avtoritativno,avtoritetno,3,wrong-cluster
 authoritative,adj,avtoritativny,avtoritetny,3,wrong-cluster
-authority,noun,avtoritetnosť,avtoritet,7,wrong-cluster
+authority,noun,avtoritetnosť,avtoriteta,7,wrong-cluster
 authorities,noun,avtoritety,avtoriteti,11,right-cluster-wrong-form
 hitchhiking,noun,avtostop,avtoštop,6,right-cluster-wrong-form
 hitchhiker,noun,avtostopnik,avtoštopar,8,wrong-cluster
@@ -122,7 +119,6 @@ Baltic,adj,baltičsky,baltsky,2,root-absent
 boulder,noun,balvan,valun,15,wrong-cluster
 "idiot, blockhead",noun,balvan,idiot,13,wrong-cluster
 banjo,noun,bandžo,bendžo,2,right-cluster-wrong-form
-banknote,noun,banknota,banknot,4,right-cluster-wrong-form
 drum,noun,baraban,bųben,4,wrong-cluster
 hut,noun,barak,baraka,12,right-cluster-wrong-form
 berberis,noun,barbaris,berberis,8,right-cluster-wrong-form
@@ -130,7 +126,6 @@ barrier,noun,bariera,barijera,4,right-cluster-wrong-form
 Baroque,noun,baroko,barok,1,right-cluster-wrong-form
 baron,noun,baron,baran,1,right-cluster-wrong-form
 badger,noun,barsuk,jazvec,3,wrong-cluster
-vinca,noun,barvinȯk,barvinek,6,right-cluster-wrong-form
 "paint, colour, color",verb,barviti,malovati,9,wrong-cluster
 paint,noun,barvivo,farba,6,wrong-cluster
 barium,noun,baryj,barij,2,right-cluster-wrong-form
@@ -413,7 +408,7 @@ belly,noun,brjuho,životo,11,wrong-cluster
 "abdominal, belly",adj,brjušny,brušny,6,right-cluster-wrong-form
 number,noun,broj,čislo,11,wrong-cluster
 armadillo,noun,brȯnjenosėc,bronenosec,6,right-cluster-wrong-form
-brooch,noun,broška,broš,4,wrong-cluster
+brooch,noun,broška,broša,4,wrong-cluster
 eyebrow,noun,brȯv,bry,4,wrong-cluster
 beekeeper (in the forest),noun,brtnik,bartnik,8,right-cluster-wrong-form
 pavement (road surface),noun,bruk,mostovaja,15,wrong-cluster
@@ -429,7 +424,6 @@ Budapest,noun,Budapest,budapešt,2,right-cluster-wrong-form
 there will be,verb,bųde/bųdųt,bude,8,root-absent
 hut,noun,budka,hata,14,wrong-cluster
 build,verb,budovati,gråditi,5,wrong-cluster
-building,noun,budynȯk,budynek,9,right-cluster-wrong-form
 buffer,noun,bufer,buffer,8,right-cluster-wrong-form
 "bang, burst, thump",verb,buhati,bouhati,17,right-cluster-wrong-form
 "accountant, bookkeeper",noun,buhhalter,buhgalter,12,right-cluster-wrong-form
@@ -446,6 +440,7 @@ rebel,noun,buntovnik,povstanec,10,wrong-cluster
 demolish,verb,buriti,rušiti,7,wrong-cluster
 "high grass, weed",noun,burjan,burijan,6,right-cluster-wrong-form
 bottle,noun,butylka,butelka,9,right-cluster-wrong-form
+steer,noun,byček,byčȯk,9,right-cluster-wrong-form
 bovine,adj,byčji,byči,6,right-cluster-wrong-form
 "plant, herb",noun,bylina,trava,7,wrong-cluster
 former,adj,byly,bivši,5,wrong-cluster
@@ -700,7 +695,7 @@ happenings,noun,dějańja,sȯbitija,12,wrong-cluster
 activity,noun,dějateljnosť,činnosť,10,wrong-cluster
 act,verb,dějati,jednati,12,wrong-cluster
 decadent,adj,dekadentsky,dekadentny,7,wrong-cluster
-decadence,noun,dekadentstvo,dekadenca,4,root-absent
+decadence,noun,dekadentstvo,dekadencija,4,root-absent
 December,noun,dekembr,grudenj,8,root-absent
 "décolletage, neckline, cleavage",noun,dekolt,dekolte,4,right-cluster-wrong-form
 "branch, section",noun,děl,oddeleni,14,wrong-cluster
@@ -751,7 +746,7 @@ hole,noun,dira,děra,8,right-cluster-wrong-form
 "hole punch, perforator",noun,dirkovač,perforator,13,root-absent
 "disc jockey, DJ",noun,diskdžokej,diskžokej,6,wrong-cluster
 controversial,adj,diskusijny,diskussionniji,6,right-cluster-wrong-form
-dissonance,noun,disonans,disonanca,3,wrong-cluster
+dissonance,noun,disonans,disonancija,3,wrong-cluster
 "game, wildfowl",noun,divina,divijač,9,root-absent
 stranger,adj,divnějši,dzivniejšy,10,wrong-cluster
 "curious, strange",adj,divny,diveny,16,right-cluster-wrong-form
@@ -786,8 +781,6 @@ upload,verb,dodati,nahrati,10,root-absent
 additional,adj,dodatny,dodatkovy,5,wrong-cluster
 "additionally, in addition",adv,dodatȯčno,dodatkovo,7,wrong-cluster
 additional,adj,dodatȯčny,dodatkovy,5,wrong-cluster
-"addition, accessory",noun,dodatȯk,dodatek,6,right-cluster-wrong-form
-appendix,noun,dodatȯk,dodatek,11,right-cluster-wrong-form
 "premium, bonus (to salary)",noun,dodatȯk,premija,7,wrong-cluster
 uploading,noun,dodava,zagruzka,13,root-absent
 upload,verb,dodavati,nahravati,10,root-absent
@@ -839,8 +832,8 @@ add,verb,doložiti,dodati,8,wrong-cluster
 lengthen,verb,dȯlžiti,prodlužovati,11,root-absent
 due,adj,dȯlžny,naležny,8,wrong-cluster
 "should, ought to, bound to",adj,dȯlžny,dȯlženy,14,right-cluster-wrong-form
-small house,noun,domče,domek,12,root-absent
-admixture,noun,doměška,primes,7,wrong-cluster
+small house,noun,domče,domȯk,12,root-absent
+admixture,noun,doměška,primesa,7,wrong-cluster
 "suppose, opine, think likely, have an opinion",verb,domněvati,domnivat se,17,wrong-cluster
 "domestic, homegrown",adj,domorodny,domači,15,root-absent
 "indigenous, native, aboriginal",adj,domorodny,domorody,16,wrong-cluster
@@ -1077,7 +1070,6 @@ existence,noun,egzistovańje,isnuvanna,13,wrong-cluster
 exist,verb,egzistovati,existovati,11,root-absent
 economist,noun,ekonom,ekonomist,2,wrong-cluster
 economic,adj,ekonomičny,ikonomičesky,8,wrong-cluster
-ecosystem,noun,ekosistema,ekosistem,4,right-cluster-wrong-form
 excavator (machine),noun,ekskavator,bagr,8,wrong-cluster
 expansion,noun,ekspansija,ekspansja,11,right-cluster-wrong-form
 explode,verb,eksplodovati,explodovati,14,root-absent
@@ -1090,8 +1082,6 @@ electricity,noun,električnosť,električestvo,6,root-absent
 electrocution,noun,elektrokucija,poprava elektrickim proudem,12,wrong-cluster
 electronic,adj,elektroničny,elektronniji,5,wrong-cluster
 propeller,noun,elisa,propeler,7,wrong-cluster
-emblem,noun,emblema,emblem,4,right-cluster-wrong-form
-emission,noun,emisija,emisij,2,right-cluster-wrong-form
 enthusiast,noun,entuziast,entuzijast,11,right-cluster-wrong-form
 enthusiastically,adv,entuziastično,entuzijastično,13,right-cluster-wrong-form
 "enthusiastic, enthused",adj,entuziastičny,entuzijastičny,14,right-cluster-wrong-form
@@ -1141,7 +1131,6 @@ flotilla,noun,flotilja,flotila,1,right-cluster-wrong-form
 trick,noun,fokus,trik,8,wrong-cluster
 folklore,noun,folklor,folklora,1,right-cluster-wrong-form
 background,noun,fon,tolo,6,wrong-cluster
-phoneme,noun,fonema,fonem,2,right-cluster-wrong-form
 font,noun,font,šrift,7,wrong-cluster
 "formation, forming, shaping",noun,formovańje,formirovanje,11,wrong-cluster
 piano,noun,fortepiano,fortepian,5,right-cluster-wrong-form
@@ -1367,7 +1356,6 @@ make dense,verb,gųstiti,zagęščati,9,root-absent
 thicket,noun,gųsťje,gųšč,21,wrong-cluster
 density,noun,gųstosť,gostota,8,root-absent
 density,noun,gųstota,gȯstota,9,right-cluster-wrong-form
-thicket,noun,gųšća,gųšč,23,right-cluster-wrong-form
 nail,noun,gvozď,gvozdej,14,right-cluster-wrong-form
 sway,verb,gybati,kyvati,18,wrong-cluster
 flexibility,noun,gybkosť,flexibilita,14,wrong-cluster
@@ -1485,9 +1473,7 @@ noun,noun,imennik,imenka,8,right-cluster-wrong-form
 namesake,noun,imennik,tez,6,wrong-cluster
 namely,adv,imenno,imiennie,8,right-cluster-wrong-form
 "call, name",verb,imenovati,nazvati,7,wrong-cluster
-empire,noun,imperija,imperij,6,right-cluster-wrong-form
 impressive,adj,imponujųći,imponųjucy,12,right-cluster-wrong-form
-impotence (erectile dysfunction),noun,impotencija,impotenca,7,right-cluster-wrong-form
 wealthy,adj,imųći,bogaty,7,root-absent
 immune,adj,imunny,imuny,7,right-cluster-wrong-form
 property,noun,imųtȯk,imetak,15,right-cluster-wrong-form
@@ -1544,7 +1530,7 @@ certainly,adv,isto,jiste,28,right-cluster-wrong-form
 so,adv,itak,tako,14,right-cluster-wrong-form
 willow,noun,iva,vŕba,4,wrong-cluster
 withy,adj,ivovy,vrbovy,7,wrong-cluster
-chamber,noun,izba,zal,9,wrong-cluster
+chamber,noun,izba,zala,9,wrong-cluster
 "salvation, redemption",noun,izbava,izbavljenje,15,root-absent
 "rescue, deliver",verb,izbaviti,spasti,12,wrong-cluster
 "rescue, deliver",verb,izbavjati,zahranjovati,13,root-absent
@@ -1575,7 +1561,7 @@ explode,verb,izbuhati,vybuhati,7,root-absent
 "explosive, volatile",adj,izbuhlivy,eksplozivny,10,root-absent
 explode,verb,izbuhnųti,vybuhnouti,9,root-absent
 "superfluous, redundant, excess",adj,izbytȯčny,zbytečny,17,right-cluster-wrong-form
-"surplus, excess",noun,izbytȯk,zbytek,15,right-cluster-wrong-form
+"surplus, excess",noun,izbytȯk,zbytȯk,15,right-cluster-wrong-form
 "heal, cure",verb,izcěliti,iscijeliti,11,wrong-cluster
 "heal, cure",verb,izcěljati,iscelati,15,root-absent
 "disappear, vanish",verb,izčezati,znikati,9,root-absent
@@ -1589,7 +1575,7 @@ deletion,noun,izčrkańje,brisanje,20,root-absent
 "delete, cross out",verb,izčrkati,mazati,19,root-absent
 "delete, cross out",verb,izčrknųti,vymazati,19,wrong-cluster
 exhaust,verb,izčrpati,iscrpiti,5,root-absent
-exhaust,verb,izčrpyvati,vyčerpavati,6,root-absent
+exhaust,verb,izčrpyvati,vyčerpyvati,6,root-absent
 traitor,noun,izdajnik,predatel,10,wrong-cluster
 publisher,noun,izdatelj,vydavca,5,wrong-cluster
 publishing house,noun,izdateljstvo,izdatelstvo,6,right-cluster-wrong-form
@@ -1773,7 +1759,7 @@ spit out,verb,izpljunųti,vyplunuti,7,root-absent
 spit out,verb,izpljuvati,vyplovyvati,6,root-absent
 "sail out, leave port",verb,izpluti,vyplyti,12,root-absent
 swim out,verb,izplyvati,vyplyvati,5,root-absent
-"emerge, come to the surface",verb,izplyvati,vyplavavati,22,root-absent
+"emerge, come to the surface",verb,izplyvati,vyplavyvati,22,root-absent
 "sail out, leave port",verb,izplyvati,vyplyvati,10,root-absent
 swim out,verb,izplyvti,vyplavati,9,root-absent
 "emerge, come to the surface",verb,izplyvti,vyplavati,22,root-absent
@@ -1973,7 +1959,7 @@ strawberry,noun,jagoda,agoda,6,right-cluster-wrong-form
 berry,adj,jagodny,agodeny,6,right-cluster-wrong-form
 "testicles, balls",noun,jajca,jaički,13,wrong-cluster
 egg,noun,jajce,ajace,4,right-cluster-wrong-form
-"eggwhite, egg-white",noun,jajcebělȯk,jaičnyj blek,8,root-absent
+"eggwhite, egg-white",noun,jajcebělȯk,jaičnyj blȯk,8,root-absent
 testicle,noun,jaječko,jaičko,12,right-cluster-wrong-form
 egg,adj,jaječny,ajačeny,6,right-cluster-wrong-form
 yak,noun,jak,jako,1,right-cluster-wrong-form
@@ -2078,7 +2064,7 @@ knight (chess),noun,jezdec,konj,3,wrong-cluster
 "go, ride",verb,jezditi,ezditi,4,right-cluster-wrong-form
 lake,adj,jezerny,jezeresky,3,wrong-cluster
 Jesus,noun,Jezus,isus,2,wrong-cluster
-uvula,noun,języček,jęziček,5,right-cluster-wrong-form
+uvula,noun,języček,jęzičȯk,5,right-cluster-wrong-form
 language,adj,języčny,ezikovy,5,wrong-cluster
 tongue twister,noun,językolomka,skorogovorka,10,wrong-cluster
 linguist,noun,językoslovec,lingvist,8,wrong-cluster
@@ -2101,7 +2087,7 @@ Yugoslavian,adj,jugoslavsky,jugoslovansky,2,wrong-cluster
 southeast,noun,jugovȯzhod,jugoistok,8,wrong-cluster
 southeastern,adj,jugovȯzhodny,jugoistočny,8,root-absent
 July,noun,julij,jul,6,right-cluster-wrong-form
-young bull,noun,junec,byček,12,wrong-cluster
+young bull,noun,junec,byčȯk,12,wrong-cluster
 June,noun,junij,jun,6,right-cluster-wrong-form
 junior,noun,junior,mlodšy,4,wrong-cluster
 "young, juvenile",adj,juny,mlådy,10,wrong-cluster
@@ -2126,7 +2112,6 @@ what kind of,pron,kaky,jak,4,wrong-cluster
 any kind of,pron,kakykoli,jakikolviek,18,root-absent
 any kind of,pron,kaky-libo,jaky libo,18,wrong-cluster
 any kind of,pron,kaky-nebųď,nejaky,18,wrong-cluster
-calque,noun,kalka,kalk,6,right-cluster-wrong-form
 murky,adj,kaľny,galy,13,wrong-cluster
 "turn into stone, be petrified",verb,kameněti,kameniti,6,right-cluster-wrong-form
 stony,adj,kamenisty,kamienisty,4,right-cluster-wrong-form
@@ -2205,7 +2190,6 @@ hammer,noun,kladivo,mlatok,7,wrong-cluster
 clarinet,noun,klarnet,klarinet,1,right-cluster-wrong-form
 "rock, shake",verb,klåtiti,tresti,15,wrong-cluster
 keyboard,noun,klaviatura,klavijatura,4,right-cluster-wrong-form
-"key (keyboard, typewriter)",noun,klaviša,klaviš,5,right-cluster-wrong-form
 glue,noun,klej,lěpilo,5,wrong-cluster
 glue,verb,klejiti,lijepiti,5,wrong-cluster
 "sticky, gluey",adj,klejky,lepljivy,7,wrong-cluster
@@ -2288,7 +2272,6 @@ globe,noun,kolpak,kovpak,14,wrong-cluster
 slippery,adj,kȯlzky,kȯlzȯky,8,right-cluster-wrong-form
 comma,noun,koma,zapetaja,8,wrong-cluster
 commercial,adj,komerciaľny,komercijny,6,wrong-cluster
-comet,noun,kometa,komet,1,right-cluster-wrong-form
 comfortable,adj,komfortny,komfortniji,9,right-cluster-wrong-form
 chimney-sweep,noun,kominjaŕ,kominiar,8,right-cluster-wrong-form
 room,noun,komnata,pokoj,7,wrong-cluster
@@ -2313,7 +2296,6 @@ anus,noun,konečnik,anus,10,wrong-cluster
 "finally, at last",adv,konečno,končno,19,right-cluster-wrong-form
 "finiteness, finality",noun,konečnosť,končnosť,14,right-cluster-wrong-form
 "final, end, ultimate",adj,konečny,konečeny,12,right-cluster-wrong-form
-conference,noun,konferencija,konferenca,2,right-cluster-wrong-form
 Congolese,adj,kongolezsky,konglazskiji,6,right-cluster-wrong-form
 clover,noun,koničina,dętelina,6,wrong-cluster
 "hostler, ostler",noun,konjaŕ,konjuh,9,wrong-cluster
@@ -2499,7 +2481,6 @@ kitchen,adj,kuhenny,kuhinji,5,right-cluster-wrong-form
 "kitchen, cuisine",noun,kuhnja,kuhinja,4,right-cluster-wrong-form
 cookie (Internet),noun,kuki,cookie,6,wrong-cluster
 cuckoo,noun,kukučka,kukavica,7,wrong-cluster
-corn,noun,kukuruza,kukuruz,8,right-cluster-wrong-form
 "#bullet, ball, sphere",noun,kulja,kula,17,right-cluster-wrong-form
 machine gun,noun,kuljemet,mitraljez,8,wrong-cluster
 limp,verb,kuljgati,hramati,14,wrong-cluster
@@ -2534,7 +2515,6 @@ quartz,noun,kvarc,tvŕd,3,wrong-cluster
 yeast,noun,kvas,droždže,8,wrong-cluster
 yeast,adj,kvasny,droždžovy,10,wrong-cluster
 squeak,verb,kvičati,piščati,11,wrong-cluster
-quintessence,noun,kvintesencija,kvintesenca,4,right-cluster-wrong-form
 cluck,verb,kvokati,kokodakati,12,wrong-cluster
 sneeze,verb,kyhati,čihati,6,wrong-cluster
 sneeze,verb,kyhnųti,čihnuti,6,wrong-cluster
@@ -2553,7 +2533,6 @@ nod,verb,kyvnųti,kivnuti,7,right-cluster-wrong-form
 Elbe,noun,Laba,elbe,1,right-cluster-wrong-form
 swan,noun,labęď,labųd,3,right-cluster-wrong-form
 swan’s,adj,labęďji,labųđi,6,wrong-cluster
-"laboratory, lab",noun,laboratorija,laboratorij,2,right-cluster-wrong-form
 camp,noun,lageŕ,logor,4,right-cluster-wrong-form
 paper lantern,noun,lampion,lampijon,1,right-cluster-wrong-form
 chain,noun,lancuh,lanjcuh,9,right-cluster-wrong-form
@@ -2610,7 +2589,6 @@ lie down,verb,legti,leći,6,wrong-cluster
 lieutenant,noun,lejtenant,poročnik,3,wrong-cluster
 "physician, doctor",noun,lěkaŕ,lěkarj,6,right-cluster-wrong-form
 "medicine (substance), drug",noun,lěkaŕstvo,lěko,7,wrong-cluster
-lexicon,noun,leksika,leksik,4,right-cluster-wrong-form
 linen field,noun,lenišče,laneno polje,7,root-absent
 lazy person,noun,lěnivec,lentaj,15,wrong-cluster
 lazily,adv,lěnivo,lenivie,8,right-cluster-wrong-form
@@ -2662,7 +2640,6 @@ hypocrisy,noun,liceměŕje,licemjerje,10,right-cluster-wrong-form
 hypocrite,noun,liceměrka,licemjerka,8,right-cluster-wrong-form
 hypocritically,adv,liceměrno,licemjerno,10,right-cluster-wrong-form
 hypocritical,adj,liceměrny,licemjerny,11,right-cluster-wrong-form
-"licence, license",noun,licencija,licenca,2,right-cluster-wrong-form
 larva,noun,ličinka,larva,2,wrong-cluster
 ligature,noun,ligatura,ligaturo,2,right-cluster-wrong-form
 Liechtenstein,noun,Lihtenštejn,lihtenštajn,3,right-cluster-wrong-form
@@ -2680,7 +2657,7 @@ fox cub,noun,lisę,lisiče,6,wrong-cluster
 chanterelle,noun,lisička,lisičke,7,right-cluster-wrong-form
 fox’s,adj,liśji,lisiči,4,wrong-cluster
 foliage,noun,lisťje,listovie,7,wrong-cluster
-petal,noun,listȯk,platek,10,wrong-cluster
+petal,noun,listȯk,platȯk,10,wrong-cluster
 "leaflet, flyer",noun,listovka,letak,4,wrong-cluster
 lichen,noun,lišaj,lišajnik,3,wrong-cluster
 deprive,verb,lišati,zbavovati,8,wrong-cluster
@@ -2815,7 +2792,6 @@ diligence,noun,marlivosť,marljivost,16,right-cluster-wrong-form
 diligent,adj,marlivy,pileny,13,wrong-cluster
 "route, itinerary",noun,maršrut,pųt,6,wrong-cluster
 apricot,noun,marulja,abrikos,6,wrong-cluster
-massacre,noun,masakra,masakr,11,right-cluster-wrong-form
 massage,noun,masaž,masaža,2,right-cluster-wrong-form
 massage,verb,masirovati,massirovati,6,right-cluster-wrong-form
 olive,adj,maslinovy,olivkovy,4,wrong-cluster
@@ -2856,7 +2832,7 @@ honey,adj,medovy,miodovy,3,right-cluster-wrong-form
 lungwort (pulmonaria),noun,medunka,miodunka,5,right-cluster-wrong-form
 jellyfish,noun,meduza,meduze,1,right-cluster-wrong-form
 she-bear,noun,medvědica,mečka,8,wrong-cluster
-teddy-bear,noun,medvědik,medvidek,11,right-cluster-wrong-form
+teddy-bear,noun,medvědik,medvidȯk,11,right-cluster-wrong-form
 ursine,adj,medvěďji,medvedy,9,right-cluster-wrong-form
 bearish,adj,medvědny,medvedi trhy,10,root-absent
 bear cub,noun,medvěđę,meč,9,root-absent
@@ -2967,7 +2943,6 @@ blow job,noun,minet,felacija,9,wrong-cluster
 miniature,noun,miniatura,minijatura,3,right-cluster-wrong-form
 minibus,noun,minibus,mikroavtobus,3,wrong-cluster
 ministry,noun,ministerstvo,ministrstvo,2,right-cluster-wrong-form
-minute,noun,minuta,minut,2,right-cluster-wrong-form
 peaceful,adj,mirny,mireny,6,right-cluster-wrong-form
 missionary,noun,misionaŕ,misijonar,1,right-cluster-wrong-form
 Mississippi,noun,Missisipi,mississippi,1,right-cluster-wrong-form
@@ -2991,7 +2966,7 @@ bridegroom,noun,mlådoženih,ženih,8,root-absent
 bride,noun,mlådoženka,nevěsta,10,wrong-cluster
 "junior, younger",adj,mlådši,mlodšy,6,right-cluster-wrong-form
 "thrashing, threshing",noun,mlåťba,mlatene,12,wrong-cluster
-hammer,noun,mlåtȯk,mlotek,8,right-cluster-wrong-form
+hammer,noun,mlåtȯk,mlotȯk,8,right-cluster-wrong-form
 "faint, feeble",adj,mlavy,slaby,10,wrong-cluster
 spurge,noun,mlěčaj,mleček,5,wrong-cluster
 milky,adj,mlěčny,mlěčeny,2,right-cluster-wrong-form
@@ -3070,9 +3045,8 @@ nightmarish,adj,morny,košmarny,5,root-absent
 "sea, maritime, marine",adj,moŕsky,moresky,3,right-cluster-wrong-form
 mulberry (fruit),noun,morva,murva,10,right-cluster-wrong-form
 walrus,noun,morž,mrož,2,right-cluster-wrong-form
-"purse, pouch",noun,mošna,košlek,18,root-absent
+"purse, pouch",noun,mošna,košlȯk,18,root-absent
 scrotum,noun,mošna,mošonka,9,wrong-cluster
-skein,noun,motȯk,motek,7,right-cluster-wrong-form
 motto,noun,motto,moto,6,right-cluster-wrong-form
 "string, cord, rope",noun,motvųz,šnur,18,root-absent
 butterfly,noun,motylik,motylj,7,wrong-cluster
@@ -3283,7 +3257,6 @@ anoint,verb,namazyvati,pomazivati,7,wrong-cluster
 "intend, plan",verb,naměrjati,zamyšleti,17,root-absent
 governor,noun,naměstnik,namjesnik,6,wrong-cluster
 soak,verb,namokriti,namočiti,10,wrong-cluster
-wind up,verb,namotyvati,namotavati,7,right-cluster-wrong-form
 soap,verb,namyljati,namylivati,6,root-absent
 "again, over, over again, anew",adv,nanovo,znova,13,wrong-cluster
 "glasses, spectacles",noun,naočila,okulary,6,wrong-cluster
@@ -3343,7 +3316,7 @@ genocide,noun,narodobijstvo,genocid,5,wrong-cluster
 ethnography,noun,narodopis,etnografija,3,wrong-cluster
 ethnographer,noun,narodopisec,etnograf,3,wrong-cluster
 birth,noun,narođeńje,narodziny,6,right-cluster-wrong-form
-"order, make an order",verb,narųčati,objednavati,14,wrong-cluster
+"order, make an order",verb,narųčati,objednyvati,14,wrong-cluster
 "order, make an order",verb,narųčiti,zamoviti,17,wrong-cluster
 bracelet,noun,narųčka,braslet,10,root-absent
 order,noun,narųčka,objednavka,11,wrong-cluster
@@ -3592,11 +3565,11 @@ carelessly,adv,neostråžno,nieostrožnie,9,right-cluster-wrong-form
 careless,adj,neostråžny,nieostrožny,7,right-cluster-wrong-form
 "immemorial, ancient",adj,nepamętny,nezapamtny,14,wrong-cluster
 worry,verb,nepokojiti,znepokojovati,12,wrong-cluster
-"disabled person, handicapped person",noun,nepȯlnomožnica,invalid,17,root-absent
+"disabled person, handicapped person",noun,nepȯlnomožnica,invalida,17,root-absent
 "disabled person, handicapped person",noun,nepȯlnomožnik,invalid,15,root-absent
 "disability, handicap",noun,nepȯlnomožnosť,invalidnosti,13,root-absent
 "disabled, handicapped",adj,nepȯlnomožny,invalidny,14,root-absent
-"disabled person, handicapped person",noun,nepȯlnosposobnica,invalid,20,root-absent
+"disabled person, handicapped person",noun,nepȯlnosposobnica,invalida,20,root-absent
 "disabled person, handicapped person",noun,nepȯlnosposobnik,invalid,15,root-absent
 "disability, handicap",noun,nepȯlnosposobnosť,invalidnosti,16,root-absent
 "disabled, handicapped",adj,nepȯlnosposobny,invalidny,13,root-absent
@@ -3606,7 +3579,7 @@ unhelpful,adj,nepomoćny,nekorysnyji,15,wrong-cluster
 "irreparable, incorrigible, irreversible",adj,nepopravimy,nepopravljivy,14,wrong-cluster
 incorrect,adj,nepopravny,nepravilny,11,wrong-cluster
 "messy, untidy, disorderly",adj,neporędny,bezladny,11,wrong-cluster
-"mess, disorder, confusion",noun,neporędȯk,neporadek,12,right-cluster-wrong-form
+"mess, disorder, confusion",noun,neporędȯk,neporadȯk,12,right-cluster-wrong-form
 inviolability,noun,neporušimosť,nerušimost,16,root-absent
 inviolable,adj,neporušimy,nerušimy,15,root-absent
 restlessness,noun,neposědlivosť,nemir,19,wrong-cluster
@@ -3681,7 +3654,7 @@ unfortunately,adv,neščęstlivo,neštastne,13,wrong-cluster
 unfortunate,adj,neščęstlivy,nieščęslivy,13,wrong-cluster
 "unlucky, unhappy, sorry",adj,neščęstny,nieščęsny,16,wrong-cluster
 "harmless, innoculous",adj,neškodlivy,neškodljivy,8,right-cluster-wrong-form
-intolerance,noun,netolerantnosť,intoleranca,10,wrong-cluster
+intolerance,noun,netolerantnosť,intolerancija,10,wrong-cluster
 bat,noun,netopyŕ,netopyrj,8,right-cluster-wrong-form
 "not sober, drunk",adj,netrězvy,pijany,13,wrong-cluster
 impatience,noun,netŕpělivosť,netȯrpenje,10,wrong-cluster
@@ -3809,7 +3782,6 @@ Norwegian,adj,norvežsky,norvešky,4,wrong-cluster
 "carrier, bearer",noun,nositelj,nostelj,12,right-cluster-wrong-form
 nasal,adj,nosny,nosovy,4,wrong-cluster
 spout,noun,nosȯk,nosik,9,right-cluster-wrong-form
-toecap,noun,nosȯk,nosek,12,right-cluster-wrong-form
 handkerchief,noun,nosovka,maramica,14,wrong-cluster
 "notary, notary public",noun,notaŕ,notariuš,4,wrong-cluster
 notoriously,adv,notorično,notorno,14,wrong-cluster
@@ -4043,7 +4015,6 @@ burden,verb,obtęžiti,obremeniti,10,wrong-cluster
 from both sides,adj,obustrånny,obostrany,7,right-cluster-wrong-form
 shoe,noun,obuvka,but,12,wrong-cluster
 shoemaker,noun,obuvnik,ševc,16,wrong-cluster
-bridle,verb,obuzdyvati,obuzdavati,15,right-cluster-wrong-form
 "irrigate, water",verb,obvadnjati,zavlažovati,14,root-absent
 "think over, think through, consider",verb,obvažati,produmyvati,18,root-absent
 "think over, think through, consider",verb,obvažiti,produmati,16,root-absent
@@ -4053,7 +4024,7 @@ oblige,verb,obvęzati,zavazati,7,wrong-cluster
 tie sth. round,verb,obvęzati,obvazati,9,right-cluster-wrong-form
 "absolutely, compulsorily, obligatorily",adv,obvęzno,oboviuzkovo,11,wrong-cluster
 "mandatory, obligatory, compulsory",adj,obvęzny,oboviuzkovy,9,wrong-cluster
-"duty, obligation, commitment",noun,obvęzȯk,oboviuzek,17,right-cluster-wrong-form
+"duty, obligation, commitment",noun,obvęzȯk,oboviuzȯk,17,right-cluster-wrong-form
 oblige,verb,obvęzyvati,zavazovati,9,wrong-cluster
 tie sth. round,verb,obvęzyvati,obvezivati,6,right-cluster-wrong-form
 "accusation, blame",noun,obvinjeńje,obvinienje,14,right-cluster-wrong-form
@@ -4078,7 +4049,6 @@ steel,adj,oceljevy,stalovy,6,wrong-cluster
 enchant,verb,očariti,očarovati,13,wrong-cluster
 "enchanted, bewitched",adj,očarovany,začarovany,12,wrong-cluster
 charming,adj,očarovateljny,čaroveny,15,wrong-cluster
-cast a spell,verb,očarovyvati,očarovavati,14,right-cluster-wrong-form
 expectation,noun,očekyvańje,očekivanje,8,right-cluster-wrong-form
 expected,adj,očekyvany,očekivny,9,right-cluster-wrong-form
 expect,verb,očekyvati,očekivati,9,right-cluster-wrong-form
@@ -4125,7 +4095,7 @@ section,noun,odděljeńje,oddil,11,wrong-cluster
 separate,adj,odděľny,otdelny,17,wrong-cluster
 rip off,verb,oddirati,derati,12,right-cluster-wrong-form
 rest,verb,oddȯhnųti,odahnuti,12,right-cluster-wrong-form
-rest,noun,oddyh,odpočynek,14,wrong-cluster
+rest,noun,oddyh,odpočynȯk,14,wrong-cluster
 rest,verb,oddyhati,otpočivati,9,root-absent
 "clothes, clothing",noun,oděđa,oblečeni,17,root-absent
 dressed,adj,oděty,oblečeny,11,wrong-cluster
@@ -4235,7 +4205,7 @@ pay off,verb,odplatiti,vyplatiti,17,root-absent
 sail away,verb,odpluti,otplyti,13,wrong-cluster
 "swim away, drift away",verb,odplyvti,odplavati,14,right-cluster-wrong-form
 "rest, relax",verb,odpočęti,odpočųti,13,root-absent
-"rest, relaxation",noun,odpočinȯk,odpočynek,15,right-cluster-wrong-form
+"rest, relaxation",noun,odpočinȯk,odpočynȯk,15,right-cluster-wrong-form
 "rest, relax",verb,odpočivati,otpočivati,12,wrong-cluster
 resistance,noun,odpor,otpor,12,wrong-cluster
 resistance,noun,odpornosť,otpornosť,14,wrong-cluster
@@ -4379,7 +4349,7 @@ weaned,adj,odzavisny,odstaveny,13,root-absent
 "insignia, distinguishing mark",noun,odznaka,znak,10,wrong-cluster
 "withdraw, call back, recall (e.g. from office)",verb,odzvati,odvolati,13,root-absent
 response,noun,odzyv,odpoved,15,wrong-cluster
-"withdraw, call back, recall (e.g. from office)",verb,odzyvati,odvolavati,12,root-absent
+"withdraw, call back, recall (e.g. from office)",verb,odzyvati,odvolyvati,12,root-absent
 officer,noun,oficer,oficir,5,right-cluster-wrong-form
 officially,adv,oficiaľno,oficjalnie,6,right-cluster-wrong-form
 official,adj,oficiaľny,oficijalny,5,right-cluster-wrong-form
@@ -4413,7 +4383,7 @@ warm up,verb,ogrěti,ohrati,13,right-cluster-wrong-form
 warm up,verb,ogrěvati,ohrivati,13,right-cluster-wrong-form
 grand,adj,ogromny,veliky,13,wrong-cluster
 endangerment,noun,ogrožeńje,ohroženi,19,right-cluster-wrong-form
-cucumber,noun,ogurȯk,ogorek,9,right-cluster-wrong-form
+cucumber,noun,ogurȯk,ogorȯk,9,right-cluster-wrong-form
 groan,verb,ohati,stenati,16,wrong-cluster
 "go cold, cool down",verb,ohlåděti,ohladit se,15,wrong-cluster
 "cool, chill",verb,ohlađati,ohladzovati,11,root-absent
@@ -4542,8 +4512,6 @@ delay,verb,opozdnjati,zaderživati,16,root-absent
 delay,noun,opozdnjeńje,spoznienje,17,root-absent
 identify,verb,opoznati,råzpoznati,12,wrong-cluster
 identify,verb,opoznavati,råzpoznavati,10,wrong-cluster
-acquit,verb,opravdyvati,opravdavati,14,right-cluster-wrong-form
-"justify, excuse",verb,opravdyvati,opravdavati,17,right-cluster-wrong-form
 "set, mount",verb,opravjati,ustanavlivati,13,root-absent
 "rectify, adjust, set right",verb,opravjati,opravovati,20,root-absent
 entitle,verb,opravnjati,opravnjovati,11,root-absent
@@ -4579,7 +4547,7 @@ moisten,verb,orašati,močiti,15,wrong-cluster
 besprinkle,verb,orašati,okroplati,15,root-absent
 spatter against,verb,orašati,postrikovati,11,root-absent
 nut,adj,orěhovy,orahovy,6,right-cluster-wrong-form
-nutcracker,noun,orěšarka,louskaček,10,root-absent
+nutcracker,noun,orěšarka,louskačȯk,10,root-absent
 organ (musical instrument),noun,organ,organi,4,right-cluster-wrong-form
 orientation,noun,orientacija,orijentacija,2,right-cluster-wrong-form
 drag down,verb,oriti,ztahovaz,11,root-absent
@@ -4725,7 +4693,7 @@ burden,noun,otęžeńje,cięžar,11,root-absent
 burdened,adj,otęženy,zatiženy,13,wrong-cluster
 silence,verb,otišati,zaglušati,12,root-absent
 silence,verb,otišiti,zaglušiti,11,wrong-cluster
-"poison, venom",noun,otrava,otrov,5,right-cluster-wrong-form
+"poison, venom",noun,otrava,otrova,5,right-cluster-wrong-form
 poisoner,noun,otravitelj,trovač,8,wrong-cluster
 poison,verb,otraviti,otrovati,7,right-cluster-wrong-form
 poison,verb,otravjati,trovati,7,right-cluster-wrong-form
@@ -4945,7 +4913,6 @@ weeping,adj,plačlivy,plačljivy,11,right-cluster-wrong-form
 plagiarism,noun,plagiat,plagijat,3,right-cluster-wrong-form
 "placard, poster",noun,plakat,plakati,4,right-cluster-wrong-form
 flame,noun,plåmenj,plåmy,5,wrong-cluster
-planet,noun,planeta,planet,3,right-cluster-wrong-form
 plane table,noun,planšet,planšeta,10,right-cluster-wrong-form
 tax,noun,plaťba,danj,9,root-absent
 tax,adj,plaťbovy,podatkovy,7,root-absent
@@ -4990,8 +4957,8 @@ coastal,adj,pobrěžny,prybrežny,9,wrong-cluster
 stimulation,noun,pobuđeńje,stimulacija,21,wrong-cluster
 stay,noun,pobyťje,prebyvanje,9,wrong-cluster
 kiss,verb,pocělovati,poclevati,6,right-cluster-wrong-form
-kiss,noun,pocělunȯk,pocalunek,10,right-cluster-wrong-form
-kiss,noun,pocěluvka,pocalunek,10,root-absent
+kiss,noun,pocělunȯk,pocalunȯk,10,right-cluster-wrong-form
+kiss,noun,pocěluvka,pocalunȯk,10,root-absent
 initially,adv,počętkovo,pȯrvonačalno,20,wrong-cluster
 initial,adj,počętkovy,počųtkovy,11,right-cluster-wrong-form
 beginning,adj,počętkujųći,početničny,8,wrong-cluster
@@ -5003,9 +4970,7 @@ blush,verb,počrveněti,pokrasneti,17,wrong-cluster
 soil,noun,počva,pod,10,wrong-cluster
 submission,noun,podańje,podani,14,right-cluster-wrong-form
 tax,noun,podanȯk,danj,8,root-absent
-"present, gift",noun,podarȯk,podarek,10,right-cluster-wrong-form
 "giver, provider, submitter",noun,podavatelj,podavatel,21,right-cluster-wrong-form
-chin,noun,podbrådȯk,podbradek,6,right-cluster-wrong-form
 pick up,verb,podbrati,podobrati,16,right-cluster-wrong-form
 "underline, emphasize",verb,podčrkati,podčorkivati,10,root-absent
 "underline, emphasize",verb,podčrknųti,podčerknuti,9,right-cluster-wrong-form
@@ -5037,7 +5002,6 @@ hint,noun,podkazka,pidkazka,19,right-cluster-wrong-form
 background,noun,podklad,tolo,10,root-absent
 "connect, attach",verb,podključati,dolųčati,15,wrong-cluster
 "connect, attach",verb,podključiti,dolųčyti,16,wrong-cluster
-undermine,verb,podkopyvati,podkopavati,5,right-cluster-wrong-form
 "corroborate, strengthen",verb,podkrěpiti,potvŕditi,14,wrong-cluster
 "corroborate, strengthen",verb,podkrěpjati,potvrđivati,15,root-absent
 "attic, garret",noun,podkryvje,horyšče,13,wrong-cluster
@@ -5160,7 +5124,7 @@ abduct,verb,pohytiti,unesti,10,wrong-cluster
 "search, look up",verb,poiskyvati,iskati,9,root-absent
 "appearance, emergence",noun,pojavjeńje,pojavljenje,15,root-absent
 go,verb,pojdti,pojti,11,root-absent
-duel,noun,pojedinȯk,pojedynek,6,right-cluster-wrong-form
+duel,noun,pojedinȯk,pojedynȯk,6,right-cluster-wrong-form
 "go (by transport), ride",verb,pojehati,poehati,6,right-cluster-wrong-form
 "understand, conceive, comprehend, perceive, grasp",verb,pojęti,razuměti,18,root-absent
 "idea, notion, conception",noun,pojęťje,ponatie,18,wrong-cluster
@@ -5478,6 +5442,7 @@ grandparent,noun,praroditelj,praroditel,17,right-cluster-wrong-form
 piglet,noun,pråsętko,pråsę,7,wrong-cluster
 Proto-Slavic,adj,praslovjansky,praslavensky,3,right-cluster-wrong-form
 forgive,verb,prašćati,proščati,7,right-cluster-wrong-form
+powder,noun,pråšek,prašȯk,3,right-cluster-wrong-form
 "unstitch, unravel",verb,pråti,parati,7,right-cluster-wrong-form
 "real, true, genuine, truthful",adj,pravdivy,pravdivyji,19,right-cluster-wrong-form
 "probably, likely",adv,pravdopodobno,pravdopodobnie,12,right-cluster-wrong-form
@@ -5532,7 +5497,7 @@ precede,verb,prědhoditi,prědšestvovati,9,wrong-cluster
 predecessor,noun,prědhodnik,poprednik,6,wrong-cluster
 previous,adj,prědhodny,popredny,10,root-absent
 overture,noun,prědigra,uvertura,7,wrong-cluster
-predicate (grammar),noun,predikat,prisudek,8,wrong-cluster
+predicate (grammar),noun,predikat,prisudȯk,8,wrong-cluster
 predicate (logic),noun,predikat,predykt,5,right-cluster-wrong-form
 "above-named, before-named",adj,prědimenovany,vyšenazvannyji,17,root-absent
 "propose, offer, suggest",verb,prědkladati,prědlagati,13,wrong-cluster
@@ -5571,7 +5536,6 @@ prefix,noun,prědråstka,prefiks,6,wrong-cluster
 "presidency, chairmanship",noun,prědsědateljstvo,prědsednictvi,10,wrong-cluster
 preside,verb,prědsědati,prědsjedati,8,right-cluster-wrong-form
 "forecast, prediction",noun,prědskazańje,prognoza,13,wrong-cluster
-"forecast, predict",verb,prědskazyvati,prědskazavati,17,right-cluster-wrong-form
 "foreword, preface",noun,prědslovje,prědmova,12,wrong-cluster
 appear (before a court),verb,prědstati,stati,8,wrong-cluster
 appear (before a court),verb,prědstavati,postaviti sę,10,wrong-cluster
@@ -5637,7 +5601,6 @@ migratory (bird),adj,prěletny,prelotnyji,8,right-cluster-wrong-form
 "get over, climb over",verb,prělězati,prělaziti,9,right-cluster-wrong-form
 "adultery, fornication",noun,prěljubstvo,preljub,18,wrong-cluster
 translate,verb,prěložiti,prevesti,9,wrong-cluster
-prelude,noun,preludija,preludij,10,right-cluster-wrong-form
 "overcome, surmount",verb,prěmagati,premahati,20,right-cluster-wrong-form
 refurnish,verb,prěmeblovati,znovu vybaviti,10,wrong-cluster
 change,noun,prěměna,promjena,6,right-cluster-wrong-form
@@ -5657,7 +5620,6 @@ rectangular,adj,prěmokųtny,prostokųtny,9,wrong-cluster
 deliver a speech,verb,prěmȯlviti,premoviti,12,wrong-cluster
 deliver a speech,verb,prěmȯlvjati,proiznositi,14,wrong-cluster
 rewinding,noun,prěmotańje,previjanje,4,root-absent
-rewind,verb,prěmotyvati,premotavati,5,right-cluster-wrong-form
 "overstrain, overstress",verb,prěnapęti,prenaprač,13,root-absent
 "overstrain, overstress",verb,prěnapinati,prenapragati,11,root-absent
 neglect,verb,prěnebrěgati,zanedbavati,15,wrong-cluster
@@ -5675,7 +5637,7 @@ convert (sbd. to a religion),verb,prěobråtiti,obvråtiti,9,wrong-cluster
 rewrite,noun,prěpisańje,prepisivanje,4,wrong-cluster
 "rewrite, copy",verb,prěpisyvati,prepisivati,3,right-cluster-wrong-form
 sail across,verb,prěpluti,preploviti,6,wrong-cluster
-swim across,verb,prěplyvati,preplivavati,3,wrong-cluster
+swim across,verb,prěplyvati,preplivyvati,3,wrong-cluster
 swim across,verb,prěplyvti,prěplavati,5,right-cluster-wrong-form
 over-filled,adj,prěpȯlnjeny,prepelniony,7,right-cluster-wrong-form
 recommend,verb,prěporųčati,rekomendovati,8,root-absent
@@ -5719,7 +5681,7 @@ criminal,noun,prěstųpnik,prijestupnik,7,right-cluster-wrong-form
 violator (law etc.),noun,prěstųpnik,narušitel,11,wrong-cluster
 "criminality, crime rate",noun,prěstųpnosť,prestapnosť,9,right-cluster-wrong-form
 criminal,adj,prěstųpny,prestapny,9,right-cluster-wrong-form
-"misdemeanour, contravention, transgression",noun,prěstųpȯk,prestopek,11,right-cluster-wrong-form
+"misdemeanour, contravention, transgression",noun,prěstųpȯk,prestopȯk,11,right-cluster-wrong-form
 "shift, move, shove",verb,prěsunųti,prosunuti,7,right-cluster-wrong-form
 "shift, move, shove",verb,prěsuvati,prosovyvati,7,wrong-cluster
 "reconnect, relink",verb,prěsvęzati,prepodklučiti,12,root-absent
@@ -5761,7 +5723,7 @@ nickname,verb,prězvati,prozvati,8,right-cluster-wrong-form
 nickname,verb,prězyvati,prozyvati,11,right-cluster-wrong-form
 survivor,noun,prěžitelj,ocalaly,17,root-absent
 survival,noun,prěžiťje,vyživanje,9,wrong-cluster
-"relic, vestige",noun,prěžitȯk,prežytek,17,right-cluster-wrong-form
+"relic, vestige",noun,prěžitȯk,prežytȯk,17,right-cluster-wrong-form
 experience,noun,prěživańje,opit,12,wrong-cluster
 survivability,noun,prěživimosť,životnosť,10,root-absent
 survivable,adj,prěživimy,živučiy,9,root-absent
@@ -5836,7 +5798,7 @@ forced,adj,prinuđeny,vynuždennyji,17,wrong-cluster
 "pin, clasp, fasten",verb,pripinati,prikalyvati,15,wrong-cluster
 "attribute, ascribe",verb,pripisyvati,pripisivati,5,right-cluster-wrong-form
 "sail into the harbour, arrive by boat",verb,pripluti,priplyti,8,right-cluster-wrong-form
-arrive swimming,verb,priplyvati,preplivavati,4,wrong-cluster
+arrive swimming,verb,priplyvati,preplivyvati,4,wrong-cluster
 arrive swimming,verb,priplyvti,preplivati,6,right-cluster-wrong-form
 remind,verb,pripomněti,pripomenouti,8,right-cluster-wrong-form
 prepare,verb,pripraviti,prigotoviti,9,wrong-cluster
@@ -5906,7 +5868,6 @@ attract,verb,privabjati,vabiti,13,root-absent
 tie (to smth.),verb,privęzyvati,privezivati,4,right-cluster-wrong-form
 hallucination,noun,prividěńje,halucinacija,5,wrong-cluster
 "seeming, apparent",adj,prividny,prividany,16,right-cluster-wrong-form
-privilege,noun,privilegija,privilegij,4,right-cluster-wrong-form
 welcome,noun,privitańje,pryvitanje,9,right-cluster-wrong-form
 welcome,verb,privitati,pryvitati,9,right-cluster-wrong-form
 attract,verb,privlåčivati,privlekati,12,root-absent
@@ -5934,7 +5895,7 @@ mileage,noun,proběg,prebieg,10,right-cluster-wrong-form
 hole punch,noun,probijak,perforator,11,root-absent
 "penetrate, break through, pierce",verb,probivati,probijati,15,wrong-cluster
 sampling,noun,probkovańje,vzorkovani,20,root-absent
-sample,noun,probȯk,vzorek,10,wrong-cluster
+sample,noun,probȯk,vzorȯk,10,wrong-cluster
 quote,verb,procitovati,citovati,7,wrong-cluster
 "salesperson, salesman, shopkeeper, seller, vendor",noun,prodavec,prodavač,10,right-cluster-wrong-form
 saleswoman,noun,prodavica,prodavačka,9,root-absent
@@ -5957,7 +5918,6 @@ foreword,noun,proglås,prědmova,12,wrong-cluster
 proclaim,verb,proglašati,proglašavati,10,root-absent
 swallow,verb,progȯltati,proglatyvati,14,wrong-cluster
 swallow,verb,progȯltnųti,proglotiti,12,wrong-cluster
-"program, programme, application (computer)",noun,programa,program,3,right-cluster-wrong-form
 "cool down, chill, refrigerate",verb,prohlåditi,ohladiti,11,wrong-cluster
 coolness,noun,prohlådnosť,prohlåda,15,wrong-cluster
 "chilly, cool",adj,prohlådny,hlådeny,10,wrong-cluster
@@ -6003,7 +5963,7 @@ embezzlement,noun,pronevěrjeńje,råztrata,14,root-absent
 pervasion,noun,pronikańje,prenikanje,9,right-cluster-wrong-form
 "pervading, insightful, perceptive",adj,proniklivy,preniklivy,12,right-cluster-wrong-form
 "decay, crumble",verb,propadati,kazit se,19,wrong-cluster
-"decline, downfall",noun,propasť,upadek,9,wrong-cluster
+"decline, downfall",noun,propasť,upadȯk,9,wrong-cluster
 "decay, crumble",verb,propasti,råzrušitsa,21,wrong-cluster
 spend on alcohol,verb,propivati,propijati,6,wrong-cluster
 propose,verb,proponovati,prědlagati,4,wrong-cluster
@@ -6058,7 +6018,7 @@ prototypical,adj,prototipičny,prototipniji,7,root-absent
 "verify, check",verb,prověrjati,provjeravati,8,wrong-cluster
 "conduct, perform",verb,provesti,prevesti,14,right-cluster-wrong-form
 air out,verb,provětriti,provjetriti,4,right-cluster-wrong-form
-air out,verb,provětrjati,provjetravati,5,root-absent
+air out,verb,provětrjati,provjetryvati,5,root-absent
 "prescience, prevision",noun,providěńje,prědbačenna,15,root-absent
 provincial,adj,provinciaľny,provincjonalny,8,wrong-cluster
 province,noun,provincija,provinca,2,right-cluster-wrong-form
@@ -6147,7 +6107,6 @@ advising,noun,radničstvo,savetništvo,9,root-absent
 gladly,adv,radostno,radosno,7,wrong-cluster
 glad,adj,radostny,radosteny,5,right-cluster-wrong-form
 glad,adj,rady,radosteny,5,root-absent
-"check, bill",noun,rahunȯk,rahunek,11,right-cluster-wrong-form
 "plough, plow",noun,ralo,plugo,6,wrong-cluster
 shoulder,noun,ramę,pleće,4,wrong-cluster
 humeral,adj,ramenny,rameny,5,right-cluster-wrong-form
@@ -6236,7 +6195,7 @@ delimit,verb,råzgraničati,råzgraničavati,10,root-absent
 #crack,verb,råzgryzati,råzgrizati,8,right-cluster-wrong-form
 "expense, expenditure",noun,råzhod,råzgod,14,right-cluster-wrong-form
 "play out, act out",verb,råzigrati,odigrati,6,wrong-cluster
-"play out, act out",verb,råzigryvati,odigravati,6,wrong-cluster
+"play out, act out",verb,råzigryvati,odigryvati,6,wrong-cluster
 research,verb,råziskati,vyšetriti,16,wrong-cluster
 research,noun,råziskyvańje,issledovanje,21,wrong-cluster
 researcher,noun,råziskyvatelj,doslidnyk,15,root-absent
@@ -6245,7 +6204,6 @@ research,verb,råziskyvati,višetrovati,15,root-absent
 "hit, strike",verb,raziti,udarati,13,wrong-cluster
 "enrage, infuriate",verb,råzjarjati,råzjarivati,11,wrong-cluster
 "brighten, lighten",verb,råzjasnjati,råzjašnjavati,11,root-absent
-fuck up,verb,råzjebyvati,råzjebavati,7,right-cluster-wrong-form
 disunite,verb,råzjedinjati,råzjednjivati,10,wrong-cluster
 "repentance, penitence",noun,råzkajańje,pokajanje,11,wrong-cluster
 "tell, narrate, relate, recount",verb,råzkazati,råzskazati,18,root-absent
@@ -6255,8 +6213,6 @@ narrator,noun,råzkaznik,råzskazčik,16,root-absent
 unglue,verb,råzklejati,odlepljivati,9,root-absent
 unglue,verb,råzklejiti,råzlepiti,8,wrong-cluster
 "decode, decrypt",verb,råzkodovati,dešifrovati,15,wrong-cluster
-dig up (a street),verb,råzkopyvati,råzkopavati,6,right-cluster-wrong-form
-"unchain, unshoe (a horse)",verb,råzkovyvati,råzkovavati,8,right-cluster-wrong-form
 cut up,verb,råzkrajati,råzkrajeti,12,right-cluster-wrong-form
 crumble,verb,råzkrȯšiti,råzdrobiti,11,wrong-cluster
 "uncoil, untwist",verb,råzkrųćati,råzvijeti,18,wrong-cluster
@@ -6264,7 +6220,7 @@ crumble,verb,råzkrȯšiti,råzdrobiti,11,wrong-cluster
 disclosure,noun,råzkryťje,odhaleni,18,wrong-cluster
 quartering,noun,råzkvartirovańje,råzkvartiruvane,8,right-cluster-wrong-form
 quarter (troops),verb,råzkvartirovati,ubivovati,11,wrong-cluster
-quarter (troops),verb,råzkvartirovyvati,ubitovavati,12,wrong-cluster
+quarter (troops),verb,råzkvartirovyvati,ubitovyvati,12,wrong-cluster
 "throw around, scatter",verb,råzkydati,råzhoditi,14,wrong-cluster
 "throw around, scatter",verb,råzkydyvati,råzkidyvati,12,right-cluster-wrong-form
 "derange, disorganise, disorganize, detune, untune",verb,råzlađati,råzladovati,16,root-absent
@@ -6367,13 +6323,13 @@ destroyer,noun,råzrušitelj,råzrušitel,9,right-cluster-wrong-form
 "break down, destroy, wreck, demolish",verb,råzrušiti,råzbiti,20,wrong-cluster
 destructiveness,noun,råzrušnosť,destruktivnosti,8,root-absent
 "tear to pieces, tear apart, lacerate, disrupt",verb,råzrvati,razorvati,14,right-cluster-wrong-form
-seedlings,noun,råzsada,rasad,9,wrong-cluster
+seedlings,noun,råzsada,rasada,9,wrong-cluster
 plant out,verb,råzsaditi,rasaditi,11,wrong-cluster
 "nursery-garden, seed-bed",noun,råzsadnik,rasadnik,11,wrong-cluster
 plant out,verb,råzsađati,rasađivati,15,wrong-cluster
 "calculate, compute",verb,råzsčitati,izračunati,13,root-absent
 unsaddle,verb,råzsedlati,rasedlati,5,wrong-cluster
-unsaddle,verb,råzsedlyvati,rasedlavati,6,wrong-cluster
+unsaddle,verb,råzsedlyvati,rasedlyvati,6,wrong-cluster
 absent-minded,adj,råzsějany,rasijany,18,wrong-cluster
 "disperse, scatter",verb,råzsějati,rasijati,9,wrong-cluster
 "disperse, scatter",verb,råzsějivati,rasejavati,8,wrong-cluster
@@ -6425,7 +6381,7 @@ unlace,verb,råzšnurovyvati,råzvezivati,10,wrong-cluster
 "smash down, crush into pieces",verb,råztȯlkati,tlěći,17,wrong-cluster
 "smash down, crush into pieces",verb,råztȯlkti,råztloucti,16,root-absent
 "trample, crush (underfoot)",verb,råztȯptati,råzdupati,12,wrong-cluster
-"trample, crush (underfoot)",verb,råztȯptyvati,råzdupavati,11,wrong-cluster
+"trample, crush (underfoot)",verb,råztȯptyvati,råzdupyvati,11,wrong-cluster
 "squander, waste, dissipate",verb,råztraćati,mrhati,25,root-absent
 "squander, waste, dissipate",verb,råztratiti,promrhati,24,wrong-cluster
 "smash, shatter",verb,råztrěskati,råztreskivati,18,root-absent
@@ -6454,7 +6410,7 @@ unfold,verb,råzviti,råzvinouti,19,wrong-cluster
 "development, evolution",noun,råzviťje,råzvoj,8,wrong-cluster
 developing,adj,råzvivajųći,råzvojny,9,root-absent
 development,noun,råzvivańje,råzvoj,6,root-absent
-"develop (tr.), evolve (tr.)",verb,råzvivati,råzvijavati,8,right-cluster-wrong-form
+"develop (tr.), evolve (tr.)",verb,råzvivati,råzvijyvati,8,right-cluster-wrong-form
 unfold,verb,råzvivati,råzvijte,18,wrong-cluster
 "dissolve (an organisation), divorce",verb,råzvoditi,råzpoušteti,14,wrong-cluster
 divorce,adj,råzvodny,råzvodovy,8,wrong-cluster
@@ -6615,7 +6571,7 @@ assembly (e.g. of a device),noun,sborka,montaž,11,wrong-cluster
 "collection, anthology",noun,sbornik,zbornik,8,wrong-cluster
 build,verb,sbudovati,postroiti,10,root-absent
 "scene, stage",noun,scena,stěna,7,wrong-cluster
-"check, bill",noun,sčet,rahunek,7,wrong-cluster
+"check, bill",noun,sčet,rahunȯk,7,wrong-cluster
 count,verb,sčisliti,spočitati,14,root-absent
 count,verb,sčitati,sosčitati,15,wrong-cluster
 seemingly,adv,sdanlivo,prividno,18,root-absent
@@ -6663,7 +6619,6 @@ secret,adj,sekretny,tajeny,6,wrong-cluster
 sexy,adj,seksi,seksy,8,right-cluster-wrong-form
 "cut, chop, hack",verb,sěkti,sjeći,12,wrong-cluster
 secant (math.),noun,sěkųća,siečna,8,wrong-cluster
-sequence,noun,sekvencija,sekvenca,7,right-cluster-wrong-form
 this much,adv,seliko,ovoliko,10,root-absent
 this many times,adv,selikråt,stilky raziv,9,root-absent
 this big,adj,seliky,tako veliky,7,root-absent
@@ -6708,14 +6663,12 @@ syllable,noun,silaba,slog,7,wrong-cluster
 silicon,noun,silicij,kremnij,5,wrong-cluster
 very,adv,siľno,velmi,16,wrong-cluster
 strong,adj,siľny,sileny,6,right-cluster-wrong-form
-sympathy,noun,simpatija,simpatij,4,right-cluster-wrong-form
 sympathizer,noun,simpatizant,simpatizer,13,wrong-cluster
 syntax,noun,sintaksa,sintaksis,6,wrong-cluster
 Syrian,noun,Sirijėc,sirec,4,right-cluster-wrong-form
 Syrian,adj,sirijsky,sirsky,1,right-cluster-wrong-form
 be orphaned,verb,sirotěti,osirotiti,5,right-cluster-wrong-form
 orphanage,noun,sirotišče,sirotinec,13,root-absent
-system,noun,sistema,sistem,2,right-cluster-wrong-form
 "turn grey, turn gray",verb,sivěti,sivjeti,8,right-cluster-wrong-form
 eat up,verb,sjedati,jesti,5,wrong-cluster
 eaten,adj,sjedeny,izedeny,8,wrong-cluster
@@ -6885,7 +6838,7 @@ joke,noun,směška,žert,16,wrong-cluster
 "thrash, thresh, hammer",verb,smlåtiti,zmlociti,17,wrong-cluster
 grind,verb,smlěti,smljeti,8,right-cluster-wrong-form
 "manage to, be able to, cope, make it",verb,smogti,smoći,18,root-absent
-fig,noun,smokva,fig,5,wrong-cluster
+fig,noun,smokva,figa,5,wrong-cluster
 spruce,noun,smrěk,smreka,11,right-cluster-wrong-form
 smurf,noun,smrf,smerf,6,right-cluster-wrong-form
 "brat, snotty-nose, whippersnapper",noun,smrkač,smarkač,21,right-cluster-wrong-form
@@ -6901,6 +6854,7 @@ confused,adj,smųćeny,zbenteženyji,17,wrong-cluster
 "make turbid, obfuscate, muddy up",verb,smųtiti,zamutiti,13,root-absent
 #sadly,adv,smųtno,smutnie,11,right-cluster-wrong-form
 sadness,noun,smųtȯk,tųga,11,wrong-cluster
+bow (for stringed instruments),noun,smyček,smyčȯk,6,right-cluster-wrong-form
 "sense, meaning",noun,smysl,smisl,6,right-cluster-wrong-form
 "#sensual, sensible",adj,smysľny,razumny,18,wrong-cluster
 #senses,noun,smysly,čuvstva,10,wrong-cluster
@@ -7474,7 +7428,6 @@ thermometer,noun,teploměr,termometr,2,wrong-cluster
 temperature,noun,teplota,temperatura,3,wrong-cluster
 lukewarm,adj,teplovaty,teplovatyji,11,right-cluster-wrong-form
 third (musical interval),noun,tercija,terca,1,right-cluster-wrong-form
-territory,noun,teritorija,teritorij,8,right-cluster-wrong-form
 termite,noun,termit,termite,1,right-cluster-wrong-form
 thermodynamics,noun,termodinamika,termodinamike,2,right-cluster-wrong-form
 terrorist,adj,terorističny,terrorističny,4,right-cluster-wrong-form
@@ -7536,7 +7489,6 @@ pound,verb,tȯlkti,tlěći,13,root-absent
 tomato,noun,tomat,pomidor,12,wrong-cluster
 therefore,adv,tomu,tome,16,right-cluster-wrong-form
 ago,adv,tomu,prěd,6,wrong-cluster
-ton,noun,tona,ton,1,right-cluster-wrong-form
 thin,adj,tȯnky,tonȯky,2,right-cluster-wrong-form
 drown,verb,tonųti,topnųti,9,wrong-cluster
 sink,verb,tonųti,topnųti,7,wrong-cluster
@@ -7607,7 +7559,7 @@ tropical,adj,tropičny,tropičniji,6,right-cluster-wrong-form
 patience,noun,tŕpělivosť,tȯrpenje,11,wrong-cluster
 patient,adj,tŕpělivy,tȯrpelivy,6,right-cluster-wrong-form
 patience,noun,tŕpěńje,tȯrpenje,7,right-cluster-wrong-form
-tolerance,noun,tŕpimosť,toleranca,11,wrong-cluster
+tolerance,noun,tŕpimosť,tolerancija,11,wrong-cluster
 tolerant,adj,tŕpimy,tolerantny,12,wrong-cluster
 difficult,adj,trudny,tęžeky,13,wrong-cluster
 "diligent, industrious",adj,trudoljubivy,pileny,14,wrong-cluster
@@ -7674,7 +7626,7 @@ towel,noun,ubrus,kŕpa,12,wrong-cluster
 tablecloth,noun,ubrus,obrus,10,right-cluster-wrong-form
 spellbound,adj,učarovany,očarovannyji,11,right-cluster-wrong-form
 cast a spell,verb,učarovati,začarovati,12,wrong-cluster
-cast a spell,verb,učarovyvati,očaravati,14,wrong-cluster
+cast a spell,verb,učarovyvati,očaryvati,14,wrong-cluster
 textbook,noun,učebnik,učbenik,4,right-cluster-wrong-form
 pupil’s,adj,učeničsky,učniovsky,13,wrong-cluster
 scholar,noun,učeny,učony,10,right-cluster-wrong-form
@@ -7806,7 +7758,6 @@ humiliating,adj,unižajųći,unizitelny,10,root-absent
 "humiliate, humble",verb,unižati,ponižavati,10,wrong-cluster
 "embodiment, personification, incarnation",noun,uosobjeńje,olicetvorenje,18,wrong-cluster
 fall,noun,upad,pad,9,right-cluster-wrong-form
-"decline, decay, decadence",noun,upadȯk,upadek,14,right-cluster-wrong-form
 pack,verb,upakovyvati,upakovivati,12,right-cluster-wrong-form
 "fall, tumble",verb,upasti,pasti,8,right-cluster-wrong-form
 bake,verb,upekti,peći,7,root-absent
@@ -7867,7 +7818,7 @@ appeased,adj,uspokojeny,spokojany,13,right-cluster-wrong-form
 "qualify, prepare (for a task), fit out, render capable",verb,usposabjati,pripravovati,14,root-absent
 "qualify, prepare (for a task), fit out, render capable",verb,usposobiti,pripraviti,14,wrong-cluster
 justify,verb,uspravědliviti,opravdati,8,root-absent
-justify,verb,uspravědlivjati,opravdavati,8,root-absent
+justify,verb,uspravědlivjati,opravdyvati,8,root-absent
 justification,noun,uspravědlivjeńje,opravdanje,8,wrong-cluster
 "fix, consolidate, stabilise, stabilize",verb,ustaljati,ustaljivati,19,root-absent
 fixed,adj,ustaljeny,ustaljny,13,right-cluster-wrong-form
@@ -7965,7 +7916,7 @@ horror (genre),noun,užasy,horor,3,wrong-cluster
 "use, enjoy",verb,užiti,upotrijebiti,12,wrong-cluster
 usage,noun,uživańje,použiti,14,wrong-cluster
 "use, enjoy",verb,uživati,užyvati,14,right-cluster-wrong-form
-wafer,noun,vaflja,vafl,9,right-cluster-wrong-form
+wafer,noun,vaflja,vafla,9,right-cluster-wrong-form
 Libra,noun,Vagy,vaga,6,right-cluster-wrong-form
 sculptor,noun,vajatelj,skulptor,6,wrong-cluster
 "holidays, vacation (students, pupils)",noun,vakacije,vakancija,11,wrong-cluster
@@ -8588,7 +8539,6 @@ ending,noun,zakončeńje,krajo,10,wrong-cluster
 "legislator, lawmaker",noun,zakonodatelj,zakonodavec,8,wrong-cluster
 legislative,adj,zakonodateljny,zakonodatelny,8,right-cluster-wrong-form
 legislation,noun,zakonodateljstvo,zakonodavstvo,7,wrong-cluster
-bury,verb,zakopyvati,zakopavati,4,right-cluster-wrong-form
 "rooted, deep-rooted, inveterate",adj,zakoreněly,zakorenaly,15,right-cluster-wrong-form
 bloodstained,adj,zakrvavjeny,zakrvaviony,10,right-cluster-wrong-form
 "conceal, cover up",verb,zakryti,zakriti,13,right-cluster-wrong-form
@@ -8622,14 +8572,13 @@ confuse,verb,zaměšivati,masti,12,wrong-cluster
 too,adv,zamnogo,zanadto,14,root-absent
 "castle (chess), rook (chess)",noun,zamȯk,věža,7,root-absent
 "order, make an order",verb,zamȯlviti,zamoviti,16,root-absent
-"order, make an order",verb,zamȯlvjati,objednavati,15,root-absent
+"order, make an order",verb,zamȯlvjati,objednyvati,15,root-absent
 order,noun,zamȯlvjeńje,objednavka,12,root-absent
 overseas,adj,zamoŕsky,zamoresky,4,right-cluster-wrong-form
 freeze,verb,zamråziti,zamŕznųti,5,wrong-cluster
 freeze,verb,zamražati,zamrzivati,4,root-absent
 "freeze to death, ice over, be frost-bitten, congeal",verb,zamrzati,zamerzati,13,right-cluster-wrong-form
 "freeze to death, ice over, be frost-bitten, congeal",verb,zamrznųti,zamorznuti,11,right-cluster-wrong-form
-suede,noun,zamša,zamš,7,right-cluster-wrong-form
 suede,adj,zamševy,zamšovy,9,right-cluster-wrong-form
 "intention, plan, design, scheme",noun,zamysl,zamisl,13,right-cluster-wrong-form
 devise,verb,zamysliti,zamisliti,9,right-cluster-wrong-form
@@ -8688,7 +8637,6 @@ register,verb,zaregistrovati,registrovati,10,wrong-cluster
 #roar,verb,zarevti,zareveti,9,right-cluster-wrong-form
 originator,noun,zaroditelj,tvorac,20,root-absent
 "sprout, shoot (new growth on a plant)",noun,zarodȯk,råztok,17,wrong-cluster
-"embryo, fetus",noun,zarodȯk,zarodek,7,right-cluster-wrong-form
 betroth,verb,zarųčati,obručati,6,wrong-cluster
 betroth,verb,zarųčiti,obručiti,8,wrong-cluster
 sob,verb,zarydati,zaridati,16,right-cluster-wrong-form
@@ -8763,7 +8711,6 @@ dependent,adj,zavisny,zaležny,8,wrong-cluster
 addicted,adj,zavisny,zaležnyji,11,wrong-cluster
 "seize, take possession of",verb,zavladnųti,zavlådati,14,root-absent
 "seize, take possession of",verb,zavladyvati,zavladavati,14,right-cluster-wrong-form
-conquer,verb,zavojevyvati,zavojevavati,16,right-cluster-wrong-form
 reverse,verb,zavraćati,zavracati,11,right-cluster-wrong-form
 "reversal, return",noun,zavråćeńje,obrt,13,root-absent
 reverse,verb,zavråtiti,obratiti,13,wrong-cluster
@@ -8804,7 +8751,6 @@ zigzag,noun,zigzag,cik-cak,5,wrong-cluster
 colder,adj,zimnějši,hladniji,9,wrong-cluster
 coldness,noun,zimnosť,hlåd,13,root-absent
 cold,adj,zimny,hlådeny,7,wrong-cluster
-kingfisher,noun,zimorodȯk,zimorodek,12,right-cluster-wrong-form
 winter,adj,zimovy,zimeny,4,wrong-cluster
 "zipper, zip fastener",noun,zip,molnija,19,wrong-cluster
 "glance, peep, peek",verb,zirkati,zerkati,15,right-cluster-wrong-form
@@ -8835,6 +8781,7 @@ ominous,adj,zlověstny,zlovešči,7,wrong-cluster
 malicious,adj,zly,zȯly,14,right-cluster-wrong-form
 "angry, vexed",adj,zly,zȯly,17,right-cluster-wrong-form
 "snake, viperous",adj,zmiji,zmeinyji,8,wrong-cluster
+mark,noun,značek,značȯk,8,right-cluster-wrong-form
 badge,noun,značek,značka,7,right-cluster-wrong-form
 "significant, notable",adj,značimy,značajany,13,wrong-cluster
 substantially,adv,značno,značajno,10,right-cluster-wrong-form

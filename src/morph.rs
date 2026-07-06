@@ -191,6 +191,16 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
                 return Some((swap(word, suf, "ist"), "intl-ist", "Anglijsky -ist → -ist."));
             }
         }
+        // Slovene/Serbo-Croatian -enca/-anca for Latin -entia/-antia.
+        for (suf, rep) in [("enca", "encija"), ("anca", "ancija")] {
+            if word.ends_with(suf) {
+                return Some((
+                    swap(word, suf, rep),
+                    "intl-tion",
+                    "Latinsky -entia/-antia → -encija/-ancija.",
+                ));
+            }
+        }
         for suf in ["cija", "cije", "cja", "cyja", "ciju", "cijo", "ция"] {
             if word.ends_with(suf) {
                 return Some((
@@ -443,6 +453,15 @@ mod tests {
         assert!(super::normalize_prefix("rositi").is_none());
         assert!(super::normalize_prefix("predator").is_none());
         assert!(super::normalize_prefix("rosa").is_none());
+    }
+
+    #[test]
+    fn latin_entia_antia_endings_normalize() {
+        // Slovene/SC -enca/-anca (Latin -entia/-antia) → -encija/-ancija.
+        let (w, _) = super::normalize_lemma("licenca", crate::model::Pos::Noun, true, true, false);
+        assert_eq!(w, "licencija");
+        let (w, _) = super::normalize_lemma("aroganca", crate::model::Pos::Noun, true, true, false);
+        assert_eq!(w, "arogancija");
     }
 
     #[test]
