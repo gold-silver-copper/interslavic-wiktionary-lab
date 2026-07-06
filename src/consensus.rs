@@ -60,7 +60,7 @@ pub struct MeaningInput {
 
 /// Toggles for each etymological repair, so the benchmark can attribute the
 /// accuracy delta of every rule.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConsensusConfig {
     /// Count branches (not languages) when voting; the core anti-domination rule.
     pub branch_balanced: bool,

@@ -124,6 +124,7 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 19895,unlimited,adj,neograničeny,neograničny,0.083,3,19
 36687,"forbidden, not allowed",adj,nepozvoljeny,nedozvoljeny,0.083,2,23
 37159,"unpleasantness, trouble",noun,neprijemnosť,neprijetnosť,0.083,2,18
+13222,unification,noun,objedinjeńje,objedinenje,0.083,1,19
 21377,process,verb,obråbotyvati,obrabatyvati,0.083,1,11
 1124,orientation,noun,orientacija,orijentacija,0.083,3,11
 34650,"lighting, illumination",noun,osvětljeńje,osvjetljenje,0.083,3,18
@@ -321,6 +322,7 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 36775,voivodship,noun,vojevodstvo,vojvodstvo,0.091,3,11
 21643,imagination,noun,vȯobražeńje,vyobraženje,0.091,3,20
 22724,"high-flown, pompous",adj,vysokoparny,visokoparny,0.091,2,29
+23715,cough,verb,zakašljati,zakašȯljati,0.091,2,9
 33665,wedge,verb,zaklinovati,zaklinivati,0.091,2,23
 20306,conclusion,noun,zaključeńje,zaklučenje,0.091,2,22
 14095,ending,noun,zakončeńje,zakonjčenje,0.091,1,23
@@ -397,5 +399,3 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 3851,simultaneous,adj,jednočasny,jednočesny,0.100,2,16
 26429,censer,noun,kadiľnica,kadilinica,0.100,2,12
 26455,stony,adj,kamenisty,kamienisty,0.100,3,13
-2566,careerist,noun,karierist,karijerist,0.100,3,11
-19775,Catalan,adj,katalansky,katalonsky,0.100,3,11

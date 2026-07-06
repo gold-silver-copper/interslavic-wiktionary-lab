@@ -32,7 +32,7 @@ pub fn generate_with_reflexes(
     let mut trace = Vec::new();
     let mut s = clean(proto_word, &mut trace);
     s = x_to_h(&s, &mut trace);
-    s = palatals(&s, &mut trace);
+    s = palatals(&s, pos, &mut trace);
     s = liquid_metathesis(&s, &mut trace);
     s = nasals(&s, &mut trace);
     s = prothesis(&s, &mut trace);
@@ -99,8 +99,11 @@ fn x_to_h(input: &str, trace: &mut Vec<RuleStep>) -> String {
 }
 
 /// *tj/*dj, *kt'/*gt', *stj/*skj, *zdj/*zgj outcomes.
-fn palatals(input: &str, trace: &mut Vec<RuleStep>) -> String {
+fn palatals(input: &str, pos: Pos, trace: &mut Vec<RuleStep>) -> String {
     let mut out = input.to_string();
+    // Verb infinitives keep a word-final velar+t cluster transparent
+    // (*pekti→pekti, *mogti→mogti); don't palatalize -kti/-gti there.
+    let verb_final_kt = pos == Pos::Verb && (out.ends_with("kti") || out.ends_with("gti"));
     for (from, to) in [
         ("stj", "šć"),
         ("skj", "šć"),
@@ -113,6 +116,9 @@ fn palatals(input: &str, trace: &mut Vec<RuleStep>) -> String {
         ("gtь", "ćь"),
         ("kt", "ć"),
     ] {
+        if verb_final_kt && (from == "kti" || from == "kt") {
+            continue;
+        }
         if out.contains(from) {
             out = out.replace(from, to);
         }
@@ -137,6 +143,19 @@ fn liquid_metathesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let mut out = String::new();
     let mut i = 0;
     while i < n {
+        // Word-initial *orC/*olC (no leading consonant) metathesizes to raC/laC
+        // (rising accent → a): *orbota→rabota, *orzumъ→razumъ, *olkъtь→lakȯtь.
+        if i == 0
+            && n >= 3
+            && matches!(chars[0], 'o' | 'e')
+            && matches!(chars[1], 'r' | 'l')
+            && is_cons(chars[2])
+        {
+            out.push(chars[1]);
+            out.push(if chars[0] == 'o' { 'a' } else { 'ě' });
+            i += 2;
+            continue;
+        }
         if i + 2 < n
             && is_cons(chars[i])
             && matches!(chars[i + 1], 'o' | 'e')
@@ -302,7 +321,14 @@ fn syllabic_liquid(input: &str, trace: &mut Vec<RuleStep>) -> String {
             && matches!(chars[i + 1], 'r' | 'l')
             && (i + 2 >= n || is_cons(chars[i + 2]))
         {
-            out.push(if chars[i + 1] == 'r' { 'ŕ' } else { 'ĺ' });
+            if chars[i + 1] == 'r' {
+                out.push('ŕ'); // syllabic r stays: *sьrpъ→sŕp, *vьrxъ→vŕh
+            } else {
+                // *ъl/*ьl vocalizes to ȯl, it does NOT become a syllabic ĺ:
+                // *vьlkъ→vȯlk, *dъlgъ→dȯlg, *pьlnъ→pȯlny (RULE_SPEC §2 liquids).
+                out.push('ȯ');
+                out.push('l');
+            }
             i += 2; // consume the yer and the liquid
             continue;
         }
@@ -314,7 +340,7 @@ fn syllabic_liquid(input: &str, trace: &mut Vec<RuleStep>) -> String {
         "syllabic-liquid",
         input,
         &out,
-        "Slogotvorne plavne: *ьr/*ъr→ŕ, *ьl/*ъl→ĺ prěd soglasnikom (sŕp, smŕť).",
+        "Slogotvorne plavne: *ьr/*ъr→ŕ (sŕp), a *ьl/*ъl→ȯl (vȯlk, dȯlg).",
         STEEN,
     );
     out
@@ -646,6 +672,40 @@ mod tests {
         // ending *-ъjь surfaces with y (novъjь → novy). Without the tense rule
         // strict Havlík would misassign the ъ as strong (→ novȯj-).
         assert!(normalized_match(&gen("*novъjь", Pos::Adjective), "novy"));
+    }
+
+    #[test]
+    fn syllabic_l_vocalizes_to_ol() {
+        // *ъl/*ьl → ȯl (not a syllabic ĺ): vȯlk, dȯlg, pȯlny.
+        assert!(
+            normalized_match(&gen("*vьlkъ", Pos::Noun), "vȯlk"),
+            "{}",
+            gen("*vьlkъ", Pos::Noun)
+        );
+        assert!(normalized_match(&gen("*dъlgъ", Pos::Noun), "dȯlg"));
+        assert!(normalized_match(&gen("*pьlnъ", Pos::Adjective), "pȯlny"));
+    }
+
+    #[test]
+    fn verb_infinitive_keeps_velar_t_cluster() {
+        // *pekti/*mogti stay transparent (official pekti/mogti), not peći/moći.
+        assert!(
+            normalized_match(&gen("*pekti", Pos::Verb), "pekti"),
+            "{}",
+            gen("*pekti", Pos::Verb)
+        );
+        assert!(normalized_match(&gen("*mogti", Pos::Verb), "mogti"));
+    }
+
+    #[test]
+    fn word_initial_liquid_metathesis() {
+        // Word-initial *orC → raC: *orbota→rabota, *orzumъ→razum.
+        assert!(
+            normalized_match(&gen("*orbota", Pos::Noun), "rabota"),
+            "{}",
+            gen("*orbota", Pos::Noun)
+        );
+        assert!(normalized_match(&gen("*orzumъ", Pos::Noun), "razum"));
     }
 
     #[test]

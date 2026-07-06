@@ -674,33 +674,42 @@ pub fn run(official_path: &Path, _dump: Option<&Path>, out_dir: &Path) -> Result
 
     std::fs::create_dir_all(out_dir)?;
     let baseline = &runs[0];
-    // The kept ladder is monotone-improving by construction; the production
-    // config is its last rung. Confirm empirically (by exact, then normalized).
-    let best_idx = (0..runs.len())
-        .max_by(|&a, &b| {
-            let ra = &runs[a];
-            let rb = &runs[b];
-            Bucket::rate(ra.exact, ra.n)
-                .total_cmp(&Bucket::rate(rb.exact, rb.n))
-                .then(
-                    Bucket::rate(ra.normalized, ra.n).total_cmp(&Bucket::rate(rb.normalized, rb.n)),
-                )
-        })
-        .unwrap();
-    let best = &runs[best_idx];
-    println!("Kept production config: {}", best.name);
+    // The shipped config is the LAST rung of the ladder (which is defined to end
+    // exactly at `ConsensusConfig::production`). The Headline and the CI floor
+    // must report *that* rung — not the empirical best — so a production rule
+    // that regresses the final rung below an earlier one cannot slip past CI.
+    debug_assert_eq!(
+        kept_ladder().last().map(|r| r.cfg),
+        Some(ConsensusConfig::production()),
+        "the kept ladder must end at ConsensusConfig::production()"
+    );
+    let production = runs.last().unwrap();
+    println!("Shipped production config: {}", production.name);
+
+    // Still surface if some earlier rung actually scored higher (a real regression).
+    if let Some(better) = runs
+        .iter()
+        .find(|r| Bucket::rate(r.exact, r.n) > Bucket::rate(production.exact, production.n) + 1e-6)
+    {
+        println!(
+            "WARNING: rung '{}' (exact {:.2}%) outscores the shipped production rung (exact {:.2}%) — production regressed.",
+            better.name,
+            100.0 * Bucket::rate(better.exact, better.n),
+            100.0 * Bucket::rate(production.exact, production.n),
+        );
+    }
 
     write_summary_json(out_dir, &runs)?;
-    write_report_md(out_dir, &runs, &rejected, best)?;
-    write_diffs(out_dir, baseline, best)?;
-    write_errors_sample(out_dir, best)?;
+    write_report_md(out_dir, &runs, &rejected, production)?;
+    write_diffs(out_dir, baseline, production)?;
+    write_errors_sample(out_dir, production)?;
 
     println!("Wrote benchmark report to {}", out_dir.display());
     println!(
         "Headline: normalized top-1 {:.2}% (baseline {:.2}%), exact top-1 {:.2}% (baseline {:.2}%)",
-        100.0 * Bucket::rate(best.normalized, best.n),
+        100.0 * Bucket::rate(production.normalized, production.n),
         100.0 * Bucket::rate(baseline.normalized, baseline.n),
-        100.0 * Bucket::rate(best.exact, best.n),
+        100.0 * Bucket::rate(production.exact, production.n),
         100.0 * Bucket::rate(baseline.exact, baseline.n),
     );
     Ok(())

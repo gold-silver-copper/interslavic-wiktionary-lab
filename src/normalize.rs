@@ -110,9 +110,33 @@ fn translit_cyrillic(lang: &str, s: &str) -> String {
             }
             'ґ' => "g",
             'д' => "d",
-            'е' => "e",
-            'ё' => "o", // Russian/Belarusian: stressed *e/*ь reflex; align to o
-            'є' => "je",
+            // Plain е is /e/, but after a separating soft/hard sign it carries the
+            // /j/ (пьеса→pjesa, объезд→objezd).
+            'е' => {
+                if prev == 'ь' || prev == 'ъ' {
+                    "je"
+                } else {
+                    "e"
+                }
+            }
+            // Russian/Belarusian ё: after a consonant it palatalizes → /o/; word-
+            // initial or after a vowel/soft-sign it is /jo/ (ёж→jož, моё→mojo).
+            'ё' => {
+                if is_soft_context(prev) {
+                    "o"
+                } else {
+                    "jo"
+                }
+            }
+            // Ukrainian є: after a consonant it is /e/ (synє→syne); word-initial or
+            // after a vowel it carries /j/ (є→je).
+            'є' => {
+                if is_soft_context(prev) {
+                    "e"
+                } else {
+                    "je"
+                }
+            }
             'ж' => "ž",
             'з' => "z",
             'ѕ' => "dz",
@@ -203,7 +227,12 @@ fn translit_cyrillic(lang: &str, s: &str) -> String {
 
 fn is_soft_context(prev: char) -> bool {
     // After a consonant, ю/я mark palatalization of that consonant rather than a
-    // full /j/. After a vowel or at word start they carry /j/.
+    // full /j/. After a vowel or at word start they carry /j/. A *separating* soft
+    // or hard sign (семья, статья, объект) is precisely the signal that the /j/ is
+    // present, so it is NOT a soft (de-iotating) context.
+    if prev == 'ь' || prev == 'ъ' {
+        return false;
+    }
     const CYR_VOWELS: &str = "аеёиіїоуыэюяєѣѫѧ ";
     prev.is_alphabetic() && !CYR_VOWELS.contains(prev)
 }
@@ -285,4 +314,46 @@ fn translit_latin(lang: &str, s: &str) -> String {
 /// non-flagged variant, else the first variant.
 pub fn primary<'a>(forms: &'a [NormForm]) -> Option<&'a NormForm> {
     forms.iter().find(|f| !f.flagged).or_else(|| forms.first())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::to_phonemic_latin as tr;
+
+    #[test]
+    fn basic_cyrillic_and_latin() {
+        assert_eq!(tr("ru", "вода"), "voda");
+        assert_eq!(tr("uk", "голова"), "holova"); // uk г→h
+        assert_eq!(tr("pl", "głowa"), "glova"); // ł→l, w→v
+        assert_eq!(tr("cs", "hlava"), "hlava");
+    }
+
+    #[test]
+    fn separating_soft_sign_keeps_j() {
+        // The separating ь signals the /j/ — it must not de-iotate (B3).
+        assert_eq!(tr("ru", "семья"), "semja");
+        assert_eq!(tr("ru", "статья"), "statja");
+        assert!(tr("ru", "пьеса").contains('j'), "{}", tr("ru", "пьеса"));
+    }
+
+    #[test]
+    fn yo_iotates_word_initially() {
+        // ё is /jo/ initially/after a vowel, /o/ after a consonant (B4).
+        assert_eq!(tr("ru", "ёж"), "jož");
+        assert!(tr("ru", "моё").contains('j'), "{}", tr("ru", "моё"));
+        assert_eq!(tr("ru", "тёплый"), "toplyj"); // ё after consonant → o; final й→j
+    }
+
+    #[test]
+    fn ukrainian_je_after_consonant_has_no_j() {
+        // є is /e/ after a consonant, /je/ otherwise (B14).
+        assert_eq!(tr("uk", "синє"), "synje".replace("nje", "ne"));
+        assert!(!tr("uk", "синє").contains('j'), "{}", tr("uk", "синє"));
+    }
+
+    #[test]
+    fn iotated_vowels_after_vowel_keep_j() {
+        assert!(tr("ru", "моя").contains('j'), "{}", tr("ru", "моя"));
+        assert_eq!(tr("ru", "яблоко"), "jabloko"); // word-initial я
+    }
 }
