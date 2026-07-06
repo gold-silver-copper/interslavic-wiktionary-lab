@@ -458,7 +458,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
             wrong_cluster += 1;
             "wrong-cluster"
         };
-        if miss_rows.len() < 50000 {
+        if miss_rows.len() < 500 {
             miss_rows.push(format!(
                 "{},{},{},{},{},{}",
                 csv_escape(&entry.english),
