@@ -590,6 +590,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 32831,"be struck dumb, fall silent, become speechless, grow dumb",verb,oněměti,onemeti,onijemjeti
 36291,onomatopoeia,noun,onomatopeja,onomatopeja,onomatopoeia
 29478,"footwrap, foot rag",noun,onuća,onuča,onuca
+4682,"danger, peril",noun,opasnosť,opasnost,obpasnost
 3302,care,noun,opeka,opeka,něga
 10223,caregiver,noun,opekun,opekun,opiekun
 18133,guardian,noun,opekun,opekun,opiekun
@@ -615,7 +616,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 32892,sharpen,verb,ostriti,ostriti,oštriti
 10339,acutely,adv,ostro,ostro,oštro
 29698,spur,noun,ostroga,ostroga,ostroge
-2044,island,noun,ostrov,ostrov,o(b)strov
+2044,island,noun,ostrov,ostrov,obstrov
 29715,condemnation,noun,osųd,osud,osųda
 29718,"dry, drain",verb,osušati,osušati,sušiti
 10354,"illuminate, light up",verb,osvětliti,osvetliti,osvijetliti
@@ -1123,7 +1124,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 19407,sob,verb,zarydati,zarydati,zaridati
 36410,ambush,noun,zasada,zasada,zasjeda
 33240,sow,verb,zasějati,zasejati,zasijati
-1932,shit,verb,zasrati,zasrati,zasarati
 15210,"flag, ensign, banner (flag)",noun,zastava,zastava,flaga
 1170,"obscure, darken, make dark",verb,zatemniti,zatemniti,zatamniti
 31567,"plug, stop up",verb,zatknųti,zatknuti,zataknuti

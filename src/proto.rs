@@ -64,8 +64,12 @@ fn clean(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let s = input.trim().trim_start_matches('*');
     let mut out = String::with_capacity(s.len());
     for ch in s.chars() {
-        // Drop combining accent marks (Proto-Slavic prosody notation).
-        if ('\u{0300}'..='\u{036F}').contains(&ch) || ch == '`' || ch == '´' {
+        // Drop combining accent marks (Proto-Slavic prosody notation) and the
+        // parentheses Wiktionary wraps optional letters in (*(j)azъ → jazъ): keep
+        // the letter, drop the brackets. Also drop syllable dots / hyphens.
+        if ('\u{0300}'..='\u{036F}').contains(&ch)
+            || matches!(ch, '`' | '´' | '(' | ')' | '·' | '.' | '‑')
+        {
             continue;
         }
         out.push(debase_vowel(ch));
