@@ -27,7 +27,7 @@ audit:
 corpus-eval:
 	cargo run --release -- corpus-eval --out "$(OUT)"
 
-# Generate the static website (no server, GitHub Pages hostable).
+# Generate the static website locally (no server; not published anywhere).
 export:
 	cargo run --release -- export --out "$(SITE)"
 
