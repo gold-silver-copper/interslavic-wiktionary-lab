@@ -221,16 +221,23 @@ fn strip_shared_prefix(latins: &[String]) -> Option<(String, Vec<String>)> {
 fn strip_one(latin: &str) -> Option<(&'static str, String)> {
     for (variant, isv) in PREFIX_VARIANTS {
         if let Some(rest) = latin.strip_prefix(variant) {
-            // Keep enough of a stem, and require the stem to start with a
-            // consonant (real prefixed stems do; avoids stripping vowel-initial
-            // roots and internationalisms).
-            if rest.chars().count() >= 3
-                && rest
-                    .chars()
-                    .next()
-                    .map(|c| !"aeiouyěęǫųåȯ".contains(c))
-                    .unwrap_or(false)
-            {
+            let n = rest.chars().count();
+            let vowel_initial = rest
+                .chars()
+                .next()
+                .map(|c| "aeiouyěęǫųåȯ".contains(c))
+                .unwrap_or(true);
+            // Consonant-initial stems are the safe common case. Vowel-initial
+            // stems (raz+um→umeti) are allowed only for the longer, unambiguous
+            // prefixes and a longer stem — the short prefixes (na/po/za/do/u)
+            // start too many roots to strip before a vowel. The gloss-overlap
+            // gate rejects any wrong bare root either way.
+            let ok = if vowel_initial {
+                variant.chars().count() >= 3 && n >= 4
+            } else {
+                n >= 3
+            };
+            if ok {
                 return Some((isv, rest.to_string()));
             }
         }
@@ -272,9 +279,13 @@ mod tests {
     }
 
     #[test]
-    fn does_not_strip_into_a_vowel_initial_root() {
-        // razumeti = raz+umeti, but the stem is vowel-initial: left intact to
-        // avoid mis-stripping roots and internationalisms.
-        assert!(strip_one("razumeti").is_none());
+    fn strips_vowel_initial_stem_only_for_long_prefixes() {
+        // A long, unambiguous prefix may strip before a vowel: raz+umeti.
+        assert_eq!(strip_one("razumeti"), Some(("råz", "umeti".to_string())));
+        // But a short prefix before a vowel is left intact (na+uka is not a
+        // safe strip — too many roots start that way).
+        assert!(strip_one("nauka").is_none());
+        // And a too-short stem is left intact (iz+ba).
+        assert!(strip_one("izba").is_none());
     }
 }

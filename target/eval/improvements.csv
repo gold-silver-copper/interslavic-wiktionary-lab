@@ -174,7 +174,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 24008,insanity,noun,bezumje,bezumie,bezumje
 15248,"crazy, mad, insane, fuckwitted",adj,bezumny,bezumnyj,bezumny
 21263,"unconditional, absolute",adj,bezuslovny,bezuslovnyj,bezuslovny
-34434,"insipid, bland",adj,bezvkųsny,bezvkusnyj,bezvkusny
 24668,arid,adj,bezvodny,bezvodnyj,bezvodny
 5844,biblical,adj,biblijsky,biblejskij,biblijsky
 35088,bibliographic,adj,bibliografičny,bibliografsky,bibliografičny
@@ -742,7 +741,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 26289,berry,adj,jagodny,jagodnyj,jagodny
 1528,Japanese,adj,japonsky,japonskij,japonsky
 26304,radiant,adj,jarky,jarkij,jarky
-734,"clear, bright, light",adj,jasny,jasnyj,jasny
 17609,reality,noun,java,jav,java
 36481,Javanese,adj,javansky,javanskij,javansky
 8241,public,adj,javny,javnyj,javny
@@ -777,13 +775,18 @@ id,gloss,pos,official,baseline_pred,final_pred
 26364,"spruce, fir",noun,jela,el,jela
 26365,dace,noun,jelec,elec,jelec
 26368,venison,noun,jelenina,olenina,jelenina
+17616,food,noun,jelo,jiža,jelo
+3017,mistletoe,noun,jemela,omela,jemela
 2771,to him,pron,jemu,emu,jemu
 26374,yen [¥],noun,jen,iena,jen
 37064,Yenisei,noun,Jenisej,enisej,jenisej
 26376,jeremiad,noun,jeremiada,ieremiada,jeremiada
+26379,sturgeon,noun,jesetr,osotr,jesetr
 26380,sturgeon,noun,jesetrina,osetrina,jesetrina
+19491,eat,verb,jesti,esti,jesti
 1076,"still, even, yet",adv,ješče,eščo,ješče
 255,Jewish,adj,jevrejsky,evrejskij,jevrejsky
+2547,lake,noun,jezero,ozero,jezero
 26392,Jesuit,noun,jezuit,iezuit,jezuit
 31979,uvular,adj,języčkovy,uvularny,języčkovy
 541,language,noun,język,jazyk,język
@@ -1425,8 +1428,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 9822,regional,adj,oblastny,oblastnoj,oblastny
 28795,"relief, alleviation, easement",noun,oblegčeńje,oblegčenie,oblegčenje
 28822,peel,verb,oblupiti,oloupati,oblupiti
-28850,carry round,verb,obnositi,nositi,obnositi
 18026,"adoration, worship",noun,obožańje,obožavanje,obožanje
+21685,process,verb,obråbotati,obraditi,obrabotati
 28867,conversion,noun,obraćańje,obraceni,obraćanje
 22670,"direct (attention), turn (attention)",verb,obraćati,obraceti,obraćati
 3551,"defence, defense",noun,obråna,obrona,obråna
@@ -1463,6 +1466,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 5508,bring away,verb,odvoziti,odvažeti,odvoziti
 1042,"avert, divert, prevent, turn away (tr.)",verb,odvraćati,odvraceti,odvraćati
 22691,distract,verb,odvraćati,odvraceti,odvraćati
+36322,"disaccustom, wean, unteach",verb,odvyknųti,odvyknouti,odvyknųti
 18099,"inspection, examination",noun,oględ,ohlad,ogled
 29308,fiery,adj,ognjeny,ognennyj,ognjeny
 10129,"limit, limitation, constraint",noun,ograničeńje,ograničenie,ograničenje
@@ -1494,7 +1498,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 10238,definite,adj,oprěděljeny,opredelonnyj,opredeljeny
 35640,optimal,adj,optimaľny,optimalnyj,optimalny
 37284,optimistic,adj,optimističny,optymistyčny,optimističny
-16299,swell,verb,opuhnųti,oteći,opuhnuti
 9758,abandonment,noun,opušćeńje,opuščenie,opušćenje
 29561,"ploughland, plowland",noun,oranica,ornice,oranica
 29562,"ploughing, plowing",noun,orańje,oranie,oranje
@@ -1547,7 +1550,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 22443,Paraguayan,adj,paragvajsky,paragvajskij,paragvajsky
 23206,parallel,noun,paralela,parallel,paralela
 23207,parallel,adj,paraleľny,parallelnyj,paralelny
-16790,"paralyse, paralyze",verb,paralizovati,paralizira,paralizovati
 29861,even,adj,parny,parnyj,parny
 10456,password,noun,parola,parol,parola
 2911,partner,noun,partner,partnor,partner
@@ -1583,6 +1585,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 37119,tweezers,noun,pinceta,pincet,pinceta
 10562,pyrotechnic,adj,pirotehničny,pyrotehnicky,pirotehničny
 3939,writer,noun,pisatelj,pisatel,pisatelj
+1147,"squeak, squeal",verb,piskati,piščati,piskati
 5981,pistachio,noun,pistacija,pistacja,pistacija
 2087,"handgun, pistol",noun,pistolet,pistole,pistolet
 36925,plasticine,noun,plastelin,plastilin,plastelin
@@ -1699,7 +1702,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 21035,orthodox,adj,pravověrny,pravovernyj,pravoverny
 1164,right,adj,pravy,pravyj,pravy
 21036,correct,adj,pravy,pravilnyj,pravy
-35883,overestimate,verb,prěcěniti,pereoceniti,preceniti
+35883,overestimate,verb,prěcěniti,pereoceniti,prěcěniti
 11185,too often,adv,prěčęsto,prečasto,prečesto
 1189,"hand over, deliver, convey",verb,prědati,peredati,prědati
 3247,broadcast,verb,prědati,peredati,predati
@@ -1711,7 +1714,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 19506,transition,noun,prěhod,perehod,prehod
 2425,"transcend, cross over, pass over",verb,prěhoditi,perehoditi,prehoditi
 18419,transitive,adj,prěhodny,perehodnyj,prehodny
-5521,rename,verb,prěimenovati,pereimenovati,preimenovati
+5521,rename,verb,prěimenovati,pereimenovati,prěimenovati
 11302,switch,verb,prěključiti,pereklučiti,preključiti
 21462,"magnificent, wonderful",adj,prěkrasny,prekrasnyj,prekrasny
 23907,overflight,noun,prělet,perelot,prelet
@@ -1735,7 +1738,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 3539,cross,verb,prěpraviti,perepraviti,prepraviti
 33068,outgrow,verb,prěrastati,pererastati,prerastati
 11338,outgrow,verb,prěråsti,pererasti,prerasti
-11339,cut through,verb,prěrězati,pererezati,prerezati
+11339,cut through,verb,prěrězati,pererezati,prěrězati
 11340,interruption,noun,prěryvańje,preryvanie,preryvanje
 11352,migrate,verb,prěseliti,pereseliti,preseliti
 32970,moving (residence),noun,prěseljeńje,pereselenie,preseljenje
@@ -1743,7 +1746,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 11361,spend the night,verb,prěspati,perespati,prespati
 18436,"stop (doing something), cease",verb,prěstati,perestati,prěstati
 18437,"stop (doing something), cease",verb,prěstavati,perestavati,prestavati
-2009,reshuffle,verb,prěstaviti,perestaviti,prestaviti
+2009,reshuffle,verb,prěstaviti,perestaviti,prěstaviti
 18456,purr,verb,pręsti,pristi,pręsti
 18457,spin (yarn),verb,pręsti,prasti,pręsti
 20072,prestigious,adj,prestižny,prestižnyj,prestižny
@@ -1873,7 +1876,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 18593,divide in two,verb,råzdvojiti,razdvoiti,råzdvojiti
 30167,"unriddle, solve, fathom out",verb,råzgadati,rešiti,råzgadati
 30186,colloquial,adj,råzgovorny,razgovornyj,råzgovorny
-30191,partition,verb,råzgråditi,razgoroditi,råzgraditi
+30191,partition,verb,råzgråditi,razgoroditi,råzgråditi
 30197,warming-up,noun,råzgrěvańje,rozgrevanie,råzgrevanje
 30198,"warm up, heat up",verb,råzgrěvati,razogrevati,råzgrevati
 30210,"expenses, expenditure",adj,råzhodny,rashodnyj,råzhodny
@@ -1916,6 +1919,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 30370,"kindle, inflame, heat up, excite",verb,råzpaliti,rozpaliti,råzpaliti
 33947,"span, stretch",verb,råzpinati,rozpinati,råzpinati
 34338,"untwine, unweave, unbraid, unplait",verb,råzplesti,rasplesti,råzplesti
+34334,"untwine, unweave, unbraid, unplait",verb,råzpletati,rozpletati,råzpletati
 22883,#diagnosis,noun,råzpoznańje,rozpoznanie,råzpoznanje
 11844,"identify, distinguish, discern, tell apart",verb,råzpoznati,raspoznati,råzpoznati
 22882,diagnose,verb,råzpoznati,rozpoznati,råzpoznati
@@ -2030,14 +2034,12 @@ id,gloss,pos,official,baseline_pred,final_pred
 35855,sarcastic,adj,sarkastičny,sarkastyčny,sarkastičny
 16094,satellite,noun,satelit,satelita,satelit
 36130,satirical,adj,satiričny,satyryčny,satiričny
-34353,"rip off, tear off",verb,sdirati,derati,sdirati
 4025,oneself,pron,sę,się,sę
 4812,"oneself, yourself, himself, herself, itself, ourselves, yourselves, themselves",pron,sebe,seba,sebe
 21563,slaughter,noun,sěča,seč,seča
 12124,sitting,noun,sěděńje,sidene,sedenje
 16434,sevensome,num,sedmero,siedmioro,sedmero
 18794,weekly,adv,sedmično,tydne,sedmično
-18796,"sit down, take a seat",verb,sědnųti,sednouti,sednuti
 21570,"reach, reach out for",verb,sęgnųti,sahnouti,segnuti
 18800,"chop, hack",verb,sěknųti,seknouti,seknuti
 2947,axe,noun,sěkyra,siekiera,sekyra
@@ -2497,6 +2499,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 31513,"#law-governed, legitimate, rightful, naturally determined",adj,zakonoměrny,zakonomeran,zakonomerny
 20313,shut,verb,zakryvati,zatvarati,zakryvati
 14107,backstage,adj,zakulisny,zakulisnyj,zakulisny
+24011,slow down,verb,zamedliti,usporiti,zamedliti
 3810,replace,verb,zaměnjati,zamenjovati,zamenjati
 20832,lock,noun,zamȯk,zamek,zamȯk
 4187,westwards,adv,zapadno,zapadne,zapadno

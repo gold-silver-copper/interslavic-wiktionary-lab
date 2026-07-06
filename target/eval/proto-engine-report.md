@@ -3,19 +3,19 @@
 Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive the form straight from the linked reconstruction and compare to the official lemma.
 
 - Benchmark entries with modern evidence: **16300**
-- Confidently linked to a Proto-Slavic entry: **2858** (17.5% coverage)
-- On the linked subset: **exact 43.18%**, **normalized 47.97%**
+- Confidently linked to a Proto-Slavic entry: **2862** (17.6% coverage)
+- On the linked subset: **exact 43.50%**, **normalized 48.29%**
 
 ## Proto-engine accuracy by POS (linked subset)
 
 | POS | linked | exact | normalized |
 |---|---:|---:|---:|
 | adj | 322 | 28.88% | 31.06% |
-| adv | 65 | 10.77% | 15.38% |
-| noun | 1638 | 49.51% | 56.23% |
-| num | 15 | 13.33% | 20.00% |
+| adv | 66 | 10.61% | 15.15% |
+| noun | 1639 | 49.97% | 56.68% |
+| num | 16 | 18.75% | 25.00% |
 | pron | 40 | 75.00% | 77.50% |
-| verb | 778 | 37.40% | 39.33% |
+| verb | 779 | 37.61% | 39.54% |
 
 ## Confident proto-engine errors (sample)
 
@@ -38,7 +38,6 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | mill | mlyn | mlin | *mъlinъ | 0.83 |
 | hornbeam | grab | grabr | *grabrъ | 0.81 |
 | yoke | jaŕmo | aramo | *arьmo | 0.81 |
-| mistletoe | jemela | emela | *emela | 0.81 |
 | goodness | dobrosť | dobrota | *dobrota | 0.81 |
 | infertile, barren | jalovy | jalov | *jalovъ | 0.81 |
 | lie down | legti | leći | *leťi | 0.81 |
@@ -81,3 +80,4 @@ Isolates `proto::generate_with_reflexes` from linking/ranking/consensus: derive 
 | bottom | spod | dno | *dъno | 0.77 |
 | lighthouse | světiľnik | majak | *majakъ | 0.77 |
 | width | širokosť | širina | *širina | 0.77 |
+| calf | telętko | telę | *telę | 0.77 |

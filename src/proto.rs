@@ -186,6 +186,14 @@ fn prothesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
         format!("ję{rest}")
     } else if let Some(rest) = input.strip_prefix('ų') {
         format!("vų{rest}")
+    } else if let Some(rest) = input.strip_prefix('ě') {
+        // Word-initial jat takes a prothetic j and de-flavors: *ěsti → jesti,
+        // *ěxati → jehati.
+        format!("je{rest}")
+    } else if let Some(rest) = input.strip_prefix('e') {
+        // Word-initial *e- takes a prothetic j: *edinъ → jedin, *ezero →
+        // jezero, *elenь → jelenj.
+        format!("je{rest}")
     } else {
         input.to_string()
     };
@@ -194,7 +202,7 @@ fn prothesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
         "prothesis",
         input,
         &out,
-        "Protetični soglasnik: počętny ę→ję, ų→vų.",
+        "Protetični soglasnik: počętny e/ě→je, ę→ję, ų→vų.",
         PHON,
     );
     out
@@ -634,6 +642,19 @@ mod tests {
         // ending *-ъjь surfaces with y (novъjь → novy). Without the tense rule
         // strict Havlík would misassign the ъ as strong (→ novȯj-).
         assert!(normalized_match(&gen("*novъjь", Pos::Adjective), "novy"));
+    }
+
+    #[test]
+    fn word_initial_e_jat_prothesis() {
+        // Word-initial *e-/*ě- take a prothetic j: *ěsti → jesti, *ezero → jezero.
+        assert!(normalized_match(
+            &generate("*ěsti", Pos::Verb, None).form,
+            "jesti"
+        ));
+        assert!(normalized_match(
+            &generate("*ezero", Pos::Noun, None).form,
+            "jezero"
+        ));
     }
 
     #[test]

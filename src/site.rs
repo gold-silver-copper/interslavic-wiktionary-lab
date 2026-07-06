@@ -153,6 +153,7 @@ fn build_input(entry: &OfficialEntry) -> MeaningInput {
             code
         )
     });
+    let forms = crate::consensus::lemma_forms(forms, entry.pos);
     MeaningInput {
         pos: entry.pos,
         gender: entry.noun_traits.gender,

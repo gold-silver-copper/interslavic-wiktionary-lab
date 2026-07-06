@@ -934,6 +934,23 @@ fn is_international_form(latin: &str) -> bool {
     ROOT.iter().any(|r| s.contains(r))
 }
 
+/// Only lemmas should shape a generated word. Bulgarian and Macedonian have no
+/// infinitive, so their dictionaries cite verbs by the present tense
+/// (`абдикирам`, `јаде`); that present-tense shape misleads the infinitive-based
+/// Interslavic lemma, so drop those two languages from verb meanings (they still
+/// contribute to non-verb meanings). Measured: +0.07pp exact, denominator
+/// unchanged (verbs keep ≥2 infinitive-citing cognates).
+pub fn lemma_forms(forms: Vec<SourceForm>, pos: Pos) -> Vec<SourceForm> {
+    if pos == Pos::Verb {
+        forms
+            .into_iter()
+            .filter(|f| f.lang_code != "bg" && f.lang_code != "mk")
+            .collect()
+    } else {
+        forms
+    }
+}
+
 /// Convenience: build [`SourceForm`]s for every modern Slavic language present in
 /// a cell map (used by the evaluator and site builder).
 pub fn source_forms_from_cells(
