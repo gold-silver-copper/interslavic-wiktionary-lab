@@ -1065,11 +1065,94 @@
       "exact_top1": 0.3660736083984375,
       "mean_normalized_edit_distance": 0.22958579659461975,
       "n": 16300,
-      "name": "+prefix-strip (production)",
+      "name": "+prefix-strip",
       "normalized_top1": 0.4404294490814209,
       "normalized_top3": 0.5482822060585022,
       "normalized_top5": 0.5766870975494385,
       "skeleton_top1": 0.443865031003952
+    },
+    {
+      "by_branch_coverage": [
+        {
+          "branch_coverage": 0,
+          "exact": 0.40425533056259155,
+          "n": 47,
+          "normalized": 0.4680851101875305
+        },
+        {
+          "branch_coverage": 1,
+          "exact": 0.1329203099012375,
+          "n": 3551,
+          "normalized": 0.1751619279384613
+        },
+        {
+          "branch_coverage": 2,
+          "exact": 0.29664045572280884,
+          "n": 5596,
+          "normalized": 0.38170120120048523
+        },
+        {
+          "branch_coverage": 3,
+          "exact": 0.5455952882766724,
+          "n": 7106,
+          "normalized": 0.6190543174743652
+        }
+      ],
+      "by_confidence": {
+        "high": {
+          "n": 6826,
+          "normalized": 0.638880729675293
+        },
+        "low": {
+          "n": 2226,
+          "normalized": 0.11275830864906311
+        },
+        "medium": {
+          "n": 7248,
+          "normalized": 0.3541666567325592
+        }
+      },
+      "by_pos": {
+        "adj": {
+          "exact": 0.2962707281112671,
+          "n": 2896,
+          "normalized": 0.38535910844802856
+        },
+        "adv": {
+          "exact": 0.199391171336174,
+          "n": 657,
+          "normalized": 0.29223743081092834
+        },
+        "noun": {
+          "exact": 0.44594594836235046,
+          "n": 8362,
+          "normalized": 0.5096866488456726
+        },
+        "num": {
+          "exact": 0.1160714253783226,
+          "n": 112,
+          "normalized": 0.2410714328289032
+        },
+        "pron": {
+          "exact": 0.3737373650074005,
+          "n": 99,
+          "normalized": 0.38383838534355164
+        },
+        "verb": {
+          "exact": 0.3018687069416046,
+          "n": 4174,
+          "normalized": 0.3699089586734772
+        }
+      },
+      "description": "Use Wiktionary's stated (lang→ancestor) etymology to pick the Proto-Slavic reconstruction directly, before the fuzzy descendant+gloss link — the precise ancestor the corpus site uses.",
+      "exact_top1": 0.3698159456253052,
+      "mean_normalized_edit_distance": 0.23145899176597595,
+      "n": 16300,
+      "name": "+explicit-etymology (production)",
+      "normalized_top1": 0.4404294490814209,
+      "normalized_top3": 0.5534969568252563,
+      "normalized_top5": 0.5815950632095337,
+      "skeleton_top1": 0.44343557953834534
     }
   ]
 }

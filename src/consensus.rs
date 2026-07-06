@@ -95,6 +95,9 @@ pub struct ConsensusConfig {
     /// Drop a South-Slavic adjective's fleeting vowel before -y, gated on the
     /// East/West long form showing the two consonants adjacent (dobar→dobry).
     pub adj_fleeting_drop: bool,
+    /// Use Wiktionary's explicit (lang→ancestor) etymology to pick the proto
+    /// reconstruction, before the fuzzy descendant+gloss link.
+    pub explicit_etymology: bool,
     /// Seed alternative candidates from secondary (non-primary) translations so
     /// the official lemma can appear in top-3/top-5. Never changes top-1.
     pub synonym_alternatives: bool,
@@ -123,6 +126,7 @@ impl ConsensusConfig {
             proto_derived_form: false,
             internationalism_preference: false,
             adj_fleeting_drop: false,
+            explicit_etymology: false,
             synonym_alternatives: false,
             proto_prefix_stripping: false,
         }
@@ -149,6 +153,7 @@ impl ConsensusConfig {
             proto_derived_form: true,
             internationalism_preference: true,
             adj_fleeting_drop: true,
+            explicit_etymology: true,
             synonym_alternatives: true,
             proto_prefix_stripping: true,
             // Rejected by the benchmark (regress accuracy in the consensus path):
@@ -174,6 +179,7 @@ impl ConsensusConfig {
             proto_derived_form: true,
             internationalism_preference: true,
             adj_fleeting_drop: true,
+            explicit_etymology: true,
             synonym_alternatives: true,
             proto_prefix_stripping: true,
         }

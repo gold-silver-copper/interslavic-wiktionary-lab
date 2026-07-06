@@ -66,7 +66,6 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 28497,inaccessibility,noun,nepristųpnosť,nepristȯpnosť,0.077,3,18
 33821,waterproof,adj,nepromokajemy,nepromokaemy,0.077,2,14
 17950,"discontented, displeased, dissatisfied",adj,nezadovoljeny,nezadovoljny,0.077,3,18
-21395,charming,adj,očarovateljny,očarovatelny,0.077,2,21
 20595,subcategory,noun,podkategorija,podkategorije,0.077,3,11
 1199,prehistory,noun,prědhistorija,predistorija,0.077,2,16
 3131,"president, chairman",noun,prědsědatelj,prědsjedatelj,0.077,2,16
@@ -171,6 +170,7 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 3969,"analyse, analyze",verb,analizovati,analyzovati,0.091,2,9
 24326,artillery,noun,artilerija,artiljerija,0.091,3,15
 28504,"joyless, cheerless, dismal",adj,bezradostny,bezradosny,0.091,2,32
+24661,"fearless, dauntless, intrepid",adj,bezstrašny,bezstrašeny,0.091,3,23
 35341,Byzantine,adj,bizantijsky,vizantijsky,0.091,2,12
 22297,"show benevolence, show goodwill",verb,blågovolěti,blagovoliti,0.091,2,14
 37508,armadillo,noun,brȯnjenosėc,bronenosec,0.091,2,12
@@ -324,11 +324,11 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 36795,"attentive, sensitive, observant",adj,vnimateljny,vnimatelny,0.091,2,31
 36775,voivodship,noun,vojevodstvo,vojvodstvo,0.091,3,11
 21643,imagination,noun,vȯobražeńje,vyobraženje,0.091,3,20
+31339,"be resurrected, rise from the dead",verb,vȯzkresnųti,vȯzkrisnųti,0.091,3,15
 22724,"high-flown, pompous",adj,vysokoparny,visokoparny,0.091,2,29
 23715,cough,verb,zakašljati,zakašȯljati,0.091,2,9
 33665,wedge,verb,zaklinovati,zaklinivati,0.091,2,23
 20306,conclusion,noun,zaključeńje,zaklučenje,0.091,2,22
-14095,ending,noun,zakončeńje,zakonjčenje,0.091,1,23
 9026,slowdown,noun,zamedljeńje,zamedlenje,0.091,1,16
 14754,neglect,noun,zanedbańje,zaniedbanje,0.091,2,22
 16257,neglect,verb,zanedbyvati,zanedbavati,0.091,1,18
@@ -351,16 +351,15 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 15773,authorities,noun,avtoritety,avtoriteti,0.100,1,20
 35440,"sideburns, whiskers",noun,bakenbardy,bakenbardi,0.100,2,16
 2864,Belarusian,adj,bělorussky,belorusky,0.100,3,11
-6516,"nameless, anonymous",adj,bezimenny,bezimeneny,0.100,1,23
+6516,"nameless, anonymous",adj,bezimenny,bezimeneny,0.100,3,23
 4345,hopeless,adj,beznadějny,beznadežny,0.100,3,12
 37352,"jobless, unemployed",adj,bezråbotny,bezrobotny,0.100,3,13
 24658,snowless,adj,bezsněžny,bezsněženy,0.100,1,13
 24659,insomnia,noun,bezsȯnnica,bessonnica,0.100,1,14
-24661,"fearless, dauntless, intrepid",adj,bezstrašny,bestrašny,0.100,2,23
-3974,quietness,noun,bezšumnosť,bešumnosť,0.100,2,23
 24681,fashion jewelry,noun,bižuterija,bižuteria,0.100,3,17
 6641,fearfully,adv,bojazlivo,bojazljivo,0.100,3,18
 6642,fearful,adj,bojazlivy,bojazljivy,0.100,3,23
+473,nipple,noun,brådavička,brådavika,0.100,3,12
 23021,"centilitre, centiliter",noun,centilitr,centiliter,0.100,2,12
 4422,"centimetre, centimeter",noun,centimetr,centimeter,0.100,2,14
 37230,Purgatory,noun,čistilišče,čistilište,0.100,1,13
@@ -384,7 +383,6 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 32902,flirt,verb,flirtovati,flertovati,0.100,3,13
 23430,piano,noun,fortepiano,fortepian,0.100,3,17
 35155,Glagolitic alphabet,noun,glagolica,glagoljica,0.100,3,12
-36197,"miss, unmarried woman",noun,gospodica,gospođica,0.100,1,20
 6328,grammatical,adj,gramatičny,gramatyčny,0.100,3,11
 23020,"hectolitre, hectoliter",noun,hektolitr,hektoliter,0.100,3,11
 23023,"hectometre, hectometer",noun,hektometr,hektometer,0.100,3,11
@@ -399,3 +397,5 @@ id,gloss,pos,official,predicted,norm_edit,branch_cov,n_langs
 482,"exclude, except",verb,izključiti,isključiti,0.100,2,16
 35758,"destruction, annihilation",noun,izniščeńje,zniščenje,0.100,2,16
 20869,test,verb,izpytyvati,ispytyvati,0.100,1,22
+3851,simultaneous,adj,jednočasny,jednočesny,0.100,2,16
+26429,censer,noun,kadiľnica,kadilinica,0.100,3,12

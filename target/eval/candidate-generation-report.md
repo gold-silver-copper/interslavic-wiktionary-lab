@@ -22,7 +22,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 | +intl-preference | 35.04% | 42.36% | +0.09 pp | 52.45% | 0.232 |
 | +adj-fleeting | 36.28% | 44.04% | +1.68 pp | 54.47% | 0.230 |
 | +synonym-alts | 36.28% | 44.04% | +0.00 pp | 54.63% | 0.230 |
-| +prefix-strip (production) | 36.61% | 44.04% | +0.01 pp | 54.83% | 0.230 |
+| +prefix-strip | 36.61% | 44.04% | +0.01 pp | 54.83% | 0.230 |
+| +explicit-etymology (production) | 36.98% | 44.04% | +0.00 pp | 55.35% | 0.231 |
 
 - **baseline** — Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).
 - **+branch-consensus** — Branch-balanced skeleton vote + South-Slavic representative.
@@ -36,7 +37,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 - **+intl-preference** — Prefer the internationalism cluster over native synonyms (ISV design criteria favor international roots for modern vocabulary): aeroplan over samolot.
 - **+adj-fleeting** — Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).
 - **+synonym-alts** — Seed alternatives from secondary translations (below every primary candidate) so the official lemma surfaces in top-3/top-5 when it is a 2nd/3rd translation.
-- **+prefix-strip (production)** — Grow proto-link coverage: strip a shared prefix off the cognates, link the bare root, re-attach the Interslavic prefix (råzprostirati from *prostirati).
+- **+prefix-strip** — Grow proto-link coverage: strip a shared prefix off the cognates, link the bare root, re-attach the Interslavic prefix (råzprostirati from *prostirati).
+- **+explicit-etymology (production)** — Use Wiktionary's stated (lang→ancestor) etymology to pick the Proto-Slavic reconstruction directly, before the fuzzy descendant+gloss link — the precise ancestor the corpus site uses.
 
 ## Rejected rules — tested and reverted
 
@@ -44,10 +46,10 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |
 |---|---:|---:|---:|---:|
-| prod+palatals | 36.28% | -0.33 pp | 43.56% | -0.48 pp |
-| prod+jat | 35.94% | -0.66 pp | 44.04% | +0.00 pp |
-| prod+adj-longform | 33.10% | -3.51 pp | 39.61% | -4.43 pp |
-| prod+y-recovery | 29.69% | -6.91 pp | 36.20% | -7.85 pp |
+| prod+palatals | 36.71% | -0.28 pp | 43.63% | -0.42 pp |
+| prod+jat | 36.21% | -0.77 pp | 44.04% | +0.00 pp |
+| prod+adj-longform | 33.80% | -3.18 pp | 40.06% | -3.99 pp |
+| prod+y-recovery | 30.18% | -6.80 pp | 36.33% | -7.71 pp |
 
 - **prod+palatals** — Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.
 - **prod+jat** — Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.
@@ -58,21 +60,21 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | POS | n | exact | normalized |
 |---|---:|---:|---:|
-| adj | 2896 | 30.28% | 39.88% |
-| adv | 657 | 19.79% | 29.53% |
-| noun | 8362 | 44.12% | 50.74% |
-| num | 112 | 9.82% | 23.21% |
-| pron | 99 | 39.39% | 40.40% |
-| verb | 4174 | 29.25% | 36.44% |
+| adj | 2896 | 29.63% | 38.54% |
+| adv | 657 | 19.94% | 29.22% |
+| noun | 8362 | 44.59% | 50.97% |
+| num | 112 | 11.61% | 24.11% |
+| pron | 99 | 37.37% | 38.38% |
+| verb | 4174 | 30.19% | 36.99% |
 
 ## Branch coverage vs accuracy (final config)
 
 | branches with the consensus form | n | normalized |
 |---:|---:|---:|
-| 0 | 116 | 52.59% |
-| 1 | 4504 | 24.44% |
-| 2 | 6709 | 41.32% |
-| 3 | 4971 | 65.28% |
+| 0 | 47 | 46.81% |
+| 1 | 3551 | 17.52% |
+| 2 | 5596 | 38.17% |
+| 3 | 7106 | 61.91% |
 
 ## Confidence calibration (final config)
 
@@ -80,29 +82,29 @@ High-confidence candidates should match the official dictionary more often than 
 
 | confidence | n | normalized match |
 |---|---:|---:|
-| high | 5962 | 69.46% |
-| medium | 8039 | 34.56% |
-| low | 2299 | 11.31% |
+| high | 6826 | 63.89% |
+| medium | 7248 | 35.42% |
+| low | 2226 | 11.28% |
 
 ## Before / after
 
 - Baseline normalized top-1: **35.23%**
 - Final normalized top-1: **44.04%** (+8.81 pp)
 - Baseline exact top-1: **27.52%**
-- Final exact top-1: **36.61%** (+9.09 pp)
+- Final exact top-1: **36.98%** (+9.47 pp)
 
 ## Remaining systematic errors (final config)
 
-Of **9121** misses, **2538** (28%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6583** are farther (usually a different root chosen by Interslavic).
+Of **9121** misses, **2527** (28%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6594** are farther (usually a different root chosen by Interslavic).
 
 | Error class | count | share of misses |
 |---|---:|---:|
-| different root / derivation | 4395 | 48.2% |
-| extra letter (epenthesis / ending) | 1829 | 20.1% |
-| single-letter substitution | 1155 | 12.7% |
-| missing letter (fleeting vowel / cluster) | 1089 | 11.9% |
-| y / i distinction | 598 | 6.6% |
-| flavored letter (ě/ę/ų/å/ć/đ) not recovered | 55 | 0.6% |
+| different root / derivation | 4466 | 49.0% |
+| extra letter (epenthesis / ending) | 1843 | 20.2% |
+| single-letter substitution | 1111 | 12.2% |
+| missing letter (fleeting vowel / cluster) | 1097 | 12.0% |
+| y / i distinction | 555 | 6.1% |
+| flavored letter (ě/ę/ų/å/ć/đ) not recovered | 49 | 0.5% |
 
 ## Next recommended linguistic rules
 
@@ -110,6 +112,6 @@ The Proto-Slavic-derived-form path (§4.4) is implemented — consensus picks th
 
 1. **Expand Proto-Slavic link coverage.** Only meanings with a matched `sla-pro` reconstruction get the flavored derivation; raising cache coverage and loosening the link gate (without admitting bad links) directly grows the proto-derived slice.
 2. **Reduce the reconstruction's non-yer errors** (endings, palatalizations) so the proto form can be trusted even when it disagrees with the reflexes — currently such disagreements defer to the reflexes, capping the proto gain.
-3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6583 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
+3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6594 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
 4. **Secondary-imperfective verb stems** (`-yva-/-iva-/-ava-`) and the agentive `-telj`/abstract `-teljstvo` suffixes, seen repeatedly in the verb/noun error tail.
 5. **POS-specific gender/animacy inference** to pick the right nominal ending where the modern citation forms disagree.

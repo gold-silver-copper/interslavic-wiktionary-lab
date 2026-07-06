@@ -32,6 +32,42 @@ pub struct ProtoLink<'a> {
 /// Minimum combined confidence to accept a proto link. Tuned on the benchmark.
 pub const DEFAULT_THRESHOLD: f32 = 0.42;
 
+/// Link by Wiktionary's **explicit** etymology: if ≥2 primary cognates are
+/// attested (via `inh`/`der` templates) as continuing the same Proto-Slavic
+/// ancestor, use that ancestor directly instead of the fuzzy descendant+gloss
+/// match. This is what the corpus site does, and it is far more precise — the
+/// ancestor is Wiktionary's stated etymology, not a guess.
+pub fn link_explicit<'a>(index: &'a ProtoIndex, input: &MeaningInput) -> Option<ProtoLink<'a>> {
+    let mut by_proto: BTreeMap<&str, std::collections::BTreeSet<&str>> = BTreeMap::new();
+    for f in &input.forms {
+        if !f.modern || !f.primary {
+            continue;
+        }
+        if let Some(proto) = index.etym_ancestor(&f.lang_code, &f.norm.latin) {
+            by_proto
+                .entry(proto)
+                .or_default()
+                .insert(f.lang_code.as_str());
+        }
+    }
+    let (proto, langs) = by_proto
+        .iter()
+        .map(|(p, s)| (*p, s.len()))
+        .max_by_key(|(_, n)| *n)?;
+    if langs < 2 {
+        return None; // need corroboration across ≥2 languages
+    }
+    let idx = index.entry_by_word(proto.trim_start_matches('*'))?;
+    Some(ProtoLink {
+        entry: &index.entries[idx],
+        confidence: (0.75 + 0.05 * langs as f32).min(0.95),
+        desc_membership: 1.0,
+        form_similarity: 1.0,
+        gloss_overlap: 0.0,
+        prefix: None,
+    })
+}
+
 pub fn link<'a>(
     index: &'a ProtoIndex,
     input: &MeaningInput,

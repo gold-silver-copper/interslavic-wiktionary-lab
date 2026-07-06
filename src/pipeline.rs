@@ -28,7 +28,13 @@ pub fn generate(
 
     if cfg.proto_derived_form {
         if let Some(index) = proto {
-            if let Some(l) = proto_link::link(index, input, cfg.proto_prefix_stripping) {
+            let linked = if cfg.explicit_etymology {
+                proto_link::link_explicit(index, input)
+                    .or_else(|| proto_link::link(index, input, cfg.proto_prefix_stripping))
+            } else {
+                proto_link::link(index, input, cfg.proto_prefix_stripping)
+            };
+            if let Some(l) = linked {
                 // Feed the modern reflexes to the yer resolver so lexicalized
                 // weak-yer retentions (pьsati→pisati) are derived correctly rather
                 // than papered over downstream.

@@ -485,6 +485,12 @@ pub struct ProtoIndex {
     by_gloss_token: HashMap<String, Vec<usize>>,
     /// descendant form skeleton -> entry indices (whole-word tokens).
     by_desc_skeleton: HashMap<String, Vec<usize>>,
+    /// reconstruction word -> entry index (for exact ancestor lookup).
+    by_word: HashMap<String, usize>,
+    /// Wiktionary's *explicit* etymology: "lang\u{1}phonemic-latin" -> ancestor
+    /// reconstruction (`*voda`). Built from the lemma corpus when present. Lets the
+    /// linker use the attested ancestor directly instead of guessing.
+    etym: HashMap<String, String>,
 }
 
 impl ProtoIndex {
@@ -495,13 +501,51 @@ impl ProtoIndex {
             .with_context(|| format!("open proto cache {}", path.display()))?
             .read_to_string(&mut json)?;
         let cache: ProtoCache = serde_json::from_str(&json).context("parse proto cache")?;
-        Ok(Self::build(cache.entries))
+        let mut idx = Self::build(cache.entries);
+        // Attach Wiktionary's explicit (lang, lemma) -> ancestor etymology if the
+        // lemma corpus is available next to the proto cache.
+        let lemma_path = Path::new(crate::DEFAULT_LEMMA_CACHE);
+        if lemma_path.exists() {
+            if let Ok(corpus) = LemmaCorpus::load(lemma_path) {
+                idx.attach_etymology(&corpus);
+            }
+        }
+        Ok(idx)
+    }
+
+    fn attach_etymology(&mut self, corpus: &LemmaCorpus) {
+        for e in &corpus.entries {
+            if e.proto.is_empty() || !self.by_word.contains_key(e.proto.trim_start_matches('*')) {
+                continue; // only ancestors we actually have a reconstruction for
+            }
+            let latin = crate::normalize::to_phonemic_latin(&e.lang, &e.word);
+            if latin.is_empty() {
+                continue;
+            }
+            self.etym
+                .entry(format!("{}\u{1}{latin}", e.lang))
+                .or_insert_with(|| e.proto.clone());
+        }
+    }
+
+    /// The explicitly-attested Proto-Slavic ancestor of a modern lemma, if any.
+    pub fn etym_ancestor(&self, lang: &str, latin: &str) -> Option<&str> {
+        self.etym
+            .get(&format!("{lang}\u{1}{latin}"))
+            .map(|s| s.as_str())
+    }
+
+    /// The entry index for a reconstruction word (`voda`, no `*`).
+    pub fn entry_by_word(&self, word: &str) -> Option<usize> {
+        self.by_word.get(word).copied()
     }
 
     pub fn build(entries: Vec<ProtoEntry>) -> Self {
         let mut by_gloss_token: HashMap<String, Vec<usize>> = HashMap::new();
         let mut by_desc_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut by_word: HashMap<String, usize> = HashMap::new();
         for (i, e) in entries.iter().enumerate() {
+            by_word.entry(e.word.clone()).or_insert(i);
             for g in &e.glosses {
                 for tok in gloss_tokens(g) {
                     by_gloss_token.entry(tok).or_default().push(i);
@@ -520,6 +564,8 @@ impl ProtoIndex {
             entries,
             by_gloss_token,
             by_desc_skeleton,
+            by_word,
+            etym: HashMap::new(),
         }
     }
 
@@ -554,4 +600,48 @@ pub fn gloss_tokens(gloss: &str) -> Vec<String> {
         .filter(|t| t.len() >= 3 && !STOP.contains(t))
         .map(|t| t.to_string())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn explicit_etymology_lookup() {
+        let e = ProtoEntry {
+            word: "voda".into(),
+            pos: "noun".into(),
+            glosses: vec!["water".into()],
+            descendants: vec![],
+            pbs: String::new(),
+            pie: String::new(),
+            stem_class: None,
+        };
+        let mut idx = ProtoIndex::build(vec![e]);
+        let corpus = LemmaCorpus {
+            source: String::new(),
+            entry_count: 1,
+            entries: vec![LemmaEntry {
+                lang: "ru".into(),
+                word: "вода".into(),
+                pos: "noun".into(),
+                gloss: "water".into(),
+                proto: "*voda".into(),
+                etymon: String::new(),
+            }],
+        };
+        idx.attach_etymology(&corpus);
+        assert_eq!(idx.etym_ancestor("ru", "voda"), Some("*voda"));
+        assert!(idx.entry_by_word("voda").is_some());
+        assert_eq!(idx.etym_ancestor("ru", "нет"), None);
+    }
+
+    #[test]
+    fn proto_ancestor_rejects_bound_morphemes() {
+        use serde_json::json;
+        let v = json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*orz-"}}]});
+        assert_eq!(proto_ancestor(&v), None);
+        let v2 = json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*voda"}}]});
+        assert_eq!(proto_ancestor(&v2).as_deref(), Some("*voda"));
+    }
 }

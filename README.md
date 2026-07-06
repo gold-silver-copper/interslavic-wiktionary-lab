@@ -58,9 +58,9 @@ the official dictionary, **without ever showing the generator the answer**
 
 | Metric | Baseline (prototype) | Production | Δ |
 |---|---:|---:|---:|
-| exact top-1 | 27.38% | **36.61%** | +9.23 pp |
+| exact top-1 | 27.38% | **36.98%** | +9.60 pp |
 | normalized top-1 | 34.96% | **44.04%** | +9.08 pp |
-| normalized top-3 | 42.89% | **54.5%** | +11.6 pp |
+| normalized top-3 | 42.89% | **55.4%** | +12.5 pp |
 | normalized top-5 | — | **57.0%** | — |
 | mean normalized edit distance | 0.253 | **0.231** | −0.022 |
 

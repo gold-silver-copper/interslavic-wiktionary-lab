@@ -58,6 +58,8 @@ fn kept_ladder() -> Vec<Rung> {
     synalt.synonym_alternatives = true;
     let mut prefixstrip = synalt;
     prefixstrip.proto_prefix_stripping = true;
+    let mut explicit = prefixstrip;
+    explicit.explicit_etymology = true;
 
     vec![
         Rung { name: "baseline", description: "Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).", cfg: base },
@@ -72,7 +74,8 @@ fn kept_ladder() -> Vec<Rung> {
         Rung { name: "+intl-preference", description: "Prefer the internationalism cluster over native synonyms (ISV design criteria favor international roots for modern vocabulary): aeroplan over samolot.", cfg: intlpref },
         Rung { name: "+adj-fleeting", description: "Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).", cfg: adjfleet },
         Rung { name: "+synonym-alts", description: "Seed alternatives from secondary translations (below every primary candidate) so the official lemma surfaces in top-3/top-5 when it is a 2nd/3rd translation.", cfg: synalt },
-        Rung { name: "+prefix-strip (production)", description: "Grow proto-link coverage: strip a shared prefix off the cognates, link the bare root, re-attach the Interslavic prefix (råzprostirati from *prostirati).", cfg: prefixstrip },
+        Rung { name: "+prefix-strip", description: "Grow proto-link coverage: strip a shared prefix off the cognates, link the bare root, re-attach the Interslavic prefix (råzprostirati from *prostirati).", cfg: prefixstrip },
+        Rung { name: "+explicit-etymology (production)", description: "Use Wiktionary's stated (lang→ancestor) etymology to pick the Proto-Slavic reconstruction directly, before the fuzzy descendant+gloss link — the precise ancestor the corpus site uses.", cfg: explicit },
     ]
 }
 
