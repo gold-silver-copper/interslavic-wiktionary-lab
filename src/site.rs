@@ -42,7 +42,7 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
     // Streaming pass: render each entry, accumulate the search index + stats.
     let mut search = String::from("[\n");
     let mut first_search = true;
-    let mut top_rows: Vec<(f32, usize, String, String, String, MatchStatus)> = Vec::new(); // freq,id,form,gloss,pos,status
+    let mut top_rows: Vec<HomeRow> = Vec::new();
     let (mut n, mut n_match, mut n_diff, mut n_none, mut n_exact, mut n_top3) =
         (0usize, 0, 0, 0, 0, 0);
 
@@ -95,24 +95,29 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
             search.push_str(",\n");
         }
         first_search = false;
+        // row: [id, form, gloss, pos, statuschar, strengthLetter, score]
         let _ = write!(
             search,
-            "[{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{:.2}]",
             id,
             json_str(&form),
             json_str(&truncate(&entry.english, 70)),
             json_str(&entry.pos.code()),
-            json_str(statuschar)
+            json_str(statuschar),
+            json_str(conf_letter(top.confidence)),
+            top.score,
         );
         let freq = entry.frequency.unwrap_or(0.0);
-        top_rows.push((
+        top_rows.push(HomeRow {
             freq,
             id,
             form,
-            entry.english.clone(),
-            entry.pos.code().to_string(),
-            g.match_status,
-        ));
+            gloss: entry.english.clone(),
+            pos: entry.pos.code().to_string(),
+            status: g.match_status,
+            conf: top.confidence,
+            score: top.score,
+        });
     }
     search.push_str("\n]\n");
 
@@ -121,7 +126,7 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
     std::fs::write(out_dir.join(".nojekyll"), "")?; // don't run Jekyll on GitHub Pages
 
     // Home page: stats + client-side search + the most frequent entries.
-    top_rows.sort_by(|a, b| b.0.total_cmp(&a.0));
+    top_rows.sort_by(|a, b| b.freq.total_cmp(&a.freq));
     let with_official = n_match + n_diff;
     let rate = |a: usize, b: usize| {
         if b == 0 {
@@ -200,6 +205,37 @@ fn branch_evidence(input: &MeaningInput) -> Vec<Evidence> {
 // Home page
 // ---------------------------------------------------------------------------
 
+/// One row of the home word list.
+struct HomeRow {
+    freq: f32,
+    id: usize,
+    form: String,
+    gloss: String,
+    pos: String,
+    status: MatchStatus,
+    conf: Confidence,
+    score: f32,
+}
+
+/// Compact strength letter for the search index (V/S/N = high/medium/low).
+fn conf_letter(c: Confidence) -> &'static str {
+    match c {
+        Confidence::High => "V",
+        Confidence::Medium => "S",
+        Confidence::Low => "N",
+    }
+}
+
+/// The "guess strength" cell: a calibrated-confidence label + the numeric score.
+fn strength_cell(conf: Confidence, score: f32) -> String {
+    format!(
+        "<span class='reliability {}'>{}</span> <span class='score muted'>{:.2}</span>",
+        conf_class(conf),
+        conf.label(),
+        score
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn home_page(
     n: usize,
@@ -208,53 +244,74 @@ fn home_page(
     n_none: usize,
     norm_rate: f32,
     exact_rate: f32,
-    top_rows: &[(f32, usize, String, String, String, MatchStatus)],
+    top_rows: &[HomeRow],
 ) -> String {
-    let mut list = String::from("<table class='wikitable'><thead><tr><th>Kandidat</th><th>Čęst rěči</th><th>Anglijski smysl</th><th>Status</th></tr></thead><tbody>");
-    for (_freq, id, form, gloss, pos, status) in top_rows.iter().take(200) {
+    let mut list = String::from("<table class='wikitable'><thead><tr><th>Kandidat</th><th>Čęst rěči</th><th>Anglijski smysl</th><th>Sila dogadki</th><th>Status</th></tr></thead><tbody>");
+    for r in top_rows.iter().take(300) {
         let _ = write!(
             list,
-            "<tr><td><a href='entry/{id}.html'><b>{}</b></a></td><td>{}</td><td>{}</td><td>{}</td></tr>",
-            esc(form),
-            esc(pos),
-            esc(&truncate(gloss, 60)),
-            status_pill(*status)
+            "<tr><td><a href='entry/{}.html'><b>{}</b></a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            r.id,
+            esc(&r.form),
+            esc(&r.pos),
+            esc(&truncate(&r.gloss, 55)),
+            strength_cell(r.conf, r.score),
+            status_pill(r.status)
         );
     }
     list.push_str("</tbody></table>");
 
     let body = format!(
-        "<section class='hero'>
-           <h1>Medžuslovjansky generator</h1>
-           <p class='lede'>Naučno obosnovany generator medžuslovjanskyh slov iz slovjanskyh dokazov, s ocěnkoju točnosti protiv oficialnogo slovnika.</p>
+        "<section class='home-heading'>
+           <h1 class='firstHeading'>Medžuslovjansky generator</h1>
+           <p class='muted'>Naučno obosnovany generator medžuslovjanskyh slov iz slovjanskyh dokazov, s ocěnkoju točnosti protiv oficialnogo slovnika.</p>
            <div class='searchbox'><input id='q' type='search' placeholder='Iskaj po kandidatu ili anglijskom smyslu…' autocomplete='off'><div id='results' class='results'></div></div>
          </section>
-         <section class='statgrid'>
-           <div class='stat'><div class='statnum'>{}</div><div class='statlbl'>zapisov</div></div>
-           <div class='stat ok'><div class='statnum'>{:.1}%</div><div class='statlbl'>odgovara oficialnomu</div></div>
-           <div class='stat'><div class='statnum'>{:.1}%</div><div class='statlbl'>točny (exact)</div></div>
-           <div class='stat'><div class='statnum'>{}</div><div class='statlbl'>razlikuje se</div></div>
-           <div class='stat'><div class='statnum'>{}</div><div class='statlbl'>nema oficialnoj</div></div>
+         <section class='wiki-layout'>
+           <article class='wiki-main-list'>
+             <h2>Najčęstěje slova</h2>
+             <p class='muted'>Najčęstějih 300 od <b>{total}</b> zapisov; iskaj gore za vse. „Sila dogadki“ = kalibrovana uvěrjenost + ocěna.</p>
+             {list}
+           </article>
+           <aside class='wiki-sidebar'>
+             <div class='portal-box'><h3>Slučajno slovo</h3>
+               <div id='spotlight'><p class='muted'>Nakladajě sę…</p></div>
+               <button id='randbtn' type='button'>Drugo slovo</button>
+             </div>
+             <div class='portal-box stats-portal'><h3>Slovnik i točnosť</h3>
+               <table class='wikitable compact-table'>
+                 <tr><th>Zapisov</th><td>{total}</td></tr>
+                 <tr><th>Odgovara oficialnomu</th><td>{n_match} ({norm:.1}%)</td></tr>
+                 <tr><th>Razlikuje sę</th><td>{n_diff}</td></tr>
+                 <tr><th>Točno (exact)</th><td>{exact:.1}%</td></tr>
+                 <tr><th>Bez oficialnoj</th><td>{n_none}</td></tr>
+               </table>
+             </div>
+             <div class='portal-box'><h3>Kako radi</h3><ul class='compact-list'>
+               <li>Medžuvětvovy konsensus (6 podgrup) izbira korenj.</li>
+               <li>Praslovjansko pravilo daje flavornų formų.</li>
+               <li>Sila dogadki = kalibrovana uvěrjenost.</li>
+               <li><a href='about.html'>O metodě →</a></li>
+             </ul></div>
+             <div class='portal-box'><h3>Legenda</h3>
+               <p>{ok} — generovana forma = oficialna.</p>
+               <p>{warn} — razlikuje sę od oficialnoj.</p>
+               <p>{info} — nema oficialnoj.</p>
+             </div>
+           </aside>
          </section>
-         <section>
-           <h2>Najčęstěje slova</h2>
-           <p class='muted'>{} match oficialnomu · {} razlika · {} bez oficialnoj. {} — oficialno, {} — razlika, {} — generovano.</p>
-           {}
-         </section>
-         <script>{}</script>",
-        compact(n),
-        norm_rate,
-        exact_rate,
-        compact(n_diff),
-        compact(n_none),
-        compact(n_match),
-        compact(n_diff),
-        compact(n_none),
-        status_pill(MatchStatus::OfficialMatch),
-        status_pill(MatchStatus::DiffersFromOfficial),
-        status_pill(MatchStatus::NoOfficialEntry),
-        list,
-        SEARCH_JS,
+         <script>{js}</script>",
+        total = compact(n),
+        list = list,
+        n_match = compact(n_match),
+        norm = norm_rate,
+        n_diff = compact(n_diff),
+        exact = exact_rate,
+        n_none = compact(n_none),
+        ok = status_pill(MatchStatus::OfficialMatch),
+        warn = status_pill(MatchStatus::DiffersFromOfficial),
+        info = status_pill(MatchStatus::NoOfficialEntry),
+        js = SEARCH_JS,
     );
     page("Medžuslovjansky generator", &body, 0)
 }
@@ -264,6 +321,8 @@ let IDX=null;
 async function ensure(){ if(IDX)return IDX; const r=await fetch('search.json'); IDX=await r.json(); return IDX; }
 const q=document.getElementById('q'), out=document.getElementById('results');
 let t=null;
+const STR={V:['vysoka','conf-high'],S:['srědnja','conf-med'],N:['nizka','conf-low']};
+function strBadge(e){ const s=STR[e[5]]||STR.N; return `<span class='reliability ${s[1]}'>${s[0]}</span> <span class='score muted'>${(e[6]||0).toFixed?e[6].toFixed(2):e[6]}</span>`; }
 q.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>{ run(); sync(); },120); });
 function sync(){ const v=q.value.trim(); history.replaceState(null,'', v?('?q='+encodeURIComponent(v)):location.pathname); }
 async function run(){
@@ -279,8 +338,17 @@ async function run(){
     else if(gs.some(x=>x===s||x===s2))score=55; else if(g.includes(s2))score=20;
     if(score>0)hits.push([score,e]); if(hits.length>600)break; }
   hits.sort((a,b)=>b[0]-a[0]);
-  out.innerHTML=hits.slice(0,60).map(([_,e])=>`<a class='hit' href='entry/${e[0]}.html'><b>${e[1]}</b> <span class='hp'>${e[3]}</span> <span class='hg'>${e[2]}</span></a>`).join('')||"<div class='muted'>Ničto ne najdeno.</div>";
+  out.innerHTML=hits.slice(0,60).map(([_,e])=>`<a class='hit' href='entry/${e[0]}.html'><b>${e[1]}</b> <span class='hp'>${e[3]}</span> <span class='hg'>${e[2]}</span> <span class='hs'>${strBadge(e)}</span></a>`).join('')||"<div class='muted'>Ničto ne najdeno.</div>";
 }
+// Random "word of the moment" for the sidebar spotlight.
+async function randomWord(){
+  const idx=await ensure(); if(!idx.length)return;
+  const e=idx[Math.floor(Math.random()*idx.length)];
+  const el=document.getElementById('spotlight'); if(!el)return;
+  el.innerHTML=`<a class='spotlight-word' href='entry/${e[0]}.html'>${e[1]}</a><div class='muted'>${e[3]} · ${e[2]}</div><div class='spot-strength'>Sila dogadki: ${strBadge(e)}</div>`;
+}
+const rb=document.getElementById('randbtn'); if(rb) rb.addEventListener('click',randomWord);
+if(document.getElementById('spotlight')) randomWord();
 // Pre-fill and run from a ?q= URL so shared links (…/?q=to+eat) work.
 (function(){ const p=new URLSearchParams(location.search).get('q'); if(p){ q.value=p; run(); } })();
 "#;
@@ -799,6 +867,14 @@ h3,h4{font-family:Georgia,'Linux Libertine','Times New Roman',serif;font-weight:
 .rule-trace li{margin:.35em 0}
 .rule-id{background:var(--th);border:1px solid var(--line);padding:.02em .3em;font-size:.85em}
 .notice{border:1px solid var(--border);background:var(--page);padding:.6rem .8rem;margin:.6rem 0}
+/* Sidebar spotlight + search strength. */
+#spotlight{margin:.2rem 0 .5rem}
+.spotlight-word{display:inline-block;font-family:Georgia,'Linux Libertine','Times New Roman',serif;font-size:1.35rem}
+.spot-strength{margin-top:.45rem;font-size:.9em;color:var(--muted)}
+.portal-box button{margin-top:.4rem;padding:.3rem .7rem;border:1px solid var(--link);background:var(--link);color:#fff;border-radius:2px;cursor:pointer;font-size:.9em}
+.portal-box button:hover{background:#447ff5}
+.hit .hs{font-size:.85em;white-space:nowrap}
+.wiki-main-list .wikitable td:nth-child(4){white-space:nowrap}
 @media (max-width:720px){main,.site-footer{padding-left:.8rem;padding-right:.8rem;border-left:none;border-right:none}.wikitable{font-size:.9em}}
 "#;
 
