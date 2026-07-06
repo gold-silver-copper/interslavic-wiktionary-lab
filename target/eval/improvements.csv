@@ -12,6 +12,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35592,adoption,noun,adopcija,adopcja,adopcija
 248,address,noun,adresa,adres,adresa
 36348,"aerodynamic, streamlined",adj,aerodinamičny,aerodynamičny,aerodinamičny
+3423,aeronautical,adj,aeronavtičny,letecky,aeronavtičny
 3424,aeronautics,noun,aeronavtika,aeronautyka,aeronavtika
 6129,"airplane, plane",noun,aeroplan,samolot,aeroplan
 37507,affix (gram.),noun,afiks,affiks,afiks
@@ -37,6 +38,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 24202,accumulator,noun,akumulator,akkumulator,akumulator
 24207,acoustic,adj,akustičny,akustyčny,akustičny
 24211,obstetric,adj,akušersky,akušerskij,akušersky
+24223,alabaster,noun,alabastr,alebastr,alabastr
 142,Albanian,adj,albansky,albanskij,albansky
 24248,album,noun,album,albom,album
 24229,allegorical,adj,alegoričny,alegoryčny,alegoričny
@@ -64,9 +66,11 @@ id,gloss,pos,official,baseline_pred,final_pred
 24298,amnesty,noun,amnestija,amnistija,amnestija
 24301,ammonium,noun,amonij,ammonij,amonij
 35336,anachronistic,adj,anahroničny,anahroničnyj,anahroničny
+24309,illiterate,noun,analfabet,analfabeta,analfabet
 14440,analytically,adv,analitično,analityčnie,analitično
 4172,analytical,adj,analitičny,analityčny,analitičny
 4171,analysis,noun,analiza,analiz,analiza
+3969,"analyse, analyze",verb,analizovati,analyzovati,analizovati
 16411,anal,adj,anaľny,analnyj,analny
 23209,"analogical, analogous",adj,analogičny,analogičnyj,analogičny
 32110,anamnesis,noun,anamneza,anamnez,anamneza
@@ -89,13 +93,13 @@ id,gloss,pos,official,baseline_pred,final_pred
 36315,apocalyptic,adj,apokaliptičny,apokaliptyčny,apokaliptičny
 32728,a posteriori,adj,aposteriorny,aposteriornyj,aposteriorny
 2166,"Arabic, Arab",adj,arabsky,arabskij,arabsky
-19637,arbiter,noun,arbiter,arbitr,arbiter
 5789,arrest,noun,arešt,arest,arešt
 22389,Argentine,adj,argentinsky,argentinskij,argentinsky
 4382,archaic,adj,arhaičny,arhaičnyj,arhaičny
 35659,"architectural, architectonic",adj,arhitekturny,arhitekturnyj,arhitekturny
 35281,archival,adj,arhivny,arhivnyj,arhivny
 5721,"aristocracy, nobility",noun,aristokracija,aristokratija,aristokracija
+5722,"aristocratic, noble",adj,aristokratičny,aristokratičnyj,aristokratičny
 21256,arithmetics,noun,aritmetika,arytmetyka,aritmetika
 17126,ark,noun,arka,kovčeg,arka
 5920,Arctic,adj,arktičny,arktyčny,arktičny
@@ -107,6 +111,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 16265,astronomical,adj,astronomičny,astronomsky,astronomičny
 3970,attack,verb,atakovati,napadati,atakovati
 16923,athematic,adj,atematičny,atematyčnyj,atematičny
+35095,athletic,adj,atletičny,atletičnyj,atletičny
 37335,atonality,noun,atonaľnosť,atonaliteta,atonaľnosť
 37336,atonal,adj,atonaľny,atonalnyj,atonalny
 23184,attraction,noun,atrakcija,atrakcja,atrakcija
@@ -258,12 +263,15 @@ id,gloss,pos,official,baseline_pred,final_pred
 1027,"whole, entire, intact",adj,cěly,celyj,cěly
 1409,valuable,adj,cěnny,cennyj,cenny
 23017,"centigramme, centigram",noun,centigram,centygram,centigram
+23021,"centilitre, centiliter",noun,centilitr,centylitr,centilitr
+4422,"centimetre, centimeter",noun,centimetr,centymetr,centimetr
 1727,central,adj,centraľny,centralnyj,centralny
 32252,Cetinje,noun,Cetińje,cetine,cetinje
 37220,gyspy (f.),noun,ciganka,cyganka,ciganka
 35119,cigar,noun,cigara,cygaro,cigara
 32071,cyclic,adj,cikličny,cikličnyj,cikličny
 37349,cynical,adj,ciničny,ciničnyj,ciničny
+6265,circus,noun,cirk,cirkus,cirk
 4955,"quote, quotation, citation",noun,citat,citata,citat
 35749,civilized,adj,civilizovany,civilizovannyj,civilizovany
 1879,civilian,adj,civiľny,cyvilny,civilny
@@ -323,6 +331,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35908,Dalmatian,adj,dalmatinsky,dalmatinskij,dalmatinsky
 25103,daltonist,noun,daltonist,daltonista,daltonist
 3548,data,noun,dane,dannye,dane
+1178,Denmark,noun,Danija,dansko,danija
 25111,"tax, tribute",noun,danj,dan,danj
 4427,Danish,adj,dansky,dunjsky,dansky
 5697,given,adj,dany,dannyj,dany
@@ -354,6 +363,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1517,ten,num,desęť,desat,desęt
 16437,tensome,num,desętero,desatero,desetero
 16464,ten,num,desętka,desatka,desetka
+1516,despotic,adj,despotičny,despotičnyj,despotičny
 2619,detail,noun,detalj,detal,detalj
 298,"child, kid",noun,dětę,dite,dětę
 1308,woodpecker,noun,dętel,datel,dętel
@@ -377,6 +387,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 34846,dilemma,noun,dilema,dilemma,dilema
 22995,dynamic,adj,dinamičny,dynamičny,dinamičny
 23534,diode,noun,dioda,diod,dioda
+382,diplomatic,adj,diplomatičny,diplomatsky,diplomatičny
 23509,conductor,noun,dirigent,dyrygent,dirigent
 35739,dissertation,noun,disertacija,dissertacija,disertacija
 36170,discrete,adj,diskretny,diskretnyj,diskretny
@@ -389,6 +400,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2491,"well, fine",adv,dobro,dobre,dobro
 7101,good-natured,adj,dobrodušny,dobrodušnyj,dobrodušny
 32465,well-intentioned,adj,dobronaměrny,dobronameren,dobronamerny
+25276,volunteer,noun,dobrovoljec,dobrovolec,dobrovoljec
 17277,voluntary,adj,dobrovoljny,dobrovolnyj,dobrovoljny
 1145,livestock,noun,dobytȯk,dobytek,dobytȯk
 311,add,verb,dodati,dodaty,dodati
@@ -446,6 +458,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 16932,education,noun,edukacija,obrazovanie,edukacija
 3580,effect,noun,efekt,effekt,efekt
 19684,"effectiveness, efficiency",noun,efektivnosť,effektivnost,efektivnosť
+480,"effective, efficient",adj,efektivny,effektivnyj,efektivny
 4756,Egypt,noun,Egipt,egipet,egipt
 22394,egoistic,adj,egoističny,egoističnyj,egoističny
 3600,existence,noun,egzistencija,egzystencja,egzistencija
@@ -453,6 +466,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 15836,backhoe,noun,ekskavator,bager,ekskavator
 2077,exclusive,adj,ekskluzivny,ekskluzivnyj,ekskluzivny
 20374,experimental,adj,eksperimentaľny,eksperimentalnyj,eksperimentalny
+4852,experiment,verb,eksperimentovati,eksperymentovati,eksperimentovati
 5639,exploitation,noun,eksploatacija,ekspluatacija,eksploatacija
 4797,explosion,noun,eksplozija,eksplozja,eksplozija
 4799,explosive,adj,eksplozivny,eksplozivan,eksplozivny
@@ -461,12 +475,15 @@ id,gloss,pos,official,baseline_pred,final_pred
 19686,elastic,adj,elastičny,elastičnyj,elastičny
 21287,elegant,adj,elegantny,elegantnyj,elegantny
 4444,electric,adj,električny,elektryčny,električny
+36373,electrician,noun,elektrik,električar,elektrik
 35208,elementary,adj,elementarny,elementarnyj,elementarny
 35750,emancipation,noun,emancipacija,emancypacja,emancipacija
 35971,eminence (title),noun,eminencija,eminencja,eminencija
 561,emotional,adj,emocionaľny,emocionalnyj,emocionalny
 37306,empirical,adj,empiričny,empiryčny,empiričny
+19688,"encyclopaedic, encyclopedic",adj,enciklopedičny,encyklopedyčny,enciklopedičny
 33567,endemic,adj,endemičny,endemičnyj,endemičny
+35673,energy,adj,energetičny,energetyčny,energetičny
 35674,energetic,adj,energičny,energičnyj,energičny
 23543,enzyme,noun,enzim,enzym,enzim
 35894,episcopal,adj,episkopaľny,episkopalnyj,episkopalny
@@ -474,14 +491,17 @@ id,gloss,pos,official,baseline_pred,final_pred
 23695,eruption,noun,erupcija,erupcja,erupcija
 25478,essay,noun,esej,esse,esej
 7455,Esperanto,adj,esperantsky,esperantskij,esperantsky
+35110,"aesthetic, aesthetical",adj,estetičny,estetyčny,estetičny
 4435,Estonian,adj,estonsky,estonskij,estonsky
 23545,ethical,adj,etičny,etyčny,etičny
 23696,etiquette,noun,etiketa,etiket,etiketa
+4369,etymological,adj,etimologičny,etymologičny,etimologičny
 22776,Ethiopia,noun,Etiopija,etiopia,etiopija
 1734,ethnic,adj,etničny,etnicky,etničny
 37443,etnographical,adj,etnografičny,etnografsky,etnografičny
 19690,"possibly, conceivably",adv,eventuaľno,eventualnie,eventualno
 3038,European,noun,Evropejec,evropeec,evropejec
+25487,fabricate,verb,fabrikovati,fabrykovati,fabrikovati
 35391,factual,adj,faktičny,faktyčny,faktičny
 35167,optional,adj,fakultativny,fakultativnyj,fakultativny
 35486,falsify,verb,falsifikovati,falšovati,falsifikovati
@@ -504,6 +524,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 496,philosophy,noun,filozofija,filozofia,filozofija
 36442,philosophical,adj,filozofsky,filosofskij,filozofsky
 1931,financial,adj,finansovy,finansovyj,finansovy
+3028,Finland,noun,Finlandija,finsko,finlandija
 4434,Finnish,adj,finsky,finskij,finsky
 5274,"purple, violet",adj,fioletovy,fioletovyj,fioletovy
 36528,fiscal,adj,fiskaľny,fiskalnyj,fiskalny
@@ -588,6 +609,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2545,pea,noun,gråh,goroh,gråh
 25789,pease,adj,gråhovy,gorohovyj,grahovy
 23015,"gramme, gram",noun,gram,gramm,gram
+6328,grammatical,adj,gramatičny,gramaticky,gramatičny
 1831,grammar,noun,gramatika,grammatika,gramatika
 33205,literate,adj,gramotny,gramotnyj,gramotny
 33206,"competent, knowledgeable, eligible, skilled",adj,gramotny,gramotnyj,gramotny
@@ -595,6 +617,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2347,hump,noun,grb,gorb,gŕb
 16407,humpy,adj,grbaty,gorbatyj,gŕbaty
 36483,"Greenlandish, Greenlandic",adj,grenlandsky,grenlandskij,grenlandsky
+4271,influenza,noun,grip,gripp,grip
 25822,turtledove,noun,grlica,gorlica,gŕlica
 492,throat,noun,grlo,gorlo,gŕlo
 5272,pot,noun,grn,horščyk,gŕn
@@ -629,6 +652,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 19711,Hebrew,adj,hebrejsky,hebrajsky,hebrejsky
 16938,hegemony,noun,hegemonija,gegemonija,hegemonija
 23408,hacker,noun,heker,haker,heker
+23020,"hectolitre, hectoliter",noun,hektolitr,gektolitr,hektolitr
+23023,"hectometre, hectometer",noun,hektometr,gektometr,hektometr
 22598,helium,noun,helij,gelij,helij
 2573,chemistry,noun,hemija,himija,hemija
 7744,hepatitis,noun,hepatit,gepatit,hepatit
@@ -643,12 +668,14 @@ id,gloss,pos,official,baseline_pred,final_pred
 25936,hierarch,noun,hierarh,hierarha,hierarh
 19714,hierarchy,noun,hierarhija,hierarhia,hierarhija
 35188,hygiene,noun,higiena,gigiena,higiena
+4865,"hymn, anthem",noun,himn,gimn,himn
 19715,hypnotize,verb,hipnotizovati,hypnotizovati,hipnotizovati
 19716,hypnosis,noun,hipnoza,gipnoz,hipnoza
 19518,"hypothetic, hypothetical",adj,hipotetičny,hipotetyčny,hipotetičny
 19517,hypothesis,noun,hipoteza,gipoteza,hipoteza
 36829,hysterical,adj,histeričny,histeryčny,histeričny
 36828,hysteria,noun,histerija,histeria,histerija
+34889,historian,noun,historik,historyk,historik
 2576,"cold, chill",noun,hlåd,holod,hlåd
 5276,refrigerator,noun,hlådiľnik,holodilnik,hladilnik
 17454,"cool, cool down, chill, refrigerate",verb,hlåditi,holoditi,hlåditi
@@ -660,6 +687,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 5801,hockey,noun,hokej,hokkej,hokej
 35740,Holland,noun,Holandija,gollandija,holandija
 35741,Dutch,adj,holandsky,gollandskij,holandsky
+37276,choleric,adj,holeričny,holeryčny,holeričny
 37448,hologram,noun,hologram,gologramma,hologram
 35566,homosexual,noun,homoseksualist,gomoseksualist,homoseksualist
 37444,homosexuality,noun,homoseksuaľnosť,gomoseksualnost,homoseksuaľnosť
@@ -676,6 +704,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 17470,Christian,noun,hristijanka,hristianka,hristijanka
 2606,Christian,adj,hristijansky,hristianskij,hristijansky
 1640,Christianity,noun,hristijanstvo,hristianstvo,hristijanstvo
+36830,chromatic,adj,hromatičny,hromatyčny,hromatičny
 26021,lame,adj,hromy,hromoj,hromy
 37062,Hron,noun,Hron,gron,hron
 2577,greyhound,noun,hrt,hart,hŕt
@@ -684,8 +713,10 @@ id,gloss,pos,official,baseline_pred,final_pred
 4728,Croatian,adj,hrvatsky,horvatskij,hrvatsky
 17472,artist,noun,hųdožnica,umjetnica,hudožnica
 26033,"slim, skinny, meagre, meager, thin",adj,hudy,hudoj,hudy
+35744,humanistic,adj,humanističny,humanistyčny,humanističny
 2592,humanitarian,adj,humanitarny,gumanitarnyj,humanitarny
 35743,humanism,noun,humanizm,gumanizm,humanizm
+19722,"humourous, humorous",adj,humorističny,humorystyčny,humorističny
 37135,humus,noun,humus,gumus,humus
 35837,Hussite,noun,husit,gusit,husit
 26041,laudatory,adj,hvalebny,hvalebnyj,hvalebny
@@ -700,6 +731,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 26059,idealistic,adj,idealističny,idealistyčny,idealističny
 2595,"ideal, perfect",adj,ideaľny,idealnyj,idealny
 2597,identical,adj,identičny,identičnyj,identičny
+19723,identity,noun,identitet,identiteta,identitet
 23576,ideological,adj,ideologičny,ideološko,ideologičny
 26073,idyll,noun,idila,idillija,idila
 26074,idyllic,adj,idiličny,idylličny,idiličny
@@ -723,6 +755,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2630,empress,noun,imperatorica,imperatrica,imperatorica
 36857,impotent,adj,impotentny,impotentnyj,impotentny
 23850,impulsive,adj,impulsivny,impulsivnyj,impulsivny
+35814,immunity,noun,imunitet,immunitet,imunitet
 7904,"otherwise, in another way",adv,inako,inače,inako
 6406,"Indian (American, woman)",noun,Indijanka,indianka,indijanka
 6408,Indian (American),adj,indijansky,indianjsky,indijansky
@@ -743,15 +776,18 @@ id,gloss,pos,official,baseline_pred,final_pred
 4789,instrumental,adj,instrumentaľny,instrumentalnyj,instrumentalny
 19731,intellectual,adj,intelektuaľny,intellektualnyj,intelektualny
 36332,intensity,noun,intensivnosť,intenzitet,intensivnosť
+2859,"intensive, intense",adj,intensivny,intenzivny,intensivny
 34853,"interaction, interplay",noun,interakcija,interakcja,interakcija
 34852,interactive,adj,interaktivny,interaktivnyj,interaktivny
 2500,interesting,adj,interesny,interesnyj,interesny
+31777,interlinguistic,adj,interlingvističny,interlingvistyčny,interlingvističny
 4987,interpret,verb,interpretovati,interpretirati,interpretovati
 23620,punctuation,noun,interpunkcija,interpunkcja,interpunkcija
 35161,intuitive,adj,intuitivny,intuitivnyj,intuitivny
 19496,invasion,noun,invazija,invazja,invazija
 290,engineering,noun,inženjerstvo,inžynierstvo,inženjerstvo
 2497,Iranian,adj,iransky,iranskij,iransky
+188,Ireland,noun,Irlandija,irsko,irlandija
 19733,ironic,adj,ironičny,ironičnyj,ironičny
 37063,Iskyr,noun,Iskr,iskyr,iskr
 3848,sincerity,noun,iskrenosť,iskrennost,iskrenosť
@@ -843,6 +879,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2561,Canadian,adj,kanadsky,kanadskij,kanadsky
 22959,cannibal,noun,kanibal,kannibal,kanibal
 22960,cannibalism,noun,kanibalizm,kannibalizm,kanibalizm
+37351,jerrycan,noun,kanistr,kanistra,kanistr
 5761,"canonise, canonize",verb,kanonizovati,kanonizuvaty,kanonizovati
 36103,chapel,noun,kapela,kaple,kapela
 23514,capitalist,adj,kapitalističny,kapitalistyčny,kapitalističny
@@ -938,6 +975,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35013,connotation,noun,konotacija,konnotacija,konotacija
 33321,"canned food, tinned food",noun,konserva,konservy,konserva
 8574,conservativeness,noun,konservativnosť,konzervativnost,konservativnosť
+35233,constitutional,adj,konstitucijny,konstitucionnyj,konstitucijny
 5926,consul,noun,konsul,konzul,konsul
 19795,contraction,noun,kontrakcija,kontrakcja,kontrakcija
 2146,counterrevolution,noun,kontrarevolucija,kontrarevoluce,kontrarevolucija
@@ -964,6 +1002,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 867,corruption,noun,korupcija,korrupcija,korupcija
 26718,corvette,noun,korveta,korvet,korveta
 26739,"hairy, shaggy",adj,kosmaty,kosmatyj,kosmaty
+36680,cosmetic,adj,kosmetičny,kozmeticky,kosmetičny
+36679,cosmetics,noun,kosmetika,kozmetika,kosmetika
 26743,cross-eyed,adj,kosooky,kosookyj,kosooky
 868,Kosovar,adj,kosovsky,kosovskij,kosovsky
 22459,Costa Rica,noun,Kostarika,kostaryka,kostarika
@@ -1026,6 +1066,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 4524,bloody,adj,krvavy,krovavyj,krvavy
 22065,"blood flow, blood stream",noun,krvotok,krovotok,krvotok
 37373,xenophobic,adj,ksenofobičny,ksenofobskij,ksenofobičny
+2646,Cuban,noun,Kubanec,kubinec,kubanec
 16279,Cuban,adj,kubansky,kubinskij,kubansky
 26955,"tow, bundle (of fibres)",noun,kųdělj,kudel,kųdělj
 26960,"curly, curly-haired",adj,kųdravy,kudravyj,kudravy
@@ -1034,11 +1075,14 @@ id,gloss,pos,official,baseline_pred,final_pred
 35195,culinary,adj,kulinarny,kulinarnyj,kulinarny
 2647,cultural,adj,kulturny,kulturnyj,kulturny
 3454,bathing,noun,kųpańje,kupanie,kųpanje
+26979,buyer,noun,kupec,kupiec,kupec
 3451,bath (act of bathing),noun,kųpělj,kupanie,kųpělj
 26987,"cupola, dome",noun,kupola,kupol,kupola
 37382,Kurdish,adj,kurdsky,kurdskij,kurdsky
 33722,"curious, funny, odd",adj,kuriozny,kurjoznyj,kuriozny
+32231,italic,adj,kursivny,kursivnyj,kursivny
 4416,square,adj,kvadratny,kvadratnyj,kvadratny
+35736,quality,noun,kvalitet,kvaliteta,kvalitet
 35323,quantitative,adj,kvantitativny,kvantytatyvny,kvantitativny
 406,throw,verb,kydati,kidati,kydati
 2352,throw,verb,kydnųti,kinuti,kydnųti
@@ -1096,6 +1140,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 34755,limousine,noun,limuzina,limuzin,limuzina
 37130,linguist,noun,lingvist,jazykoved,lingvist
 19835,linguistic,adj,lingvističny,lingvisticky,lingvističny
+37131,linguistics,noun,lingvistika,movoznavstvo,lingvistika
 8885,"ruler, straightedge",noun,linijka,linejka,linijka
 2885,"moult, molt",verb,linjati,linati,linjati
 27200,grayling,noun,lipan,lipienj,lipan
@@ -1104,6 +1149,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35017,literary,adj,literaturny,literaturnyj,literaturny
 27237,licking,noun,lizańje,lizanie,lizanje
 14684,"love, darling, sweetheart",noun,ljuba,luba,ljuba
+20431,"favourite, favorite",noun,ljubimec,lubimec,ljubimec
 20432,"lover, fan, aficionado",noun,ljubitelj,lubitel,ljubitelj
 356,"love, like, be fond of",verb,ljubiti,lubiti,ljubiti
 32248,Ljubljana,noun,Ljubljana,lublana,ljubljana
@@ -1114,6 +1160,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 34851,lobby,noun,lobi,lobbi,lobi
 17741,lobbyist,noun,lobist,lobbist,lobist
 27269,orache,noun,loboda,lebeda,loboda
+32130,logarithm,noun,logaritm,logarytm,logaritm
 363,logical,adj,logičny,logičnyj,logičny
 1249,loyal,adj,lojaľny,lojalnyj,lojalny
 27280,"lap up, quaff, guzzle",verb,lokati,lakati,lokati
@@ -1141,6 +1188,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2682,"small, little",adj,maly,malyj,maly
 34419,marginal,adj,marginaľny,marginalnyj,marginalny
 37118,marinade,noun,marinada,marinad,marinada
+37116,marinated,adj,marinovany,marinovannyj,marinovany
 35436,marmalade,noun,marmelada,marmelad,marmelada
 5928,Morocco,noun,Maroko,marokko,maroko
 23594,mass,noun,masa,massa,masa
@@ -1186,6 +1234,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 37169,migraine,noun,migrena,migren,migrena
 23018,"microgramme, microgram",noun,mikrogram,mikrogramm,mikrogram
 23016,"milligramme, milligram",noun,miligram,milligramm,miligram
+23022,"millilitre, milliliter",noun,mililitr,millilitr,mililitr
+23014,"millimetre, millimeter",noun,milimetr,millimetr,milimetr
 27599,gracious,adj,milostivy,milostivyj,milostivy
 27606,"caress, fondle",verb,milovati,hladiti,milovati
 1898,"sweet, nice, pleasant",adj,mily,milyj,mily
@@ -1253,6 +1303,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 27800,frosty,adj,mråzny,moroznyj,mrazny
 286,"net, network",noun,mrěža,mereža,mrěža
 27808,wrinkle,verb,mrščiti,mrštiti,mŕščiti
+27810,"dead person, corpse, cadaver",noun,mŕtvec,mertvec,mrtvec
 1793,extinct,adj,mŕtvy,mortvyj,mŕtvy
 3339,dead,adj,mŕtvy,mortvyj,mŕtvy
 3561,"disgusting, filthy, nasty, abominable, despicable, detestable, abhorrent, loathsome, foul, vile, odious, heinous, nefarious, vicious, sleazy",adj,mŕzky,merzkij,mrzky
@@ -1272,6 +1323,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 4791,musical,adj,muzikaľny,muzykalnyj,muzikalny
 1452,musician,noun,muzikant,muzykant,muzikant
 37457,musicologist,noun,muzikolog,muzykolog,muzikolog
+37454,musicological,adj,muzikologičny,muzikološky,muzikologičny
 37455,musicology,noun,muzikologija,muzykologia,muzikologija
 27880,"soap, lather",verb,myliti,sapunjati,myliti
 2731,"thought, idea",noun,myslj,mysl,myslj
@@ -1296,7 +1348,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 2055,find,verb,nahoditi,nalaziti,nahoditi
 15399,find,noun,nahodka,nalez,nahodka
 16721,naive,adj,naivny,naivnyj,naivny
-9365,"hire, hiring, rent",noun,najem,najm,najem
 9371,coldest,adj,najhlådnějši,najhlodniejšy,najhladnejši
 9379,softest,adj,najmękši,najmiękšy,najmekši
 20520,most,adv,najvęće,najvięcej,najveće
@@ -1315,6 +1366,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 28109,give to drink,verb,napojiti,napoiti,napojiti
 28121,to the right,adv,napravo,desno,napravo
 28135,thimble,noun,napŕstȯk,naporstok,napŕstȯk
+36238,daffodil,noun,narcis,narciss,narcis
+36240,narcissistic,adj,narcističny,narcystyčny,narcističny
 21353,lamentation,noun,narěkańje,narekanie,narekanje
 36285,narcosis,noun,narkoza,narkoz,narkoza
 28158,"armful, arms",noun,narųčje,naręče,narųčje
@@ -1327,6 +1380,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 28232,"tune, tune up",verb,nastrojiti,nastroiti,nastrojiti
 28233,dispose (someone’s attitude),verb,nastrojiti,nastroiti,nastrojiti
 28267,"pull tight, draw tight, stretch out",verb,natęgnųti,natahnouti,natęgnųti
+3411,naturalistic,adj,naturalističny,naturalističnyj,naturalističny
 3409,natural,adj,naturaľny,prirodny,naturalny
 28306,earring,noun,naušnica,naušnice,naušnica
 28336,pillow-case,noun,navlåčka,navoločka,navlačka
@@ -1468,7 +1522,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 28867,conversion,noun,obraćańje,obraceni,obraćanje
 22670,"direct (attention), turn (attention)",verb,obraćati,obraceti,obraćati
 3551,"defence, defense",noun,obråna,obrona,obråna
-2852,"#turn, turnover",noun,obråt,oborot,obråt
 21380,"pictorial, figurative, metaphorical",adj,obrazny,obraznyj,obrazny
 1031,education,noun,obrazovańje,obrazovanie,obrazovanje
 9872,"educated, learned",adj,obrazovany,obrazovannyj,obrazovany
@@ -1512,6 +1565,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 29357,"thill, shaft",noun,oje,dyšlo,oje
 29398,become stronger,verb,okrěpnųti,okrijepiti,okrepnuti
 29411,round,adj,okrųgly,okruglyj,okrųgly
+1988,October,noun,oktobr,oktabr,oktobr
 29422,perch,noun,okunj,okun,okunj
 10168,occupation,noun,okupacija,okkupacija,okupacija
 10169,occupant,noun,okupant,okkupant,okupant
@@ -1543,6 +1597,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2398,eagle,noun,orel,orol,orel
 1956,original,adj,originaľny,originalnyj,originalny
 20006,ornithological,adj,ornitologičny,ornitološky,ornitologičny
+4393,orthography,noun,ortografija,ortografia,ortografija
 1112,"donkey, ass",noun,osėl,osol,osel
 29599,jackass,noun,osėl,osol,osel
 22801,orphaned,adj,osiroćeny,osierocony,osiroćeny
@@ -1588,12 +1643,14 @@ id,gloss,pos,official,baseline_pred,final_pred
 4993,steam,noun,para,par,para
 29842,parade,noun,parada,parad,parada
 2377,paradoxical,adj,paradoksaľny,paradoksalnyj,paradoksalny
+35421,parish,noun,parafija,parafia,parafija
 22443,Paraguayan,adj,paragvajsky,paragvajskij,paragvajsky
 23206,parallel,noun,paralela,parallel,paralela
 23207,parallel,adj,paraleľny,parallelnyj,paralelny
 29861,even,adj,parny,parnyj,parny
 2911,partner,noun,partner,partnor,partner
 5161,partnership,noun,partnerstvo,partnorstvo,partnerstvo
+36621,"passage (text, music)",noun,pasaž,passaž,pasaž
 36622,"passage (building), archway, arcade",noun,pasaž,passaž,pasaž
 3005,passenger,noun,pasažer,passažir,pasažer
 2906,passenger,adj,pasažersky,passažirskij,pasažersky
@@ -1711,7 +1768,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 34956,"joggle, brandish",verb,potręsati,potrasati,potresati
 3901,"shake, quake, jolt, joggle, brandish",verb,potręsti,potrasti,potręsti
 18346,"confirmed, attested",adj,potvŕđeny,potvierdzony,potvrđeny
-3202,"turn, turning point, bend, twist",noun,povråt,povorot,povrat
 22695,"recurrent, relapsing",adj,povråtny,povrotny,povratny
 22660,turn (tr.),verb,povŕnųti,povernuti,povrnuti
 1460,"rebellion, revolt, uprising, insurgence, revolution",noun,povstańje,povstanie,povstanje
@@ -1883,6 +1939,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35977,psalm,noun,psalm,psalom,psalm
 20099,psychiatric,adj,psihiatričny,psyhiatryčny,psihiatričny
 20100,psychic,adj,psihičny,psyhicky,psihičny
+16820,psychological,adj,psihologičny,psihološko,psihologičny
 36163,puberty,noun,pubertet,pubertat,pubertet
 1213,public,adj,publičny,publičnyj,publičny
 11670,fluffy,adj,puhovy,puhovyj,puhovy
@@ -2002,6 +2059,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 30590,"spit, skewer",noun,råžen,rožen,ražen
 1235,rust,noun,rđa,rez,rđa
 3828,rusty,adj,rđavy,ržavyj,rđavy
+35082,realistic,adj,realističny,realističnyj,realističny
 2216,"real, actual (real)",adj,reaľny,realnyj,realny
 1999,recession,noun,recesija,recessija,recesija
 2283,"row, queue",noun,ręd,rad,ręd
@@ -2038,6 +2096,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 12001,birth,noun,rođeńje,rodzenie,rođenje
 2207,born,adj,rođeny,urodzony,rođeny
 36806,"horned, horny (having horns)",adj,rogaty,rogatyj,rogaty
+23628,rock music,noun,rok-muzika,rok-muzyka,rok-muzika
 4735,Romance,adj,romansky,romanskij,romansky
 2182,romantic,adj,romantičny,romantičnyj,romantičny
 18649,"grumble, murmur",noun,roptańje,roptanie,roptanje
@@ -2056,10 +2115,12 @@ id,gloss,pos,official,baseline_pred,final_pred
 18761,soot,noun,sađa,saža,sađa
 35130,sacral,adj,sakraľny,sakralnyj,sakralny
 37168,sacrament,noun,sakrament,tainstvo,sakrament
+37386,salamander,noun,salamandr,salamandra,salamandr
 22467,Salvadoran,adj,salvadorsky,salvadorskij,salvadorsky
 5222,female,noun,samica,samice,samica
 169,summit,noun,samit,sammit,samit
 12084,introspection,noun,samoanaliza,samoanaliz,samoanaliza
+18771,autocrat,noun,samodŕžec,samoderžec,samodržec
 18775,independently,adv,samostojno,samostijno,samostojno
 18776,independence,noun,samostojnosť,samostijnist,samostojnosť
 18777,independent,adj,samostojny,samostijnyj,samostojny
@@ -2097,12 +2158,14 @@ id,gloss,pos,official,baseline_pred,final_pred
 1560,"gray, grey",adj,sěry,sivy,śěry
 4457,seasonal,adj,sezonny,sezonnyj,sezonny
 21572,fathom,noun,sęženj,sažen,sęženj
+18815,schematic,adj,shematičny,shematyčny,shematičny
 4811,to oneself,pron,si,sebe,si
 30685,syllabic,adj,silabičny,skladovyj,silabičny
 12221,"symbol, token",noun,simbol,symbol,simbol
 3138,symbolic,adj,simboličny,symboličny,simboličny
 35395,"symbolics, symbolism",noun,simbolika,symbolika,simbolika
 35394,symbolism,noun,simbolizm,symbolizm,simbolizm
+1392,"symbolise, symbolize",verb,simbolizovati,symbolizovati,simbolizovati
 20730,symmetry,noun,simetričnosť,symetria,simetričnosť
 20731,symmetrical,adj,simetričny,simmetričnyj,simetričny
 30688,sympathetic,adj,simpatičny,simpatičnyj,simpatičny
@@ -2136,7 +2199,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 3886,straw,noun,slåma,soloma,slåma
 35727,drinking straw,noun,slåmka,solomka,slamka
 33028,salty,adj,slåny,solonyj,slåny
-37211,herring,noun,sleď,seld,sled
 2941,blind,adj,slěpy,slepoj,slěpy
 1292,"saliva, spittle, sputum, drivel, drool, slobber",noun,slina,sluna,slina
 35986,mica (mineral),noun,sljuda,sluda,sljuda
@@ -2249,6 +2311,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 3137,world,noun,svět,sviat,svět
 1440,hallow,verb,svętiti,svatiti,světiti
 3284,light,noun,světlo,sviatlo,světlo
+36030,"sweater, pullover",noun,svetr,sviter,svetr
 12772,"worldly, secular",adj,světsky,svetskij,svetsky
 2090,"saint, sacret, holy",adj,svęty,svatoj,svęty
 5225,fresh,adj,svěži,svežij,svěži
@@ -2273,6 +2336,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 33271,whisper,noun,šepot,šopot,šepȯt
 3111,sixty,num,šesťdesęt,šestdesat,šestdeset
 23260,stitch,noun,šev,šov,šev
+12835,encryption,noun,šifrovańje,šifrovanie,šifrovanje
 12841,neck,noun,šija,šeja,šija
 34428,chimpanzee,noun,šimpanz,šimpanze,šimpanz
 196,wide,adj,široky,širokij,široky
@@ -2326,6 +2390,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 24004,mother-in-law (wife’s mother),noun,tešća,tošča,tešča
 1844,"quiet, silent",adj,tihy,tihij,tihy
 12991,typical,adj,tipičny,tipičnyj,tipičny
+35973,typological,adj,tipologičny,typologičny,tipologičny
+36631,tyrannosaurus,noun,tiranozavr,tirannozavr,tiranozavr
 35429,tissue (anat.),noun,tkanj,tkivo,tkanj
 30892,smouldering,noun,tlěńje,tlenie,tlenje
 36995,"this, that",pron,to,eto,to
@@ -2344,6 +2410,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 36490,topographic,adj,topografičny,topografsko,topografičny
 32743,totalitarian,adj,totalitarny,totalitarnyj,totalitarny
 32744,total,adj,totaľny,totalnyj,totalny
+1458,traditional,adj,tradicijny,tradicionnyj,tradicijny
 6314,banner,noun,transparent,transparant,transparent
 31870,"traumatise, traumatize",verb,travmatizovati,traumatizovati,travmatizovati
 3899,training,adj,treningovy,treningovyj,treningovy
@@ -2394,6 +2461,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 5931,Uyghur,adj,ujgursky,ujgurskij,ujgursky
 20238,indication,noun,ukazańje,ukazanie,ukazanje
 3049,Ukraine,noun,Ukrajina,ukraina,ukrajina
+596,Ukrainian,noun,Ukrajinec,ukrainec,ukrajinec
 831,Ukrainian,adj,ukrajinsky,ukrainskij,ukrajinsky
 13236,"concealed, hidden",adj,ukryty,skryty,ukryty
 4175,"conceal, hide",verb,ukryvati,skryvati,ukryvati
@@ -2453,6 +2521,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 20811,whale,noun,veľryb,kit,velryb
 31107,veneric,adj,veneričny,veneryčny,veneričny
 31116,venous,adj,venozny,venoznyj,venozny
+31120,ventilate,verb,ventilovati,ventylovati,ventilovati
 31126,verbal,adj,verbaľny,verbalnyj,verbalny
 1897,shipyard,noun,verf,brodogradilište,verf
 19184,"credible, reliable, trustworthy, plausible",adj,věrodostojny,verodostojne,verodostojny

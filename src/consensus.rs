@@ -104,6 +104,10 @@ pub struct ConsensusConfig {
     /// Grow Proto-Slavic link coverage by stripping a shared prefix off the
     /// cognates, linking the bare root, and re-attaching the Interslavic prefix.
     pub proto_prefix_stripping: bool,
+    /// Repair national adaptation quirks the representative leaks into a loan
+    /// stem (Polish y→i, South-Slavic epenthetic vowel/-ac/-a), each sub-repair
+    /// gated on the internationalism shape and/or a corroborating cognate.
+    pub loan_stem_repair: bool,
 }
 
 impl ConsensusConfig {
@@ -129,6 +133,7 @@ impl ConsensusConfig {
             explicit_etymology: false,
             synonym_alternatives: false,
             proto_prefix_stripping: false,
+            loan_stem_repair: false,
         }
     }
 
@@ -156,6 +161,7 @@ impl ConsensusConfig {
             explicit_etymology: true,
             synonym_alternatives: true,
             proto_prefix_stripping: true,
+            loan_stem_repair: true,
             // Rejected by the benchmark (regress accuracy in the consensus path):
             y_recovery: false,
             adj_longform_rep: false,
@@ -182,6 +188,7 @@ impl ConsensusConfig {
             explicit_etymology: true,
             synonym_alternatives: true,
             proto_prefix_stripping: true,
+            loan_stem_repair: true,
         }
     }
 }
@@ -580,7 +587,135 @@ fn reconstruct(
     } else {
         form = tidy_ending(&form, input.pos, input.gender);
     }
+
+    // Repair 6: national adaptation quirks the representative leaks into a loan
+    // stem — Polish y for /i/, the South-Slavic epenthetic vowel (akcenat) and
+    // -ac agentive, a masculine loan's -a. Each sub-repair is gated on the
+    // internationalism shape and/or a corroborating cognate.
+    if cfg.loan_stem_repair {
+        let (fixed, steps) = loan_stem_repair(&form, per_lang, input);
+        if fixed != form {
+            trace.extend(steps);
+            form = fixed;
+        }
+    }
     (form, trace)
+}
+
+/// Loan-stem repairs (see `ConsensusConfig::loan_stem_repair`). Returns the
+/// repaired form plus trace steps; identity when nothing fires.
+fn loan_stem_repair(
+    form: &str,
+    per_lang: &BTreeMap<&str, &SourceForm>,
+    input: &MeaningInput,
+) -> (String, Vec<RuleStep>) {
+    let mut w = form.to_string();
+    let mut steps = Vec::new();
+    let intl = input.is_intl_meaning || is_international_form(&w);
+
+    // (a) Polish/Czech orthographic y inside a loan stem is /i/: Interslavic
+    // internationalisms write i (arystokratyczny → aristokratičny). The final
+    // letter (adjective -y ending) is never touched.
+    if intl && w.chars().rev().skip(1).any(|c| c == 'y') {
+        let n = w.chars().count();
+        let fixed: String = w
+            .chars()
+            .enumerate()
+            .map(|(i, c)| if c == 'y' && i + 1 < n { 'i' } else { c })
+            .collect();
+        if fixed != w {
+            steps.push(RuleStep::new(
+                "loan-y-i",
+                w.clone(),
+                fixed.clone(),
+                "Pravopisne y v internacionalizmu → i (poljska/češska adaptacija).".to_string(),
+                Some(DOC_ORTHO),
+            ));
+            w = fixed;
+        }
+    }
+
+    if input.pos == Pos::Noun {
+        let chars: Vec<char> = w.chars().collect();
+        let n = chars.len();
+        // (b) South-Slavic epenthetic vowel in a word-final cluster (akcenat,
+        // aker, alabaster): drop it when another cognate shows the two
+        // consonants adjacent at the word end.
+        if n >= 4 {
+            let (c1, v, c2) = (chars[n - 3], chars[n - 2], chars[n - 1]);
+            if matches!(v, 'a' | 'e' | 'ȯ') && is_cons(c1) && is_cons(c2) {
+                let cluster: String = [c1, c2].iter().collect();
+                if per_lang
+                    .values()
+                    .any(|f| f.norm.latin.to_lowercase().ends_with(&cluster))
+                {
+                    let fixed: String = chars[..n - 2].iter().chain([&c2]).collect();
+                    steps.push(RuleStep::new(
+                        "loan-epenthesis",
+                        w.clone(),
+                        fixed.clone(),
+                        "Južnoslovjansky epentetičny glasnik v koncovoj grupě padaje (akcenat→akcent).".to_string(),
+                        Some(DOC_ORTHO),
+                    ));
+                    w = fixed;
+                }
+            }
+        }
+        // (c) South-Slavic -ac for the agentive/fleeting-vowel suffix: the
+        // Interslavic suffix is -ec (amerikanac→amerikanec), corroborated by a
+        // cognate ending -ec.
+        if w.ends_with("ac")
+            && per_lang
+                .values()
+                .any(|f| f.norm.latin.to_lowercase().ends_with("ec"))
+        {
+            let fixed = format!("{}ec", &w[..w.len() - 2]);
+            steps.push(RuleStep::new(
+                "loan-ac-ec",
+                w.clone(),
+                fixed.clone(),
+                "Južnoslovjansky sufiks -ac → medžuslovjansky -ec.".to_string(),
+                Some(DOC_ORTHO),
+            ));
+            w = fixed;
+        }
+        // (d) Word-final -ia → -ija: Interslavic always writes the glide
+        // (awaria→avarija, Dania→Danija).
+        if w.ends_with("ia") {
+            let fixed = format!("{}ja", &w[..w.len() - 1]);
+            steps.push(RuleStep::new(
+                "loan-ija",
+                w.clone(),
+                fixed.clone(),
+                "Koncove -ia → -ija (medžuslovjansky vsegda piše j).".to_string(),
+                Some(DOC_ORTHO),
+            ));
+            w = fixed;
+        }
+        // (e) A masculine loan's final -a (Serbo-Croatian atleta, adresa):
+        // Interslavic cites the bare masculine (atlet), corroborated by a
+        // consonant-final cognate with the same skeleton.
+        if intl && input.gender == Some(Gender::Masculine) && w.ends_with('a') && !w.ends_with("ja")
+        {
+            let stem = &w[..w.len() - 1];
+            let stem_skel = ortho::ascii_skeleton(stem);
+            if per_lang
+                .values()
+                .any(|f| ortho::ascii_skeleton(&f.norm.latin.to_lowercase()) == stem_skel)
+            {
+                steps.push(RuleStep::new(
+                    "loan-masc-a",
+                    w.clone(),
+                    stem.to_string(),
+                    "Mužsky internacionalizm bez koncovogo -a (atleta→atlet).".to_string(),
+                    Some(DOC_ORTHO),
+                ));
+                w = stem.to_string();
+            }
+        }
+    }
+
+    (w, steps)
 }
 
 /// Undo East-Slavic pleophony: -oroC->-raC, -oloC->-laC(/-lěC), -ereC->-rěC.
@@ -1099,5 +1234,78 @@ mod tests {
         // Bare -sa (no -t-) and short stems are NOT treated as reflexive.
         assert!(reflexive_stem("kolbasa").is_none());
         assert!(reflexive_stem("nesę").is_none());
+    }
+
+    fn form(lang: &str, branch: Branch, latin: &str) -> SourceForm {
+        SourceForm {
+            lang_code: lang.to_string(),
+            branch,
+            modern: true,
+            norm: NormForm {
+                original: latin.to_string(),
+                latin: latin.to_string(),
+                skeleton: ortho::ascii_skeleton(latin),
+                flagged: false,
+            },
+            source_url: String::new(),
+            primary: true,
+        }
+    }
+
+    fn meaning(pos: Pos, gender: Option<Gender>, intl: bool) -> MeaningInput {
+        MeaningInput {
+            pos,
+            gender,
+            gloss: String::new(),
+            forms: Vec::new(),
+            is_intl_meaning: intl,
+            reflexive: false,
+        }
+    }
+
+    #[test]
+    fn loan_stem_repairs_national_quirks() {
+        let ru = form("ru", Branch::East, "akcent");
+        let per: BTreeMap<&str, &SourceForm> = [("ru", &ru)].into_iter().collect();
+
+        // (a) Polish orthographic y inside an internationalism → i; final -y kept.
+        let inp = meaning(Pos::Adjective, None, true);
+        assert_eq!(
+            loan_stem_repair("arystokratyčny", &per, &inp).0,
+            "aristokratičny"
+        );
+        // Not an internationalism → untouched (native *y must survive).
+        let native = meaning(Pos::Adjective, None, false);
+        assert_eq!(loan_stem_repair("ryba", &per, &native).0, "ryba");
+
+        // (b) Epenthetic vowel dropped only with a corroborating cognate.
+        let noun = meaning(Pos::Noun, None, true);
+        assert_eq!(loan_stem_repair("akcenat", &per, &noun).0, "akcent");
+        let uncorroborated: BTreeMap<&str, &SourceForm> = BTreeMap::new();
+        assert_eq!(
+            loan_stem_repair("akcenat", &uncorroborated, &noun).0,
+            "akcenat"
+        );
+
+        // (c) -ac → -ec with a corroborating -ec cognate.
+        let ru_kupec = form("ru", Branch::East, "kupec");
+        let per_kupec: BTreeMap<&str, &SourceForm> = [("ru", &ru_kupec)].into_iter().collect();
+        let native_noun = meaning(Pos::Noun, None, false);
+        assert_eq!(
+            loan_stem_repair("kupac", &per_kupec, &native_noun).0,
+            "kupec"
+        );
+
+        // (d) Final -ia always takes the glide.
+        assert_eq!(loan_stem_repair("avaria", &per, &native_noun).0, "avarija");
+
+        // (e) Masculine loan drops Serbo-Croatian -a when a bare cognate exists.
+        let ru_atlet = form("ru", Branch::East, "atlet");
+        let per_atlet: BTreeMap<&str, &SourceForm> = [("ru", &ru_atlet)].into_iter().collect();
+        let masc = meaning(Pos::Noun, Some(Gender::Masculine), true);
+        assert_eq!(loan_stem_repair("atleta", &per_atlet, &masc).0, "atlet");
+        // Feminine keeps -a.
+        let fem = meaning(Pos::Noun, Some(Gender::Feminine), true);
+        assert_eq!(loan_stem_repair("atleta", &per_atlet, &fem).0, "atleta");
     }
 }
