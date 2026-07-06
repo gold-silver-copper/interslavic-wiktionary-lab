@@ -69,7 +69,7 @@ the official dictionary, **without ever showing the generator the answer**
 | mean normalized edit distance | 0.253 | **0.229** | −0.024 |
 
 The **site's** cognate-set path (`corpus::generate_set`) is benchmarked separately
-(`cargo run -- corpus-eval`): **55.3% exact / 59.4% normalized** on the ~6.9k entries
+(`cargo run -- corpus-eval`): **56.9% exact / 61.1% normalized** on the ~6.9k entries
 where a Proto-Slavic ancestor or internationalism is known — higher than the pipeline
 headline because it only scores words the site actually derives from a known ancestor.
 
