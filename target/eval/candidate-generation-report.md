@@ -20,7 +20,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 | +nasals | 32.42% | 40.79% | -0.10 pp | 49.75% | 0.236 |
 | +proto-derived | 34.74% | 41.85% | +1.07 pp | 51.88% | 0.234 |
 | +intl-preference | 34.82% | 41.93% | +0.08 pp | 51.92% | 0.234 |
-| +adj-fleeting (production) | 36.02% | 43.58% | +1.64 pp | 53.89% | 0.231 |
+| +adj-fleeting | 36.02% | 43.58% | +1.64 pp | 53.89% | 0.231 |
+| +synonym-alts (production) | 36.02% | 43.58% | +0.00 pp | 54.06% | 0.231 |
 
 - **baseline** — Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).
 - **+branch-consensus** — Branch-balanced skeleton vote + South-Slavic representative.
@@ -32,7 +33,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 - **+nasals** — Recover ę/ų nasal vowels from Polish (§2 Phase C).
 - **+proto-derived** — Two-stage §4.4: consensus picks the root, the Proto-Slavic rule engine supplies the flavored form (ě/ć/đ/å/ȯ/y) via a leakage-free descendant+gloss link. Requires the proto cache.
 - **+intl-preference** — Prefer the internationalism cluster over native synonyms (ISV design criteria favor international roots for modern vocabulary): aeroplan over samolot.
-- **+adj-fleeting (production)** — Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).
+- **+adj-fleeting** — Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).
+- **+synonym-alts (production)** — Seed alternatives from secondary translations (below every primary candidate) so the official lemma surfaces in top-3/top-5 when it is a 2nd/3rd translation.
 
 ## Rejected rules — tested and reverted
 

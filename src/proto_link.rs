@@ -34,7 +34,9 @@ pub fn link<'a>(index: &'a ProtoIndex, input: &MeaningInput) -> Option<ProtoLink
     let mut skeletons: Vec<String> = Vec::new();
     let mut mode: BTreeMap<String, usize> = BTreeMap::new();
     for f in &input.forms {
-        if !f.modern || f.norm.skeleton.is_empty() {
+        // Link on primary translations only; secondary synonyms would blur the
+        // descendant/skeleton match.
+        if !f.modern || !f.primary || f.norm.skeleton.is_empty() {
             continue;
         }
         skeletons.push(f.norm.skeleton.clone());

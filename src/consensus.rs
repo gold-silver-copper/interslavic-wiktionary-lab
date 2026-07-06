@@ -37,6 +37,9 @@ pub struct SourceForm {
     pub modern: bool,
     pub norm: NormForm,
     pub source_url: String,
+    /// The canonical (first) translation for this language. Only primary forms
+    /// vote for the top candidate; secondary variants can seed *alternatives*.
+    pub primary: bool,
 }
 
 /// The consensus input for a single meaning.
@@ -89,6 +92,9 @@ pub struct ConsensusConfig {
     /// Drop a South-Slavic adjective's fleeting vowel before -y, gated on the
     /// East/West long form showing the two consonants adjacent (dobar→dobry).
     pub adj_fleeting_drop: bool,
+    /// Seed alternative candidates from secondary (non-primary) translations so
+    /// the official lemma can appear in top-3/top-5. Never changes top-1.
+    pub synonym_alternatives: bool,
 }
 
 impl ConsensusConfig {
@@ -111,6 +117,7 @@ impl ConsensusConfig {
             proto_derived_form: false,
             internationalism_preference: false,
             adj_fleeting_drop: false,
+            synonym_alternatives: false,
         }
     }
 
@@ -135,6 +142,7 @@ impl ConsensusConfig {
             proto_derived_form: true,
             internationalism_preference: true,
             adj_fleeting_drop: true,
+            synonym_alternatives: true,
             // Rejected by the benchmark (regress accuracy in the consensus path):
             y_recovery: false,
             adj_longform_rep: false,
@@ -158,6 +166,7 @@ impl ConsensusConfig {
             proto_derived_form: true,
             internationalism_preference: true,
             adj_fleeting_drop: true,
+            synonym_alternatives: true,
         }
     }
 }
@@ -181,10 +190,11 @@ const REP_PRIORITY_ADJ: &[&str] = &[
 
 /// Generate ranked Interslavic candidates from modern-Slavic consensus.
 pub fn generate(input: &MeaningInput, cfg: &ConsensusConfig) -> Vec<Candidate> {
-    // Keep one primary form per modern language.
+    // The top-1 vote uses only each language's primary (canonical) translation;
+    // secondary variants are kept aside to seed alternatives (see below).
     let mut per_lang: BTreeMap<&str, &SourceForm> = BTreeMap::new();
     for f in &input.forms {
-        if !f.modern {
+        if !f.modern || !f.primary {
             continue;
         }
         per_lang.entry(f.lang_code.as_str()).or_insert(f);
@@ -307,8 +317,8 @@ pub fn generate(input: &MeaningInput, cfg: &ConsensusConfig) -> Vec<Candidate> {
         );
         cand.trace = trace;
 
-        // Evidence: every source form, marked by branch.
-        for f in &input.forms {
+        // Evidence: each language's primary source form, marked by branch.
+        for f in input.forms.iter().filter(|f| f.primary) {
             cand.evidence.push(Evidence {
                 lang_code: f.lang_code.clone(),
                 lang_name: crate::lang::lang_name(&f.lang_code).to_string(),
@@ -324,6 +334,65 @@ pub fn generate(input: &MeaningInput, cfg: &ConsensusConfig) -> Vec<Candidate> {
                 .push("Konsensus opŕt na jednoj větvi; slaby medžuslovjansky dokaz.".to_string());
         }
         candidates.push(cand);
+    }
+
+    // Seed alternatives from secondary translations whose cluster isn't already a
+    // candidate. Scored strictly below every primary candidate, so top-1 is
+    // unchanged — this only fills the remaining alternative slots so the official
+    // lemma, if it is a 2nd/3rd translation, still surfaces (top-3/top-5).
+    if cfg.synonym_alternatives {
+        let min_primary = candidates.iter().map(|c| c.score).fold(1.0_f32, f32::min);
+        let mut sec_groups: BTreeMap<String, Vec<&SourceForm>> = BTreeMap::new();
+        for f in input.forms.iter().filter(|f| f.modern && !f.primary) {
+            let key = ortho::consonant_key(&f.norm.latin);
+            if key.is_empty() {
+                continue;
+            }
+            let e = sec_groups.entry(key).or_default();
+            if !e.iter().any(|x| x.lang_code == f.lang_code) {
+                e.push(f);
+            }
+        }
+        let mut secs: Vec<(String, Vec<&SourceForm>)> = sec_groups.into_iter().collect();
+        secs.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        for (_key, langs) in secs.into_iter().take(3) {
+            if candidates.len() >= 6 {
+                break;
+            }
+            let (form, mut trace) = reconstruct(langs.as_slice(), &per_lang, input, cfg);
+            if form.is_empty() {
+                continue;
+            }
+            let std = ortho::to_standard(&form.to_lowercase());
+            if candidates
+                .iter()
+                .any(|c| ortho::to_standard(&c.form.to_lowercase()) == std)
+            {
+                continue;
+            }
+            let score = (min_primary - 0.02 - 0.01 * candidates.len() as f32).clamp(0.03, 0.5);
+            let mut cand =
+                Candidate::new(form, CandidateSource::MajorityModernSlavic, round3(score));
+            let support = langs.len();
+            trace.insert(
+                0,
+                RuleStep::new(
+                    "synonym-alt",
+                    langs
+                        .iter()
+                        .map(|f| f.lang_code.clone())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    std,
+                    format!("Alternativa iz sekundarnyh prěvodov ({support} językov)."),
+                    Some(DOC_DESIGN),
+                ),
+            );
+            cand.trace = trace;
+            cand.warnings
+                .push("Sekundarny prěvod (ne glavny konsensus).".to_string());
+            candidates.push(cand);
+        }
     }
 
     candidates
@@ -874,13 +943,37 @@ pub fn source_forms_from_cells(
             continue;
         };
         let normed = crate::normalize::normalize_cell(li.code, cell);
-        if let Some(primary) = crate::normalize::primary(&normed) {
+        let Some(primary) = crate::normalize::primary(&normed) else {
+            continue;
+        };
+        let primary_skel = primary.skeleton.clone();
+        // Emit the primary form, then up to 3 distinct secondary variants (marked
+        // non-primary) so the official lemma — which the dictionary sometimes
+        // lists as a 2nd/3rd translation — can seed an alternative candidate.
+        let mut seen = vec![primary_skel.clone()];
+        forms.push(SourceForm {
+            lang_code: li.code.to_string(),
+            branch: li.branch,
+            modern: li.modern,
+            source_url: url_for(li.code, &primary.original),
+            norm: primary.clone(),
+            primary: true,
+        });
+        for nf in &normed {
+            if seen.len() >= 4 {
+                break;
+            }
+            if seen.contains(&nf.skeleton) {
+                continue;
+            }
+            seen.push(nf.skeleton.clone());
             forms.push(SourceForm {
                 lang_code: li.code.to_string(),
                 branch: li.branch,
                 modern: li.modern,
-                norm: primary.clone(),
-                source_url: url_for(li.code, &primary.original),
+                source_url: url_for(li.code, &nf.original),
+                norm: nf.clone(),
+                primary: false,
             });
         }
     }

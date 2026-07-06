@@ -35,7 +35,7 @@ pub fn generate(
                 let reflexes: Vec<String> = input
                     .forms
                     .iter()
-                    .filter(|f| f.modern)
+                    .filter(|f| f.modern && f.primary)
                     .map(|f| f.norm.latin.clone())
                     .collect();
                 let mut pc = crate::proto::generate_with_reflexes(

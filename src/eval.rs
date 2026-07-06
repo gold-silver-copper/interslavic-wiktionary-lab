@@ -49,6 +49,8 @@ fn kept_ladder() -> Vec<Rung> {
     intlpref.internationalism_preference = true;
     let mut adjfleet = intlpref;
     adjfleet.adj_fleeting_drop = true;
+    let mut synalt = adjfleet;
+    synalt.synonym_alternatives = true;
 
     vec![
         Rung { name: "baseline", description: "Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).", cfg: base },
@@ -61,7 +63,8 @@ fn kept_ladder() -> Vec<Rung> {
         Rung { name: "+nasals", description: "Recover ę/ų nasal vowels from Polish (§2 Phase C).", cfg: nasal },
         Rung { name: "+proto-derived", description: "Two-stage §4.4: consensus picks the root, the Proto-Slavic rule engine supplies the flavored form (ě/ć/đ/å/ȯ/y) via a leakage-free descendant+gloss link. Requires the proto cache.", cfg: proto },
         Rung { name: "+intl-preference", description: "Prefer the internationalism cluster over native synonyms (ISV design criteria favor international roots for modern vocabulary): aeroplan over samolot.", cfg: intlpref },
-        Rung { name: "+adj-fleeting (production)", description: "Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).", cfg: adjfleet },
+        Rung { name: "+adj-fleeting", description: "Drop a South-Slavic adjective's fleeting vowel before -y, gated on East/West consonant adjacency (dobar→dobry, zelen stays).", cfg: adjfleet },
+        Rung { name: "+synonym-alts (production)", description: "Seed alternatives from secondary translations (below every primary candidate) so the official lemma surfaces in top-3/top-5 when it is a 2nd/3rd translation.", cfg: synalt },
     ]
 }
 
