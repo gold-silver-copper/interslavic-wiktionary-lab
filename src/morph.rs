@@ -83,8 +83,6 @@ fn swap(word: &str, suffix: &str, rep: &str) -> String {
     format!("{stem}{rep}")
 }
 
-/// §5.2 internationalism ending adaptations, matched on the Slavicized surface.
-/// Longest / most specific suffixes first.
 /// True when a word begins with a native prefix directly followed by a vowel that
 /// would form a spurious au/eu across the boundary (na+u→"au", ne+u→"eu"), so the
 /// internationalism diphthong rule must not fire: naučiti, neuspěh, zaučiti.
@@ -101,6 +99,8 @@ fn starts_native_prefix_vowel(w: &str) -> bool {
     false
 }
 
+/// §5.2 internationalism ending adaptations, matched on the Slavicized surface.
+/// Longest / most specific suffixes first.
 fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &'static str)> {
     // Adjectival internationalisms (must run before generic -ny handling).
     if pos == Pos::Adjective {
