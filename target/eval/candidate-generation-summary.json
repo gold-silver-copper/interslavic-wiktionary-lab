@@ -1081,35 +1081,35 @@
         },
         {
           "branch_coverage": 1,
-          "exact": 0.19840213656425476,
+          "exact": 0.19862405955791473,
           "n": 4506,
-          "normalized": 0.24567243456840515
+          "normalized": 0.24589435756206512
         },
         {
           "branch_coverage": 2,
-          "exact": 0.33318427205085754,
+          "exact": 0.33616578578948975,
           "n": 6708,
-          "normalized": 0.42069169878959656
+          "normalized": 0.4241204559803009
         },
         {
           "branch_coverage": 3,
-          "exact": 0.598189115524292,
+          "exact": 0.6038229465484619,
           "n": 4970,
-          "normalized": 0.6800804734230042
+          "normalized": 0.6857143044471741
         }
       ],
       "by_confidence": {
         "high": {
           "n": 5964,
-          "normalized": 0.7129443287849426
+          "normalized": 0.7169684767723083
         },
         "low": {
           "n": 2299,
-          "normalized": 0.11483253538608551
+          "normalized": 0.11657242476940155
         },
         "medium": {
           "n": 8037,
-          "normalized": 0.3551076352596283
+          "normalized": 0.35809382796287537
         }
       },
       "by_pos": {
@@ -1124,9 +1124,9 @@
           "normalized": 0.2952815890312195
         },
         "noun": {
-          "exact": 0.45993781089782715,
+          "exact": 0.46436259150505066,
           "n": 8362,
-          "normalized": 0.5265486836433411
+          "normalized": 0.5312126278877258
         },
         "num": {
           "exact": 0.0982142835855484,
@@ -1139,20 +1139,20 @@
           "normalized": 0.4040403962135315
         },
         "verb": {
-          "exact": 0.2930043041706085,
+          "exact": 0.2958792448043823,
           "n": 4174,
-          "normalized": 0.3648778200149536
+          "normalized": 0.3679923415184021
         }
       },
       "description": "Repair national adaptation quirks the representative leaks into a loan stem: Polish y→i, South-Slavic epenthetic vowel (akcenat→akcent), -ac→-ec, final -ia→-ija, masculine -a drop — each corroborated by a cognate or the internationalism gate.",
-      "exact_top1": 0.3776073753833771,
-      "mean_normalized_edit_distance": 0.22773846983909607,
+      "exact_top1": 0.3806135058403015,
+      "mean_normalized_edit_distance": 0.2270849198102951,
       "n": 16300,
       "name": "+loan-stem-repair",
-      "normalized_top1": 0.4521472454071045,
-      "normalized_top3": 0.5600000023841858,
-      "normalized_top5": 0.5874846577644348,
-      "skeleton_top1": 0.4555828273296356
+      "normalized_top1": 0.45533743500709534,
+      "normalized_top3": 0.5630061626434326,
+      "normalized_top5": 0.5906748175621033,
+      "skeleton_top1": 0.45877301692962646
     },
     {
       "by_branch_coverage": [
@@ -1164,35 +1164,35 @@
         },
         {
           "branch_coverage": 1,
-          "exact": 0.13425274193286896,
+          "exact": 0.13453419506549835,
           "n": 3553,
-          "normalized": 0.1764705926179886
+          "normalized": 0.17675204575061798
         },
         {
           "branch_coverage": 2,
-          "exact": 0.3047908544540405,
+          "exact": 0.3083661198616028,
           "n": 5594,
-          "normalized": 0.39041829109191895
+          "normalized": 0.3943510949611664
         },
         {
           "branch_coverage": 3,
-          "exact": 0.5643118619918823,
+          "exact": 0.5676892995834351,
           "n": 7106,
-          "normalized": 0.6376301646232605
+          "normalized": 0.6410076022148132
         }
       ],
       "by_confidence": {
         "high": {
           "n": 6828,
-          "normalized": 0.6545108556747437
+          "normalized": 0.657586395740509
         },
         "low": {
           "n": 2226,
-          "normalized": 0.11410602182149887
+          "normalized": 0.11590296775102615
         },
         "medium": {
           "n": 7246,
-          "normalized": 0.3644769489765167
+          "normalized": 0.36751312017440796
         }
       },
       "by_pos": {
@@ -1207,9 +1207,9 @@
           "normalized": 0.29223743081092834
         },
         "noun": {
-          "exact": 0.4641234278678894,
+          "exact": 0.468069851398468,
           "n": 8362,
-          "normalized": 0.5281033515930176
+          "normalized": 0.5321693420410156
         },
         "num": {
           "exact": 0.1160714253783226,
@@ -1222,20 +1222,20 @@
           "normalized": 0.38383838534355164
         },
         "verb": {
-          "exact": 0.302347868680954,
+          "exact": 0.3052228093147278,
           "n": 4174,
-          "normalized": 0.37038812041282654
+          "normalized": 0.373502641916275
         }
       },
       "description": "Use Wiktionary's stated (lang→ancestor) etymology to pick the Proto-Slavic reconstruction directly, before the fuzzy descendant+gloss link — the precise ancestor the corpus site uses.",
-      "exact_top1": 0.3810429573059082,
-      "mean_normalized_edit_distance": 0.22973479330539703,
+      "exact_top1": 0.38380369544029236,
+      "mean_normalized_edit_distance": 0.22917141020298004,
       "n": 16300,
       "name": "+explicit-etymology (production)",
-      "normalized_top1": 0.4517791271209717,
-      "normalized_top3": 0.5652147531509399,
-      "normalized_top5": 0.5924540162086487,
-      "skeleton_top1": 0.4547852873802185
+      "normalized_top1": 0.45466259121894836,
+      "normalized_top3": 0.5682821869850159,
+      "normalized_top5": 0.5955828428268433,
+      "skeleton_top1": 0.4576687216758728
     }
   ]
 }

@@ -713,6 +713,62 @@ fn loan_stem_repair(
                 w = stem.to_string();
             }
         }
+        // (f) A feminine loan cited without its -a (banknot, aksiom): restore
+        // it when the gender says feminine and a cognate shows the -a form.
+        if input.gender == Some(Gender::Feminine) && w.chars().last().map(is_cons).unwrap_or(false)
+        {
+            let with_a = format!("{w}a");
+            let skel = ortho::ascii_skeleton(&with_a);
+            if per_lang
+                .values()
+                .any(|f| ortho::ascii_skeleton(&f.norm.latin.to_lowercase()) == skel)
+            {
+                steps.push(RuleStep::new(
+                    "loan-fem-a",
+                    w.clone(),
+                    with_a.clone(),
+                    "Žensky rod: koncove -a vȯzstanovjeno (banknot→banknota).".to_string(),
+                    Some(DOC_ORTHO),
+                ));
+                w = with_a;
+            }
+        }
+        // (g) Diminutive/deverbal suffix -ȯk: the East-Slavic reflex -ok
+        // corroborates the fleeting ȯ where West cites -ek (budynek→budynȯk).
+        if w.ends_with("ek")
+            && per_lang
+                .values()
+                .any(|f| f.branch == Branch::East && f.norm.latin.to_lowercase().ends_with("ok"))
+        {
+            let fixed = format!("{}ȯk", &w[..w.len() - 2]);
+            steps.push(RuleStep::new(
+                "loan-ok-suffix",
+                w.clone(),
+                fixed.clone(),
+                "Sufiks -ȯk (běgly ȯ): vȯzhodnoslovjansky -ok proti zapadnomu -ek.".to_string(),
+                Some(DOC_ORTHO),
+            ));
+            w = fixed;
+        }
+    }
+
+    // (h) Secondary imperfective -yvati: the East-Slavic -yva- stem corroborates
+    // y where South cites -avati (namotavati→namotyvati).
+    if input.pos == Pos::Verb
+        && w.ends_with("avati")
+        && per_lang
+            .values()
+            .any(|f| f.branch == Branch::East && f.norm.latin.to_lowercase().contains("yva"))
+    {
+        let fixed = format!("{}yvati", &w[..w.len() - 5]);
+        steps.push(RuleStep::new(
+            "loan-yvati",
+            w.clone(),
+            fixed.clone(),
+            "Sekundarny imperfektiv -yvati (vȯzhodnoslovjansko -yva-).".to_string(),
+            Some(DOC_ORTHO),
+        ));
+        w = fixed;
     }
 
     (w, steps)
@@ -1307,5 +1363,36 @@ mod tests {
         // Feminine keeps -a.
         let fem = meaning(Pos::Noun, Some(Gender::Feminine), true);
         assert_eq!(loan_stem_repair("atleta", &per_atlet, &fem).0, "atleta");
+
+        // (f) Feminine loan cited bare gets its -a back from a cognate.
+        let sh_banknota = form("sr", Branch::South, "banknota");
+        let per_bank: BTreeMap<&str, &SourceForm> = [("sr", &sh_banknota)].into_iter().collect();
+        assert_eq!(loan_stem_repair("banknot", &per_bank, &fem).0, "banknota");
+        // No corroborating -a cognate → untouched.
+        let ru_akcent = form("ru", Branch::East, "akcent");
+        let per_akc: BTreeMap<&str, &SourceForm> = [("ru", &ru_akcent)].into_iter().collect();
+        assert_eq!(loan_stem_repair("akcent", &per_akc, &fem).0, "akcent");
+
+        // (g) -ek → -ȯk on the East-Slavic -ok reflex.
+        let uk_budynok = form("uk", Branch::East, "budynok");
+        let per_bud: BTreeMap<&str, &SourceForm> = [("uk", &uk_budynok)].into_iter().collect();
+        let noun_native = meaning(Pos::Noun, Some(Gender::Masculine), false);
+        assert_eq!(
+            loan_stem_repair("budynek", &per_bud, &noun_native).0,
+            "budynȯk"
+        );
+
+        // (h) Secondary imperfective -yvati from the East-Slavic -yva- stem.
+        let ru_yva = form("ru", Branch::East, "namatyvat");
+        let per_yva: BTreeMap<&str, &SourceForm> = [("ru", &ru_yva)].into_iter().collect();
+        let verb = meaning(Pos::Verb, None, false);
+        assert_eq!(
+            loan_stem_repair("namotavati", &per_yva, &verb).0,
+            "namotyvati"
+        );
+        // A West-only -avati verb stays -avati.
+        let cs_davati = form("cs", Branch::West, "davati");
+        let per_dav: BTreeMap<&str, &SourceForm> = [("cs", &cs_davati)].into_iter().collect();
+        assert_eq!(loan_stem_repair("davati", &per_dav, &verb).0, "davati");
     }
 }
