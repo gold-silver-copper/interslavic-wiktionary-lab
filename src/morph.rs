@@ -157,7 +157,9 @@ fn international_ending(word: &str, pos: Pos) -> Option<(String, &'static str, &
                 ));
             }
         }
-        for suf in ["ozny", "ózny", "osny", "ozni"] {
+        // -ózny/-ozny (Latin -ous). NOT bare -osny: that voicing wrongly hits
+        // native adjectives (snosny, nosny, opasny) — leave -osny alone (B18).
+        for suf in ["ozny", "ózny", "ozni"] {
             if word.ends_with(suf) {
                 return Some((
                     swap(word, suf, "ozny"),

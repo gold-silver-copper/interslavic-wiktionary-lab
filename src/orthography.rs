@@ -178,3 +178,51 @@ pub fn is_vowel(ch: char) -> bool {
             | 'ý'
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_standard_folds_flavored_letters() {
+        assert_eq!(to_standard("běly"), "bely");
+        assert_eq!(to_standard("rųka"), "ruka");
+        assert_eq!(to_standard("mȯre"), "more");
+        assert_eq!(to_standard("moŕe"), "more");
+        assert_eq!(to_standard("måly"), "maly");
+        assert_eq!(to_standard("međa"), "medža"); // đ → dž (B20)
+        assert_eq!(to_standard("noćь"), "nočь"); // ć → č
+    }
+
+    #[test]
+    fn normalized_match_ignores_flavor_only() {
+        assert!(normalized_match("věra", "vera"));
+        assert!(normalized_match("rųka", "ruka"));
+        assert!(!normalized_match("bog", "rog"));
+        assert!(!normalized_match("voda", "vodka"));
+    }
+
+    #[test]
+    fn exact_match_keeps_flavor() {
+        assert!(exact_match("bog", "bog"));
+        assert!(!exact_match("běly", "bely"));
+    }
+
+    #[test]
+    fn ascii_skeleton_folds_diacritics_keeps_vowels() {
+        // ascii_skeleton folds diacritics but KEEPS vowels (unlike consonant_key).
+        assert_eq!(ascii_skeleton("vodå"), "voda");
+        assert_eq!(ascii_skeleton("běly"), "bely");
+        assert_eq!(ascii_skeleton("žaba"), "zaba");
+        assert_eq!(ascii_skeleton("moře"), "more");
+    }
+
+    #[test]
+    fn consonant_key_drops_vowels() {
+        // consonant_key IS the vowel-dropping key (folds *g→h too).
+        let k = consonant_key("automobil");
+        assert!(!k.contains('a') && !k.contains('o') && !k.contains('i'));
+        // pleophony collapses onto one key across branches:
+        assert_eq!(consonant_key("golova"), consonant_key("glava"));
+    }
+}

@@ -283,14 +283,10 @@ fn simplify_clusters(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let chars: Vec<char> = input.chars().collect();
     let mut out = String::new();
     for (i, &c) in chars.iter().enumerate() {
-        if i > 0
-            && matches!(c, 'd' | 't')
-            && chars.get(i + 1) == Some(&'l')
-            && chars
-                .get(i.wrapping_sub(1))
-                .map(|p| is_full_vowel(*p))
-                .unwrap_or(false)
-        {
+        // Medial *dl/*tl → l. The preceding nucleus may be a full vowel (*mydlo)
+        // or a syllabic liquid produced upstream (*gъrdlo→gŕdlo→gŕlo), so only the
+        // anti-initial guard (i>0) is required (B13).
+        if i > 0 && matches!(c, 'd' | 't') && chars.get(i + 1) == Some(&'l') {
             continue; // drop the d/t before l
         }
         out.push(c);
@@ -397,11 +393,11 @@ fn yers(input: &str, reflexes: &[String], trace: &mut Vec<RuleStep>) -> String {
             } else if strong[idx] {
                 out.push(if back { 'ȯ' } else { 'e' });
             } else if idx + 1 == n {
-                // Word-final weak yer: drops. If it is a soft (front) yer after a
-                // sonorant it palatalizes it: *solь -> solj, *dьnь -> denj. (Final
-                // yers are not subject to reflex retention — the reflexes are
-                // consonant-final too, e.g. *rajь -> raj.)
-                if !back && matches!(out.chars().last(), Some('l' | 'n' | 'r')) {
+                // Word-final weak yer: drops. If it is a soft (front) yer after l
+                // or n it palatalizes them: *solь->solj, *dьnь->denj. A final soft
+                // *ŕ, however, reduces to plain r (*carь->car, *zvěrь->zvěr), so r
+                // is excluded here. (Final yers are not reflex-retained.)
+                if !back && matches!(out.chars().last(), Some('l' | 'n')) {
                     out.push('j');
                 }
             } else if let Some(v) = reflex_vowel_vote(reflexes, cons_before) {
@@ -455,7 +451,9 @@ fn endings(input: &str, pos: Pos, gender: Option<Gender>, trace: &mut Vec<RuleSt
                 || out.ends_with("ev")
                 || out.ends_with("yn");
             if !possessive && !out.ends_with('y') && !out.ends_with("ji") && ends_cons(&out) {
-                out.push('y');
+                // Soft-stem adjectives take -i, hard stems -y: *siňь->sinji,
+                // *svěžь->svěži, but *dobrъ->dobry (RULE_SPEC §3.2).
+                out.push(if ends_soft(&out) { 'i' } else { 'y' });
             }
         }
         Pos::Noun => {
@@ -615,6 +613,18 @@ fn ends_cons(s: &str) -> bool {
     s.chars().last().map(is_cons).unwrap_or(false)
 }
 
+/// True when the stem ends in a soft (palatal/palatalized) consonant, which takes
+/// the soft adjective ending -i rather than hard -y.
+fn ends_soft(s: &str) -> bool {
+    if s.ends_with("lj") || s.ends_with("nj") || s.ends_with("rj") {
+        return true;
+    }
+    matches!(
+        s.chars().last(),
+        Some('š' | 'ž' | 'č' | 'j' | 'ć' | 'đ' | 'c' | 'ś' | 'ź' | 'ť' | 'ď' | 'ŕ' | 'ĺ' | 'ń')
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -695,6 +705,40 @@ mod tests {
             gen("*pekti", Pos::Verb)
         );
         assert!(normalized_match(&gen("*mogti", Pos::Verb), "mogti"));
+    }
+
+    #[test]
+    fn final_soft_r_reduces_to_plain_r() {
+        // *carь→car, *zvěrь→zvěr (soft ŕ → r), but *solь→solj keeps the soft l.
+        assert!(
+            normalized_match(&gen("*carь", Pos::Noun), "car"),
+            "{}",
+            gen("*carь", Pos::Noun)
+        );
+        assert!(normalized_match(&gen("*zvěrь", Pos::Noun), "zvěr"));
+        assert!(gen("*solь", Pos::Noun).contains("lj"));
+    }
+
+    #[test]
+    fn soft_adjective_takes_i() {
+        // Soft-stem adjectives take -i not -y: *siňь→sinji, *svěžь→svěži.
+        assert!(
+            normalized_match(&gen("*siňь", Pos::Adjective), "sinji"),
+            "{}",
+            gen("*siňь", Pos::Adjective)
+        );
+        assert!(normalized_match(&gen("*svěžь", Pos::Adjective), "svěži"));
+        assert!(normalized_match(&gen("*dobrъ", Pos::Adjective), "dobry")); // hard stays -y
+    }
+
+    #[test]
+    fn dl_simplifies_after_syllabic_liquid() {
+        // *gъrdlo → gŕlo (normalizes to grlo): the dl-drop fires after ŕ too.
+        assert!(
+            normalized_match(&gen("*gъrdlo", Pos::Noun), "grlo"),
+            "{}",
+            gen("*gъrdlo", Pos::Noun)
+        );
     }
 
     #[test]

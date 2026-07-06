@@ -116,7 +116,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 34966,damask,noun,damast,damast,damasta
 25161,grandfather’s,adj,dědov,dedov,djedovy
 276,gum,noun,dęsna,desna,desni
-299,brother-in-law,noun,děveŕ,dever,djever
 15807,dialect,noun,dialekt,dialekt,dijalekt
 1591,"diametre, diameter",noun,diametr,diametr,dijametar
 31836,diarrhoea,noun,diareja,diareja,dijareja
@@ -320,7 +319,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 2986,climax,noun,klimaks,klimaks,kulminacija
 8484,cliche,noun,kliše,kliše,kljusę
 789,"bow, bend, incline",verb,kloniti,kloniti,klanjati
-32136,clown,noun,kloun,kloun,klaun
 26576,"water closet, toilet, restroom, lavatory",noun,klozet,klozet,toaleta
 26588,red-footed falcon,noun,kobčik,kobčik,kobčyk
 16951,code,noun,kod,kod,kad
@@ -835,7 +833,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 269,hall,noun,sala,sala,šala
 20170,"just, merely, only",adv,samo,samo,liš
 35040,self-criticism,noun,samokritika,samokritika,samokritike
-4154,suicide,noun,samoubijstvo,samoubijstvo,samoubojstvo
 21558,"impostor, pretender",noun,samozvanec,samozvanec,samozvanac
 35203,Sanskrit,noun,sanskrit,sanskrit,sanskrt
 36140,locust,noun,saranča,saranča,šaranjča
@@ -845,7 +842,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 18793,"sit down, take a seat",verb,sědati,sedati,sjedati
 16403,one seventh,num,sedmina,sedmina,jedna siodma
 3879,secret,noun,sekret,sekret,tajna
-37022,sir,noun,ser,ser,sir
+37022,sir,noun,ser,ser,šir
 36096,sergeant,noun,seržant,seržant,sieržant
 1311,net,noun,sětka,setka,siatka
 22773,North Korean,adj,sěvernokorejsky,severnokorejsky,sevrekrajskiji
@@ -1025,7 +1022,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1060,"fall, tumble",verb,upasti,upasti,pasti
 3092,"use, employ",verb,upotrěbiti,upotrebiti,upotrijebiti
 5077,administrator,noun,upravitelj,upravitelj,kierovnik
-30955,vampire,noun,upyŕ,upyr,vųpyrj
+30955,vampire,noun,upyŕ,upyr,vųpyr
 5565,"succeed, manage (to do sth.), make it, be successful",verb,uspěvati,uspevati,uspijevati
 35232,constitutional,adj,ustavny,ustavny,konstytucijny
 33597,river mouth,noun,usťje,ustje,usta
@@ -1041,7 +1038,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 5555,see,verb,uviděti,uvideti,uvidjeti
 30989,valerian,noun,valeriana,valeriana,valerijana
 23462,French horn,noun,valtorna,valtorna,valtornia
-31007,vampire,noun,vampir,vampir,vųpyrj
+31007,vampire,noun,vampir,vampir,vųpyr
 17058,variation,noun,variacija,variacija,varijacija
 17059,variant,noun,variant,variant,varianta
 21211,digestion,noun,varjeńje,varjenje,travienje
@@ -1078,7 +1075,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 33003,make-up artist,noun,vizažistka,vizažistka,vizažystka
 22473,Orthodox bishop,noun,vladyka,vladyka,vladika
 16902,"outside, beyond",adv,vně,vne,ven
-21642,inside,adv,vnųtri,vnutri,vunųtrj
+21642,inside,adv,vnųtri,vnutri,vunųtr
 20816,Aquarius,noun,Vodolěj,vodolej,vodolija
 17061,vocative,noun,vokativ,vokativ,zvatelen padež
 31304,Volapük,noun,volapuk,volapuk,volapik
@@ -1131,7 +1128,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 124,criminal,noun,zločinec,zločinec,zločinac
 22755,gloatingly,adv,zloradno,zloradno,zluradno
 35007,"gloating delight, malicious joy",noun,zloradosť,zloradost,zluradost
-1495,"abuse, misuse",verb,zloupotrěbiti,zloupotrebiti,zloupotrijebiti
 3089,"bad, evil, wrong",adj,zly,zly,zȯly
 1520,"significant, substantial, considerable",adj,značny,značny,značajany
 22835,quack doctor,noun,znahaŕ,znahar,znahor
@@ -1139,7 +1135,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 31673,zouave,noun,zuav,zuav,žuav
 31675,"cog, tooth (on a gear)",noun,zųbec,zubec,zobec
 31677,"zubrowka, bison grass vodka",noun,zubrovka,zubrovka,žubrovka
-932,beast,noun,zvěŕ,zver,zvěrj
 34748,"go wild, become brutalized",verb,zvěrěti,zvereti,zvreti
 1924,atrocity,noun,zvěŕstvo,zverstvo,zvjerstvo
 1889,star,noun,zvězda,zvezda,gvězda

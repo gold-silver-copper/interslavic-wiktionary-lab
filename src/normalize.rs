@@ -92,6 +92,10 @@ pub fn to_phonemic_latin(lang_code: &str, form: &str) -> String {
 
 /// Language-aware Cyrillic → phonemic Latin.
 fn translit_cyrillic(lang: &str, s: &str) -> String {
+    // OCS/Church-Slavonic digraph оу = /u/ — fold it on the Cyrillic *input*,
+    // before per-character transliteration (моужь→muž). Doing it afterwards was
+    // dead code: о and у are already Latin 'o'/'u' by then.
+    let s = s.replace("оу", "у");
     let mut out = String::with_capacity(s.len() * 2);
     let chars: Vec<char> = s.chars().collect();
     for (i, &ch) in chars.iter().enumerate() {
@@ -221,8 +225,7 @@ fn translit_cyrillic(lang: &str, s: &str) -> String {
         };
         out.push_str(repl);
     }
-    // Old Church Slavonic digraph оу → u.
-    out.replace("оу", "u")
+    out
 }
 
 fn is_soft_context(prev: char) -> bool {
@@ -349,6 +352,13 @@ mod tests {
         // є is /e/ after a consonant, /je/ otherwise (B14).
         assert_eq!(tr("uk", "синє"), "synje".replace("nje", "ne"));
         assert!(!tr("uk", "синє").contains('j'), "{}", tr("uk", "синє"));
+    }
+
+    #[test]
+    fn ocs_ou_digraph_folds_to_u() {
+        // Church Slavonic оу = /u/ (B15): моужь->muž, оучити->učiti.
+        assert_eq!(tr("cu", "моужь"), "muž");
+        assert_eq!(tr("cu", "оучити"), "učiti");
     }
 
     #[test]

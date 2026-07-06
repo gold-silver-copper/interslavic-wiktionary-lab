@@ -566,7 +566,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 2347,hump,noun,grb,gorb,gŕb
 36483,"Greenlandish, Greenlandic",adj,grenlandsky,grenlandskij,grenlandsky
 25813,"sinful, peccable",adj,grěšny,grešnyj,grešny
-25822,turtledove,noun,grlica,gorlica,grlica
+25822,turtledove,noun,grlica,gorlica,gŕlica
+492,throat,noun,grlo,gorlo,gŕlo
 25826,potter,noun,grnčaŕ,garncar,grnčar
 35192,pottery (trade),noun,grnčaŕstvo,garncarstvo,grnčarstvo
 2282,pan,noun,grnec,hrnec,grnec
@@ -772,6 +773,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 26364,"spruce, fir",noun,jela,el,jela
 26365,dace,noun,jelec,elec,jelec
 26368,venison,noun,jelenina,olenina,jelenina
+26367,deer’s,adj,jeleńji,olenij,jelenji
 17616,food,noun,jelo,jiža,jelo
 3017,mistletoe,noun,jemela,omela,jemela
 2771,to him,pron,jemu,emu,jemu
@@ -1084,6 +1086,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 27280,"lap up, quaff, guzzle",verb,lokati,lakati,lokati
 5669,locomotive,noun,lokomotiva,lokomotiv,lokomotiva
 27287,break,verb,lomiti,lomati,lomiti
+3446,bad,adj,loši,loš,loši
 32197,hunter,noun,lovec,lovca,lovec
 27315,hunting ground,noun,lovišče,lovište,lovišče
 27338,"crazy, mad, insane",adj,ludy,lud,ludy
@@ -1130,6 +1133,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35947,"melodic, melodious",adj,melodičny,melodičnyj,melodičny
 4803,"me (accusative, genitive)",pron,mene,mena,mene
 19845,mental,adj,mentaľny,mentalnyj,mentalny
+20887,butcher,noun,męsaŕ,mesiar,męsar
 1456,month,noun,měsęc,mesac,měsęc
 4697,moon,noun,měsęc,mesic,měsęc
 4116,monthly,adj,měsęčny,mesačnyj,mesečny
@@ -1302,7 +1306,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 20534,misunderstanding,noun,nedoråzuměńje,nedorozumeni,nedorazumenje
 32227,underdeveloped,adj,nedoråzvity,nedorazvityj,nedorazvity
 19885,unworthy,adj,nedostojny,nedostojno,nedostojny
-22172,"perplexity, consternation",noun,nedouměńje,nedoumica,nedoumenje
 36686,"forbidden, not allowed",adj,nedozvoljeny,nedozvolenyj,nedozvoljeny
 35916,"ineffective, inefficient",adj,neefektivny,neeffektivnyj,neefektivny
 20537,informal,adj,neformaľny,neformalnyj,neformalny
@@ -1563,6 +1566,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 6030,pessimist,noun,pesimist,pessimist,pesimist
 6028,pessimistic,adj,pesimističny,pessimističnyj,pesimističny
 6029,pessimism,noun,pesimizm,pessimizm,pesimizm
+1079,"pedestrian, on foot",adj,pěši,pešij,pěši
 908,five,num,pęť,pat,pęt
 44,heel,noun,pęta,pięta,pęta
 2176,fifty,num,pęťdesęt,patdesat,petdeset
@@ -2051,6 +2055,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 20730,symmetry,noun,simetričnosť,symetria,simetričnosť
 20731,symmetrical,adj,simetričny,simmetričnyj,simetričny
 30688,sympathetic,adj,simpatičny,simpatičnyj,simpatičny
+511,blue,adj,sinji,sinij,sinji
 17035,synthetic,adj,sintetičny,syntetyčny,sintetičny
 19516,synthesis,noun,sinteza,sintez,sinteza
 1316,systematic,adj,sistematičny,systematyčny,sistematičny
@@ -2073,7 +2078,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 12280,parsimonious,adj,skųpy,skupoj,skųpy
 36220,"meagre, paltry, scant, sparing",adj,skųpy,skupoj,skųpy
 36208,squatter,noun,skvoter,skvotter,skvoter
-23204,feeble-minded,adj,slaboumny,slaboumnyj,slaboumny
+23204,feeble-minded,adj,slaboumny,slabumnyj,slaboumny
 1341,"weak, feeble",adj,slaby,slabyj,slaby
 35725,malt,noun,slåd,solod,slåd
 3886,straw,noun,slåma,soloma,slåma
@@ -2219,6 +2224,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35053,Scotland,noun,Škotska,skotsko,škotska
 35054,Scottish,adj,škotsky,skotsky,škotsky
 18833,"nobility, aristocracy",noun,šljahta,šlahta,šljahta
+36913,show,noun,šou,šu,šou
 33664,chauvinistic,adj,šovinističny,šovinisticky,šovinističny
 408,Spain,noun,Španija,ispanija,španija
 1980,Spanish,adj,špansky,ispanskij,špansky
