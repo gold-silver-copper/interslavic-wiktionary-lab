@@ -19,6 +19,7 @@ use std::path::PathBuf;
 mod consensus;
 mod corpus;
 mod dump;
+mod enrich;
 mod eval;
 mod generator;
 mod lang;
@@ -39,6 +40,8 @@ const DEFAULT_OFFICIAL: &str = "data/official-isv.csv";
 const DEFAULT_OVERRIDES: &str = "data/overrides.toml";
 const DEFAULT_PROTO_CACHE: &str = "data/proto-slavic.cache.json";
 const DEFAULT_LEMMA_CACHE: &str = "data/slavic-lemmas.cache.json";
+const DEFAULT_ENRICH_CACHE: &str = "data/wiktionary-enrich.cache.json";
+const DEFAULT_WIKI_DIR: &str = "/Users/kisaczka/Desktop/code/wikidata";
 
 #[derive(Parser)]
 #[command(
@@ -76,6 +79,20 @@ enum Command {
         #[arg(long, default_value = DEFAULT_DUMP)]
         dump: PathBuf,
         #[arg(long, default_value = DEFAULT_LEMMA_CACHE)]
+        out: PathBuf,
+    },
+    /// Stream the native RU/PL/CS Wiktionary dumps once and cache per-cognate
+    /// enrichment (native etymology, extra senses, related/synonym/antonym links)
+    /// for every word that appears in the corpus — shown on the site.
+    ExtractEnrich {
+        /// Directory holding `ru-extract.jsonl` / `pl-extract.jsonl` / `cs-extract.jsonl`.
+        #[arg(long, default_value = DEFAULT_WIKI_DIR)]
+        dir: PathBuf,
+        #[arg(long, default_value = DEFAULT_LEMMA_CACHE)]
+        lemmas: PathBuf,
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = DEFAULT_ENRICH_CACHE)]
         out: PathBuf,
     },
     /// Explain the generator's output for one word or gloss (manual spot-check).
@@ -155,6 +172,24 @@ fn main() -> Result<()> {
         }
         Command::ExtractProto { dump, out } => dump::extract(&dump, &out),
         Command::ExtractLemmas { dump, out } => dump::extract_lemmas(&dump, &out),
+        Command::ExtractEnrich {
+            dir,
+            lemmas,
+            official,
+            out,
+        } => {
+            let corpus = dump::LemmaCorpus::load(&lemmas)?;
+            let official = official::load(&official)?;
+            let wanted = enrich::build_wanted(&corpus, &official);
+            let total: usize = wanted.values().map(|s| s.len()).sum();
+            println!(
+                "Enriching {} wanted cognate words across {:?} from {}",
+                total,
+                enrich::ENRICH_LANGS,
+                dir.display()
+            );
+            enrich::extract(&dir, &wanted, &out)
+        }
         Command::Explain { query, official } => eval::explain(&official, &query),
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),
         Command::CorpusEval { official, out } => eval::run_corpus_eval(&official, &out),

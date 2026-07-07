@@ -247,6 +247,18 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     // official headword, and official lemmas the corpus never generates still
     // get searchable pages (§V6 Front B). Display-only — generation never reads
     // this map.
+    // Native-Wiktionary enrichment (RU/PL/CS etymology, senses, semantic links),
+    // if the cache has been built. Display-only; generation never reads it.
+    let enrich = crate::enrich::EnrichIndex::load(Path::new(crate::DEFAULT_ENRICH_CACHE)).ok();
+    if let Some(e) = &enrich {
+        println!(
+            "Loaded {} native-Wiktionary enrichment entries (RU/PL/CS).",
+            e.len()
+        );
+    } else {
+        println!("(no enrichment cache — run extract-enrich for native etymology/links)");
+    }
+
     let official_entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap_or_default();
     let mut official_map: std::collections::HashMap<String, (String, String)> =
         std::collections::HashMap::new();
@@ -367,6 +379,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                 .as_ref()
                 .map(|(r, isv, en)| (*r, isv.as_str(), en.as_str())),
             &family,
+            enrich.as_ref(),
         );
         std::fs::write(entry_dir.join(format!("{}.html", p.id)), html)?;
 
@@ -427,7 +440,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         }
         id += 1;
         official_only += 1;
-        let html = official_only_page(isv, e);
+        let html = official_only_page(isv, e, enrich.as_ref());
         std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
         let mut keys: Vec<(String, usize)> = Vec::new();
         for k in [fold.clone(), crate::orthography::ascii_skeleton(isv)] {
@@ -601,6 +614,7 @@ fn corpus_entry_page(
     status: MatchStatus,
     official: Option<(usize, &str, &str)>,
     family: &str,
+    enrich: Option<&crate::enrich::EnrichIndex>,
 ) -> String {
     let top = g.candidates.first().unwrap();
     let pos_code = g.set.pos.code();
@@ -691,7 +705,19 @@ fn corpus_entry_page(
     };
 
     let inflection = inflection_table(&headword, pos_code);
-    let cognates = cognate_block(g);
+    let cognates = cognate_block(g, enrich);
+    let enrich_members: Vec<(String, String)> = g
+        .set
+        .members
+        .iter()
+        .map(|m| (m.lang.clone(), m.word.clone()))
+        .collect();
+    let native_etym = enrich
+        .map(|e| enrich_etymology_section(&enrich_members, e))
+        .unwrap_or_default();
+    let native_conn = enrich
+        .map(|e| enrich_connections_section(&enrich_members, e))
+        .unwrap_or_default();
     let alternatives = alternatives_block(&g.candidates);
     let trace = trace_block(top);
 
@@ -707,6 +733,8 @@ fn corpus_entry_page(
            {headline}
            <details class='sec' open><summary>Cognaty — slovjanske slova toj korene ({} językov)</summary>{cognates}</details>
            <details class='sec' open><summary>Etimologija (praslovjanska rekonstrukcija)</summary>{etymology}</details>
+           {native_etym}
+           {native_conn}
            {family}
            <details class='sec' open><summary>Prěgibanje</summary>{inflection}</details>
            <details class='sec'><summary>Alternativne kandidaty</summary>{alternatives}</details>
@@ -722,9 +750,26 @@ fn corpus_entry_page(
 
 /// A page for an official lemma the generator does not (yet) derive from the
 /// cognate evidence: authoritative headword, gloss, inflection — clearly badged.
-fn official_only_page(isv: &str, e: &OfficialEntry) -> String {
+fn official_only_page(
+    isv: &str,
+    e: &OfficialEntry,
+    enrich: Option<&crate::enrich::EnrichIndex>,
+) -> String {
     let input = build_input(e);
     let evidence = branch_evidence(&input);
+    // Native-Wiktionary enrichment for this official lemma's own cognate cells.
+    let enrich_members: Vec<(String, String)> = input
+        .forms
+        .iter()
+        .filter(|f| f.modern && f.primary)
+        .map(|f| (f.lang_code.clone(), f.norm.original.clone()))
+        .collect();
+    let native_etym = enrich
+        .map(|ix| enrich_etymology_section(&enrich_members, ix))
+        .unwrap_or_default();
+    let native_conn = enrich
+        .map(|ix| enrich_connections_section(&enrich_members, ix))
+        .unwrap_or_default();
     let mut cog = String::new();
     if !evidence.is_empty() {
         cog.push_str("<table class='wikitable compact-table'><tbody>");
@@ -750,6 +795,8 @@ fn official_only_page(isv: &str, e: &OfficialEntry) -> String {
              <p class='def'><b>Anglijski smysl:</b> {}</p>
            </div>
            <details class='sec' open><summary>Slovjanski dokaz (iz oficialnogo slovnika)</summary>{}</details>
+           {native_etym}
+           {native_conn}
            <details class='sec' open><summary>Prěgibanje</summary>{}</details>
            <p class='foot'>Oficialne slovo: interslavic-dictionary.com. Prěgibanje mašinno generovano.</p>
          </article>",
@@ -787,7 +834,10 @@ fn etymon_display(etymon: &str) -> String {
 }
 
 /// The cognate set: every attesting Slavic lemma, grouped by branch.
-fn cognate_block(g: &crate::corpus::GeneratedWord) -> String {
+fn cognate_block(
+    g: &crate::corpus::GeneratedWord,
+    enrich: Option<&crate::enrich::EnrichIndex>,
+) -> String {
     let mut s = String::from("<div class='branch-grid'>");
     for branch in Branch::ALL {
         let items: Vec<&crate::dump::LemmaEntry> = g
@@ -805,20 +855,149 @@ fn cognate_block(g: &crate::corpus::GeneratedWord) -> String {
             esc(branch.label())
         );
         for m in items {
+            // Native-Wiktionary link + native sense for the enriched editions
+            // (ru/pl/cs); otherwise fall back to the English gloss.
+            let hit = enrich.and_then(|e| e.get(&m.lang, &m.word));
+            let native = match hit {
+                Some(_) => format!(
+                    " <a class='ext' title='{0}.wiktionary' href='{1}'>{0}↗</a>",
+                    esc(&m.lang),
+                    esc(&crate::enrich::source_url(&m.lang, &m.word))
+                ),
+                None => String::new(),
+            };
+            let gloss = hit
+                .and_then(|e| e.senses.first())
+                .map(|x| truncate(x, 44))
+                .unwrap_or_else(|| truncate(&m.gloss, 32));
             let _ = write!(
                 s,
-                "<tr><td class='lc'>{}</td><td><a href='https://en.wiktionary.org/wiki/{}#{}'>{}</a></td><td class='muted'>{}</td></tr>",
+                "<tr><td class='lc'>{}</td><td><a href='https://en.wiktionary.org/wiki/{}#{}'>{}</a>{}</td><td class='muted'>{}</td></tr>",
                 esc(&crate::lang::lang_name(&m.lang)),
                 esc(&m.word.replace(' ', "_")),
                 esc(&m.lang),
                 esc(&m.word),
-                esc(&truncate(&m.gloss, 32))
+                native,
+                esc(&gloss),
             );
         }
         s.push_str("</tbody></table></div>");
     }
     s.push_str("</div>");
     s
+}
+
+/// Multi-source native etymology (RU / PL / CS Wiktionary) — one etymology per
+/// edition, side by side, so each entry carries three independent histories.
+/// `members` is a list of `(lang_code, word)` cognates.
+fn enrich_etymology_section(
+    members: &[(String, String)],
+    enrich: &crate::enrich::EnrichIndex,
+) -> String {
+    let mut rows = String::new();
+    for &lang in crate::enrich::ENRICH_LANGS {
+        let Some((word, e)) = members
+            .iter()
+            .filter(|(l, _)| l == lang)
+            .find_map(|(l, w)| enrich.get(l, w).map(|e| (w, e)))
+            .filter(|(_, e)| !e.etymology.is_empty())
+        else {
+            continue;
+        };
+        let paras: String = e
+            .etymology
+            .iter()
+            .map(|p| format!("<p>{}</p>", esc(p)))
+            .collect();
+        let _ = write!(
+            rows,
+            "<div class='etym-src'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
+            esc(&crate::lang::lang_name(lang)),
+            esc(&crate::enrich::source_url(lang, word)),
+            esc(word),
+            paras
+        );
+    }
+    if rows.is_empty() {
+        return String::new();
+    }
+    format!(
+        "<details class='sec'><summary>Etimologija po narodnyh slovnikah (RU / PL / CS)</summary>\
+         <div class='etym-sources'>{rows}</div>\
+         <p class='muted'>Iz narodnyh Wiktionary (ru/pl/cs.wiktionary.org), CC BY-SA — različne slovniky, različne pogledy na istoriju slova.</p></details>"
+    )
+}
+
+/// Extra meanings and semantic links (related / synonyms / antonyms) drawn from
+/// the native RU / PL / CS Wiktionary entries for the cognates, each chip linking
+/// back to its source dictionary.
+fn enrich_connections_section(
+    members: &[(String, String)],
+    enrich: &crate::enrich::EnrichIndex,
+) -> String {
+    let mut blocks = String::new();
+    for &lang in crate::enrich::ENRICH_LANGS {
+        // The richest enriched member for this edition.
+        let mut best: Option<(&str, &crate::enrich::EnrichEntry)> = None;
+        for (l, w) in members.iter().filter(|(l, _)| l == lang) {
+            if let Some(e) = enrich.get(l, w) {
+                let score = e.senses.len() + e.related.len() + e.synonyms.len();
+                let better = best
+                    .map(|(_, b)| score > b.senses.len() + b.related.len() + b.synonyms.len())
+                    .unwrap_or(true);
+                if better {
+                    best = Some((w, e));
+                }
+            }
+        }
+        let Some((word, e)) = best else { continue };
+        let mut inner = String::new();
+        if e.senses.len() > 1 {
+            let items: String = e
+                .senses
+                .iter()
+                .map(|x| format!("<li>{}</li>", esc(x)))
+                .collect();
+            let _ = write!(
+                inner,
+                "<div class='conn'><h5>Značenja</h5><ol>{items}</ol></div>"
+            );
+        }
+        let chips = |title: &str, words: &[String]| -> String {
+            if words.is_empty() {
+                return String::new();
+            }
+            let cs: String = words
+                .iter()
+                .map(|w| {
+                    format!(
+                        "<a class='chip' href='{}'>{}</a>",
+                        esc(&crate::enrich::source_url(lang, w)),
+                        esc(w)
+                    )
+                })
+                .collect();
+            format!("<div class='conn'><h5>{title}</h5><div class='chips'>{cs}</div></div>")
+        };
+        inner.push_str(&chips("Sŕodne slova", &e.related));
+        inner.push_str(&chips("Sinonimy", &e.synonyms));
+        inner.push_str(&chips("Antonimy", &e.antonyms));
+        if inner.is_empty() {
+            continue;
+        }
+        let _ = write!(
+            blocks,
+            "<div class='src-block'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
+            esc(&crate::lang::lang_name(lang)),
+            esc(&crate::enrich::source_url(lang, word)),
+            esc(word),
+            inner
+        );
+    }
+    if blocks.is_empty() {
+        return String::new();
+    }
+    format!("<details class='sec'><summary>Značenja i semantične vęzi (RU / PL / CS)</summary>{blocks}</details>")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1689,6 +1868,22 @@ tr:target{background:#fff3bf;outline:2px solid #f0c000}
 .hit .hs{font-size:.85em;white-space:nowrap}
 .wiki-main-list .wikitable td:nth-child(4){white-space:nowrap}
 @media (max-width:720px){main,.site-footer{padding-left:.8rem;padding-right:.8rem;border-left:none;border-right:none}.wikitable{font-size:.9em}}
+
+/* Native-Wiktionary enrichment: etymology sources, extra senses, semantic chips. */
+a.ext{font-size:.78em;color:var(--muted);border:1px solid var(--line);border-radius:2px;padding:0 .25em;margin-left:.25em;white-space:nowrap}
+a.ext:hover{color:var(--link);text-decoration:none;border-color:var(--link)}
+.etym-sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem;margin:.4rem 0}
+.etym-src,.src-block{border:1px solid var(--line);border-left:3px solid var(--border);background:var(--page);padding:.5rem .7rem;border-radius:2px}
+.src-block{margin:.6rem 0}
+.src-head{font-weight:bold;margin-bottom:.35rem}
+.src-head .lc{color:var(--muted);font-weight:normal;margin-right:.4em}
+.etym-src p{margin:.25em 0;font-size:.95em}
+.conn{margin:.5rem 0}
+.conn h5{margin:.3em 0;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.conn ol{margin:.2em 0 .2em 1.2em}
+.chips{display:flex;flex-wrap:wrap;gap:.3rem}
+a.chip{display:inline-block;background:var(--th);border:1px solid var(--line);border-radius:10px;padding:.05em .55em;font-size:.9em;color:var(--text)}
+a.chip:hover{background:#eaf3ff;border-color:var(--link);text-decoration:none}
 "#;
 
 fn esc(v: &str) -> String {
