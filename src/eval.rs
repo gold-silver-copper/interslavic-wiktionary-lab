@@ -1251,6 +1251,315 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Multi-word & aspect-pair benchmark (Track B / issue #2, `multiword-eval`).
+///
+/// The headline benchmark excludes every multi-word official lemma
+/// (`is_benchmarkable` drops them), so their denominators were invisible. This
+/// measures them honestly, in three slices:
+///  * **reflexive `X sę`** — the existing pipeline already reconstructs these
+///    (cognate reflexive markers are stripped, `sę` re-attached); they were
+///    just never scored.
+///  * **two-token collocations** — each position is reconstructed as its own
+///    consensus problem from the position-split cognate cells (adjective
+///    position agreed with the head noun's gender), then joined.
+///  * **aspect pairs** — same-gloss ipf/pf lemma pairs that are morphologically
+///    related (shared consonant root); both members go through the standard
+///    pipeline and the pair is scored both/one/neither.
+///
+/// Leakage story: the gold `isv` selects the slice (token count / aspect tag)
+/// and is never fed to generation; generation sees only the cognate cells +
+/// POS/gender metadata, exactly like the headline benchmark.
+pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
+    use std::collections::HashMap;
+    let entries = official::load(official_path)?;
+    let proto = load_proto_index();
+    let cfg = ConsensusConfig::production();
+    let pct = |a: usize, b: usize| {
+        if b == 0 {
+            0.0
+        } else {
+            100.0 * a as f32 / b as f32
+        }
+    };
+
+    // ---- Quantification of the multi-word inventory ----
+    let multi: Vec<&OfficialEntry> = entries
+        .iter()
+        .filter(|e| {
+            let w = e.isv.trim();
+            w.contains(' ') && !w.contains('#') && !w.contains('!')
+        })
+        .collect();
+    let mut n_sie = 0usize;
+    let mut n_two = 0usize;
+    let mut n_long = 0usize;
+    for e in &multi {
+        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        match (toks.len(), toks.last()) {
+            (2, Some(&"sę")) => n_sie += 1,
+            (2, _) => n_two += 1,
+            _ => n_long += 1,
+        }
+    }
+
+    // ---- Slice A: reflexive "X sę" through the existing pipeline ----
+    let (mut a_n, mut a_ex, mut a_nm) = (0usize, 0usize, 0usize);
+    let (mut a_dev, mut a_dev_nm, mut a_held, mut a_held_nm) = (0usize, 0usize, 0usize, 0usize);
+    for e in &multi {
+        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        if toks.len() != 2 || toks[1] != "sę" {
+            continue;
+        }
+        let input = build_input(e);
+        if !input.forms.iter().any(|f| f.modern) {
+            continue;
+        }
+        a_n += 1;
+        let (cands, _) = crate::pipeline::generate(&input, proto.as_ref(), &cfg);
+        let pred = cands.first().map(|c| c.form.clone()).unwrap_or_default();
+        let ex = ortho::exact_match(&pred, e.isv.trim());
+        let nm = ortho::normalized_match(&pred, e.isv.trim());
+        a_ex += ex as usize;
+        a_nm += nm as usize;
+        if is_holdout_id(&e.id) {
+            a_held += 1;
+            a_held_nm += nm as usize;
+        } else {
+            a_dev += 1;
+            a_dev_nm += nm as usize;
+        }
+    }
+
+    // ---- Slice B: two-token collocations, per-position reconstruction ----
+    // Position-split the cognate cells: languages whose primary variant also
+    // has two tokens vote per position.
+    let (mut b_total, mut b_gen, mut b_ex, mut b_nm) = (0usize, 0usize, 0usize, 0usize);
+    let (mut b_dev, mut b_dev_nm, mut b_held, mut b_held_nm) = (0usize, 0usize, 0usize, 0usize);
+    let mut b_miss: Vec<String> = Vec::new();
+    for e in &multi {
+        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        if toks.len() != 2 || toks[1] == "sę" {
+            continue;
+        }
+        b_total += 1;
+        let mut cells1: HashMap<String, String> = HashMap::new();
+        let mut cells2: HashMap<String, String> = HashMap::new();
+        for (lang, cell) in &e.cells {
+            let variants = crate::normalize::split_cell(cell);
+            let Some((first, _)) = variants.first() else {
+                continue;
+            };
+            let t: Vec<&str> = first.split_whitespace().collect();
+            if t.len() == 2 {
+                cells1.insert(lang.clone(), t[0].to_string());
+                cells2.insert(lang.clone(), t[1].to_string());
+            }
+        }
+        if cells1.len() < 2 {
+            continue; // not generatable: fewer than 2 two-token cognates
+        }
+        b_gen += 1;
+        let make_input = |cells: &HashMap<String, String>, pos: Pos| -> MeaningInput {
+            let forms = consensus::source_forms_from_cells(cells, |code, form| {
+                format!("https://en.wiktionary.org/wiki/{}#{}", form, code)
+            });
+            let forms = consensus::lemma_forms(forms, pos);
+            MeaningInput {
+                pos,
+                gender: e.noun_traits.gender,
+                gloss: e.english.clone(),
+                forms,
+                is_intl_meaning: e.genesis.trim() == "I",
+                reflexive: false,
+            }
+        };
+        // Heuristic (disclosed): modifier + head — position 1 adjective agreed
+        // with the head's gender, position 2 the entry's own POS.
+        let in1 = make_input(&cells1, Pos::Adjective);
+        let in2 = make_input(&cells2, e.pos);
+        let top = |input: &MeaningInput| -> String {
+            let (cands, _) = crate::pipeline::generate(input, proto.as_ref(), &cfg);
+            cands.first().map(|c| c.form.clone()).unwrap_or_default()
+        };
+        let w1 = agree_adjective(&top(&in1), e.noun_traits.gender);
+        let w2 = top(&in2);
+        let pred = format!("{w1} {w2}");
+        let ex = ortho::exact_match(&pred, e.isv.trim());
+        let nm = ortho::normalized_match(&pred, e.isv.trim());
+        b_ex += ex as usize;
+        b_nm += nm as usize;
+        if is_holdout_id(&e.id) {
+            b_held += 1;
+            b_held_nm += nm as usize;
+        } else {
+            b_dev += 1;
+            b_dev_nm += nm as usize;
+        }
+        if !nm && b_miss.len() < 40 {
+            b_miss.push(format!("{} → {}", e.isv.trim(), pred));
+        }
+    }
+
+    // ---- Aspect pairs: same gloss, ipf vs pf, morphologically related ----
+    let mut by_gloss_ipf: HashMap<&str, Vec<&OfficialEntry>> = HashMap::new();
+    let mut by_gloss_pf: HashMap<&str, Vec<&OfficialEntry>> = HashMap::new();
+    for e in &entries {
+        let w = e.isv.trim();
+        if w.is_empty() || w.contains(' ') || w.contains('#') {
+            continue;
+        }
+        let g = e.english.trim();
+        if g.is_empty() {
+            continue;
+        }
+        if e.pos_raw.contains("ipf.") {
+            by_gloss_ipf.entry(g).or_default().push(e);
+        } else if e.pos_raw.contains("pf.") {
+            by_gloss_pf.entry(g).or_default().push(e);
+        }
+    }
+    let (mut p_gloss, mut p_morph) = (0usize, 0usize);
+    let (mut p_both, mut p_one, mut p_neither) = (0usize, 0usize, 0usize);
+    for (g, ipfs) in &by_gloss_ipf {
+        let Some(pfs) = by_gloss_pf.get(g) else {
+            continue;
+        };
+        for i in ipfs {
+            for q in pfs {
+                p_gloss += 1;
+                // Morphological aspect partners share the consonant root (the
+                // pf is a prefixation or stem alternation of the ipf).
+                let ki = ortho::consonant_key(&ortho::to_standard(&i.isv.to_lowercase()));
+                let kq = ortho::consonant_key(&ortho::to_standard(&q.isv.to_lowercase()));
+                if !(ki.ends_with(&kq)
+                    || kq.ends_with(&ki)
+                    || ortho::shares_consonant_root(&ki, &kq))
+                {
+                    continue;
+                }
+                p_morph += 1;
+                let score = |e: &OfficialEntry| -> bool {
+                    let input = build_input(e);
+                    if !input.forms.iter().any(|f| f.modern) {
+                        return false;
+                    }
+                    let (cands, _) = crate::pipeline::generate(&input, proto.as_ref(), &cfg);
+                    let pred = cands.first().map(|c| c.form.clone()).unwrap_or_default();
+                    ortho::normalized_match(&pred, e.isv.trim())
+                };
+                match (score(i), score(q)) {
+                    (true, true) => p_both += 1,
+                    (false, false) => p_neither += 1,
+                    _ => p_one += 1,
+                }
+            }
+        }
+    }
+
+    println!(
+        "Multi-word inventory: {} lemmas — {} reflexive 'X sę', {} two-token, {} longer",
+        multi.len(),
+        n_sie,
+        n_two,
+        n_long
+    );
+    println!(
+        "Slice A (reflexive sę): n={a_n}  exact {:.2}%  normalized {:.2}%  (dev {:.2}% / holdout {:.2}%)",
+        pct(a_ex, a_n),
+        pct(a_nm, a_n),
+        pct(a_dev_nm, a_dev),
+        pct(a_held_nm, a_held),
+    );
+    println!(
+        "Slice B (two-token): {} lemmas, {} generatable (≥2 two-token cognates): exact {:.2}%  normalized {:.2}%  (dev {:.2}% / holdout {:.2}%)",
+        b_total,
+        b_gen,
+        pct(b_ex, b_gen),
+        pct(b_nm, b_gen),
+        pct(b_dev_nm, b_dev),
+        pct(b_held_nm, b_held),
+    );
+    println!(
+        "Aspect pairs: {} gloss-matched, {} morphologically related; of those both correct {:.1}%, one {:.1}%, neither {:.1}%",
+        p_gloss,
+        p_morph,
+        pct(p_both, p_morph),
+        pct(p_one, p_morph),
+        pct(p_neither, p_morph),
+    );
+
+    std::fs::create_dir_all(out_dir)?;
+    let mut s = String::new();
+    writeln!(s, "# Multi-word & aspect-pair benchmark (multiword-eval)\n")?;
+    writeln!(
+        s,
+        "**Denominators:** {} multi-word official lemmas ({} reflexive `X sę`, {} two-token, {} longer — the headline benchmark excludes all of them); {} morphologically related aspect pairs (of {} gloss-matched). **Leakage story:** the gold `isv` only selects the slice; generation sees the cognate cells + POS/gender, as in the headline benchmark. **Dev/holdout (seeded id split, normalized):** reflexive {:.2}%/{:.2}%, two-token {:.2}%/{:.2}%.\n",
+        multi.len(),
+        n_sie,
+        n_two,
+        n_long,
+        p_morph,
+        p_gloss,
+        pct(a_dev_nm, a_dev),
+        pct(a_held_nm, a_held),
+        pct(b_dev_nm, b_dev),
+        pct(b_held_nm, b_held),
+    )?;
+    writeln!(s, "| Slice | n | exact | normalized |")?;
+    writeln!(s, "|---|---:|---:|---:|")?;
+    writeln!(
+        s,
+        "| reflexive `X sę` (existing pipeline, newly scored) | {} | {:.2}% | {:.2}% |",
+        a_n,
+        pct(a_ex, a_n),
+        pct(a_nm, a_n)
+    )?;
+    writeln!(
+        s,
+        "| two-token collocation (per-position reconstruction) | {} of {} generatable | {:.2}% | {:.2}% |",
+        b_gen,
+        b_total,
+        pct(b_ex, b_gen),
+        pct(b_nm, b_gen)
+    )?;
+    writeln!(
+        s,
+        "\n## Aspect pairs (both members through the standard pipeline)\n\n| outcome | share of {} pairs |\n|---|---:|\n| both correct (normalized) | {:.1}% |\n| exactly one correct | {:.1}% |\n| neither | {:.1}% |",
+        p_morph,
+        pct(p_both, p_morph),
+        pct(p_one, p_morph),
+        pct(p_neither, p_morph),
+    )?;
+    writeln!(
+        s,
+        "\nThe two-token heuristic (disclosed): position 1 is reconstructed as an adjective and agreed with the head's gender, position 2 as the entry's own POS — right for the dominant modifier+head class, wrong for adv+adv or verb phrases; 'not generatable' means fewer than 2 cognates cite a two-token form.\n\n## Two-token nearest misses (sample)\n"
+    )?;
+    for m in &b_miss {
+        writeln!(s, "- {}", m)?;
+    }
+    std::fs::write(out_dir.join("multiword-aspect.md"), s)?;
+    println!("Wrote {}", out_dir.join("multiword-aspect.md").display());
+    Ok(())
+}
+
+/// Agree a masculine-cited adjective with the head noun's gender (nom.sg):
+/// hard -y → -a / -o, soft -i → -a / -e — the stem already carries the
+/// softness (svěži→svěža, domašnji→domašnja; RULE_SPEC §3.2 O⇒E).
+fn agree_adjective(masc: &str, gender: Option<crate::model::Gender>) -> String {
+    use crate::model::Gender;
+    let (fem, neut) = match masc.chars().last() {
+        Some('y') => ("a", "o"),
+        Some('i') => ("a", "e"),
+        _ => return masc.to_string(),
+    };
+    let stem = &masc[..masc.len() - 1];
+    match gender {
+        Some(Gender::Feminine) => format!("{stem}{fem}"),
+        Some(Gender::Neuter) => format!("{stem}{neut}"),
+        _ => masc.to_string(),
+    }
+}
+
 /// Representative-selection headroom (the rep-eval probe). Oracle-representative
 /// showed ~+3.7pp is available from picking a better surface *within the winning
 /// cluster* — and, unlike cluster choice, that is a mechanical (non-editorial)
@@ -2527,6 +2836,19 @@ fn csv_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn adjective_gender_agreement() {
+        use crate::model::Gender;
+        // Hard -y: nova / novo; soft -i: svěža... -ja/-je; None/masc unchanged.
+        assert_eq!(agree_adjective("novy", Some(Gender::Feminine)), "nova");
+        assert_eq!(agree_adjective("novy", Some(Gender::Neuter)), "novo");
+        assert_eq!(agree_adjective("svěži", Some(Gender::Feminine)), "svěža");
+        assert_eq!(agree_adjective("novy", Some(Gender::Masculine)), "novy");
+        assert_eq!(agree_adjective("novy", None), "novy");
+        // Non-adjectival tails pass through untouched.
+        assert_eq!(agree_adjective("dom", Some(Gender::Feminine)), "dom");
+    }
 
     #[test]
     fn ladder_ends_at_production() {
