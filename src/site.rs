@@ -646,6 +646,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         out_dir.join("about.html"),
         corpus_about(n, lemma_total, official),
     )?;
+    std::fs::write(out_dir.join("metrics.html"), metrics_page())?;
 
     let panics = INFLECTION_PANICS.load(std::sync::atomic::Ordering::Relaxed);
     println!(
@@ -1928,7 +1929,7 @@ fn page(title: &str, body: &str, depth: usize) -> String {
              <button class='hsearch-go' type='submit' title='Iskaj'>→</button>\
              <div id='results' class='dropdown'></div>\
            </form>\
-           <nav class='nav'><a href='{up}index.html'>Slovnik</a><a href='{up}search.html'>Iskanje</a><a href='{up}about.html'>O metodě</a><a href='{REPO_URL}'>Kod</a></nav>\
+           <nav class='nav'><a href='{up}index.html'>Slovnik</a><a href='{up}search.html'>Iskanje</a><a href='{up}about.html'>O metodě</a><a href='{up}metrics.html'>Statistiky</a><a href='{REPO_URL}'>Kod</a></nav>\
          </header>\
          <div class='layout'>\
            <aside class='sidebar'>\
@@ -1938,6 +1939,7 @@ fn page(title: &str, body: &str, depth: usize) -> String {
                <button id='randbtn' class='side-link' type='button'>🎲 Slučajno slovo</button>\
                <a class='side-link' href='{up}search.html'>🔎 Rozšireno iskanje</a>\
                <a class='side-link' href='{up}about.html'>ⓘ O metodě</a>\
+               <a class='side-link' href='{up}metrics.html'>📊 Statistiky točnosti</a>\
              </div>\
              <div class='side-box' id='spotbox' style='display:none'><div class='side-h'>Slučajno slovo</div><div id='spotlight'></div></div>\
            </aside>\
@@ -1950,6 +1952,90 @@ fn page(title: &str, body: &str, depth: usize) -> String {
         title = esc(title)
     )
 }
+/// A full explainer of every accuracy statistic tracked against the official
+/// dictionary. Static content; figures are the current production measurements.
+fn metrics_page() -> String {
+    let body = r##"<article class='entry metrics'>
+  <h1 class='firstHeading'>Statistiky točnosti</h1>
+  <p class='lede'>Ta strana objasnjaje <b>vsaku statistiku</b>, ktoru měrimo, da bismo proverili točnosť generatora protiv oficialnogo medžuslovjanskogo slovnika. Čisla sų aktualne měrjenja produkcijnoj konfiguracije; vsaky artefakt sę regeneruje v <code>target/eval/</code>.</p>
+
+  <h2 id='setup'>Kako radi benchmark</h2>
+  <p>Za vsaky smysl (16&nbsp;300 jednoslovnyh zapisov) generator dostaje <b>moderne slovjanske cognaty</b> + časť rěči, rod i priznak internacionalizma (<code>genesis</code>) — ale <b>nikogda</b> oficialnu medžuslovjansku formu (<code>isv</code>). On rekonstruuje lemmu, a my ju sravnjajemo s oficialnoju. Tako benchmark je <b>bez utečki</b> (leakage-free) ględe formy. Komanda: <code>evaluate</code>.</p>
+
+  <h2 id='pravopis'>Dva pravopisa: točno protiv normalizovano</h2>
+  <p>Medžuslovjansky ima dva pravopisa. <b>Naučny (flavorny)</b> drži etimologične znaky (ě, ę, ų, å, ȯ, ć, đ, y, mękke ĺ&nbsp;ń&nbsp;ŕ). <b>Standardny</b> jih složaje: ě→e, ę→e, ų→u, å→a, ȯ→o, ć→č, đ→dž. Zato imamo dva urovni sovpadenja — strogo (flavorno) i normalizovano.</p>
+
+  <h2 id='osnovne'>Osnovne měrky sovpadenja (evaluate)</h2>
+  <table class='wikitable'>
+    <thead><tr><th>Statistika</th><th>Aktualno</th><th>Značenje</th></tr></thead>
+    <tbody>
+    <tr><td><b>točno top-1</b> (exact)</td><td>41,01%</td><td>Prědvidženje je <b>identično</b> oficialnoj flavornoj lemmě, znak-v-znak.</td></tr>
+    <tr><td><b>normalizovano top-1</b></td><td>48,88%</td><td>Identično <b>po složenju</b> oběh v standardny alfavit (ě=e, ć=č…). Glavna měrka i CI-porog.</td></tr>
+    <tr><td>skelet top-1</td><td>—</td><td>Identično po agresivnom ASCII-složenju (bez diakritiky, složene sibilanty). Najslabějše sito.</td></tr>
+    <tr><td><b>normalizovano top-3 / top-5</b></td><td>59,57% / 62,19%</td><td>Nekotory od prvyh 3 / 5 rangovanyh kandidatov sovpada (normalizovano).</td></tr>
+    <tr><td><b>srědnja edit-distancija</b></td><td>0,226</td><td>Srědnja normalizovana Levenshtein-distancija (0 = identično, 1 = vpolno različno).</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id='ladder'>Ablacijna lěstvica</h2>
+  <p>Točnosť raste od <b>baseline</b> (27,52% točno — prvobytny prototip) do <b>produkcije</b> (41,01%). Vsaka stupnja dodaje <b>točno jedno</b> pravilo, tako že jego dělta je pripisiva. Pravila, ktore izměrjeno <b>uhudšajų</b> točnosť, sų odbrošene i zapisane kako „odbrošene eksperimenty“. Polny izvěsť: <code>candidate-generation-report.md</code>.</p>
+
+  <h2 id='razbivka'>Razbivka po kategorijah</h2>
+  <ul>
+    <li><b>Po časti rěči</b> — točnosť za imenniky, glagoly, pridavniky, čislovniky itd. odděljeno.</li>
+    <li><b>Po pokrytju větvi</b> — kolko od trěh větvi (iztok / zapad / jug) potvŕđaje formu; više pokrytja = viša točnosť.</li>
+    <li><b>Po pouzdanosti</b> — vidi niže.</li>
+  </ul>
+
+  <h2 id='kalibracija'>Kalibracija pouzdanosti</h2>
+  <p>Vsakomu kandidatu dajemo <b>kalibrovanu pouzdanosť</b>. Dobra kalibracija znači: vysokopouzdane kandidaty sovpadajų čęstěje.</p>
+  <table class='wikitable'><thead><tr><th>Pouzdanosť</th><th>n</th><th>normalizovano sovpadenje</th></tr></thead>
+  <tbody><tr><td>vysoka</td><td>6&nbsp;975</td><td>72%</td></tr><tr><td>srědnja</td><td>7&nbsp;110</td><td>38%</td></tr><tr><td>nizka</td><td>2&nbsp;215</td><td>12%</td></tr></tbody></table>
+
+  <h2 id='corpus'>Sajtovy pųť (corpus-eval)</h2>
+  <p>Sajt koristi ne glavny pipeline, a svoj <b>put cognatnyh množin</b> (<code>corpus::generate_set</code>), měrjeny odděljeno: <b>58,3% točno / 62,8% normalizovano</b> na ~7,4k zapisah s znanym prědkom. Više od glavne linije, potomu što ocěnjaje tȯlko slova, ktore sajt izvodi iz znanogo prědka. Komanda: <code>corpus-eval</code>.</p>
+
+  <h2 id='proto'>Praslovjansky stroj (proto-eval)</h2>
+  <p>Praslovjansky pravilny stroj izměrjeny izolovano od povęzanja, ranga i konsensusa:</p>
+  <ul>
+    <li><b>pokrytosť povęzanja</b>: <b>20,1%</b> smyslov je pouzdano povęzano s rekonstrukcijeju.</li>
+    <li><b>točnosť na povęzanyh</b>: <b>46,68% točno / 52,74% normalizovano</b>.</li>
+  </ul>
+  <p>Komanda: <code>proto-eval</code>.</p>
+
+  <h2 id='audit'>Analiza promahov (audit)</h2>
+  <ul>
+    <li><b>Tri klasy promahov</b>: <i>križny klaster</i> (~48% — oficialny korenj je v dokazě, ale izbran drugy), <i>pravy klaster–kriva forma</i> (~30%), <i>korenj otsutny</i> (~21% — oficialnogo korenja net v cognatah).</li>
+    <li><b>Histogram pripisanja stupnjam</b>: prěigrivaje sled pravil pobědnika i pripisuje promah stupnji, ktora izgubila odgovor — klaster/glas ~31%, sľanje/rang ~21%, korenj-otsutny ~21%, normalizacija/predstavnik ~18%, zakončenja ~7%, praslovjansky stroj ~1,6%. Vidi <code>stage-attribution.md</code>.</li>
+    <li><b>Kohezija</b>: kolko različnyh cognatnyh klasterov ima vsaky smysl (89,5% ima ≥3).</li>
+  </ul>
+  <p>Komanda: <code>audit</code>.</p>
+
+  <h2 id='oracle'>Diagnostične granice (oracle)</h2>
+  <p>Da izměriti <b>gorny prědel</b> vsake stupnje, dělajemo ju „idealnų“ (čitajų oficialny odgovor) dok vse niže ostaje realno. To <b>nikogda</b> ne ide v produkciju — samo pokazuje, gdě je vȯzstanovima greška.</p>
+  <table class='wikitable'><thead><tr><th>Idealna stupnja</th><th>Δ točno</th></tr></thead>
+  <tbody><tr><td>izbor klastera</td><td>+3,9pp — glavno redakcijno, nedostižno slěpo</td></tr><tr><td>izbor predstavnika</td><td>+3,7pp — dostižno (vidi rep-eval)</td></tr><tr><td>proto-povęzanje</td><td>+2,6pp</td></tr><tr><td>vse trě zajedno</td><td>+10,7pp</td></tr></tbody></table>
+  <p>Komanda: <code>oracle</code>.</p>
+
+  <h2 id='probes'>Izbor klastera i predstavnika (select-eval / rep-eval)</h2>
+  <p>Měrimo, kolko od gornih prědelov može vȯzstanoviti <b>pravilo bez utečki</b> (ne čitajuče odgovor):</p>
+  <ul>
+    <li><b>select-eval</b> (izbor klastera): vse slěpe pravila (najviše językov / větvi, internacionalizm-prvo) <b>uhudšajų</b> — potvŕđaje, že križny klaster je redakcijna granica, ne bug.</li>
+    <li><b>rep-eval</b> (izbor predstavnika): pravilo <b>medoid</b> (najcentralnějša forma, najmenša suma distancij do drugih) daje <b>+1,09pp</b> i je uže v produkciji; ostaje ~+2,6pp do granice.</li>
+  </ul>
+
+  <h2 id='synonym'>Sinonimno-svěstna točnosť (synonym-eval)</h2>
+  <p>Strogy benchmark pytaje „sovpada li s <b>jedinoju</b> oficialnoju lemmoju?“, ale medžuslovjansky ima mnogo validnyh slov na jedno značenje, a slovnik zapisuje samo jedno. Ta měrka pripisuje prědvidženju, ktore reproduktuje <b>kojukoli</b> oficialnu lemmu s tym že značenjem (iz sinonimnogo tezaurusa):</p>
+  <table class='wikitable'><thead><tr><th>Měrka</th><th>top-1</th></tr></thead>
+  <tbody><tr><td>točno</td><td>41,01%</td></tr><tr><td>normalizovano (strogo)</td><td>48,88%</td></tr><tr><td><b>sinonimno-vključno</b></td><td><b>55,01%</b></td></tr></tbody></table>
+  <p>Razbivka strogih promahov: <b>12,0% validny sinonim</b> (druga oficialna lemma, isto značenje), 7,7% druga oficialna lemma (drugo značenje), 80,3% ne-oficialna forma (nova ili prava greška — nerazlučima bez tezaurusa maternjego govoritelja). Komanda: <code>synonym-eval</code>.</p>
+
+  <h2 id='artefakty'>Artefakty</h2>
+  <p>Vse měrjenja sų zapisane v <code>target/eval/</code>: <code>candidate-generation-report.md</code>, <code>stage-attribution.md</code>, <code>oracle-ladder.md</code>, <code>cluster-selection.md</code>, <code>rep-selection.md</code>, <code>synonym-accuracy.md</code>. Vsaka je reproducibilna jednoju komandoju.</p>
+</article>"##;
+    page("Statistiky točnosti — medžuslovjansky", body, 0)
+}
+
 fn about_page(n: usize, norm_rate: f32, exact_rate: f32, top3: f32) -> String {
     let body = format!(
         "<article class='entry'>
