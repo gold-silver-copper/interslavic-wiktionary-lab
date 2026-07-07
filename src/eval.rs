@@ -1120,6 +1120,11 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             .extend(crate::dump::gloss_tokens(&e.english));
     }
 
+    // The precise synonym signal: the dictionary-derived thesaurus (shared
+    // translation ∩ gloss ∩ POS), so a "valid synonym" is a direct synonym of
+    // *this* concept, not merely any official word sharing a common token.
+    let thes = crate::thesaurus::Thesaurus::build(&all);
+
     let proto = load_proto_index();
     let cfg = ConsensusConfig::production();
     let (mut n, mut exact, mut norm) = (0usize, 0usize, 0usize);
@@ -1140,13 +1145,14 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         if nm {
             continue;
         }
-        // A miss: classify the prediction.
+        // A miss: classify the prediction against the thesaurus.
         let pk = ortho::to_standard(&pred.trim().to_lowercase());
-        let gloss = crate::dump::gloss_tokens(&entry.english);
-        match by_form.get(&pk) {
-            Some(toks) if !pred.is_empty() && gloss.iter().any(|t| toks.contains(t)) => syn += 1,
-            Some(_) if !pred.is_empty() => other_sense += 1,
-            _ => not_official += 1,
+        if !pred.is_empty() && thes.are_synonyms(&entry.isv, &pred) {
+            syn += 1; // a valid synonym of this exact concept
+        } else if !pred.is_empty() && by_form.contains_key(&pk) {
+            other_sense += 1; // some official lemma, but a different meaning
+        } else {
+            not_official += 1; // not any official lemma (novel form or genuine error)
         }
     }
 

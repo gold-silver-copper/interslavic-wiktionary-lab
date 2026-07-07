@@ -477,6 +477,19 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         }
     }
 
+    // Interslavic synonym thesaurus (dictionary-derived) + a headword → page-id
+    // map, so each entry can show its synonyms cross-linked to their own pages.
+    let thesaurus = crate::thesaurus::Thesaurus::build(&official_entries);
+    let mut isv_to_id: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for p in &prepared {
+        if p.suppressed {
+            continue;
+        }
+        isv_to_id
+            .entry(crate::orthography::to_standard(&p.display.to_lowercase()))
+            .or_insert(p.id);
+    }
+
     // Reverse index for intra-site cross-linking: every cognate member of every
     // entry points back to that entry's page, so an enrichment chip (related /
     // synonym / antonym term) that is itself a dictionary headword links to the
@@ -502,6 +515,13 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             continue;
         }
         let family = family_block(i, &prepared, &families);
+        // Synonyms only on official-headword pages, where the thesaurus lemma's
+        // meaning matches (a form-collision homograph page would otherwise show
+        // the official lemma's synonyms for a different sense).
+        let synonyms = match &p.matched {
+            Some((_, isv, _)) => synonyms_block(isv, &thesaurus, &isv_to_id),
+            None => String::new(),
+        };
         let html = corpus_entry_page(
             p.id,
             &p.g,
@@ -512,6 +532,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             &family,
             enrich.as_ref(),
             Some(&xref),
+            &synonyms,
         );
         std::fs::write(entry_dir.join(format!("{}.html", p.id)), html)?;
 
@@ -572,7 +593,8 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         }
         id += 1;
         official_only += 1;
-        let html = official_only_page(isv, e, enrich.as_ref(), Some(&xref), id);
+        let syn = synonyms_block(isv, &thesaurus, &isv_to_id);
+        let html = official_only_page(isv, e, enrich.as_ref(), Some(&xref), id, &syn);
         std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
         let mut keys: Vec<(String, usize)> = Vec::new();
         for k in [fold.clone(), crate::orthography::ascii_skeleton(isv)] {
@@ -749,6 +771,7 @@ fn corpus_entry_page(
     family: &str,
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
+    synonyms: &str,
 ) -> String {
     let top = g.candidates.first().unwrap();
     let pos_code = g.set.pos.code();
@@ -862,6 +885,7 @@ fn corpus_entry_page(
            {banner}{headline}\
            <section><h2 id='formy'>Formy i kandidaty</h2>{alternatives}</section>\
            <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}</section>\
+           {synonyms}\
            <section><h2 id='cognaty'>Cognaty — {nlangs} językov</h2>{cognates}</section>\
            <section><h2 id='etimologija'>Etimologija</h2>{etymology}</section>\
            {native_etym}{native_conn}{family}\
@@ -882,6 +906,7 @@ fn official_only_page(
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
     id: usize,
+    synonyms: &str,
 ) -> String {
     let input = build_input(e);
     let evidence = branch_evidence(&input);
@@ -920,6 +945,7 @@ fn official_only_page(
            <div class='banner info'><b>Oficialne slovo.</b> Generator ješče ne izvodi jego iz cognatnogo dokaza (redky korenj, mnogoslovny izraz ili redakcijny izbor).</div>\
            <div class='headword-block'><div class='headmeta'><span class='badge pos'>{pos}</span> <span class='pill src-official'>oficialny slovnik</span></div>\
              <p class='def'><b>Smysl:</b> {en}</p></div>\
+           {synonyms}\
            <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}</section>\
            <section><h2 id='cognaty'>Slovjanski dokaz</h2>{cog}</section>\
            {native_etym}{native_conn}\
@@ -965,6 +991,29 @@ fn etymon_display(etymon: &str) -> String {
     } else {
         format!("{name} „{word}“")
     }
+}
+
+/// The headword's dictionary synonyms (from the thesaurus), each cross-linked to
+/// its own entry page when it is a site headword, else to a search for it.
+fn synonyms_block(
+    isv: &str,
+    thes: &crate::thesaurus::Thesaurus,
+    isv_to_id: &std::collections::HashMap<String, usize>,
+) -> String {
+    let syns = thes.get(isv);
+    if syns.is_empty() {
+        return String::new();
+    }
+    let mut chips = String::new();
+    for s in syns.iter().take(24) {
+        let key = crate::orthography::to_standard(&s.to_lowercase());
+        let (cls, href) = match isv_to_id.get(&key) {
+            Some(id) => ("chip xref", format!("{id}.html")),
+            None => ("chip", format!("../search.html?q={}", esc(s))),
+        };
+        let _ = write!(chips, "<a class='{cls}' href='{href}'>{}</a>", esc(s));
+    }
+    format!("<section><h2 id='synonimy'>Synonimy</h2><div class='chips'>{chips}</div></section>")
 }
 
 /// The cognate set: every attesting Slavic lemma, grouped by branch.

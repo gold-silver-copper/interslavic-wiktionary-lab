@@ -33,6 +33,7 @@ mod pipeline;
 mod proto;
 mod proto_link;
 mod site;
+mod thesaurus;
 
 const DEFAULT_DUMP: &str = "/Users/kisaczka/Desktop/code/english/raw-wiktextract-data.jsonl";
 const DEFAULT_DATA: &str = "data/wiktionary-lab.json";
@@ -42,6 +43,7 @@ const DEFAULT_PROTO_CACHE: &str = "data/proto-slavic.cache.json";
 const DEFAULT_LEMMA_CACHE: &str = "data/slavic-lemmas.cache.json";
 const DEFAULT_ENRICH_CACHE: &str = "data/wiktionary-enrich.cache.json";
 const DEFAULT_WIKI_DIR: &str = "/Users/kisaczka/Desktop/code/wikidata";
+const DEFAULT_THESAURUS: &str = "data/isv-thesaurus.json";
 
 #[derive(Parser)]
 #[command(
@@ -161,6 +163,14 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// Build the Interslavic synonym thesaurus from the official dictionary
+    /// (shared modern translation ∩ gloss token ∩ POS) → data/isv-thesaurus.json.
+    BuildThesaurus {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = DEFAULT_THESAURUS)]
+        out: PathBuf,
+    },
     /// Benchmark the candidate generator against the official Interslavic dictionary.
     Evaluate {
         /// Official dictionary: full export with per-language translations.
@@ -217,6 +227,17 @@ fn main() -> Result<()> {
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),
         Command::RepEval { official, out } => eval::run_rep_eval(&official, &out),
         Command::SynonymEval { official, out } => eval::run_synonym_eval(&official, &out),
+        Command::BuildThesaurus { official, out } => {
+            let entries = official::load(&official)?;
+            let t = thesaurus::Thesaurus::build(&entries);
+            t.save(&out)?;
+            println!(
+                "Built thesaurus: {} lemmas with synonyms -> {}",
+                t.len(),
+                out.display()
+            );
+            Ok(())
+        }
         Command::Evaluate {
             official,
             dump,
