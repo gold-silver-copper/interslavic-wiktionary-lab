@@ -74,7 +74,17 @@ impl EnrichIndex {
         File::open(path)
             .with_context(|| format!("open enrich cache {}", path.display()))?
             .read_to_string(&mut json)?;
-        let cache: EnrichCache = serde_json::from_str(&json).context("parse enrich cache")?;
+        let mut cache: EnrichCache = serde_json::from_str(&json).context("parse enrich cache")?;
+        // Drop the handful of strings where wiktextract leaked unparsed wiki markup
+        // (`[[">*melko< / [[span>#…|span>]]]]`, `''…''`, stray tags) so no page shows
+        // garbage. A bare `<` is kept — it is legit descent notation ("*ognь < …").
+        for e in &mut cache.entries {
+            e.etymology.retain(|s| !looks_like_markup(s));
+            e.senses.retain(|s| !looks_like_markup(s));
+            e.related.retain(|s| !looks_like_markup(s));
+            e.synonyms.retain(|s| !looks_like_markup(s));
+            e.antonyms.retain(|s| !looks_like_markup(s));
+        }
         let mut by_key = HashMap::new();
         for (i, e) in cache.entries.iter().enumerate() {
             by_key.entry(key(&e.lang, &e.word)).or_insert(i);
@@ -92,6 +102,15 @@ impl EnrichIndex {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+}
+
+/// True when a string carries leaked wiki/HTML markup (as opposed to a bare `<`
+/// used for etymological descent, which is legitimate).
+fn looks_like_markup(s: &str) -> bool {
+    const M: &[&str] = &[
+        "[[", "]]", "{{", "}}", "<span", "</", "span>#", "|span", "<ref", "''",
+    ];
+    M.iter().any(|m| s.contains(m))
 }
 
 /// Accent-stripped, lowercased word used as the lookup key (Russian corpus forms
@@ -381,6 +400,18 @@ mod tests {
             source_url("cs", "za slova"),
             "https://cs.wiktionary.org/wiki/za_slova"
         );
+    }
+
+    #[test]
+    fn markup_detector_drops_junk_keeps_descent() {
+        assert!(looks_like_markup(
+            "[[\">*melko< / [[span>#Праславянский|span>]]]]"
+        ));
+        assert!(looks_like_markup("по + ''том'', аналогично"));
+        assert!(looks_like_markup("motykou<span>x</span>"));
+        // A bare `<` for etymological descent is legitimate and kept.
+        assert!(!looks_like_markup("prasł. *ognь < praindoeur. *ngnis"));
+        assert!(!looks_like_markup("От праслав. *vodā, от которого"));
     }
 
     #[test]

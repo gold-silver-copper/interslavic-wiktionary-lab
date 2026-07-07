@@ -658,12 +658,13 @@ fn corpus_entry_page(
     } else {
         String::new()
     };
-    let official_gloss = match official {
-        Some((_, _, en)) if !en.trim().is_empty() && en.trim() != g.set.gloss.trim() => format!(
-            "<p class='def'><b>Oficialny smysl:</b> {}</p>",
-            esc(&truncate(en, 120))
-        ),
-        _ => String::new(),
+    // The official meaning is authoritative for a matched headword; the corpus
+    // set's own gloss can be a wrong homonym that merely folded to the same form
+    // (e.g. the borrowed *pisati* "piss" matching the native *pisati* "write"), so
+    // on a match the official gloss headlines the page instead.
+    let gloss = match official {
+        Some((_, _, en)) if !en.trim().is_empty() => truncate(en, 140),
+        _ => truncate(&g.set.gloss, 140),
     };
     let headline = format!(
         "<div class='headword-block'>
@@ -673,15 +674,14 @@ fn corpus_entry_page(
              {coverage}
              {}
            </div>
-           <p class='def'><b>Anglijski smysl:</b> {}</p>
-           {official_gloss}
+           <p class='def'><b>Smysl:</b> {}</p>
            {recon_line}
          </div>",
         esc(&pos_heading(g.set.pos.code())),
         source_class(top.source),
         esc(top.source.label()),
         status_pill(status),
-        esc(&g.set.gloss),
+        esc(&gloss),
     );
 
     let official_note = match official {
