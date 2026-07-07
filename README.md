@@ -62,8 +62,15 @@ committed and the site build stays self-contained.
   duplicate sets deduped), with no leakage from the dictionary into the generation.
 - `cargo run -- corpus-eval` scores this site path against the dictionary directly:
   **58.6% exact / 63.1% normalized** on the ~7.4k entries with a known ancestor.
-- `data/novel-words.tsv` — 2,066 high/medium-confidence words the engine derived that
-  are **not** in the official dictionary (candidate new vocabulary, with ancestors).
+- `data/novel-words.tsv` — the **novel-vocabulary proposal pipeline** (regenerated
+  by every `export`): every generated word absent from the official dictionary,
+  carrying an **isotonic-calibrated probability** *P(would match an official
+  decision)* (`data/score-calibration.json`, fitted on the benchmark's dev split,
+  holdout-validated at ECE 0.013) and a bucket at measured operating points —
+  **predlog** (p≥0.6: 71.8% precision / 66.3% recall on holdout) or **pregled**
+  (p≥0.3: 61.7% / 88.9%). The site's *Predloženja* page renders the propose
+  bucket with evidence traces and `data/curation-notes.json` annotations; the
+  precision/recall of every threshold is in `target/eval/methodology.md`.
 
 The **benchmark below** still measures generation accuracy against the official dictionary
 (a separate, leakage-free evaluation of the engine).

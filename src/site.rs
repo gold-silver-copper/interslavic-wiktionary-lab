@@ -812,6 +812,74 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     std::fs::write(out_dir.join("wiktionary.css"), css())?;
     std::fs::write(out_dir.join(".nojekyll"), "")?;
 
+    // ---- Novel-word proposal pipeline (Track C / issue #3) ----
+    // Every generated word with no official match is a potential vocabulary
+    // proposal. Each carries the ISOTONIC-CALIBRATED probability that it would
+    // match an official decision (data/score-calibration.json, fitted on the
+    // benchmark's dev split, holdout-validated — see methodology.md), bucketed
+    // at the operating points measured there on the holdout split:
+    // propose = p ≥ 0.6 (71.8% precision), review = p ≥ 0.3 (61.7% precision,
+    // 88.9% recall), below = not listed.
+    let calibration = crate::calibrate::Calibration::load(Path::new(crate::calibrate::PATH));
+    if calibration.is_none() {
+        println!(
+            "(no {} — run `evaluate` to fit the calibrator; novel-word probabilities fall back to raw scores)",
+            crate::calibrate::PATH
+        );
+    }
+    let mut proposals: Vec<ProposalRow> = Vec::new();
+    for p in &prepared {
+        if p.suppressed || p.matched.is_some() {
+            continue;
+        }
+        let form = p.g.form();
+        if form.is_empty() || form.contains(' ') || form.chars().count() < 3 {
+            continue;
+        }
+        let prob = calibration
+            .as_ref()
+            .map(|c| c.probability(p.g.score))
+            .unwrap_or(p.g.score as f64);
+        if prob >= NOVEL_REVIEW_T {
+            proposals.push(ProposalRow {
+                id: p.id,
+                form: form.to_string(),
+                pos: p.g.set.pos.code().to_string(),
+                prob,
+                ancestor: p.g.set.etymon.clone(),
+                n_langs: p.g.n_langs,
+                n_branches: p.g.n_branches,
+                gloss: p.g.set.gloss.clone(),
+            });
+        }
+    }
+    proposals.sort_by(|a, b| b.prob.total_cmp(&a.prob).then(a.id.cmp(&b.id)));
+    let mut tsv =
+        String::from("form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\n");
+    for r in &proposals {
+        let _ = write!(
+            tsv,
+            "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\n",
+            r.form,
+            r.pos,
+            r.prob,
+            if r.prob >= NOVEL_PROPOSE_T {
+                "predlog"
+            } else {
+                "pregled"
+            },
+            r.ancestor,
+            r.n_langs,
+            r.n_branches,
+            r.gloss.replace(['\t', '\n'], " "),
+        );
+    }
+    std::fs::write("data/novel-words.tsv", tsv)?;
+    std::fs::write(
+        out_dir.join("proposals.html"),
+        proposals_page(&proposals, calibration.as_ref(), &curation),
+    )?;
+
     rows.sort_by(|a, b| b.freq.total_cmp(&a.freq));
     let home = corpus_home(
         n,
@@ -3539,6 +3607,7 @@ fn special_pages_hub() -> String {
         <li><a href='borrowings.html'>Portal:Zaimky</a></li>\
         <li><a href='suffix-index.html'>Indeks po zakončenjah</a></li>\
         <li><a href='datasets.html'>Datoteke za snimanje</a></li>\
+        <li><a href='proposals.html'>Predloženja novyh slov</a></li>\
         <li><a href='portals.html'>Językove portaly</a></li>\
         <li><a href='indices.html'>Abecedne indeksy</a></li>\
         <li><a href='graph.html'>Semantičny graf</a></li>\
@@ -4229,6 +4298,91 @@ fn roots_json(roots: &std::collections::BTreeMap<String, Vec<SiteEntryMeta>>) ->
     }
     s.push_str("\n}\n");
     s
+}
+
+/// Novel-word bucket thresholds on the ISOTONIC-CALIBRATED probability —
+/// operating points measured on the benchmark's HOLDOUT split (see
+/// methodology.md "Proposal-filter operating points"): p ≥ 0.6 gives 71.8%
+/// precision at 66.3% recall (propose); p ≥ 0.3 gives 61.7% precision at
+/// 88.9% recall (review floor; below is not listed).
+const NOVEL_PROPOSE_T: f64 = 0.6;
+const NOVEL_REVIEW_T: f64 = 0.3;
+
+/// One novel-vocabulary proposal (a generated word with no official match).
+struct ProposalRow {
+    id: usize,
+    form: String,
+    pos: String,
+    prob: f64,
+    ancestor: String,
+    n_langs: usize,
+    n_branches: usize,
+    gloss: String,
+}
+
+/// The Predloženja page: ranked novel-word proposals with the calibrated
+/// probability, evidence summary and curation notes. The full list is in
+/// data/novel-words.tsv; the page shows the propose bucket plus counts.
+fn proposals_page(
+    proposals: &[ProposalRow],
+    calibration: Option<&crate::calibrate::Calibration>,
+    curation: &std::collections::HashMap<String, String>,
+) -> String {
+    let n_propose = proposals
+        .iter()
+        .filter(|r| r.prob >= NOVEL_PROPOSE_T)
+        .count();
+    let n_review = proposals.len() - n_propose;
+    let mut rows = String::new();
+    for r in proposals
+        .iter()
+        .filter(|r| r.prob >= NOVEL_PROPOSE_T)
+        .take(600)
+    {
+        let note = curation
+            .get(&r.form)
+            .or_else(|| curation.get(&r.id.to_string()))
+            .map(|n| format!(" <span class='muted' title='{}'>[nota]</span>", esc(n)))
+            .unwrap_or_default();
+        let _ = write!(
+            rows,
+            "<tr><td><a href='entry/{}.html'>{}</a>{}</td><td>{}</td><td>{:.2}</td><td class='mention'>{}</td><td>{} / {}</td><td>{}</td></tr>",
+            r.id,
+            esc(&r.form),
+            note,
+            esc(&r.pos),
+            r.prob,
+            esc(&r.ancestor),
+            r.n_langs,
+            r.n_branches,
+            esc(&truncate_chars(&r.gloss, 90)),
+        );
+    }
+    let cal_note = match calibration {
+        Some(c) => format!(
+            "Věrojetnost je <b>izotonično kalibrovana</b> (naučena na razvojnoj časti benchmarka, prověrjena na odloženoj: ECE {:.3}) — čitaj ju kako <i>P(slovo by sovpalo s oficialnym rěšenjem)</i>. Pragy sųt izměrjene operacijne točky: predlog p≥{NOVEL_PROPOSE_T:.1} (~72% točnost), pregled p≥{NOVEL_REVIEW_T:.1} (~62%).",
+            c.holdout_ece
+        ),
+        None => "Kalibracija ne najdena — věrojetnosti sųt syrove ocěny (puštaj `evaluate`).".to_string(),
+    };
+    let body = format!(
+        "<article class='entry'><h1 class='firstHeading'>Predloženja novyh slov</h1>\
+         <p class='lede'>Slova, ktore stroj pravilno izvodi iz slovjanskogo dokaza, ale ktoryh <b>něma</b> v oficialnom slovniku — kandidaty za novu leksiku.</p>\
+         <p>{cal_note}</p>\
+         <p><b>{n_propose}</b> predloženj (p≥{NOVEL_PROPOSE_T:.1}) + <b>{n_review}</b> k pregledu (p≥{NOVEL_REVIEW_T:.1}); vsě sų v <code>data/novel-words.tsv</code> (vidi <a href='datasets.html'>datoteky</a>). Kuratorske noty prihodęt iz <code>data/curation-notes.json</code>.</p>\
+         <table class='wikitable'><thead><tr><th>slovo</th><th>vrsta</th><th>p</th><th>prědok</th><th>językov / větvi</th><th>značenje</th></tr></thead><tbody>{rows}</tbody></table>\
+         <p class='muted'>Pokazano najviše 600 predlogov; polny spisok v TSV. Mašinove rekonstrukcije, ne normativna leksika.</p></article>"
+    );
+    page("Predloženja novyh slov — medžuslovjansky", &body, 0)
+}
+
+fn truncate_chars(s: &str, n: usize) -> String {
+    if s.chars().count() <= n {
+        s.to_string()
+    } else {
+        let t: String = s.chars().take(n).collect();
+        format!("{t}…")
+    }
 }
 
 fn datasets_page() -> String {
