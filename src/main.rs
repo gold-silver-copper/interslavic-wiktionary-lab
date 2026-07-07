@@ -43,7 +43,7 @@ const DEFAULT_DATA: &str = "data/wiktionary-lab.json";
 const DEFAULT_OFFICIAL: &str = "data/official-isv.csv";
 const DEFAULT_OVERRIDES: &str = "data/overrides.toml";
 const DEFAULT_PROTO_CACHE: &str = "data/proto-slavic.cache.json";
-const DEFAULT_LEMMA_CACHE: &str = "data/slavic-lemmas.cache.json";
+pub const DEFAULT_LEMMA_CACHE: &str = "data/slavic-lemmas.cache.json";
 const DEFAULT_ENRICH_CACHE: &str = "data/wiktionary-enrich.cache.json";
 const DEFAULT_WIKI_DIR: &str = "/Users/kisaczka/Desktop/code/wikidata";
 const DEFAULT_THESAURUS: &str = "data/isv-thesaurus.json";
@@ -134,6 +134,14 @@ enum Command {
     /// collocations (per-position reconstruction), ipf/pf pair accuracy
     /// (Track B / issue #2).
     MultiwordEval {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
+    /// Evidence-growth audit + augmentation A/B vs the root-absent ceiling
+    /// (Track E / issue #4).
+    EvidenceEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
         #[arg(long, default_value = "target/eval")]
@@ -244,6 +252,7 @@ fn main() -> Result<()> {
         Command::CorpusEval { official, out } => eval::run_corpus_eval(&official, &out),
         Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
+        Command::EvidenceEval { official, out } => eval::run_evidence_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),
