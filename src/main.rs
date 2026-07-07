@@ -147,6 +147,14 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// Inflection validation: blank-cell census + RULE_SPEC §3 grammar
+    /// invariants over every official lemma (Track F / issue #5).
+    InflectEval {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
     /// Data-quality / ceiling audit: classify misses and cognate cohesion.
     Audit {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
@@ -253,6 +261,7 @@ fn main() -> Result<()> {
         Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
         Command::EvidenceEval { official, out } => eval::run_evidence_eval(&official, &out),
+        Command::InflectEval { official, out } => site::run_inflect_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),

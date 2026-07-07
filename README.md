@@ -134,6 +134,22 @@ The Proto-Slavic rule engine is measured in isolation by a dedicated benchmark
 to a reconstruction it derives the official lemma with **46.68% exact / 52.74%
 normalized** accuracy.
 
+**Inflection validation** (`cargo run --release -- inflect-eval`): every
+unique single-word official lemma through the inflection engine — 14,625
+lemmas / 231,977 paradigm cells, **0 blank** (the export's blank cells all
+come from machine-generated reconstruction headwords), with RULE_SPEC §3
+grammar invariants checked with their legitimate exemptions modeled
+(pluralia tantum, §3.5 indeclinables, masculine ā-stems, substantivized
+adjectives, multi-variant cells): nom.sg echoes the citation form (99.9%),
+masc/neut gen.sg carries the diagnostic `-a` (99.8%), adjective agreement
+100%, and the §3.1 suppletive plurals (`člověk→ljudi`, `oko→oči`, …) verified
+**from the inflector itself** (the pinned crate implements them, heteroclite
+byforms included). The remaining ~12 failures are the genuine inflector
+worklist (soft `-o` loans like *adadžo*, unmarked indeclinables like *kakao*).
+Canonical paradigm cells are pinned by unit tests so an inflector-crate rev
+bump that reshapes declension fails CI. Report:
+`target/eval/inflection-report.md`.
+
 **Evidence ceiling, measured** (`cargo run --release -- evidence-eval`): the
 ~22% *root-absent* miss bucket was hypothesized to be an extraction gap. It is
 not: only **2.8%** of root-absent misses (51 of 1,854) have the official root
@@ -361,6 +377,9 @@ cargo run --release -- multiword-eval
 
 # Evidence-growth audit: root-absent recoverability + augmentation A/B:
 cargo run --release -- evidence-eval
+
+# Inflection validation: blank-cell census + RULE_SPEC §3 grammar invariants:
+cargo run --release -- inflect-eval
 
 # Diagnostic-only oracle ladder (per-stage upper-bound headroom; reads the answer,
 # never feeds production):
