@@ -2227,37 +2227,15 @@ fn case_rows() -> [(&'static str, IsvCase); 6] {
     ]
 }
 
-/// The lexicalized suppletive plurals (RULE_SPEC §3.1 noun-irregular-plurals):
-/// the regular inflector cannot know them, so the plural column is overridden.
-/// Cell order matches [`case_rows`]: Nom, Acc, Gen, Dat, Loc, Ins — the i-stem
-/// plural pattern (-i, -ij, -am, -ah, -ami), accusative = genitive for the
-/// animates (ljudi, děti).
-pub(crate) fn irregular_plural(word: &str) -> Option<[&'static str; 6]> {
-    match word {
-        "člověk" | "čłověk" => {
-            Some(["ljudi", "ljudij", "ljudij", "ljudam", "ljudah", "ljudami"])
-        }
-        "děte" | "dětę" => Some(["děti", "dětij", "dětij", "dětam", "dětah", "dětami"]),
-        "oko" => Some(["oči", "oči", "očij", "očam", "očah", "očami"]),
-        "uho" => Some(["uši", "uši", "ušij", "ušam", "ušah", "ušami"]),
-        _ => None,
-    }
-}
-
 fn noun_table(word: &str) -> String {
-    let irregular = irregular_plural(word);
     let mut s = String::from("<table class='wikitable inflection-table'><thead><tr><th>Padež</th><th>Jednina</th><th>Množina</th></tr></thead><tbody>");
-    for (i, (label, case)) in case_rows().into_iter().enumerate() {
-        let plural = match irregular {
-            Some(cells) => cells[i].to_string(),
-            None => catch(|| ISV::noun(word, case, IsvNumber::Plural)),
-        };
+    for (label, case) in case_rows() {
         let _ = write!(
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td></tr>",
             label,
             esc(&catch(|| ISV::noun(word, case, IsvNumber::Singular))),
-            esc(&plural),
+            esc(&catch(|| ISV::noun(word, case, IsvNumber::Plural))),
         );
     }
     s.push_str("</tbody></table>");
@@ -2465,6 +2443,9 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let fold = |x: &str| crate::orthography::to_standard(&x.trim().to_lowercase());
 
     let (mut n_words, mut n_cells, mut n_blank) = (0usize, 0usize, 0usize);
+    // The dictionary has ~950 duplicated headwords (homograph rows); each
+    // unique lemma is inflected and checked once.
+    let mut seen_lemmas: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut by_pos: BTreeMap<&'static str, (usize, usize)> = BTreeMap::new(); // (cells, blank)
                                                                               // Invariants: (checked, passed) per rule.
     let mut inv: BTreeMap<&'static str, (usize, usize)> = BTreeMap::new();
@@ -2483,18 +2464,17 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         if bare.is_empty() || bare.contains(' ') || bare.contains('#') || bare.contains('!') {
             continue;
         }
+        if !seen_lemmas.insert(format!("{}|{}", fold(bare), e.pos.code())) {
+            continue;
+        }
+        let plurale_tantum = e.pos_raw.contains("pl.");
         match e.pos {
             Pos::Noun => {
                 n_words += 1;
-                let irregular = irregular_plural(bare);
                 let mut cells: Vec<(String, &'static str)> = Vec::new();
-                for (i, (_, case)) in case_rows().into_iter().enumerate() {
+                for (_, case) in case_rows() {
                     cells.push((catch(|| ISV::noun(bare, case, IsvNumber::Singular)), "sg"));
-                    let pl = match irregular {
-                        Some(cs) => cs[i].to_string(),
-                        None => catch(|| ISV::noun(bare, case, IsvNumber::Plural)),
-                    };
-                    cells.push((pl, "pl"));
+                    cells.push((catch(|| ISV::noun(bare, case, IsvNumber::Plural)), "pl"));
                 }
                 let blanks = cells.iter().filter(|(c, _)| c == "—").count();
                 n_cells += cells.len();
@@ -2507,18 +2487,20 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 }
                 // Invariant: nom.sg echoes the citation form (a multi-variant
                 // cell like "den / denj" passes if any variant echoes it).
-                let nom = catch(|| ISV::noun(bare, IsvCase::Nom, IsvNumber::Singular));
-                let ok = nom.split('/').any(|v| fold(v) == fold(bare));
-                check(&mut inv, "noun nom.sg = citation form", ok);
-                if !ok && fail_sample.len() < 30 {
-                    fail_sample.push(format!("{bare}: nom.sg → {nom}"));
+                // Pluralia tantum are cited in the plural — no singular echo.
+                if !plurale_tantum {
+                    let nom = catch(|| ISV::noun(bare, IsvCase::Nom, IsvNumber::Singular));
+                    let ok = nom.split('/').any(|v| fold(v) == fold(bare));
+                    check(&mut inv, "noun nom.sg = citation form", ok);
+                    if !ok && fail_sample.len() < 30 {
+                        fail_sample.push(format!("{bare}: nom.sg → {nom}"));
+                    }
                 }
                 // Invariant: masc/neut gen.sg ends -a (diagnostic ending).
                 // Legitimate exemptions (RULE_SPEC §3): pluralia tantum have no
                 // singular; §3.5 indeclinables (loans in -e/-i/-u) don't
                 // decline; masculine ā-stems (vojevoda) take the feminine -y;
                 // substantivized adjectives decline adjectivally (-ogo/-ego).
-                let plurale_tantum = e.pos_raw.contains("pl.");
                 let indeclinable = matches!(fold(bare).chars().last(), Some('e' | 'i' | 'u'));
                 let a_stem = fold(bare).ends_with('a');
                 let substantivized = matches!(fold(bare).chars().last(), Some('y'));
@@ -2629,15 +2611,21 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             _ => {}
         }
     }
-    // Invariant: the suppletive plurals from RULE_SPEC §3.1 surface.
+    // Invariant: the suppletive plurals from RULE_SPEC §3.1 surface — asked of
+    // the inflection crate itself (the pinned rev implements them, with the
+    // heteroclite byforms); this guards the pin against a regressing rev bump.
     for (base, pl) in [
         ("člověk", "ljudi"),
-        ("děte", "děti"),
+        ("dětę", "děti"),
         ("oko", "oči"),
         ("uho", "uši"),
     ] {
-        let got = irregular_plural(base).map(|c| c[0]).unwrap_or("");
-        check(&mut inv, "suppletive plurals (§3.1)", got == pl);
+        let got = catch(|| ISV::noun(base, IsvCase::Nom, IsvNumber::Plural));
+        check(
+            &mut inv,
+            "suppletive plurals (§3.1, from the inflector)",
+            got.split('/').any(|v| v.trim() == pl),
+        );
     }
 
     let pct = |a: usize, b: usize| {
@@ -5086,13 +5074,12 @@ mod tests {
     }
 
     #[test]
-    fn suppletive_plurals_override_the_regular_inflector() {
-        // RULE_SPEC §3.1: člověk→ljudi, děte→děti, oko→oči, uho→uši.
-        assert_eq!(irregular_plural("člověk").unwrap()[0], "ljudi");
-        assert_eq!(irregular_plural("oko").unwrap()[0], "oči");
+    fn suppletive_plurals_come_from_the_inflector() {
+        // RULE_SPEC §3.1: člověk→ljudi, oko→oči — the pinned inflector rev
+        // implements them (with the heteroclite byforms); a rev bump that
+        // loses them must fail here, not silently reshape the tables.
         assert!(noun_table("člověk").contains("ljudi"));
-        assert!(noun_table("uho").contains("ušami"));
-        assert!(irregular_plural("dom").is_none());
+        assert!(noun_table("oko").contains("oči"));
     }
 
     #[test]

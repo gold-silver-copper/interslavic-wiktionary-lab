@@ -135,16 +135,20 @@ to a reconstruction it derives the official lemma with **46.68% exact / 52.74%
 normalized** accuracy.
 
 **Inflection validation** (`cargo run --release -- inflect-eval`): every
-single-word official lemma through the inflection engine — 15,988 lemmas /
-244,082 paradigm cells, **0 blank** (the export's blank cells all come from
-machine-generated reconstruction headwords), with RULE_SPEC §3 grammar
-invariants checked: nom.sg echoes the citation form (100.0%), masc/neut gen.sg
-carries the diagnostic `-a` (99.8% — the residue is a 13-item inflector
-worklist of soft `-o` loans and unmarked §3.5 indeclinables), adjective
-agreement 100%. The §3.1 suppletive plurals (`člověk→ljudi`, `oko→oči`, …) are
-now lexical overrides in the noun tables, and canonical paradigm cells are
-pinned by unit tests so an inflector-crate rev bump that reshapes declension
-fails CI. Report: `target/eval/inflection-report.md`.
+unique single-word official lemma through the inflection engine — 14,625
+lemmas / 231,977 paradigm cells, **0 blank** (the export's blank cells all
+come from machine-generated reconstruction headwords), with RULE_SPEC §3
+grammar invariants checked with their legitimate exemptions modeled
+(pluralia tantum, §3.5 indeclinables, masculine ā-stems, substantivized
+adjectives, multi-variant cells): nom.sg echoes the citation form (99.9%),
+masc/neut gen.sg carries the diagnostic `-a` (99.8%), adjective agreement
+100%, and the §3.1 suppletive plurals (`člověk→ljudi`, `oko→oči`, …) verified
+**from the inflector itself** (the pinned crate implements them, heteroclite
+byforms included). The remaining ~12 failures are the genuine inflector
+worklist (soft `-o` loans like *adadžo*, unmarked indeclinables like *kakao*).
+Canonical paradigm cells are pinned by unit tests so an inflector-crate rev
+bump that reshapes declension fails CI. Report:
+`target/eval/inflection-report.md`.
 
 **Evidence ceiling, measured** (`cargo run --release -- evidence-eval`): the
 ~22% *root-absent* miss bucket was hypothesized to be an extraction gap. It is
