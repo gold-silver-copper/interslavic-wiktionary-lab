@@ -2433,6 +2433,15 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
     // pipeline reads every proposal's calibrated P(matches an official
     // decision) from this committed file, so the static build stays
     // self-contained. Regenerated (refitted) by every `evaluate` run.
+    let pr_at = |t: f64| -> (f64, f64) {
+        let sel: Vec<&&EntryResult> = held.iter().filter(|r| calibrate(r.score) >= t).collect();
+        let hits = sel.iter().filter(|r| r.normalized).count();
+        let total = held.iter().filter(|r| r.normalized).count().max(1);
+        (
+            hits as f64 / sel.len().max(1) as f64,
+            hits as f64 / total as f64,
+        )
+    };
     let cal = crate::calibrate::Calibration {
         fitted_on: format!(
             "evaluate dev split ({} entries), production rung '{}'",
@@ -2440,6 +2449,8 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
             production.name
         ),
         holdout_ece: ece_cal,
+        propose_pr: pr_at(crate::calibrate::PROPOSE_T),
+        review_pr: pr_at(crate::calibrate::REVIEW_T),
         deciles: iso,
     };
     std::fs::write(crate::calibrate::PATH, serde_json::to_string_pretty(&cal)?)?;

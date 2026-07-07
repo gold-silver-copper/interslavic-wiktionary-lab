@@ -17,6 +17,12 @@ use std::path::Path;
 /// Committed location of the fitted calibrator.
 pub const PATH: &str = "data/score-calibration.json";
 
+/// Novel-word bucket thresholds on the calibrated probability. The measured
+/// precision/recall AT these cutoffs is persisted in [`Calibration`] by every
+/// `evaluate` run, so downstream displays never go stale.
+pub const PROPOSE_T: f64 = 0.6;
+pub const REVIEW_T: f64 = 0.3;
+
 /// A monotone decile map: `deciles[i]` is the calibrated P(normalized match)
 /// for raw scores in `[i/10, (i+1)/10)`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +31,10 @@ pub struct Calibration {
     pub fitted_on: String,
     /// Holdout ECE of the fitted map (informational, from the fitting run).
     pub holdout_ece: f64,
+    /// Measured on the holdout split at [`PROPOSE_T`]: (precision, recall).
+    pub propose_pr: (f64, f64),
+    /// Measured on the holdout split at [`REVIEW_T`]: (precision, recall).
+    pub review_pr: (f64, f64),
     pub deciles: [f64; 10],
 }
 
@@ -50,6 +60,8 @@ mod tests {
         let c = Calibration {
             fitted_on: String::new(),
             holdout_ece: 0.0,
+            propose_pr: (0.0, 0.0),
+            review_pr: (0.0, 0.0),
             deciles: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         };
         assert_eq!(c.probability(0.05), 0.0);

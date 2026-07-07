@@ -1,6 +1,14 @@
 {
   "fitted_on": "evaluate dev split (12222 entries), production rung '+spirantization (production)'",
   "holdout_ece": 0.012829805857475307,
+  "propose_pr": [
+    0.7177111716621254,
+    0.6634760705289673
+  ],
+  "review_pr": [
+    0.6169989506820567,
+    0.8886649874055416
+  ],
   "deciles": [
     0.13623188405797101,
     0.13623188405797101,

@@ -836,11 +836,16 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         if form.is_empty() || form.contains(' ') || form.chars().count() < 3 {
             continue;
         }
+        // A homograph-demoted entry has `matched` cleared but its form IS an
+        // official lemma — never propose a word the dictionary already has.
+        if official_map.contains_key(&crate::orthography::to_standard(&form.to_lowercase())) {
+            continue;
+        }
         let prob = calibration
             .as_ref()
             .map(|c| c.probability(p.g.score))
             .unwrap_or(p.g.score as f64);
-        if prob >= NOVEL_REVIEW_T {
+        if prob >= crate::calibrate::REVIEW_T {
             proposals.push(ProposalRow {
                 id: p.id,
                 form: form.to_string(),
@@ -857,24 +862,32 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     let mut tsv =
         String::from("form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\n");
     for r in &proposals {
+        // Buckets are only meaningful in calibrated-probability space; a raw
+        // score is overconfident (ECE 0.185) and must not claim them.
+        let bucket = if calibration.is_none() {
+            "nekalibrovano"
+        } else if r.prob >= crate::calibrate::PROPOSE_T {
+            "predlog"
+        } else {
+            "pregled"
+        };
         let _ = write!(
             tsv,
             "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\n",
             r.form,
             r.pos,
             r.prob,
-            if r.prob >= NOVEL_PROPOSE_T {
-                "predlog"
-            } else {
-                "pregled"
-            },
+            bucket,
             r.ancestor,
             r.n_langs,
             r.n_branches,
             r.gloss.replace(['\t', '\n'], " "),
         );
     }
-    std::fs::write("data/novel-words.tsv", tsv)?;
+    // Committed data artifact AND a served copy, so the page's download link
+    // works on the static host.
+    std::fs::write("data/novel-words.tsv", &tsv)?;
+    std::fs::write(out_dir.join("novel-words.tsv"), &tsv)?;
     std::fs::write(
         out_dir.join("proposals.html"),
         proposals_page(&proposals, calibration.as_ref(), &curation),
@@ -4300,14 +4313,6 @@ fn roots_json(roots: &std::collections::BTreeMap<String, Vec<SiteEntryMeta>>) ->
     s
 }
 
-/// Novel-word bucket thresholds on the ISOTONIC-CALIBRATED probability —
-/// operating points measured on the benchmark's HOLDOUT split (see
-/// methodology.md "Proposal-filter operating points"): p ≥ 0.6 gives 71.8%
-/// precision at 66.3% recall (propose); p ≥ 0.3 gives 61.7% precision at
-/// 88.9% recall (review floor; below is not listed).
-const NOVEL_PROPOSE_T: f64 = 0.6;
-const NOVEL_REVIEW_T: f64 = 0.3;
-
 /// One novel-vocabulary proposal (a generated word with no official match).
 struct ProposalRow {
     id: usize,
@@ -4328,19 +4333,17 @@ fn proposals_page(
     calibration: Option<&crate::calibrate::Calibration>,
     curation: &std::collections::HashMap<String, String>,
 ) -> String {
-    let n_propose = proposals
-        .iter()
-        .filter(|r| r.prob >= NOVEL_PROPOSE_T)
-        .count();
+    let propose_t = crate::calibrate::PROPOSE_T;
+    let review_t = crate::calibrate::REVIEW_T;
+    let n_propose = proposals.iter().filter(|r| r.prob >= propose_t).count();
     let n_review = proposals.len() - n_propose;
     let mut rows = String::new();
-    for r in proposals
-        .iter()
-        .filter(|r| r.prob >= NOVEL_PROPOSE_T)
-        .take(600)
-    {
+    for r in proposals.iter().filter(|r| r.prob >= propose_t).take(600) {
+        // Curation-note keys follow the site-wide convention: standard
+        // orthography, lowercase (see data/curation-notes.example.json).
         let note = curation
-            .get(&r.form)
+            .get(&crate::orthography::to_standard(&r.form.to_lowercase()))
+            .or_else(|| curation.get(&r.form))
             .or_else(|| curation.get(&r.id.to_string()))
             .map(|n| format!(" <span class='muted' title='{}'>[nota]</span>", esc(n)))
             .unwrap_or_default();
@@ -4355,13 +4358,17 @@ fn proposals_page(
             esc(&r.ancestor),
             r.n_langs,
             r.n_branches,
-            esc(&truncate_chars(&r.gloss, 90)),
+            esc(&truncate(&r.gloss, 90)),
         );
     }
     let cal_note = match calibration {
         Some(c) => format!(
-            "Věrojetnost je <b>izotonično kalibrovana</b> (naučena na razvojnoj časti benchmarka, prověrjena na odloženoj: ECE {:.3}) — čitaj ju kako <i>P(slovo by sovpalo s oficialnym rěšenjem)</i>. Pragy sųt izměrjene operacijne točky: predlog p≥{NOVEL_PROPOSE_T:.1} (~72% točnost), pregled p≥{NOVEL_REVIEW_T:.1} (~62%).",
-            c.holdout_ece
+            "Věrojetnost je <b>izotonično kalibrovana</b> (naučena na razvojnoj časti benchmarka, prověrjena na odloženoj: ECE {:.3}) — čitaj ju kako <i>P(slovo by sovpalo s oficialnym rěšenjem)</i>. Pragy sųt izměrjene operacijne točky (na odloženoj četvrtině): predlog p≥{propose_t:.1} ({:.1}% točnost / {:.1}% pokrytje), pregled p≥{review_t:.1} ({:.1}% / {:.1}%).",
+            c.holdout_ece,
+            100.0 * c.propose_pr.0,
+            100.0 * c.propose_pr.1,
+            100.0 * c.review_pr.0,
+            100.0 * c.review_pr.1,
         ),
         None => "Kalibracija ne najdena — věrojetnosti sųt syrove ocěny (puštaj `evaluate`).".to_string(),
     };
@@ -4369,24 +4376,15 @@ fn proposals_page(
         "<article class='entry'><h1 class='firstHeading'>Predloženja novyh slov</h1>\
          <p class='lede'>Slova, ktore stroj pravilno izvodi iz slovjanskogo dokaza, ale ktoryh <b>něma</b> v oficialnom slovniku — kandidaty za novu leksiku.</p>\
          <p>{cal_note}</p>\
-         <p><b>{n_propose}</b> predloženj (p≥{NOVEL_PROPOSE_T:.1}) + <b>{n_review}</b> k pregledu (p≥{NOVEL_REVIEW_T:.1}); vsě sų v <code>data/novel-words.tsv</code> (vidi <a href='datasets.html'>datoteky</a>). Kuratorske noty prihodęt iz <code>data/curation-notes.json</code>.</p>\
+         <p><b>{n_propose}</b> predloženj (p≥{propose_t:.1}) + <b>{n_review}</b> k pregledu (p≥{review_t:.1}); polny spisok: <a href='novel-words.tsv'>novel-words.tsv</a>. Kuratorske noty prihodęt iz <code>data/curation-notes.json</code>.</p>\
          <table class='wikitable'><thead><tr><th>slovo</th><th>vrsta</th><th>p</th><th>prědok</th><th>językov / větvi</th><th>značenje</th></tr></thead><tbody>{rows}</tbody></table>\
          <p class='muted'>Pokazano najviše 600 predlogov; polny spisok v TSV. Mašinove rekonstrukcije, ne normativna leksika.</p></article>"
     );
     page("Predloženja novyh slov — medžuslovjansky", &body, 0)
 }
 
-fn truncate_chars(s: &str, n: usize) -> String {
-    if s.chars().count() <= n {
-        s.to_string()
-    } else {
-        let t: String = s.chars().take(n).collect();
-        format!("{t}…")
-    }
-}
-
 fn datasets_page() -> String {
-    let body = "<article class='entry'><h1 class='firstHeading'>Datoteke za snimanje</h1><p class='lede'>Statične JSON datoteke za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Datoteka</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, predok.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr></table></article>";
+    let body = "<article class='entry'><h1 class='firstHeading'>Datoteke za snimanje</h1><p class='lede'>Statične JSON datoteke za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Datoteka</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, predok.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr></table></article>";
     page("Datoteke za snimanje", body, 0)
 }
 
