@@ -136,11 +136,13 @@ normalized** accuracy.
 
 **Evidence ceiling, measured** (`cargo run --release -- evidence-eval`): the
 ~22% *root-absent* miss bucket was hypothesized to be an extraction gap. It is
-not: only **3.4%** of root-absent misses (63 of 1,854) have the official root
-anywhere in the 46k-lemma Wiktionary cache under a gloss-matched lemma, and a
-conservative evidence augmentation (fill only languages the dictionary row
-doesn't cite) measures **+0.00pp exact, 0 fixed / 1 broke** — the bucket is a
-genuine evidence ceiling. Report: `target/eval/evidence-growth.md`.
+not: only **2.8%** of root-absent misses (51 of 1,854) have the official root
+anywhere in the 46k-lemma Wiktionary cache under a gloss-matched lemma — and
+**zero** of those are reachable without displacing the dictionary's own
+citations (all 51 sit under a language the row already cites with a different
+synonym: the editorial phenomenon again). The conservative augmentation A/B
+measures exactly **+0.00pp, 0 fixed / 0 broke**. The bucket is a genuine
+evidence ceiling. Report: `target/eval/evidence-growth.md`.
 
 **Multi-word & aspect slices** (`cargo run --release -- multiword-eval`): the
 headline benchmark excludes all 1,837 multi-word official lemmas; this scores

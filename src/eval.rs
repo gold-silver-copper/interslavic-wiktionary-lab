@@ -1293,21 +1293,32 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         }
     }
 
-    // Candidate cache cognates for a meaning: gloss-token overlap + same POS.
+    // Candidate cache cognates for a meaning, ranked by gloss-token overlap.
+    // A single shared frequent token ("piece", "make") matches thousands of
+    // unrelated lemmas, so a candidate must share ≥2 tokens OR fully cover the
+    // shorter gloss (single-token glosses like "apple" still match).
     let candidates = |e: &OfficialEntry| -> Vec<usize> {
-        let mut seen: HashSet<usize> = HashSet::new();
-        for t in crate::dump::gloss_tokens(&e.english) {
-            if let Some(v) = by_token.get(&t) {
+        let etoks: HashSet<String> = crate::dump::gloss_tokens(&e.english).into_iter().collect();
+        let mut overlap: HashMap<usize, usize> = HashMap::new();
+        for t in &etoks {
+            if let Some(v) = by_token.get(t) {
                 for &i in v {
                     if corpus.entries[i].pos == e.pos.code() {
-                        seen.insert(i);
+                        *overlap.entry(i).or_default() += 1;
                     }
                 }
             }
         }
-        let mut v: Vec<usize> = seen.into_iter().collect();
-        v.sort(); // deterministic
-        v
+        let mut v: Vec<(usize, usize)> = overlap
+            .into_iter()
+            .filter(|(i, ov)| {
+                let ltoks = crate::dump::gloss_tokens(&corpus.entries[*i].gloss).len();
+                *ov >= 2 || *ov >= etoks.len().min(ltoks)
+            })
+            .collect();
+        // Best overlap first, index as the deterministic tie-break.
+        v.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        v.into_iter().map(|(i, _)| i).collect()
     };
 
     struct Pass {
@@ -1330,8 +1341,10 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             if !input.forms.iter().any(|f| f.modern) {
                 continue;
             }
-            if augment {
+            if augment && !input.reflexive {
                 // Fill ONLY languages the dictionary row does not cite.
+                // (Reflexive meanings are skipped: added cognates would bypass
+                // the reflexive-marker stripping build_input already ran.)
                 let cited: HashSet<&str> =
                     input.forms.iter().map(|f| f.lang_code.as_str()).collect();
                 let mut add_cells: HashMap<String, String> = HashMap::new();
@@ -1372,9 +1385,15 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     };
 
     let base = run_pass(false);
-    // Recoverability: among baseline root-absent misses, how many have the
-    // official root in the cache under a gloss-matched lemma?
-    let mut recoverable = 0usize;
+    // Recoverability, split by whether the conservative augmentation is even
+    // ALLOWED to inject the root-carrying lemma:
+    //  - reachable: root under an UNCITED language (and not a bg/mk verb
+    //    citation, which lemma_forms drops);
+    //  - cited-language: the root sits in a language the row already cites —
+    //    unreachable without displacing the dictionary's own citation;
+    //  - bg/mk-verb: dropped by the no-infinitive rule.
+    let (mut recoverable, mut rec_reachable, mut rec_cited, mut rec_bgmk) =
+        (0usize, 0usize, 0usize, 0usize);
     for e in &entries {
         if base.results.get(&e.id).copied().unwrap_or(true) {
             continue;
@@ -1389,13 +1408,34 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         if root_present {
             continue;
         }
-        if candidates(e).iter().any(|&i| {
-            ortho::consonant_key(&crate::normalize::to_phonemic_latin(
-                &corpus.entries[i].lang,
-                &corpus.entries[i].word,
-            )) == official_key
-        }) {
-            recoverable += 1;
+        let cited: HashSet<&str> = input.forms.iter().map(|f| f.lang_code.as_str()).collect();
+        let carriers: Vec<usize> = candidates(e)
+            .into_iter()
+            .filter(|&i| {
+                ortho::consonant_key(&crate::normalize::to_phonemic_latin(
+                    &corpus.entries[i].lang,
+                    &corpus.entries[i].word,
+                )) == official_key
+            })
+            .collect();
+        if carriers.is_empty() {
+            continue;
+        }
+        recoverable += 1;
+        let reachable = carriers.iter().any(|&i| {
+            let l = &corpus.entries[i];
+            !cited.contains(l.lang.as_str())
+                && !(e.pos == Pos::Verb && matches!(l.lang.as_str(), "bg" | "mk"))
+        });
+        if reachable {
+            rec_reachable += 1;
+        } else if carriers
+            .iter()
+            .any(|&i| e.pos == Pos::Verb && matches!(corpus.entries[i].lang.as_str(), "bg" | "mk"))
+        {
+            rec_bgmk += 1;
+        } else {
+            rec_cited += 1;
         }
     }
     let aug = run_pass(true);
@@ -1427,10 +1467,13 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         pct(base.root_absent, base.n),
     );
     println!(
-        "  recoverable from the cache (gloss+POS matched, official root present): {} of {} root-absent ({:.1}%)",
+        "  recoverable from the cache (gloss+POS matched, official root present): {} of {} root-absent ({:.1}%) — {} reachable by the conservative rule, {} only under a cited language, {} only as bg/mk verb citations",
         recoverable,
         base.root_absent,
         pct(recoverable, base.root_absent),
+        rec_reachable,
+        rec_cited,
+        rec_bgmk,
     );
     println!(
         "  augmented (fill uncited languages only): exact {:.2}% ({:+.2}pp)  norm {:.2}% ({:+.2}pp)  root-absent {} ({:.1}%)",
@@ -1475,6 +1518,21 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
     writeln!(
         s,
+        "| — of which reachable by the conservative rule (root under an uncited language) | {} |",
+        rec_reachable
+    )?;
+    writeln!(
+        s,
+        "| — unreachable: root only under an already-cited language (adding it would displace the dictionary's own citation) | {} |",
+        rec_cited
+    )?;
+    writeln!(
+        s,
+        "| — unreachable: root only as a bg/mk verb citation (dropped by the no-infinitive rule) | {} |",
+        rec_bgmk
+    )?;
+    writeln!(
+        s,
         "| root-absent after augmentation | {} ({:.1}%) |",
         aug.root_absent,
         pct(aug.root_absent, aug.n)
@@ -1502,7 +1560,8 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
     writeln!(
         s,
-        "\nThe native uk/sr/bg/sl Wiktionary enrichment named in issue #4 is **data-blocked** (no per-language wiktextract dumps on disk; enrichment affects display only, not benchmark evidence) and is recorded as out of scope here."
+        "\nDisclosed limits of the A/B: candidates need ≥2 shared gloss tokens (or full cover of the shorter gloss); the per-language pick is the highest-overlap candidate; reflexive meanings are excluded from augmentation (added forms would bypass reflexive-marker stripping); and the conservative fill-uncited-only rule cannot reach roots that sit under an already-cited language — the reachable share is reported separately above, and even a perfect recovery of it bounds the gain below {:.2}pp exact.\n\nThe native uk/sr/bg/sl Wiktionary enrichment named in issue #4 is **data-blocked** (no per-language wiktextract dumps on disk; enrichment affects display only, not benchmark evidence) and is recorded as out of scope here.",
+        100.0 * rec_reachable as f32 / base.n.max(1) as f32
     )?;
     std::fs::write(out_dir.join("evidence-growth.md"), s)?;
     println!("Wrote {}", out_dir.join("evidence-growth.md").display());
