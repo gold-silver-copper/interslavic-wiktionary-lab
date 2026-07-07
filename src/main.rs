@@ -130,6 +130,15 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// Multi-word & aspect-pair benchmark: reflexive `X sę`, two-token
+    /// collocations (per-position reconstruction), ipf/pf pair accuracy
+    /// (Track B / issue #2).
+    MultiwordEval {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
     /// Data-quality / ceiling audit: classify misses and cognate cohesion.
     Audit {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
@@ -234,6 +243,7 @@ fn main() -> Result<()> {
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),
         Command::CorpusEval { official, out } => eval::run_corpus_eval(&official, &out),
         Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
+        Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),

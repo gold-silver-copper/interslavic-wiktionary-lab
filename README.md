@@ -134,6 +134,15 @@ The Proto-Slavic rule engine is measured in isolation by a dedicated benchmark
 to a reconstruction it derives the official lemma with **46.68% exact / 52.74%
 normalized** accuracy.
 
+**Multi-word & aspect slices** (`cargo run --release -- multiword-eval`): the
+headline benchmark excludes all 1,837 multi-word official lemmas; this scores
+them separately — reflexive `X sę` (561 lemmas, the existing pipeline just never
+scored them): **25.0% exact / 30.8% normalized**; two-token collocations
+reconstructed per position with gender agreement (886 of 1,083 generatable):
+**11.9% / 17.7%**; and 1,440 morphologically related 1:1 ipf/pf **aspect
+pairs**: both members correct 16.5%, one 32.9%, neither 50.6%. Full report:
+`target/eval/multiword-aspect.md`.
+
 **Word-formation layer** (`src/derive.rs`, `cargo run --release -- derive-eval`):
 from one citation form the engine derives its regular family — abstract `-osť`,
 adverb, verbal noun `-ńje` (with iotation: prositi→prošeńje, roditi→rođeńje),
@@ -335,6 +344,10 @@ cargo run --release -- audit
 # Benchmark the derivation layer (word families): mined official base→derivative
 # pairs, seam-aware morphology vs naive concatenation:
 cargo run --release -- derive-eval
+
+# Multi-word & aspect-pair benchmark: reflexive `X sę`, two-token collocations,
+# ipf/pf pair accuracy (slices the headline benchmark excludes):
+cargo run --release -- multiword-eval
 
 # Diagnostic-only oracle ladder (per-stage upper-bound headroom; reads the answer,
 # never feeds production):
