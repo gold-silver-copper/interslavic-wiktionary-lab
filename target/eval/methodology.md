@@ -88,3 +88,15 @@ A monotone score→probability map (decile histogram + pool-adjacent-violators) 
 | Brier | 0.2339 | 0.1953 | -0.0386 |
 
 The recalibrated probability is what a downstream consumer (site reliability badge, novel-word filter) should read as *P(matches the official lemma)*; the raw score remains the ranking key. Refit whenever the ladder changes.
+
+### Proposal-filter operating points (calibrated p, holdout split)
+
+| threshold | n ≥ t | precision | recall |
+|---:|---:|---:|---:|
+| ≥ 0.3 | 2859 | 61.7% | 88.9% |
+| ≥ 0.4 | 2212 | 68.9% | 76.8% |
+| ≥ 0.5 | 2212 | 68.9% | 76.8% |
+| ≥ 0.6 | 1835 | 71.8% | 66.3% |
+| ≥ 0.7 | 1490 | 72.9% | 54.7% |
+
+The site's novel-word buckets (`export`) read these operating points: **propose** = calibrated p at the high-precision cutoff, **review** = the middle band, below = not shown. The committed calibrator is `data/score-calibration.json`.

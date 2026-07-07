@@ -16,6 +16,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+mod calibrate;
 mod consensus;
 mod corpus;
 mod derive;

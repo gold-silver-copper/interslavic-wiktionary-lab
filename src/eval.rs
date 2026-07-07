@@ -2429,6 +2429,62 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
         brier_cal - brier_raw,
     )?;
 
+    // Persist the fitted calibrator (Track C / issue #3): the site's novel-word
+    // pipeline reads every proposal's calibrated P(matches an official
+    // decision) from this committed file, so the static build stays
+    // self-contained. Regenerated (refitted) by every `evaluate` run.
+    let pr_at = |t: f64| -> (f64, f64) {
+        let sel: Vec<&&EntryResult> = held.iter().filter(|r| calibrate(r.score) >= t).collect();
+        let hits = sel.iter().filter(|r| r.normalized).count();
+        let total = held.iter().filter(|r| r.normalized).count().max(1);
+        (
+            hits as f64 / sel.len().max(1) as f64,
+            hits as f64 / total as f64,
+        )
+    };
+    let cal = crate::calibrate::Calibration {
+        fitted_on: format!(
+            "evaluate dev split ({} entries), production rung '{}'",
+            dev.len(),
+            production.name
+        ),
+        holdout_ece: ece_cal,
+        propose_pr: pr_at(crate::calibrate::PROPOSE_T),
+        review_pr: pr_at(crate::calibrate::REVIEW_T),
+        deciles: iso,
+    };
+    std::fs::write(crate::calibrate::PATH, serde_json::to_string_pretty(&cal)?)?;
+
+    // ---- 6. Proposal-filter operating points (Track C / issue #3) ----
+    // The novel-word pipeline buckets proposals by calibrated probability. This
+    // table is the evidence for the thresholds: at each cutoff t, `precision` =
+    // P(normalized match | p ≥ t) on the benchmark, `recall` = share of all
+    // matches captured. Computed on the HOLDOUT split so the operating points
+    // are honest out-of-sample numbers.
+    writeln!(
+        s,
+        "\n### Proposal-filter operating points (calibrated p, holdout split)\n\n| threshold | n ≥ t | precision | recall |\n|---:|---:|---:|---:|"
+    )?;
+    let total_hits = held.iter().filter(|r| r.normalized).count().max(1);
+    for t10 in [3usize, 4, 5, 6, 7] {
+        let t = t10 as f64 / 10.0;
+        let sel: Vec<&&EntryResult> = held.iter().filter(|r| calibrate(r.score) >= t).collect();
+        let hits = sel.iter().filter(|r| r.normalized).count();
+        writeln!(
+            s,
+            "| ≥ {:.1} | {} | {:.1}% | {:.1}% |",
+            t,
+            sel.len(),
+            100.0 * hits as f64 / sel.len().max(1) as f64,
+            100.0 * hits as f64 / total_hits as f64,
+        )?;
+    }
+    writeln!(
+        s,
+        "\nThe site's novel-word buckets (`export`) read these operating points: **propose** = calibrated p at the high-precision cutoff, **review** = the middle band, below = not shown. The committed calibrator is `{}`.",
+        crate::calibrate::PATH
+    )?;
+
     std::fs::write(out_dir.join("methodology.md"), s)?;
 
     // Full per-entry predictions dump (hits AND misses) for offline pattern
