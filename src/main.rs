@@ -18,6 +18,7 @@ use std::path::PathBuf;
 
 mod consensus;
 mod corpus;
+mod derive;
 mod dump;
 mod enrich;
 mod eval;
@@ -115,6 +116,14 @@ enum Command {
     /// Benchmark the SITE's generation path (corpus::generate_set) against the
     /// official dictionary — the cognate-set path's own leakage-free accuracy.
     CorpusEval {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
+    /// Benchmark the derivation layer: mined official base→derivative pairs,
+    /// seam-aware layer vs naive concatenation (Track A / issue #1).
+    DeriveEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
         #[arg(long, default_value = "target/eval")]
@@ -223,6 +232,7 @@ fn main() -> Result<()> {
         Command::Explain { query, official } => eval::explain(&official, &query),
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),
         Command::CorpusEval { official, out } => eval::run_corpus_eval(&official, &out),
+        Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),

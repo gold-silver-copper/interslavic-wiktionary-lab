@@ -2079,6 +2079,12 @@ fn is_holdout(id: &str) -> bool {
     fnv1a(id) % 4 == 0
 }
 
+/// Public alias for other benchmarks (derive-eval etc.) so every report uses
+/// the SAME seeded split.
+pub fn is_holdout_id(id: &str) -> bool {
+    is_holdout(id)
+}
+
 /// Complementary error function (Abramowitz & Stegun 7.1.26, |ε| ≤ 1.5e-7),
 /// enough precision for p-value reporting.
 fn erfc(x: f64) -> f64 {

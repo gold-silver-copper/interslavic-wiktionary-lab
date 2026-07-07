@@ -644,6 +644,16 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             Some((_, isv, _)) => synonyms_block(isv, &thesaurus, &isv_to_id),
             None => String::new(),
         };
+        // Word-formation family from the display headword (the official lemma
+        // when matched, else the reconstruction).
+        let derivation = derivation_block(
+            p.matched
+                .as_ref()
+                .map(|(_, isv, _)| isv.as_str())
+                .unwrap_or_else(|| p.g.form()),
+            p.g.set.pos,
+            &isv_to_id,
+        );
         let meta = meta_by_id.get(&p.id).expect("generated entry meta");
         let wiki_top = entry_tabs(meta) + &homograph_notice(meta, &homographs);
         let entry_card = entry_infobox(meta);
@@ -665,6 +675,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             enrich.as_ref(),
             Some(&xref),
             &synonyms,
+            &derivation,
             &wiki_top,
             &entry_card,
             &wiki_bottom,
@@ -941,6 +952,7 @@ fn corpus_entry_page(
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
     synonyms: &str,
+    derivation: &str,
     wiki_top: &str,
     entry_card: &str,
     wiki_bottom: &str,
@@ -1045,7 +1057,7 @@ fn corpus_entry_page(
                <h1 class='page-title firstHeading'>{headword}</h1>\
                {banner}{headline}\
                <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}</section>\
-               {synonyms}\
+               {synonyms}{derivation}\
                <section><h2 id='cognaty'>Srodne slova — {nlangs} językov</h2>{cognates}</section>\
                {etymology}{native_conn}{family}\
                <section><h2 id='sled'>Sled pravil</h2>{trace}</section>\
@@ -1203,6 +1215,48 @@ fn synonyms_block(
         let _ = write!(chips, "<a class='{cls}' href='{href}'>{}</a>", esc(s));
     }
     format!("<section><h2 id='synonimy'>Synonimy</h2><div class='chips'>{chips}</div></section>")
+}
+
+/// The headword's regular derivational family (Track A / issue #1): each
+/// seam-aware derivative as a chip — cross-linked when it is a site headword,
+/// marked as a machine proposal otherwise. Derivation is deterministic
+/// (`derive::derive_family`), so the block is reproducible byte-for-byte.
+fn derivation_block(
+    headword: &str,
+    pos: crate::model::Pos,
+    isv_to_id: &std::collections::HashMap<String, usize>,
+) -> String {
+    let fam = crate::derive::derive_family(headword, pos);
+    if fam.is_empty() {
+        return String::new();
+    }
+    let mut chips = String::new();
+    for d in &fam {
+        let key = crate::orthography::to_standard(&d.form.to_lowercase());
+        match isv_to_id.get(&key) {
+            Some(id) => {
+                let _ = write!(
+                    chips,
+                    "<a class='chip xref' href='{id}.html' title='{}'>{}</a>",
+                    esc(d.label),
+                    esc(&d.form)
+                );
+            }
+            None => {
+                let _ = write!(
+                    chips,
+                    "<span class='chip redlink' title='{} — mašinovo prědloženje, ne v slovniku'>{}<sup>?</sup></span>",
+                    esc(d.label),
+                    esc(&d.form)
+                );
+            }
+        }
+    }
+    format!(
+        "<section><h2 id='slovotvorstvo'>Slovotvorstvo</h2><div class='chips'>{chips}</div>\
+         <p class='muted'>Pravilne odvodženja (palatalizacija prěd sufiksami, jotacija prěd -ńje, O⇒E po mękkyh). \
+         Sinje = stranica na sajtě; <sup>?</sup> = pravilno tvorjeny kandidat bez zapisa v slovniku.</p></section>"
+    )
 }
 
 /// The cognate set: every attesting Slavic lemma, grouped by branch.

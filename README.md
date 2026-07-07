@@ -127,6 +127,18 @@ The Proto-Slavic rule engine is measured in isolation by a dedicated benchmark
 to a reconstruction it derives the official lemma with **46.68% exact / 52.74%
 normalized** accuracy.
 
+**Word-formation layer** (`src/derive.rs`, `cargo run --release -- derive-eval`):
+from one citation form the engine derives its regular family — abstract `-osť`,
+adverb, verbal noun `-ńje` (with iotation: prositi→prošeńje, roditi→rođeńje),
+agentive `-telj`/`-teljstvo`/`-teljka`, denominal `-ny`/`-sky` (with first
+palatalization: kniga→knižny, Grek→grečsky), diminutive `-ka`/`-ica`, negation
+`ne-`. Benchmarked on **2,214 derivationally related official lemma pairs**
+(mined by inverse suffix lookup; the layer derives the official base forward and
+never sees the derivative): **96.1% exact / 99.7% normalized**, vs 48.1% / 83.6%
+for naive concatenation — the seam morphophonemics is worth **+48pp exact**.
+Every entry page shows the family ("Slovotvorstvo") with official members
+cross-linked and unattested members marked as machine proposals.
+
 **Confidence calibration** (high-confidence candidates match far more often — as intended):
 
 | confidence | n | normalized match |
@@ -310,6 +322,10 @@ cargo run --release -- corpus-eval
 
 # Data-quality / ceiling audit (classifies every miss + per-stage attribution):
 cargo run --release -- audit
+
+# Benchmark the derivation layer (word families): mined official base→derivative
+# pairs, seam-aware morphology vs naive concatenation:
+cargo run --release -- derive-eval
 
 # Diagnostic-only oracle ladder (per-stage upper-bound headroom; reads the answer,
 # never feeds production):
