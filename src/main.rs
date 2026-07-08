@@ -17,12 +17,14 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 mod calibrate;
+mod check;
 mod consensus;
 mod corpus;
 mod derive;
 mod dump;
 mod enrich;
 mod eval;
+mod forms;
 mod generator;
 mod lang;
 mod model;
@@ -155,6 +157,18 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// Verify an Interslavic text against the lexicon: classify every token
+    /// (known-lemma / known-form / generated / unknown), suggest nearest
+    /// lemmas, apply curated semantic-trap warnings (issue #11).
+    CheckText {
+        /// Text file to verify.
+        file: PathBuf,
+        /// Emit machine-readable JSON instead of the human summary.
+        #[arg(long)]
+        json: bool,
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+    },
     /// Data-quality / ceiling audit: classify misses and cognate cohesion.
     Audit {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
@@ -262,6 +276,11 @@ fn main() -> Result<()> {
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
         Command::EvidenceEval { official, out } => eval::run_evidence_eval(&official, &out),
         Command::InflectEval { official, out } => site::run_inflect_eval(&official, &out),
+        Command::CheckText {
+            file,
+            json,
+            official,
+        } => check::run(&official, &file, json),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
         Command::SelectEval { official, out } => eval::run_select_eval(&official, &out),

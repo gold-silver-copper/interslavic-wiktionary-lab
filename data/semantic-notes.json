@@ -1,0 +1,39 @@
+{
+  "koristny": {
+    "warning": "Official meaning: 'useful, helpful, profitable'. Russian speakers may wrongly avoid it (ru корыстный = mercenary, self-interested) — in Interslavic it is the normal word for 'useful'."
+  },
+  "pytati": {
+    "warning": "Official meaning: 'to ask'. Russian speakers may read it as 'to torture' (ru пытать); in Interslavic it simply means asking a question."
+  },
+  "čas": {
+    "warning": "Official meaning: 'time' (the general concept). South Slavic speakers may read it as 'hour' or 'a moment' (sr/bg час); do not use it for clock hours."
+  },
+  "jutro": {
+    "warning": "Official meaning: 'morning'. Polish speakers may read it as 'tomorrow' (pl jutro)."
+  },
+  "slovo": {
+    "warning": "Official meaning: 'word'. Croatian/Serbian speakers may read it as 'letter of the alphabet' (bcs slovo), Bulgarian speakers as 'speech'."
+  },
+  "stol": {
+    "warning": "Ambiguous by attestation: the dictionary glosses it both 'table' (as in cs stůl, ru стол) and 'chair' (as in bg стол). Prefer an unambiguous phrasing when the distinction matters."
+  },
+  "stolica": {
+    "warning": "Official meaning: 'capital city'. Bulgarian speakers may read it as 'chair', Polish speakers know stolica = capital too, but English speakers should not read 'stool'."
+  },
+  "urok": {
+    "warning": "Official meaning: 'charm, spell'. Russian speakers may read it as 'lesson' (ru урок) — it is not a lesson in Interslavic.",
+    "prefer": ["lekcija"]
+  },
+  "rok": {
+    "warning": "Official meaning: 'year'. Croatian/Serbian speakers may read it as 'deadline, term' (bcs rok); in Interslavic it is the year (as in pl rok)."
+  },
+  "vonjati": {
+    "warning": "Ambiguous by attestation: glossed both 'to smell' and 'to stink, reek'. Czech speakers expect the pleasant sense (cs vonět), Russian speakers the foul one (ru вонять) — make the polarity explicit in context."
+  },
+  "žena": {
+    "warning": "Glossed both 'woman' and 'wife' (as across Slavic). Context must disambiguate."
+  },
+  "trg": {
+    "warning": "Official meaning: 'market'. Croatian/Serbian speakers may read it as 'town square' (bcs trg)."
+  }
+}

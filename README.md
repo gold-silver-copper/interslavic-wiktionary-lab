@@ -395,6 +395,45 @@ cargo run -- explain duša
 cargo run -- explain "computer"
 ```
 
+## Lexical verification API (for humans and AI agents)
+
+Every `export` also writes a **static, deterministic lexical API** under
+`site/api/` (issue #11) — one `FormRecord` pipeline feeds both the website's
+inflection tables and the machine-readable artifacts, so they cannot drift:
+
+- `api/forms/<n>.json` — the **sharded form index** (~328k analysis records:
+  every official lemma + its full paradigm, byform variants split, syncretic
+  cells merged). Shard routing: `n = fnv1a32(key) % 1024` over the folded key
+  (`to_standard` lowercase) — mirrored in the site's client-side JS.
+- `api/lemmas.json` — every headword with status (`official` /
+  `official-only` / `generated`) and, for generated lemmas, the calibrated
+  probability. Generated lemmas deliberately have **no inflection records**:
+  an inflected form of a wrong reconstruction is confidently wrong.
+- `api/meta.json` — schema version, counts, sizes, license, router spec.
+- `api/agent-guide.md` — the lookup protocol, fold table and trust rules
+  (p < 0.6 ⇒ suggestion, never verification).
+
+Website twins of the API: **`forms.html`** (reverse lookup of any inflected
+form → analyses + entry links; also linked from every inflection table) and
+**`text-check.html`** (paste text, every token verified client-side). The
+CLI equivalent:
+
+```bash
+cargo run --release -- check-text tekst.txt          # human summary
+cargo run --release -- check-text tekst.txt --json   # for agents
+```
+
+classifies every token (known-lemma / known-form / generated / unknown with
+nearest-lemma suggestions; two-token keys — reflexive `X sę` verbs and
+two-word official lemmas — resolve via a general bigram lookup) and applies
+the curated false-friend notes in `data/semantic-notes.json` (each note
+anchored to the official gloss; the web twin reads the same notes from
+`api/notes.json`). CI-tested: round-trip (rendered table cells appear in the
+records — unit-scale per POS) and self-verification (sampled official lemmas
+and paradigm cells resolve as known; garbage as unknown). Determinism is
+by construction (no timestamps in `api/`, BTreeMap ordering) and was
+verified by hashing two consecutive exports.
+
 ## Website
 
 Each entry page shows:

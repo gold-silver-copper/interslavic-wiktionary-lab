@@ -196,6 +196,8 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
     );
     std::fs::write(out_dir.join("index.html"), home)?;
     std::fs::write(out_dir.join("search.html"), search_page())?;
+    std::fs::write(out_dir.join("forms.html"), forms_page())?;
+    std::fs::write(out_dir.join("text-check.html"), text_check_page())?;
     std::fs::write(
         out_dir.join("about.html"),
         about_page(
@@ -891,6 +893,163 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         proposals_page(&proposals, calibration.as_ref(), &curation),
     )?;
 
+    // ---- Lexical verification API (issue #11) ----
+    // One FormRecord pipeline: lemma records for every page headword, full
+    // paradigm records for official headwords (an inflected form of a machine
+    // reconstruction would be confidently wrong — generated lemmas contribute
+    // their citation form with the calibrated probability instead). Written as
+    // the sharded static API under api/ plus meta.json and the agent guide.
+    let mut form_sink = crate::forms::RecordSink::default();
+    let mut lemma_sink = crate::forms::RecordSink::default();
+    let mut seen_paradigm: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for p in &prepared {
+        if p.suppressed {
+            continue;
+        }
+        let (headword, status, gloss): (String, &'static str, String) = match &p.matched {
+            Some((_, isv, en)) => (isv.clone(), "official", en.clone()),
+            None => (p.g.form().to_string(), "generated", p.g.set.gloss.clone()),
+        };
+        if headword.is_empty() || headword.contains('!') {
+            continue;
+        }
+        let prob = (status == "generated").then(|| {
+            calibration
+                .as_ref()
+                .map(|c| c.probability(p.g.score))
+                .unwrap_or(p.g.score as f64)
+        });
+        // A matched headword's paradigm must use the OFFICIAL part of speech —
+        // the form-only official match can cross POS, and a wrong-POS paradigm
+        // exported as verification-grade would be confidently wrong.
+        let pos = match &p.matched {
+            Some((_, isv, _)) => official_map
+                .get(&crate::orthography::to_standard(&isv.to_lowercase()))
+                .map(|(_, _, pos)| *pos)
+                .unwrap_or(p.g.set.pos),
+            None => p.g.set.pos,
+        };
+        lemma_sink.add(
+            &headword,
+            "",
+            &headword,
+            p.id,
+            pos.code(),
+            "lemma",
+            status,
+            prob,
+            &gloss,
+        );
+        form_sink.add(
+            &headword,
+            "",
+            &headword,
+            p.id,
+            pos.code(),
+            "lemma",
+            status,
+            prob,
+            &gloss,
+        );
+        if status == "official" && seen_paradigm.insert(format!("{headword}|{}", pos.code())) {
+            crate::forms::paradigm_records(
+                &mut form_sink,
+                &headword,
+                pos,
+                p.id,
+                "official",
+                None,
+                &gloss,
+            );
+        }
+    }
+    for (oid, e) in &official_only_records {
+        let isv = e.isv.trim();
+        if isv.is_empty() || isv.contains('#') || isv.contains('!') {
+            continue;
+        }
+        lemma_sink.add(
+            isv,
+            "",
+            isv,
+            *oid,
+            e.pos.code(),
+            "lemma",
+            "official-only",
+            None,
+            &e.english,
+        );
+        form_sink.add(
+            isv,
+            "",
+            isv,
+            *oid,
+            e.pos.code(),
+            "lemma",
+            "official-only",
+            None,
+            &e.english,
+        );
+        if seen_paradigm.insert(format!("{isv}|{}", e.pos.code())) {
+            crate::forms::paradigm_records(
+                &mut form_sink,
+                isv,
+                e.pos,
+                *oid,
+                "official-only",
+                None,
+                &e.english,
+            );
+        }
+    }
+    let form_records = form_sink.into_records();
+    let lemma_records = lemma_sink.into_records();
+    // Semantic-trap notes for the web text-checker (same file the CLI reads),
+    // re-keyed by folded form so the client looks up by key directly.
+    if let Ok(raw) = std::fs::read_to_string(crate::check::SEMANTIC_NOTES) {
+        if let Ok(parsed) = serde_json::from_str::<
+            std::collections::BTreeMap<String, crate::check::SemanticNote>,
+        >(&raw)
+        {
+            let mut js = String::from("{");
+            for (i, (k, v)) in parsed.iter().enumerate() {
+                if i > 0 {
+                    js.push(',');
+                }
+                let _ = write!(
+                    js,
+                    "{}:{{\"warning\":{},\"prefer\":[{}]}}",
+                    serde_json::to_string(&crate::forms::form_key(k))?,
+                    serde_json::to_string(&v.warning)?,
+                    v.prefer
+                        .iter()
+                        .map(|p| serde_json::to_string(p).unwrap_or_default())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                );
+            }
+            js.push_str("}\n");
+            std::fs::create_dir_all(out_dir.join("api"))?;
+            std::fs::write(out_dir.join("api").join("notes.json"), js)?;
+        }
+    }
+    let api_counts = crate::forms::write_api(
+        out_dir,
+        &form_records,
+        &lemma_records,
+        &build_meta.git,
+        &crate::forms::agent_guide(),
+    )?;
+    println!(
+        "api: {} form records / {} distinct keys / {} lemmas across {} shards ({} KB total, largest shard {} KB)",
+        api_counts.records,
+        api_counts.keys,
+        api_counts.lemmas,
+        crate::forms::SHARDS,
+        api_counts.bytes / 1024,
+        api_counts.largest_shard / 1024,
+    );
+
     rows.sort_by(|a, b| b.freq.total_cmp(&a.freq));
     let home = corpus_home(
         n,
@@ -905,6 +1064,8 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     );
     std::fs::write(out_dir.join("index.html"), home)?;
     std::fs::write(out_dir.join("search.html"), search_page())?;
+    std::fs::write(out_dir.join("forms.html"), forms_page())?;
+    std::fs::write(out_dir.join("text-check.html"), text_check_page())?;
     std::fs::write(
         out_dir.join("about.html"),
         corpus_about(n, lemma_total, official),
@@ -1126,7 +1287,7 @@ fn corpus_entry_page(
              <div class='entry-main'>\
                <h1 class='page-title firstHeading'>{headword}</h1>\
                {etymology}{native_conn}\
-               <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}</section>\
+               <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}<p class='muted'><a href='../forms.html?q={forms_q}'>Vse eksportovane formy togo slova (obratny indeks) →</a></p></section>\
                {synonyms}{word_formation}\
                <section><h2 id='cognaty'>Srodne slova — {nlangs} językov</h2>{cognates}</section>\
                <section><h2 id='sled'>Sled pravil</h2>{trace}</section>\
@@ -1137,6 +1298,7 @@ fn corpus_entry_page(
            </div>\
          </article>",
         headword = esc(&headword),
+        forms_q = urlencode_q(&headword),
         nlangs = g.n_langs,
     );
     page(&format!("{headword} — medžuslovjansky"), &body, 1)
@@ -1200,7 +1362,7 @@ fn official_only_page(
              <div class='entry-main'>\
                <h1 class='page-title firstHeading'>{isv}</h1>\
                {etymology}{native_conn}\
-               <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}</section>\
+               <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}<p class='muted'><a href='../forms.html?q={forms_q}'>Vse eksportovane formy togo slova (obratny indeks) →</a></p></section>\
                {synonyms}{word_formation}\
                <section><h2 id='cognaty'>Srodne slova</h2>{cog}</section>\
                {wiki_bottom}\
@@ -1210,6 +1372,7 @@ fn official_only_page(
            </div>\
          </article>",
         isv = esc(isv),
+        forms_q = urlencode_q(isv),
     );
     page(&format!("{isv} — medžuslovjansky"), &body, 1)
 }
@@ -2241,8 +2404,8 @@ fn noun_table(word: &str) -> String {
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&catch(|| ISV::noun(word, case, IsvNumber::Singular))),
-            esc(&catch(|| ISV::noun(word, case, IsvNumber::Plural))),
+            esc(&crate::forms::noun_cell(word, case, IsvNumber::Singular)),
+            esc(&crate::forms::noun_cell(word, case, IsvNumber::Plural)),
         );
     }
     s.push_str("</tbody></table>");
@@ -2258,34 +2421,34 @@ fn adj_table(word: &str) -> String {
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&catch(|| ISV::adj(
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Singular,
                 IsvGender::Masculine,
                 IsvAnimacy::Animate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Singular,
                 IsvGender::Masculine,
                 IsvAnimacy::Inanimate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Singular,
                 IsvGender::Feminine,
                 IsvAnimacy::Inanimate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Singular,
                 IsvGender::Neuter,
                 IsvAnimacy::Inanimate
-            ))),
+            )),
         );
     }
     s.push_str("</tbody></table>");
@@ -2295,34 +2458,34 @@ fn adj_table(word: &str) -> String {
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&catch(|| ISV::adj(
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Plural,
                 IsvGender::Masculine,
                 IsvAnimacy::Animate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Plural,
                 IsvGender::Masculine,
                 IsvAnimacy::Inanimate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Plural,
                 IsvGender::Feminine,
                 IsvAnimacy::Inanimate
-            ))),
-            esc(&catch(|| ISV::adj(
+            )),
+            esc(&crate::forms::adj_cell(
                 word,
                 case,
                 IsvNumber::Plural,
                 IsvGender::Neuter,
                 IsvAnimacy::Inanimate
-            ))),
+            )),
         );
     }
     s.push_str("</tbody></table>");
@@ -2330,11 +2493,8 @@ fn adj_table(word: &str) -> String {
 }
 
 fn verb_table(word: &str, reflexive: bool) -> String {
-    let paradigm = match std::panic::catch_unwind(|| ISV::verb_forms(word)) {
-        Ok(p) => p,
-        Err(_) => {
-            return "<p class='muted'>Prěgibanje glagola ne može byti generovano.</p>".to_string()
-        }
+    let Some(cells) = crate::forms::verb_cells(word, reflexive) else {
+        return "<p class='muted'>Prěgibanje glagola ne može byti generovano.</p>".to_string();
     };
     let finite_labels = [
         "1. jedn.",
@@ -2355,6 +2515,9 @@ fn verb_table(word: &str, reflexive: bool) -> String {
         "3. množ.",
     ];
     let imperative_labels = ["2. jedn.", "1. množ.", "2. množ."];
+    let cell = |v: &[String], i: usize| -> String {
+        v.get(i).cloned().unwrap_or_else(|| "—".to_string())
+    };
     let mut s = String::new();
     s.push_str("<h3>Proste i složene vrěmena</h3><table class='wikitable inflection-table verb-wide'><thead><tr><th>Osoba</th><th>Teperešnje</th><th>Nedokončene prošlo</th><th>Budųće</th></tr></thead><tbody>");
     for (i, label) in finite_labels.iter().enumerate() {
@@ -2362,9 +2525,9 @@ fn verb_table(word: &str, reflexive: bool) -> String {
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&verb_form(&paradigm.present, i, reflexive)),
-            esc(&verb_form(&paradigm.imperfect, i, reflexive)),
-            esc(&verb_form(&paradigm.future, i, reflexive)),
+            esc(&cell(&cells.present, i)),
+            esc(&cell(&cells.imperfect, i)),
+            esc(&cell(&cells.future, i)),
         );
     }
     s.push_str("</tbody></table>");
@@ -2375,9 +2538,9 @@ fn verb_table(word: &str, reflexive: bool) -> String {
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&verb_form(&paradigm.perfect, i, reflexive)),
-            esc(&verb_form(&paradigm.pluperfect, i, reflexive)),
-            esc(&verb_form(&paradigm.conditional, i, reflexive)),
+            esc(&cell(&cells.perfect, i)),
+            esc(&cell(&cells.pluperfect, i)),
+            esc(&cell(&cells.conditional, i)),
         );
     }
     s.push_str("</tbody></table>");
@@ -2388,30 +2551,22 @@ fn verb_table(word: &str, reflexive: bool) -> String {
             s,
             "<tr><th>{}</th><td>{}</td></tr>",
             label,
-            esc(&verb_form(&paradigm.imperative, i, reflexive)),
+            esc(&cell(&cells.imperative, i)),
         );
     }
     s.push_str("</tbody></table>");
 
-    let prap = paradigm.prap.unwrap_or_else(|| "—".to_string());
-    let prpp = paradigm.prpp.unwrap_or_else(|| "—".to_string());
-    let pfpp = paradigm.pfpp.unwrap_or_else(|| "—".to_string());
-    let nonfinite = [
-        ("Infinitiv", paradigm.infinitive),
-        ("Aktivny participij teperešnji", prap),
-        ("Pasivny participij teperešnji", prpp),
-        ("Aktivny participij prošly", paradigm.pfap),
-        ("Pasivny participij prošly", pfpp),
-        ("Gerundij", paradigm.gerund),
+    let nonfinite_labels = [
+        "Infinitiv",
+        "Aktivny participij teperešnji",
+        "Pasivny participij teperešnji",
+        "Aktivny participij prošly",
+        "Pasivny participij prošly",
+        "Gerundij",
     ];
     s.push_str("<h3>Neosobne formy</h3><table class='wikitable inflection-table'><tbody>");
-    for (label, form) in nonfinite {
-        let _ = write!(
-            s,
-            "<tr><th>{}</th><td>{}</td></tr>",
-            label,
-            esc(&append_reflexive(&form, reflexive)),
-        );
+    for (label, (_, form)) in nonfinite_labels.iter().zip(cells.nonfinite.iter()) {
+        let _ = write!(s, "<tr><th>{}</th><td>{}</td></tr>", label, esc(form));
     }
     s.push_str("</tbody></table>");
     s
@@ -2479,8 +2634,11 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 n_words += 1;
                 let mut cells: Vec<(String, &'static str)> = Vec::new();
                 for (_, case) in case_rows() {
-                    cells.push((catch(|| ISV::noun(bare, case, IsvNumber::Singular)), "sg"));
-                    cells.push((catch(|| ISV::noun(bare, case, IsvNumber::Plural)), "pl"));
+                    cells.push((
+                        crate::forms::noun_cell(bare, case, IsvNumber::Singular),
+                        "sg",
+                    ));
+                    cells.push((crate::forms::noun_cell(bare, case, IsvNumber::Plural), "pl"));
                 }
                 let blanks = cells.iter().filter(|(c, _)| c == "—").count();
                 n_cells += cells.len();
@@ -2495,7 +2653,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // cell like "den / denj" passes if any variant echoes it).
                 // Pluralia tantum are cited in the plural — no singular echo.
                 if !plurale_tantum {
-                    let nom = catch(|| ISV::noun(bare, IsvCase::Nom, IsvNumber::Singular));
+                    let nom = crate::forms::noun_cell(bare, IsvCase::Nom, IsvNumber::Singular);
                     let ok = nom.split('/').any(|v| fold(v) == fold(bare));
                     check(&mut inv, "noun nom.sg = citation form", ok);
                     if !ok && fail_sample.len() < 30 {
@@ -2517,7 +2675,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     && !indeclinable
                     && !a_stem
                 {
-                    let gen = catch(|| ISV::noun(bare, IsvCase::Gen, IsvNumber::Singular));
+                    let gen = crate::forms::noun_cell(bare, IsvCase::Gen, IsvNumber::Singular);
                     // A multi-variant cell (čuda / čudese) passes if any variant
                     // carries the diagnostic -a; substantivized adjectives pass
                     // on the adjectival -ogo/-ego.
@@ -2544,7 +2702,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                         (IsvGender::Neuter, IsvAnimacy::Inanimate),
                     ] {
                         for num in [IsvNumber::Singular, IsvNumber::Plural] {
-                            let c = catch(|| ISV::adj(bare, case, num, g, a));
+                            let c = crate::forms::adj_cell(bare, case, num, g, a);
                             cnt += 1;
                             blanks += (c == "—") as usize;
                         }
@@ -2626,7 +2784,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         ("oko", "oči"),
         ("uho", "uši"),
     ] {
-        let got = catch(|| ISV::noun(base, IsvCase::Nom, IsvNumber::Plural));
+        let got = crate::forms::noun_cell(base, IsvCase::Nom, IsvNumber::Plural);
         check(
             &mut inv,
             "suppletive plurals (§3.1, from the inflector)",
@@ -3880,6 +4038,8 @@ fn special_pages_hub() -> String {
         <li><a href='suffix-index.html'>Indeks po zakončenjah</a></li>\
         <li><a href='datasets.html'>Datoteke za snimanje</a></li>\
         <li><a href='proposals.html'>Predloženja novyh slov</a></li>\
+        <li><a href='forms.html'>Iskanje form</a></li>\
+        <li><a href='text-check.html'>Prověrka teksta</a></li>\
         <li><a href='portals.html'>Językove portaly</a></li>\
         <li><a href='indices.html'>Abecedne indeksy</a></li>\
         <li><a href='graph.html'>Semantičny graf</a></li>\
@@ -4642,8 +4802,101 @@ fn proposals_page(
     page("Predloženja novyh slov — medžuslovjansky", &body, 0)
 }
 
+/// Shared client-side JS for the form index: the fold mirrors
+/// `orthography::to_standard` and the router mirrors `forms::fnv1a32` —
+/// changing either side is a schema break (see forms.rs).
+/// Minimal query-string encoder for `forms.html?q=` links (space and the few
+/// HTML-hostile characters; non-ASCII letters are legal in query strings).
+fn urlencode_q(s: &str) -> String {
+    s.replace('%', "%25")
+        .replace(' ', "%20")
+        .replace('&', "%26")
+        .replace('\'', "%27")
+        .replace('"', "%22")
+}
+
+fn forms_js() -> String {
+    const JS: &str = r#"
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function isvFold(s){s=s.toLowerCase().trim();const M={'ě':'e','ę':'e','ų':'u','å':'a','ȯ':'o','ė':'e','ĺ':'l','ľ':'l','ń':'n','ŕ':'r','ť':'t','ď':'d','ś':'s','ź':'z','ć':'č','đ':'dž'};let out='';for(const c of s){out+=(M[c]!==undefined)?M[c]:c;}return out;}
+function fnv1a32(s){const b=new TextEncoder().encode(s);let h=0x811c9dc5>>>0;for(const x of b){h^=x;h=Math.imul(h,16777619)>>>0;}return h>>>0;}
+const shardCache={};
+async function isvShard(base,n){if(shardCache[n])return shardCache[n];shardCache[n]=fetch(base+'api/forms/'+n+'.json').then(r=>r.ok?r.json():{records:{}}).catch(()=>({records:{}}));return shardCache[n];}
+async function isvLookup(base,q){const key=isvFold(q);const shard=fnv1a32(key)%__SHARDS__;const j=await isvShard(base,shard);return{key:key,recs:(j.records&&j.records[key])||[]};}
+function recHtml(base,rec){const[form,lemma,id,pos,analyses,source,status,prob,gloss]=rec;
+ const st=status==='generated'?('<span class="pill">mašinova rekonstrukcija p='+(prob==null?'?':prob.toFixed(2))+'</span>'):('<span class="pill src-official">'+escHtml(status)+'</span>');
+ const an=analyses.length?('<span class="muted">'+escHtml(analyses.join(', '))+'</span>'):'<span class="muted">(citatna forma)</span>';
+ return '<li><b>'+escHtml(form)+'</b> — <a href="'+base+'entry/'+id+'.html">'+escHtml(lemma)+'</a> <span class="badge pos">'+escHtml(pos)+'</span> '+an+' '+st+' <span class="muted">'+escHtml(gloss)+'</span></li>';}
+"#;
+    JS.replace("__SHARDS__", &crate::forms::SHARDS.to_string())
+}
+
+/// The reverse-lookup page for surface forms (issue #11 phase 2): folds the
+/// query, routes to the shard client-side, renders every analysis.
+fn forms_page() -> String {
+    let body = format!(
+        "<article class='entry'><h1 class='firstHeading'>Iskanje form</h1>\
+         <p class='lede'>Vpiši kojukoli <b>fleksijnu formu</b> (ne tolika lemmu) — na priklad <span class='mention'>pomoćnogo</span>, <span class='mention'>ljudi</span>, <span class='mention'>piše</span> — i vidiš vse analizy: lemmu, padež/čislo/rod, i stranicu zapisa.</p>\
+         <p><input id='q' type='search' placeholder='forma…' style='min-width:16em'> <button onclick='go()'>Iskaj</button></p>\
+         <div id='out'></div>\
+         <p class='muted'>Iste dane služęt strojam: <code>api/forms/&lt;n&gt;.json</code> (indeks razděljeny na {} častij), <code>api/lemmas.json</code>, <code>api/meta.json</code>, <a href='api/agent-guide.md'>api/agent-guide.md</a>.</p>\
+         <script>{}\
+async function go(){{const q=document.getElementById('q').value;if(!q)return;const r=await isvLookup('',q);const out=document.getElementById('out');\
+if(!r.recs.length){{out.innerHTML='<p>Ničto ne najdeno za ključ <b>'+escHtml(r.key)+'</b>. (Nepoznata forma ili mašinovo prědloženje bez zapisa.)</p>';return;}}\
+out.innerHTML='<p>Ključ: <b>'+escHtml(r.key)+'</b>, '+r.recs.length+' analiz:</p><ul>'+r.recs.map(x=>recHtml('',x)).join('')+'</ul>';}}\
+const p=new URLSearchParams(location.search).get('q');if(p){{document.getElementById('q').value=p;go();}}\
+</script></article>",
+        crate::forms::SHARDS,
+        forms_js(),
+    );
+    page("Iskanje form — medžuslovjansky", &body, 0)
+}
+
+/// Client-side text verification (issue #11 phase 3): the static twin of the
+/// `check-text` CLI. Same tokenizer contract (internal hyphens kept, general
+/// two-token lookup so reflexive `sę` verbs and multi-word official lemmas
+/// resolve), same semantic-trap notes (fetched from `api/notes.json`); the
+/// CLI additionally offers nearest-lemma suggestions for unknown tokens.
+fn text_check_page() -> String {
+    let body = format!(
+        "<article class='entry'><h1 class='firstHeading'>Prověrka teksta</h1>\
+         <p class='lede'>Vstavi medžuslovjansky tekst — vsaky token bųde prověrjeny protiv slovnika i vsěh fleksijnyh form. Sinje = poznato, žėlta obvodka = mašinova rekonstrukcija, čŕveno = nepoznato, ⚠ = semantična past.</p>\
+         <p><textarea id='t' rows='6' style='width:100%'></textarea></p>\
+         <p><button onclick='checkText()'>Prověri</button> <span class='muted'>CLI-blizenec: <code>cargo run -- check-text tekst.txt --json</code> (dodatno daje predloženja za nepoznate tokeny).</span></p>\
+         <div id='out'></div>\
+         <script>{}\
+let notes=null;\
+async function getNotes(){{if(notes)return notes;notes=fetch('api/notes.json').then(r=>r.ok?r.json():{{}}).catch(()=>({{}}));return notes;}}\
+async function checkText(){{\
+const text=document.getElementById('t').value;\
+const toks=text.match(/\\p{{L}}+(?:-\\p{{L}}+)*/gu)||[];\
+const out=document.getElementById('out');out.innerHTML='<p>Prověrjanje…</p>';\
+const nts=await getNotes();\
+const parts=[];let i=0;\
+while(i<toks.length){{\
+ const tok=toks[i];\
+ if(i+1<toks.length){{const bi=await isvLookup('',tok+' '+toks[i+1]);if(bi.recs.length){{parts.push(render(tok+' '+toks[i+1],bi.recs,nts,bi.key));i+=2;continue;}}}}\
+ const r=await isvLookup('',tok);parts.push(render(tok,r.recs,nts,r.key));i+=1;\
+}}\
+out.innerHTML='<p>'+parts.join(' ')+'</p><p class='+String.fromCharCode(39)+'muted'+String.fromCharCode(39)+'>Klikni slovo za polnu analizu.</p>';\
+}}\
+function render(tok,recs,nts,key){{\
+ const note=nts&&nts[key];\
+ if(!recs.length)return '<a class=\"chip redlink\" href=\"forms.html?q='+encodeURIComponent(tok)+'\" title=\"nepoznato\">'+escHtml(tok)+'</a>';\
+ const gen=recs.every(r=>r[6]==='generated');\
+ let ttl=gen?('mašinova rekonstrukcija p='+(recs[0][7]==null?'?':recs[0][7].toFixed(2))):recs.map(r=>r[1]+' ('+(r[4].join(', ')||'lemma')+')').slice(0,4).join('; ');\
+ if(note)ttl='⚠ '+note.warning+(note.prefer&&note.prefer.length?' Prefer: '+note.prefer.join(', ')+'.':'')+' — '+ttl;\
+ const style=gen?' style=\"border-color:#c90\"':(note?' style=\"border-color:#c33\"':'');\
+ return '<a class=\"chip xref\" href=\"forms.html?q='+encodeURIComponent(tok)+'\" title=\"'+escHtml(ttl)+'\"'+style+'>'+(note?'⚠':'')+escHtml(tok)+'</a>';\
+}}\
+</script></article>",
+        forms_js(),
+    );
+    page("Prověrka teksta — medžuslovjansky", &body, 0)
+}
+
 fn datasets_page() -> String {
-    let body = "<article class='entry'><h1 class='firstHeading'>Datoteke za snimanje</h1><p class='lede'>Statične JSON datoteke za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Datoteka</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, predok.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr></table></article>";
+    let body = "<article class='entry'><h1 class='firstHeading'>Datoteke za snimanje</h1><p class='lede'>Statične JSON datoteke za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Datoteka</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, predok.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom i kalibrovanoju věrojetnostju.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table></article>";
     page("Datoteke za snimanje", body, 0)
 }
 
