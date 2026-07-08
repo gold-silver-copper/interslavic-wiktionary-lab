@@ -4660,7 +4660,14 @@ fn contribute_page() -> String {
     let body = "<article class='entry'><h1 class='firstHeading'>Kako doprinositi</h1>\
       <p>Projekt je statično generovany: změni podatky, regeneruj sajt, zapusti testy, pošlji prošnju za spoj.</p>\
       <ol><li><code>cargo test</code></li><li><code>cargo run --release -- export --out site</code></li><li>Za ručne noty dodaj <code>data/curation-notes.json</code> s ključem zaglavnogo slova ili id-ja.</li><li>Za grešku v zapisu klikni <i>Popraviti / problem</i> na vrhu strany.</li></ol>\
-      <p><a href='https://github.com/gold-silver-copper/Slovowiki'>Izvorny kod na GitHub</a>.</p></article>";
+      <h2>Kuracija bez koda</h2>\
+      <ul>\
+        <li><b>Semantične pasti</b> (falšive prijatelje): <code>data/semantic-notes.json</code> — vsaka nota mųsi citovati oficialno značenje; noty sę pokazujųt v <a href='text-check.html'>Prověrkě teksta</a> i v CLI <code>check-text</code>.</li>\
+        <li><b>Predloženja novyh slov</b>: prěgledaj <a href='proposals.html'>Predloženja</a> (kalibrovana věrojetnost p) i dodaj kuratorsku notu za slovo.</li>\
+        <li><b>Prověrka form</b>: <a href='forms.html'>Iskanje form</a> pokazuje vse analizy kojejkoli fleksijnoj formy.</li>\
+      </ul>\
+      <p>Za stroje i skripty: statičny leksikalny API pod <code>api/</code> (<a href='api/agent-guide.md'>agent-guide.md</a>, <a href='datasets.html'>datoteky</a>).</p>\
+      <p><a href='https://github.com/gold-silver-copper/Slovowiki'>Izvorny kod na GitHub</a> — vidi <code>CONTRIBUTING.md</code> za metodologiju (benchmark-gated pravila, dev/holdout, značimost).</p></article>";
     page("Doprinos", body, 0)
 }
 

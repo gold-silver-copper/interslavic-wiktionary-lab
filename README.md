@@ -1,4 +1,4 @@
-# Interslavic Wiktionary Lab
+# Slovowiki (Interslavic Wiktionary Lab)
 
 The website is generated **locally** with `cargo run --release -- export --out site`
 (then open `site/index.html`, or serve it with any static server). It is not
@@ -277,8 +277,11 @@ experiments* table as documented negatives.
 
 ## Testing
 
-`cargo test` runs the unit suite (rules across `proto`, `normalize`, `orthography`,
-`morph`, `consensus`, `corpus`, `dump`, `eval`). Every rule was **adversarially
+`cargo test` runs the unit suite — 85 tests across `proto`, `normalize`,
+`orthography`, `morph`, `derive`, `consensus`, `corpus`, `dump`, `eval`,
+`forms` (API round-trips, wire-format stability) and `check`
+(self-verification: sampled official lemmas and paradigm cells must resolve
+as known, garbage as unknown). Every rule was **adversarially
 audited and triple-checked** (a finder plus two independent verifiers reproducing each
 bug against the binary); the confirmed bugs were fixed with a regression test each. CI
 (`.github/workflows/ci.yml`) runs `fmt` + `build` + the tests **and fails if exact
@@ -324,17 +327,25 @@ src/
   orthography.rs   flavored↔standard folding, ASCII skeleton, edit distance
   official.rs      official dictionary loader (quote-aware CSV / TSV)
   consensus.rs     branch-balanced modern-Slavic consensus engine (gated rules)
-  morph.rs         POS lemma endings + internationalism ending table
+  morph.rs         POS lemma endings, internationalism table, derivational suffixes
+  derive.rs        productive word-formation layer (families) + derive-eval benchmark
   proto.rs         Proto-Slavic → Interslavic ordered rule engine (+ tests)
   dump.rs          stream the 23 GB dump → Proto-Slavic cache + indexes
   proto_link.rs    leakage-free linker: explicit Wiktionary etymology + 3-signal fuzzy match
   pipeline.rs      two-stage §4.4 merge (consensus root + proto-derived form)
   overrides.rs     manual curation (TOML), excluded from pure-algorithm accuracy
   generator.rs     orchestrator: pipeline + overrides + official match status
-  eval.rs          reproducible benchmark, ablation ladder, report writers
+  eval.rs          benchmarks: ablation ladder, holdout split, significance,
+                   multiword/aspect + evidence-growth audits, report writers
+  calibrate.rs     the persisted isotonic score→probability calibrator
+  forms.rs         FormRecord pipeline: paradigm cells (single source for the
+                   site's inflection tables AND the sharded static api/)
+  check.rs         check-text: tokenizer, form lookup, semantic-trap warnings
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
+  thesaurus.rs     dictionary-derived ISV synonym thesaurus
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
-  site.rs          static site generator (export) — HTML pages + search index
+  russian_translit.rs deterministic RU→Latin display transliteration
+  site.rs          static site generator (export) — HTML pages, search, api/
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
   overrides.toml          manual curation file
@@ -342,7 +353,11 @@ data/
   proto-slavic.cache.json Proto-Slavic reconstructions (built by extract-proto)
   slavic-lemmas.cache.json every inherited + borrowed Slavic lemma (built by extract-lemmas)
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
-  novel-words.tsv         engine-derived words absent from the official dictionary
+  novel-words.tsv         novel-vocabulary proposals with calibrated probability + bucket
+  score-calibration.json  the isotonic calibrator (refit by every `evaluate` run)
+  semantic-notes.json     curated false-friend warnings (applied by check-text)
+  curation-notes.example.json  format of the optional human curation notes
+  isv-thesaurus.json      dictionary-derived synonym sets (site + synonym-eval)
 ```
 
 ## Commands
@@ -350,7 +365,7 @@ data/
 ```bash
 # One-time: stream the 23 GB dump into the Proto-Slavic cache (enables the
 # +proto-derived stage). Skip it and the engine falls back to consensus only.
-cargo run --release -- extract-proto --dump /Users/kisaczka/Desktop/code/english/raw-wiktextract-data.jsonl
+cargo run --release -- extract-proto   # dump path defaults to data const; see --dump
 
 # Reproducible benchmark against the official dictionary (fast, no dump needed):
 cargo run --release -- evaluate --official data/official-isv.csv --out target/eval
@@ -393,6 +408,12 @@ cargo run --release -- export --out site
 # Explain one word/gloss (manual spot-check with full rule trace):
 cargo run -- explain duša
 cargo run -- explain "computer"
+
+# Verify an Interslavic text against the lexicon (tokens classified as
+# known-lemma / known-form / generated / unknown, false-friend warnings,
+# nearest-lemma suggestions; --json for agents):
+cargo run --release -- check-text tekst.txt
+cargo run --release -- check-text tekst.txt --json
 ```
 
 ## Lexical verification API (for humans and AI agents)
@@ -449,7 +470,28 @@ Each entry page shows:
   extra senses, and related/synonym/antonym links (see above);
 - the **official-dictionary match status**: *officially attested* / *differs from
   official* (both shown) / *no official entry*;
-- full **inflection tables** generated by the local `interslavic` crate.
+- full **inflection tables** generated by the local `interslavic` crate, each
+  linking to the headword's reverse-index view on `forms.html`;
+- the **word-formation family** ("Slovotvorstvo"): regular derivatives with
+  seam morphophonemics, official members cross-linked, machine proposals
+  marked (families of unmatched reconstructions flagged as hypothetical);
+- **dictionary synonyms** cross-linked via the ISV thesaurus, and optional
+  **curation notes** from `data/curation-notes.json`.
+
+Site-wide tools beyond the entry pages:
+
+- **`forms.html`** — reverse lookup of any inflected form → all analyses
+  (lemma, case/number/gender, entry link), backed by the same sharded index
+  agents use;
+- **`text-check.html`** — paste Interslavic text; every token is verified
+  client-side against the lexicon, with false-friend warnings (the static twin
+  of `check-text`);
+- **`proposals.html`** ("Predloženja novyh slov") — the ranked novel-vocabulary
+  proposals with calibrated probabilities and curation notes;
+- **`metrics.html`** ("Statistiky točnosti") — every accuracy metric explained,
+  with current numbers;
+- **`datasets.html`** — all machine-readable artifacts (`api/`, `entries.json`,
+  `graph.json`, `novel-words.tsv`, `build.json`, …).
 
 ## Benchmark artifacts
 
@@ -465,6 +507,13 @@ target/eval/improvements.csv                     newly matched
 target/eval/errors-sample.csv                    nearest remaining misses
 target/eval/methodology.md                       holdout split, rung significance, bootstrap CIs, calibration
 target/eval/predictions.csv                      every entry's prediction (full dump, for offline mining)
+target/eval/derivation-report.md                 derive-eval: word-family layer vs naive baseline
+target/eval/multiword-aspect.md                  multi-word slices + ipf/pf aspect-pair accuracy
+target/eval/evidence-growth.md                   root-absent recoverability + augmentation A/B
+target/eval/inflection-report.md                 inflection census + RULE_SPEC §3 grammar invariants
+target/eval/synonym-accuracy.md                  synonym-inclusive accuracy (thesaurus-based)
+target/eval/rep-selection.md                     representative-selection probe (medoid vs oracle)
+target/eval/cluster-selection.md                 cluster-selection probe (blind rules vs oracle)
 ```
 
 The V7 full-pipeline review (stage-attribution histogram, oracle ladder, and the
