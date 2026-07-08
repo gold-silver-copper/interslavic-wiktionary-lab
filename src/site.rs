@@ -263,8 +263,16 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     }
 
     let official_entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap_or_default();
-    let mut official_map: std::collections::HashMap<String, (String, String, crate::model::Pos)> =
-        std::collections::HashMap::new();
+    #[allow(clippy::type_complexity)]
+    let mut official_map: std::collections::HashMap<
+        String,
+        (
+            String,
+            String,
+            crate::model::Pos,
+            Option<crate::model::Gender>,
+        ),
+    > = std::collections::HashMap::new();
     for e in &official_entries {
         let isv = e.isv.trim();
         if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
@@ -272,7 +280,14 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         }
         official_map
             .entry(crate::orthography::to_standard(&isv.to_lowercase()))
-            .or_insert_with(|| (isv.to_string(), e.english.clone(), e.pos));
+            .or_insert_with(|| {
+                (
+                    isv.to_string(),
+                    e.english.clone(),
+                    e.pos,
+                    e.noun_traits.gender,
+                )
+            });
     }
 
     let entry_dir = out_dir.join("entry");
@@ -334,7 +349,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             g.candidates.iter().take(5).enumerate().find_map(|(i, c)| {
                 official_map
                     .get(&crate::orthography::to_standard(&c.form.to_lowercase()))
-                    .map(|(isv, en, _)| (i + 1, isv.clone(), en.clone()))
+                    .map(|(isv, en, _, _)| (i + 1, isv.clone(), en.clone()))
             });
         for c in g.candidates.iter().take(5) {
             covered.insert(crate::orthography::to_standard(&c.form.to_lowercase()));
@@ -653,7 +668,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             Some((_, isv, _)) => {
                 let pos = official_map
                     .get(&crate::orthography::to_standard(&isv.to_lowercase()))
-                    .map(|(_, _, pos)| *pos)
+                    .map(|(_, _, pos, _)| *pos)
                     .unwrap_or(p.g.set.pos);
                 derivation_block(isv, pos, &isv_to_id, true)
             }
@@ -668,6 +683,11 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             &curation,
             &build_meta,
         );
+        let official_pg = p.matched.as_ref().and_then(|(_, isv, _)| {
+            official_map
+                .get(&crate::orthography::to_standard(&isv.to_lowercase()))
+                .map(|(_, _, pos, gender)| (*pos, *gender))
+        });
         let html = corpus_entry_page(
             p.id,
             &p.g,
@@ -675,6 +695,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             p.matched
                 .as_ref()
                 .map(|(r, isv, en)| (*r, isv.as_str(), en.as_str())),
+            official_pg,
             &family,
             enrich.as_ref(),
             Some(&xref),
@@ -901,6 +922,8 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     // the sharded static API under api/ plus meta.json and the agent guide.
     let mut form_sink = crate::forms::RecordSink::default();
     let mut lemma_sink = crate::forms::RecordSink::default();
+    crate::forms::closed_class_records(&mut form_sink);
+    crate::forms::closed_class_records(&mut lemma_sink);
     let mut seen_paradigm: std::collections::HashSet<String> = std::collections::HashSet::new();
     for p in &prepared {
         if p.suppressed {
@@ -922,12 +945,12 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         // A matched headword's paradigm must use the OFFICIAL part of speech —
         // the form-only official match can cross POS, and a wrong-POS paradigm
         // exported as verification-grade would be confidently wrong.
-        let pos = match &p.matched {
+        let (pos, gender) = match &p.matched {
             Some((_, isv, _)) => official_map
                 .get(&crate::orthography::to_standard(&isv.to_lowercase()))
-                .map(|(_, _, pos)| *pos)
-                .unwrap_or(p.g.set.pos),
-            None => p.g.set.pos,
+                .map(|(_, _, pos, gender)| (*pos, *gender))
+                .unwrap_or((p.g.set.pos, None)),
+            None => (p.g.set.pos, None),
         };
         lemma_sink.add(
             &headword,
@@ -956,6 +979,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                 &mut form_sink,
                 &headword,
                 pos,
+                gender,
                 p.id,
                 "official",
                 None,
@@ -964,42 +988,46 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         }
     }
     for (oid, e) in &official_only_records {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains('#') || isv.contains('!') {
-            continue;
-        }
-        lemma_sink.add(
-            isv,
-            "",
-            isv,
-            *oid,
-            e.pos.code(),
-            "lemma",
-            "official-only",
-            None,
-            &e.english,
-        );
-        form_sink.add(
-            isv,
-            "",
-            isv,
-            *oid,
-            e.pos.code(),
-            "lemma",
-            "official-only",
-            None,
-            &e.english,
-        );
-        if seen_paradigm.insert(format!("{isv}|{}", e.pos.code())) {
-            crate::forms::paradigm_records(
-                &mut form_sink,
+        // ~230 rows list byform variants in one cell ("iměti, imati"): each
+        // variant is its own lemma (and gets its own paradigm).
+        for isv in e.isv.split(',').map(str::trim) {
+            if isv.is_empty() || isv.contains('#') || isv.contains('!') {
+                continue;
+            }
+            lemma_sink.add(
                 isv,
-                e.pos,
+                "",
+                isv,
                 *oid,
+                e.pos.code(),
+                "lemma",
                 "official-only",
                 None,
                 &e.english,
             );
+            form_sink.add(
+                isv,
+                "",
+                isv,
+                *oid,
+                e.pos.code(),
+                "lemma",
+                "official-only",
+                None,
+                &e.english,
+            );
+            if seen_paradigm.insert(format!("{isv}|{}", e.pos.code())) {
+                crate::forms::paradigm_records(
+                    &mut form_sink,
+                    isv,
+                    e.pos,
+                    e.noun_traits.gender,
+                    *oid,
+                    "official-only",
+                    None,
+                    &e.english,
+                );
+            }
         }
     }
     let form_records = form_sink.into_records();
@@ -1188,11 +1216,16 @@ fn family_block<T: FamilyEntry>(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn corpus_entry_page(
     id: usize,
     g: &crate::corpus::GeneratedWord,
     status: MatchStatus,
     official: Option<(usize, &str, &str)>,
+    // The OFFICIAL part of speech + gender when the headword is a matched
+    // official lemma (the form-only match can cross POS; the inflection
+    // table must use the official grammar, same as the API records).
+    official_pg: Option<(crate::model::Pos, Option<crate::model::Gender>)>,
     family: &str,
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
@@ -1234,11 +1267,17 @@ fn corpus_entry_page(
             }
         }
         Some((r, _, _)) => {
-            format!("Oficialna forma; generator ju daje kako <a href='#cand-{r}'>kandidat {r}</a>.")
+            format!(
+                "Oficialna forma; generator ju davaje kako <a href='#cand-{r}'>kandidat {r}</a>."
+            )
         }
         None => "Forma je generovana iz srodnyh slov; ne v oficialnom slovniku.".to_string(),
     };
-    let inflection = inflection_table(&headword, pos_code);
+    let (infl_pos, infl_gender) = match official_pg {
+        Some((p, g)) => (p.code(), g),
+        None => (pos_code, None),
+    };
+    let inflection = inflection_table_g(&headword, infl_pos, infl_gender);
     let mut info_rows = String::new();
     let _ = write!(info_rows, "<tr><th>Smysl</th><td>{}</td></tr>", esc(&gloss));
     if !recon_line.is_empty() {
@@ -1346,7 +1385,7 @@ fn official_only_page(
     } else {
         cog.push_str("<p class='muted'>Bez slovjanskogo srodnogo dokaza v slovniku.</p>");
     }
-    let inflection = inflection_table(isv, e.pos.code());
+    let inflection = inflection_table_g(isv, e.pos.code(), e.noun_traits.gender);
     let mut info_rows = String::new();
     let _ = write!(
         info_rows,
@@ -1502,12 +1541,12 @@ fn derivation_block(
     let base_note = if attested_base {
         String::new()
     } else {
-        " <b>Baza je mašinova rekonstrukcija</b> (ne oficialna lemma), zato odvodženja sų hypotetične.".to_string()
+        " <b>Baza je mašinova rekonstrukcija</b> (ne oficialna lemma), zato odvodženja sųt hypotetične.".to_string()
     };
     format!(
         "<div class='formation-derived'><h3>Pravilne odvodženja</h3>\
          <table class='wikitable compact-table formation-table'><thead><tr><th>Forma</th><th>Čęst rěči</th><th>Obrazec</th><th>Stav</th></tr></thead><tbody>{rows}</tbody></table>\
-         <p class='muted'>Pokazano {} tvorjenyh form: {} imajų stranicu, {} sų samo pravilno tvorjeni kandidaty. Pravila vključaų palatalizaciju prěd sufiksami, jotaciju prěd -ńje i O⇒E po mękkyh.{base_note}</p></div>",
+         <p class='muted'>Pokazano {} tvorjenyh form: {} imajųt stranicu, {} sų samo pravilno tvorjeni kandidaty. Pravila vključajųt palatalizaciju prěd sufiksami, jotaciju prěd -ńje i O⇒E po mękkyh.{base_note}</p></div>",
         fam.len(),
         linked,
         proposed
@@ -1590,12 +1629,12 @@ fn unified_etymology_section(
 ) -> String {
     let summary = if g.set.borrowed {
         format!(
-            "<p>Internacionalizm (zaimka). Etimon: <span class='mention'>{}</span>. Slovjanske refleksy i izvorne etimologije sų niže.</p>",
+            "<p>Internacionalizm (pozajęto slovo). Etimon: <span class='mention'>{}</span>. Slovjanske refleksy i izvorne etimologije sųt niže.</p>",
             esc(&etymon_display(&g.set.etymon))
         )
     } else {
         format!(
-            "<p>Iz praslovjanskogo <a class='mention' href='https://en.wiktionary.org/wiki/Reconstruction:Proto-Slavic/{p}'>*{p}</a>. Niže sų izvorne etimologije iz anglijskogo i narodnyh Wiktionary.</p>",
+            "<p>Iz praslovjanskogo <a class='mention' href='https://en.wiktionary.org/wiki/Reconstruction:Proto-Slavic/{p}'>*{p}</a>. Niže sųt izvorne etimologije iz anglijskogo i narodnyh Wiktionary.</p>",
             p = esc(g.set.proto.trim_start_matches('*')),
         )
     };
@@ -1614,7 +1653,7 @@ fn unified_etymology_section(
         format!("<section><h2 id='etimologija'>Etimologija</h2>{summary}</section>")
     } else {
         format!(
-            "<section><h2 id='etimologija'>Etimologija</h2>{summary}<div class='etym-sources'>{cards}</div><p class='muted'>Izvorne etimologije sų vzęte iz Wiktionary (CC BY-SA); anglijsky tekst ostaje anglijsky, rusky tekst jest transliterovany.</p></section>"
+            "<section><h2 id='etimologija'>Etimologija</h2>{summary}<div class='etym-sources'>{cards}</div><p class='muted'>Izvorne etimologije sųt vzęte iz Wiktionary (CC BY-SA); anglijsky tekst ostaje anglijsky, rusky tekst jest transliterovany.</p></section>"
         )
     }
 }
@@ -1826,14 +1865,14 @@ fn corpus_home(
            </article>
            <aside class='home-aside'>
              <div class='side-box'><div class='side-h'>Izbrano / slučajno</div><div id='spotlight'><p class='muted'>Nakladajě sę…</p></div><button id='randbtn' type='button'>Drugo slovo</button></div>
-             <div class='side-box'><div class='side-h'>Wiki-navigacija</div><ul class='compact-list'><li><a href='special.html'>Posebne strany</a></li><li><a href='all-pages.html'>Vse strany</a></li><li><a href='categories.html'>Kategorije</a></li><li><a href='indices.html'>Abecedne indeksy</a></li><li><a href='portals.html'>Językove portaly</a></li><li><a href='borrowings.html'>Zaimky</a></li><li><a href='needs-review.html'>Trěbuje prověrky</a></li><li><a href='site-stats.html'>Statistiky sajta</a></li><li><a href='graph.html'>Semantičny graf</a></li></ul></div>
+             <div class='side-box'><div class='side-h'>Wiki-navigacija</div><ul class='compact-list'><li><a href='special.html'>Speciaľne strany</a></li><li><a href='all-pages.html'>Vse strany</a></li><li><a href='categories.html'>Kategorije</a></li><li><a href='indices.html'>Abecedne indeksy</a></li><li><a href='portals.html'>Języčne portaly</a></li><li><a href='borrowings.html'>Pozajęta slova</a></li><li><a href='needs-review.html'>Trěbuje prověrky</a></li><li><a href='site-stats.html'>Statistiky sajta</a></li><li><a href='graph.html'>Semantičny graf</a></li></ul></div>
              <div class='side-box'><div class='side-h'>Slovnik</div>
                <table class='wikitable compact-table'>
                  <tr><th>Slov</th><td>{total}</td></tr>
                  <tr><th>Lemmaty</th><td>{lemmas}</td></tr>
                  <tr><th>= oficialnomu</th><td>{official}</td></tr>
                  <tr><th>Samo oficialne</th><td>{official_only}</td></tr>
-                 <tr><th>Zaimky</th><td>{borrowed}</td></tr>
+                 <tr><th>Pozajęta slova</th><td>{borrowed}</td></tr>
                </table>
              </div>
              <div class='side-box'><div class='side-h'>Uvěrjenost</div>
@@ -1845,7 +1884,7 @@ fn corpus_home(
              </div>
              <div class='side-box'><div class='side-h'>Kako radi</div><ul class='compact-list'>
                <li>Medžuvětvovy konsensus (6 podgrup) izbira korenj.</li>
-               <li>Praslovjansko pravilo daje variantnu formu.</li>
+               <li>Praslovjansko pravilo davaje variantnu formu.</li>
                <li><a href='about.html'>O metodě →</a></li>
              </ul></div>
            </aside>
@@ -1875,23 +1914,23 @@ fn corpus_about(n: usize, lemma_total: usize, official: usize) -> String {
            </table>
 
            <h2 id='kratko'>Kratko</h2>
-           <p>Vsaka strana pyta odgovor na wiki-podobno vprašanje: <i>ako mnogo slovjanskyh językov kaže na tu ideju, kaka medžuslovjanska forma je najvjerojatnějša, i čemu?</i> Zato strany zapisov pokazujų ne samo slovo, ale i srodne slova, semantične vęzi, etimologiju, sled pravil, kategorije i izvory.</p>
+           <p>Vsaka strana pytaje odgovor na wiki-podobno vprašanje: <i>ako mnogo slovjanskyh językov kaže na tu ideju, kaka medžuslovjanska forma je najvěrojętnějša, i čemu?</i> Zato strany zapisov pokazyvajųt ne samo slovo, ale i srodne slova, semantične vęzi, etimologiju, sled pravil, kategorije i izvory.</p>
 
            <h2 id='pipeline'>Kako nastaje zapis</h2>
            <pre class='pipeline-diagram'>Wiktionary lemmaty → srodne grupy → praslovjanske pravila → kandidaty → uvěrjenost → wiki-strana</pre>
            <ol>
              <li><b>Izvlečenje lemmatov.</b> Iz Wiktionary sȯbiramy slovjanske lemmy — imenniky, infinitivy glagolov, pozitivne pridavniki i internacionalizmy — zajedno s etimologičnym korenjem.</li>
              <li><b>Srodne grupy.</b> Lemmaty s tym že praslovjansky predkom ili s podobnym internacionalnym skeletom tvorę jednu grupu.</li>
-             <li><b>Rekonstrukcija.</b> Praslovjansky pravilny stroj daje variantno-medžuslovjansku formu; medžuvětvovy konsensus iz modernyh językov daje alternativy.</li>
+             <li><b>Rekonstrukcija.</b> Praslovjansky pravilny stroj davaje variantno-medžuslovjansku formu; medžuvětvovy konsensus iz modernyh językov davaje alternativy.</li>
              <li><b>Ocěna dokaza.</b> Uvěrjenost raste s čislom językov i s pokrytjem trěh větvi: vȯzhod, zapad, jug.</li>
-             <li><b>Wiki-sloj.</b> Sajt dodaje kategorije, portaly, backlinks, homografne strany, semantičny graf i statične indeksy.</li>
+             <li><b>Wiki-sloj.</b> Sajt dodavaje kategorije, portaly, backlinks, homografne strany, semantičny graf i statične indeksy.</li>
            </ol>
 
            <h2 id='citati-entry'>Kako čitati stranu zapisa</h2>
            <ul>
-             <li><b>Oznaka</b> govori, koliko językov i větvi podpira formu, i či ona sovpada s oficialnym slovnikom.</li>
-             <li><b>Formy i kandidaty</b> pokazujų alternativne pravopisy i rangy, ne samo pobjednika.</li>
-             <li><b>Srodne slova</b> sų surovy dokaz po slovjanskyh větvah; to je najvažnějša čęsť strany.</li>
+             <li><b>Oznaka</b> govori, koliko językov i větvi podpira formu, i či ona sovpadaje s oficialnym slovnikom.</li>
+             <li><b>Formy i kandidaty</b> pokazyvajųt alternativne pravopisy i rangy, ne samo poběditelja.</li>
+             <li><b>Srodne slova</b> sųt surovy dokaz po slovjanskyh větvah; to je najvažnějša čęsť strany.</li>
              <li><b>Etimologija</b> veze zapis k praslovjanskoj rekonstrukciji ili internacionalnomu etimonu.</li>
              <li><b>Sled pravil</b> je sled prověrky: koje pravilo proměnilo formu i kako.</li>
              <li><b>Kategorije</b> i <b>portaly</b> pomagajų prěgledati slovnik kako wiki, ne samo kako polje iskanja.</li>
@@ -1901,8 +1940,8 @@ fn corpus_about(n: usize, lemma_total: usize, official: usize) -> String {
            <p>Najbolje startne točky: <a href='special.html'>posebne strany</a>, <a href='all-pages.html'>Vse strany</a>, <a href='categories.html'>Kategorije</a>, <a href='portals.html'>językove portaly</a>, <a href='borrowings.html'>portal zaimok</a>, <a href='needs-review.html'>spis za prověrku</a>, <a href='site-stats.html'>statistiky sajta</a>, <a href='graph.html'>semantičny graf</a> i <a href='metrics.html'>statistiky točnosti</a>.</p>
 
            <h2 id='validacija'>Validacija i granice</h2>
-           <p>{official} generovanyh slov sovpada s oficialnym medžuslovjanskim slovnikom. To je kontrola, ale ne jedin cilj: mnogo validnyh medžuslovjanskyh slov može byti synonymami, regionalnymi izborami ili novymi kandidami, ktoryh oficialny slovnik ne ima.</p>
-           <p>Slabe strany sų jasno označene: mala językova pokrytosť, nizka uvěrjenost, homografi, neoficialny stav i mašinno prěgibanje. Strana zato daje <a href='{repo}/issues'>linky problemov</a> i kuratorske noty.</p>
+           <p>{official} generovanyh slov sovpadaje s oficialnym medžuslovjanskim slovnikom. To je kontrola, ale ne jedin cilj: mnogo validnyh medžuslovjanskyh slov može byti synonymami, regionalnymi izborami ili novymi kandidami, ktoryh oficialny slovnik ne imaje.</p>
+           <p>Slabe strany sųt jasno označene: mala językova pokrytosť, nizka uvěrjenost, homografi, neoficialny stav i mašinno prěgibanje. Strana zato davaje <a href='{repo}/issues'>linky problemov</a> i kuratorske noty.</p>
 
            <h2 id='licencija'>Izvory i licencija</h2>
            <p>Dokazy i etimologije: Wiktionary i narodny Wiktionary (CC BY-SA). Oficialny slovnik: interslavic-dictionary.com. Prěgibanje: <code>interslavic-rs</code>. Kod projekta: <a href='{repo}'>MIT na GitHub</a>.</p>
@@ -2039,7 +2078,7 @@ fn home_page(
              </div>
              <div class='portal-box'><h3>Kako radi</h3><ul class='compact-list'>
                <li>Medžuvětvovy konsensus (6 podgrup) izbira korenj.</li>
-               <li>Praslovjansko pravilo daje variantnu formu.</li>
+               <li>Praslovjansko pravilo davaje variantnu formu.</li>
                <li>Sila dogadki = kalibrovana uvěrjenost.</li>
                <li><a href='about.html'>O metodě →</a></li>
              </ul></div>
@@ -2209,7 +2248,7 @@ fn entry_page(id: usize, entry: &OfficialEntry, g: &Generation, evidence: &[Evid
 
     let banner = status_banner(status, top, entry.isv.as_str());
     let etymology = etymology_block(g);
-    let inflection = inflection_table(&top.form, pos_code);
+    let inflection = inflection_table_g(&top.form, pos_code, entry.noun_traits.gender);
     let evidence_html = evidence_block(evidence);
     let alternatives = alternatives_block(&g.candidates);
     let trace = trace_block(top);
@@ -2374,12 +2413,19 @@ fn evidence_block(evidence: &[Evidence]) -> String {
 // ---------------------------------------------------------------------------
 
 fn inflection_table(word: &str, pos_code: &str) -> String {
+    inflection_table_g(word, pos_code, None)
+}
+
+/// As [`inflection_table`], with the dictionary's gender when known — the same
+/// gendered declension the API records use (single source), so an
+/// out-of-lexicon feminine i-stem (točnosť) is not mis-declined as masculine.
+fn inflection_table_g(word: &str, pos_code: &str, gender: Option<crate::model::Gender>) -> String {
     // Decline/conjugate the bare stem for reflexive verbs; append invariant `sę`
     // to every generated verb form below.
     let reflexive = word.ends_with(" sę");
     let bare = word.strip_suffix(" sę").unwrap_or(word);
     match pos_code {
-        "noun" | "proper_noun" => noun_table(bare),
+        "noun" | "proper_noun" => noun_table(bare, gender),
         "adj" => adj_table(bare),
         "verb" => verb_table(bare, reflexive),
         _ => "<p class='muted'>Za tų čęst rěči nema tablicy prěgibanja.</p>".to_string(),
@@ -2397,15 +2443,25 @@ fn case_rows() -> [(&'static str, IsvCase); 6] {
     ]
 }
 
-fn noun_table(word: &str) -> String {
+fn noun_table(word: &str, gender: Option<crate::model::Gender>) -> String {
     let mut s = String::from("<table class='wikitable inflection-table'><thead><tr><th>Padež</th><th>Jednina</th><th>Množina</th></tr></thead><tbody>");
     for (label, case) in case_rows() {
         let _ = write!(
             s,
             "<tr><th>{}</th><td>{}</td><td>{}</td></tr>",
             label,
-            esc(&crate::forms::noun_cell(word, case, IsvNumber::Singular)),
-            esc(&crate::forms::noun_cell(word, case, IsvNumber::Plural)),
+            esc(&crate::forms::noun_cell_g(
+                word,
+                case,
+                IsvNumber::Singular,
+                gender
+            )),
+            esc(&crate::forms::noun_cell_g(
+                word,
+                case,
+                IsvNumber::Plural,
+                gender
+            )),
         );
     }
     s.push_str("</tbody></table>");
@@ -2635,10 +2691,23 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 let mut cells: Vec<(String, &'static str)> = Vec::new();
                 for (_, case) in case_rows() {
                     cells.push((
-                        crate::forms::noun_cell(bare, case, IsvNumber::Singular),
+                        crate::forms::noun_cell_g(
+                            bare,
+                            case,
+                            IsvNumber::Singular,
+                            e.noun_traits.gender,
+                        ),
                         "sg",
                     ));
-                    cells.push((crate::forms::noun_cell(bare, case, IsvNumber::Plural), "pl"));
+                    cells.push((
+                        crate::forms::noun_cell_g(
+                            bare,
+                            case,
+                            IsvNumber::Plural,
+                            e.noun_traits.gender,
+                        ),
+                        "pl",
+                    ));
                 }
                 let blanks = cells.iter().filter(|(c, _)| c == "—").count();
                 n_cells += cells.len();
@@ -2653,7 +2722,12 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // cell like "den / denj" passes if any variant echoes it).
                 // Pluralia tantum are cited in the plural — no singular echo.
                 if !plurale_tantum {
-                    let nom = crate::forms::noun_cell(bare, IsvCase::Nom, IsvNumber::Singular);
+                    let nom = crate::forms::noun_cell_g(
+                        bare,
+                        IsvCase::Nom,
+                        IsvNumber::Singular,
+                        e.noun_traits.gender,
+                    );
                     let ok = nom.split('/').any(|v| fold(v) == fold(bare));
                     check(&mut inv, "noun nom.sg = citation form", ok);
                     if !ok && fail_sample.len() < 30 {
@@ -2675,7 +2749,12 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     && !indeclinable
                     && !a_stem
                 {
-                    let gen = crate::forms::noun_cell(bare, IsvCase::Gen, IsvNumber::Singular);
+                    let gen = crate::forms::noun_cell_g(
+                        bare,
+                        IsvCase::Gen,
+                        IsvNumber::Singular,
+                        e.noun_traits.gender,
+                    );
                     // A multi-variant cell (čuda / čudese) passes if any variant
                     // carries the diagnostic -a; substantivized adjectives pass
                     // on the adjectival -ogo/-ego.
@@ -2897,7 +2976,7 @@ fn calibration_note(c: Confidence) -> String {
         Confidence::Medium => "≈35% takyh kandidatov odgovara oficialnomu slovniku",
         Confidence::Low => "≈10% takyh kandidatov odgovara oficialnomu slovniku",
     };
-    format!("<p class='muted calib'>Kalibrovana pouzdanost: {rate} (izměrjeno na testovom množstvu).</p>")
+    format!("<p class='muted calib'>Kalibrovana věrodostojnosť: {rate} (izměrjeno na testovom množstvu).</p>")
 }
 
 fn truncate(s: &str, n: usize) -> String {
@@ -3117,7 +3196,7 @@ fn entry_categories(m: &SiteEntryMeta, wiki_categories: Vec<Vec<String>>) -> Vec
         &mut cats,
         vec![
             "Pokrytje větvi".to_string(),
-            format!("{} větvi", m.n_branches),
+            format!("{} větvy", m.n_branches),
         ],
     );
     add_category_path(
@@ -3211,9 +3290,9 @@ fn topic_category_path(lang: &str, label: &str) -> Option<Vec<String>> {
         .replace(['_', '-', ':'], " ")
         .replace("behaviour", "behavior");
     let topic = if l.contains("weapon") || l.contains("arms") {
-        vec!["Tehnologija", "Nastroje", "Oružje"]
+        vec!["Tehnologija", "Instrumenty", "Oružje"]
     } else if l.contains("tool") || l.contains("implement") {
-        vec!["Tehnologija", "Nastroje"]
+        vec!["Tehnologija", "Instrumenty"]
     } else if l.contains("comput") || l.contains("internet") || l.contains("software") {
         vec!["Tehnologija", "Kompjutery"]
     } else if l.contains("technology") || l.contains("engineering") {
@@ -3329,7 +3408,7 @@ fn translate_wiki_label(label: &str) -> String {
         .replace("All topics", "Vse temy")
         .replace("All languages", "Vsi języky")
         .replace("Technology", "Tehnologija")
-        .replace("Tools", "Nastroje")
+        .replace("Tools", "Instrumenty")
         .replace("Weapons", "Oružje")
         .replace("Human behaviour", "Člověčje povědanje")
         .replace("Human behavior", "Člověčje povědanje")
@@ -3401,24 +3480,24 @@ fn page(title: &str, body: &str, depth: usize) -> String {
              <button class='hsearch-go' type='submit' title='Iskaj'>→</button>\
              <div id='results' class='dropdown'></div>\
            </form>\
-           <nav class='nav'><a href='{up}index.html'>Slovnik</a><a href='{up}special.html'>Posebne</a><a href='{up}all-pages.html'>Vse strany</a><a href='{up}categories.html'>Kategorije</a><a href='{up}site-stats.html'>Statistiky</a><a href='{up}search.html'>Iskanje</a><a href='{up}about.html'>O metodě</a><a href='{REPO_URL}'>Kod</a></nav>\
+           <nav class='nav'><a href='{up}index.html'>Slovnik</a><a href='{up}special.html'>Speciaľne</a><a href='{up}all-pages.html'>Vse strany</a><a href='{up}categories.html'>Kategorije</a><a href='{up}site-stats.html'>Statistiky</a><a href='{up}search.html'>Iskanje</a><a href='{up}about.html'>O metodě</a><a href='{REPO_URL}'>Kod</a></nav>\
          </header>\
          <div class='layout'>\
            <aside class='sidebar'>\
              <div class='side-box toc-box'><div class='side-h'>Na toj straně</div><nav id='toc-nav' class='toc'></nav></div>\
-             <div class='side-box'><div class='side-h'>Nastroje</div>\
-               <a class='side-link' href='{up}special.html'>★ Posebne strany</a>\
+             <div class='side-box'><div class='side-h'>Instrumenty</div>\
+               <a class='side-link' href='{up}special.html'>★ Speciaľne strany</a>\
                <a class='side-link' href='{up}all-pages.html'>📖 Vse strany</a>\
                <a class='side-link' href='{up}categories.html'>🏷️ Kategorije</a>\
                <a class='side-link' href='{up}indices.html'>🔤 Indeksy</a>\
-               <a class='side-link' href='{up}portals.html'>🌐 Językove portaly</a>\
+               <a class='side-link' href='{up}portals.html'>🌐 Języčne portaly</a>\
                <a class='side-link' href='{up}graph.html'>🕸️ Semantičny graf</a>\
                <a class='side-link' href='{up}site-stats.html'>📈 Statistiky sajta</a>\
-               <a class='side-link' href='{up}borrowings.html'>↗ Zaimky</a>\
+               <a class='side-link' href='{up}borrowings.html'>↗ Pozajęta slova</a>\
                <a class='side-link' href='{up}needs-review.html'>⚑ Trěbuje prověrky</a>\
                <button id='randbtn' class='side-link' type='button'>🎲 Slučajno/izbrano slovo</button>\
-               <a class='side-link' href='{up}search.html'>🔎 Rozšireno iskanje</a>\
-               <a class='side-link' href='{up}contribute.html'>✎ Doprinos</a>\
+               <a class='side-link' href='{up}search.html'>🔎 Råzširjeno iskanje</a>\
+               <a class='side-link' href='{up}contribute.html'>✎ Prinos</a>\
                <a class='side-link' href='{up}about.html'>ⓘ O metodě</a>\
                <a class='side-link' href='{up}metrics.html'>📊 Statistiky točnosti</a>\
              </div>\
@@ -3620,7 +3699,7 @@ fn index_summary(rows: &[SiteEntryMeta]) -> String {
         "<table class='wikitable compact-table index-summary'><tbody>\
          <tr><th>Zapisov</th><td>{}</td><th>Oficialne</th><td>{}</td></tr>\
          <tr><th>Samo generovane</th><td>{}</td><th>Vysoka uvěrjenost</th><td>{}</td></tr>\
-         <tr><th>Zaimky / internacionalizmy</th><td>{}</td><th>Srědnje językov</th><td>{:.1}</td></tr>\
+         <tr><th>Pozajęta slova / internacionalizmy</th><td>{}</td><th>Srědnje językov</th><td>{:.1}</td></tr>\
          </tbody></table>",
         compact(rows.len()),
         compact(official),
@@ -3656,7 +3735,7 @@ fn site_stats_page(
     let by_pos = count_by(metas, |m| pos_code_label(&m.pos));
     let by_conf = count_by(metas, |m| m.conf.label().to_string());
     let by_quality = count_by(metas, |m| quality_label(m).to_string());
-    let by_branch = count_by(metas, |m| format!("{} větvi", m.n_branches));
+    let by_branch = count_by(metas, |m| format!("{} větvy", m.n_branches));
     let mut by_lang: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     for m in metas {
         for lang in &m.languages {
@@ -3674,10 +3753,10 @@ fn site_stats_page(
     };
     let body = format!(
         "<article class='entry stats-page'><h1 class='firstHeading'>Statistiky sajta</h1>\
-         <p class='lede'>Ta strana je statičny ekvivalent wiki-strany <i>Posebno:Statistiky</i>: ne měri samo točnosť, ale pokazuje kako veliky i kakav je slovnikovy korpus.</p>\
+         <p class='lede'>Ta strana je statičny ekvivalent wiki-strany <i>Speciaľno:Statistiky</i>: ne měri samo točnosť, ale pokazyvaje kako veliky i kaky je slovnikovy korpus.</p>\
          <table class='wikitable compact-table'>\
            <tr><th>Stran zapisov</th><td>{}</td><th>Oficialno povezane</th><td>{}</td></tr>\
-           <tr><th>Zaimky / internacionalizmy</th><td>{}</td><th>Homografne grupy</th><td>{}</td></tr>\
+           <tr><th>Pozajęta slova / internacionalizmy</th><td>{}</td><th>Homografne grupy</th><td>{}</td></tr>\
            <tr><th>Semantične vęzi</th><td>{}</td><th>Srědnje językov na zapis</th><td>{:.1}</td></tr>\
            <tr><th>Generacija</th><td>{}</td><th>Git</th><td><code>{}</code></td></tr>\
          </table>\
@@ -3696,7 +3775,7 @@ fn site_stats_page(
         counts_table("Uvěrjenost", &by_conf),
         counts_table("Kvaliteta", &by_quality),
         counts_table("Pokrytje větvi", &by_branch),
-        counts_table("Językove portaly", &by_lang),
+        counts_table("Języčne portaly", &by_lang),
     );
     page("Statistiky sajta", &body, 0)
 }
@@ -3745,13 +3824,13 @@ fn language_portal_page(lang: &str, rows: &[SiteEntryMeta], all: &[SiteEntryMeta
     strongest.sort_by(|a, b| b.score.total_cmp(&a.score));
     let name = crate::lang::lang_name(lang);
     let intro = format!(
-        "Portal za {}: strany zapisov, v ktoryh toj język daje srodny dokaz. Unikatne slova pokazujų korenje vidno samo v tom języku v našem korpusu; vseslovjanske slova imajų dokaz iz vsih trěh větvi.",
+        "Portal za {}: strany zapisov, v ktoryh toj język davaje srodny dokaz. Unikatne slova pokazyvajųt korenje vidno samo v tom języku v našem korpusu; vseslovjanske slova imajųt dokaz iz vsěh trěh větvi.",
         name
     );
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Portal: {}</h1><p>{}</p>{}\
          <h2 id='silne'>Najsilnějše dokazani zapisy</h2>{}\
-         <h2 id='vseslovjanske'>Slova s dokazom iz vsih trěh větvi</h2>{}\
+         <h2 id='vseslovjanske'>Slova s dokazom iz vsěh trěh větvi</h2>{}\
          <h2 id='unikatne'>Unikatne v tom portalu</h2>{}\
          <h2 id='vse'>Vse zapisy v portalu</h2>{}</article>",
         esc(&name),
@@ -3788,11 +3867,11 @@ fn root_page(root: &str, rows: &[SiteEntryMeta]) -> String {
     let title = format!("Rekonstrukcija: *{root}");
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>{}</h1>\
-         <p class='lede'>Statična korenj-strana za praslovjansky korenj. Ona sobira vse medžuslovjanske strany zapisov, ktore v korpusu pokazujų na toj predok ili blizku derivaciju.</p>\
+         <p class='lede'>Statična korenj-strana za praslovjansky korenj. Ona sobira vse medžuslovjanske strany zapisov, ktore v korpusu pokazyvajųt na toj prědȯk ili blizku derivaciju.</p>\
          {}<div class='stat-grid wiki-stats'>{}{}</div>\
          <h2 id='official'>Oficialne sovpadenja pod tym korenjem</h2>{}\
          <h2 id='tree'>Derivacijsko drevo / rodina</h2>{}\
-         <h2 id='desc'>Językove potomky v sajtu</h2>{}</article>",
+         <h2 id='desc'>Języčne potomky v sajtu</h2>{}</article>",
         esc(&title),
         index_summary(rows),
         counts_table("Čęsti rěči", &by_pos),
@@ -3813,7 +3892,7 @@ fn borrowing_portal_page(rows: &[SiteEntryMeta]) -> String {
             .then_with(|| b.score.total_cmp(&a.score))
     });
     let body = format!(
-        "<article class='entry'><h1 class='firstHeading'>Portal: Zaimky i internacionalizmy</h1>\
+        "<article class='entry'><h1 class='firstHeading'>Portal: Pozajęta slova i internacionalizmy</h1>\
          <p class='lede'>Slova grupovane po neslovjanskom etimonu ili internacionalnom fonemičnom skeletu.</p>\
          {}<div class='stat-grid wiki-stats'>{}</div><h2 id='najsilne'>Najširše dokazane zaimky</h2>{}<h2 id='vse'>Vse zaimky</h2>{}</article>",
         index_summary(rows),
@@ -3822,7 +3901,7 @@ fn borrowing_portal_page(rows: &[SiteEntryMeta]) -> String {
         render_word_table(rows, ""),
     );
     by_src.clear();
-    page("Portal: Zaimky i internacionalizmy", &body, 0)
+    page("Portal: Pozajęta slova i internacionalizmy", &body, 0)
 }
 
 fn needs_review_page(rows: &[SiteEntryMeta]) -> String {
@@ -3843,7 +3922,7 @@ fn needs_review_page(rows: &[SiteEntryMeta]) -> String {
         .cloned()
         .collect();
     let body = format!(
-        "<article class='entry'><h1 class='firstHeading'>Posebno:TrěbujePrověrky</h1>\
+        "<article class='entry'><h1 class='firstHeading'>Speciaľno:TrěbujePrověrky</h1>\
          <p class='lede'>Kuratorska robota: strany zapisov s nizkoj uvěrjenostju, malym pokrytjem ili bez oficialnogo sovpadenja.</p>\
          {}<h2 id='nizka'>Nizka uvěrjenost</h2>{}<h2 id='jedna-vetv'>Samo jedna větv</h2>{}<h2 id='neoficialne'>Samo generovane</h2>{}</article>",
         index_summary(&review),
@@ -3851,7 +3930,7 @@ fn needs_review_page(rows: &[SiteEntryMeta]) -> String {
         render_word_table(&one_branch, ""),
         render_word_table(&generated, ""),
     );
-    page("Posebno:TrěbujePrověrky", &body, 0)
+    page("Speciaľno:TrěbujePrověrky", &body, 0)
 }
 
 fn write_borrowing_subpages(out_dir: &Path, rows: &[SiteEntryMeta]) -> Result<()> {
@@ -3870,8 +3949,8 @@ fn write_borrowing_subpages(out_dir: &Path, rows: &[SiteEntryMeta]) -> Result<()
                 .join("borrowings")
                 .join(format!("{}.html", slug(src))),
             simple_index_page(
-                &format!("Zaimky: {src}"),
-                "Zaimky grupovane po izvornom języku/etimonu.",
+                &format!("Pozajęta slova: {src}"),
+                "Pozajęta slova grupovana po izvornom języku/etimonu.",
                 items,
                 1,
             ),
@@ -3988,7 +4067,7 @@ fn inflection_issues_page(rows: &[SiteEntryMeta]) -> String {
         .cloned()
         .collect();
     issues.sort_by_key(|m| crate::orthography::ascii_skeleton(&m.title));
-    page("Posebno:ProblemyPrěgibanja", &format!("<article class='entry'><h1 class='firstHeading'>Posebno:ProblemyPrěgibanja</h1><p class='lede'>Stran zapisovy, gdě prěgibanje je nepolno ili vrnulo —. To je praktičny spis za popravki v interslavic-rs.</p>{}</article>", render_word_table(&issues, "")), 0)
+    page("Speciaľno:ProblemyPrěgibanja", &format!("<article class='entry'><h1 class='firstHeading'>Speciaľno:ProblemyPrěgibanja</h1><p class='lede'>Stran zapisovy, gdě prěgibanje je nepolno ili vrnulo —. To je praktičny spis za popravki v interslavic-rs.</p>{}</article>", render_word_table(&issues, "")), 0)
 }
 
 fn featured_page(rows: &[SiteEntryMeta], build: &BuildMeta) -> String {
@@ -4015,36 +4094,36 @@ fn featured_page(rows: &[SiteEntryMeta], build: &BuildMeta) -> String {
             )
         })
         .unwrap_or_default();
-    page("Posebno:Izbrano", &format!("<article class='entry'><h1 class='firstHeading'>Posebno:Izbrano</h1><p class='lede'>Determinističny izbor dobro dokazanyh stran zapisov za tu generaciju sajta.</p>{daily_html}{} </article>", render_word_table(&featured, "")), 0)
+    page("Speciaľno:Izbrano", &format!("<article class='entry'><h1 class='firstHeading'>Speciaľno:Izbrano</h1><p class='lede'>Determinističny izbor dobro dokazanyh stran zapisov za tu generaciju sajta.</p>{daily_html}{} </article>", render_word_table(&featured, "")), 0)
 }
 
 fn random_page() -> String {
-    let body = r#"<article class='entry'><h1 class='firstHeading'>Posebno:Slučajno</h1><p>Ta statična strana koristi lokalny <code>search.json</code> i izbere slučajnu stran zapisovu bez servera.</p><p id='random-target' class='notice'>Nakladajě sę…</p><script>document.addEventListener('DOMContentLoaded',function(){ensure().then(function(idx){if(!idx.length)return;var e=idx[Math.floor(Math.random()*idx.length)];var a='entry/'+e[0]+'.html';document.getElementById('random-target').innerHTML='<a href="'+a+'">'+e[1]+'</a> — '+e[2]+'<br><a href="'+a+'">Idi</a>';});});</script></article>"#;
-    page("Posebno:Slučajno", body, 0)
+    let body = r#"<article class='entry'><h1 class='firstHeading'>Speciaľno:Slučajno</h1><p>Ta statična strana koristi lokalny <code>search.json</code> i izbere slučajnu stran zapisovu bez servera.</p><p id='random-target' class='notice'>Nakladajě sę…</p><script>document.addEventListener('DOMContentLoaded',function(){ensure().then(function(idx){if(!idx.length)return;var e=idx[Math.floor(Math.random()*idx.length)];var a='entry/'+e[0]+'.html';document.getElementById('random-target').innerHTML='<a href="'+a+'">'+e[1]+'</a> — '+e[2]+'<br><a href="'+a+'">Idi</a>';});});</script></article>"#;
+    page("Speciaľno:Slučajno", body, 0)
 }
 
 fn special_pages_hub() -> String {
-    let body = "<article class='entry'><h1 class='firstHeading'>Posebne strany</h1>\
+    let body = "<article class='entry'><h1 class='firstHeading'>Speciaľne strany</h1>\
       <p class='lede'>Statične wiki-podobne služebne strany za prěgledanje slovnika.</p>\
       <ul class='compact-list'>\
-        <li><a href='all-pages.html'>Posebno:VseStrany</a></li>\
-        <li><a href='categories.html'>Posebno:Kategorije</a></li>\
-        <li><a href='site-stats.html'>Posebno:Statistiky</a></li>\
-        <li><a href='needs-review.html'>Posebno:TrěbujePrověrky</a></li>\
-        <li><a href='inflection-issues.html'>Posebno:ProblemyPrěgibanja</a></li>\
-        <li><a href='random.html'>Posebno:Slučajno</a></li>\
-        <li><a href='featured.html'>Posebno:Izbrano</a></li>\
-        <li><a href='borrowings.html'>Portal:Zaimky</a></li>\
+        <li><a href='all-pages.html'>Speciaľno:VseStrany</a></li>\
+        <li><a href='categories.html'>Speciaľno:Kategorije</a></li>\
+        <li><a href='site-stats.html'>Speciaľno:Statistiky</a></li>\
+        <li><a href='needs-review.html'>Speciaľno:TrěbujePrověrky</a></li>\
+        <li><a href='inflection-issues.html'>Speciaľno:ProblemyPrěgibanja</a></li>\
+        <li><a href='random.html'>Speciaľno:Slučajno</a></li>\
+        <li><a href='featured.html'>Speciaľno:Izbrano</a></li>\
+        <li><a href='borrowings.html'>Portal:PozajętaSlova</a></li>\
         <li><a href='suffix-index.html'>Indeks po zakončenjah</a></li>\
-        <li><a href='datasets.html'>Datoteke za snimanje</a></li>\
+        <li><a href='datasets.html'>Fajly za dostavanje</a></li>\
         <li><a href='proposals.html'>Predloženja novyh slov</a></li>\
         <li><a href='forms.html'>Iskanje form</a></li>\
         <li><a href='text-check.html'>Prověrka teksta</a></li>\
-        <li><a href='portals.html'>Językove portaly</a></li>\
+        <li><a href='portals.html'>Języčne portaly</a></li>\
         <li><a href='indices.html'>Abecedne indeksy</a></li>\
         <li><a href='graph.html'>Semantičny graf</a></li>\
       </ul></article>";
-    page("Posebne strany", body, 0)
+    page("Speciaľne strany", body, 0)
 }
 
 fn talk_page(m: &SiteEntryMeta, note: Option<&String>, incoming: &[LinkEdge]) -> String {
@@ -4130,7 +4209,7 @@ fn write_category_pages(out_dir: &Path, metas: &[SiteEntryMeta]) -> Result<()> {
         out_dir.join("categories.html"),
         page(
             "Kategorije",
-            &format!("<article class='entry'><h1 class='firstHeading'>Kategorije</h1><p class='lede'>Hierarhične kategorije po wiki-sistemu: najprvo podkategorije, potom strany. Avtomatične kategorije sų smęšane s temami i oznakami Wiktionary, kȯgda te metadany sų v lokalnyh cache-datotekah.</p><h2 id='podkategorije'>Podkategorije</h2><ul class='compact-list category-list'>{root_links}</ul></article>"),
+            &format!("<article class='entry'><h1 class='firstHeading'>Kategorije</h1><p class='lede'>Hierarhične kategorije po wiki-sistemu: najprvo podkategorije, potom strany. Avtomatične kategorije sųt směšane s temami i oznakami Wiktionary, kȯgda te metadany sųt v lokalnyh cache-fajlah.</p><h2 id='podkategorije'>Podkategorije</h2><ul class='compact-list category-list'>{root_links}</ul></article>"),
             0,
         ),
     )?;
@@ -4231,7 +4310,7 @@ fn write_wiki_indexes(
         out_dir.join("all-pages.html"),
         simple_index_page(
             "Vse strany",
-            "Abecedny spis vsih slovnikovyh stran zapisov. To je podobno do Posebno:VseStrany: prosty, statičny indeks bez JavaScript-trebovanja.",
+            "Abecedny spis vsěh slovnikovyh stran zapisov. To je podobno do Speciaľno:VseStrany: prosty, statičny indeks bez JavaScript-trebovanja.",
             &sorted,
             0,
         ),
@@ -4288,7 +4367,7 @@ fn write_wiki_indexes(
     }
     std::fs::write(
         out_dir.join("portals.html"),
-        page("Portaly", &format!("<article class='entry'><h1 class='firstHeading'>Językove portaly</h1><p class='lede'>Vsaky portal pokazuje strany zapisov, v ktoryh dany slovjansky język daje srodny dokaz. To pomaga viděti, ktore formy sų vȯzhodne, zapadne, južne ili vseslovjanske.</p><ul class='compact-list'>{portal_links}</ul></article>"), 0),
+        page("Portaly", &format!("<article class='entry'><h1 class='firstHeading'>Języčne portaly</h1><p class='lede'>Vsaky portal pokazyvaje strany zapisov, v ktoryh dany slovjansky język davaje srodny dokaz. To pomagaje viděti, ktore formy sųt vȯzhodne, zapadne, južne ili vseslovjanske.</p><ul class='compact-list'>{portal_links}</ul></article>"), 0),
     )?;
 
     for m in metas {
@@ -4450,7 +4529,7 @@ fn homograph_notice(
         return String::new();
     }
     format!(
-        "<div class='notice dab'>Ta napis ima <b>{}</b> značenja. <a href='../homograph/{}.html'>Glej raznoznačnosť</a>.</div>",
+        "<div class='notice dab'>Ta napis imaje <b>{}</b> značenja. <a href='../homograph/{}.html'>Ględi raznoznačnosť</a>.</div>",
         rows.len(),
         slug(&key)
     )
@@ -4533,10 +4612,10 @@ fn references_block(m: &SiteEntryMeta) -> String {
             let root = ancestor_slug(m)
                 .map(|sl| format!("; <a href='../root/{sl}.html'>korenj-strana</a>"))
                 .unwrap_or_default();
-            let _ = write!(rows, "<tr><th>Praslovjansky predok</th><td><a href='https://en.wiktionary.org/wiki/Reconstruction:Proto-Slavic/{}'>*{}</a>{}</td><td>rekonstrukcija Wiktionary</td></tr>", esc(p), esc(p), root);
+            let _ = write!(rows, "<tr><th>Praslovjansky prědȯk</th><td><a href='https://en.wiktionary.org/wiki/Reconstruction:Proto-Slavic/{}'>*{}</a>{}</td><td>rekonstrukcija Wiktionary</td></tr>", esc(p), esc(p), root);
         }
     }
-    rows.push_str("<tr><th>Srodne slova</th><td>anglijska Wiktionary + narodne Wiktionary</td><td>CC BY-SA; konkretne linky sų v tablicah vyše</td></tr>");
+    rows.push_str("<tr><th>Srodne slova</th><td>anglijska Wiktionary + narodne Wiktionary</td><td>CC BY-SA; konkretne linky sųt v tablicah vyše</td></tr>");
     rows.push_str(
         "<tr><th>Prěgibanje</th><td>interslavic-rs</td><td>mašinno generovane formy</td></tr>",
     );
@@ -4549,7 +4628,7 @@ fn provenance_block(m: &SiteEntryMeta, build: &BuildMeta) -> String {
         "<section><h2 id='provenance'>Istorija i metadany</h2><table class='wikitable compact-table'>\
          <tr><th>Generacija</th><td>{}</td></tr><tr><th>Git</th><td><code>{}</code></td></tr>\
          <tr><th>Tip</th><td>{}</td></tr><tr><th>Kvaliteta</th><td>{}</td></tr>\
-         <tr><th>Ocěna</th><td>{:.2}</td></tr><tr><th>Dokaz</th><td>{} językov / {} větvi</td></tr>\
+         <tr><th>Ocěna</th><td>{:.2}</td></tr><tr><th>Dokaz</th><td>{} językov / {} větvy</td></tr>\
          <tr><th>Popraviti</th><td><a href='{}'>Otvori problem na GitHub za tu stranu</a></td></tr></table></section>",
         esc(&build.generated),
         esc(&build.git),
@@ -4657,18 +4736,18 @@ fn graph_page(edges: &[LinkEdge], metas: &[SiteEntryMeta]) -> String {
 }
 
 fn contribute_page() -> String {
-    let body = "<article class='entry'><h1 class='firstHeading'>Kako doprinositi</h1>\
+    let body = "<article class='entry'><h1 class='firstHeading'>Kako pomagati</h1>\
       <p>Projekt je statično generovany: změni podatky, regeneruj sajt, zapusti testy, pošlji prošnju za spoj.</p>\
       <ol><li><code>cargo test</code></li><li><code>cargo run --release -- export --out site</code></li><li>Za ručne noty dodaj <code>data/curation-notes.json</code> s ključem zaglavnogo slova ili id-ja.</li><li>Za grešku v zapisu klikni <i>Popraviti / problem</i> na vrhu strany.</li></ol>\
       <h2>Kuracija bez koda</h2>\
       <ul>\
         <li><b>Semantične pasti</b> (falšive prijatelje): <code>data/semantic-notes.json</code> — vsaka nota mųsi citovati oficialno značenje; noty sę pokazujųt v <a href='text-check.html'>Prověrkě teksta</a> i v CLI <code>check-text</code>.</li>\
-        <li><b>Predloženja novyh slov</b>: prěgledaj <a href='proposals.html'>Predloženja</a> (kalibrovana věrojetnost p) i dodaj kuratorsku notu za slovo.</li>\
-        <li><b>Prověrka form</b>: <a href='forms.html'>Iskanje form</a> pokazuje vse analizy kojejkoli fleksijnoj formy.</li>\
+        <li><b>Predloženja novyh slov</b>: prěgledaj <a href='proposals.html'>Predloženja</a> (kalibrovana věrojętnosť p) i dodaj kuratorsku notu za slovo.</li>\
+        <li><b>Prověrka form</b>: <a href='forms.html'>Iskanje form</a> pokazyvaje vse analizy kojejkoli fleksijnoj formy.</li>\
       </ul>\
       <p>Za stroje i skripty: statičny leksikalny API pod <code>api/</code> (<a href='api/agent-guide.md'>agent-guide.md</a>, <a href='datasets.html'>datoteky</a>).</p>\
       <p><a href='https://github.com/gold-silver-copper/Slovowiki'>Izvorny kod na GitHub</a> — vidi <code>CONTRIBUTING.md</code> za metodologiju (benchmark-gated pravila, dev/holdout, značimost).</p></article>";
-    page("Doprinos", body, 0)
+    page("Prinos", body, 0)
 }
 
 fn entries_json(metas: &[SiteEntryMeta]) -> String {
@@ -4789,14 +4868,14 @@ fn proposals_page(
     }
     let cal_note = match calibration {
         Some(c) => format!(
-            "Věrojetnost je <b>izotonično kalibrovana</b> (naučena na razvojnoj časti benchmarka, prověrjena na odloženoj: ECE {:.3}) — čitaj ju kako <i>P(slovo by sovpalo s oficialnym rěšenjem)</i>. Pragy sųt izměrjene operacijne točky (na odloženoj četvrtině): predlog p≥{propose_t:.1} ({:.1}% točnost / {:.1}% pokrytje), pregled p≥{review_t:.1} ({:.1}% / {:.1}%).",
+            "Věrojetnost je <b>izotonično kalibrovana</b> (naučena na razvojnoj čęsti benchmarka, prověrjena na odloženoj: ECE {:.3}) — čitaj ju kako <i>P(slovo by sovpalo s oficialnym rěšenjem)</i>. Pragy sųt izměrjene operacijne točky (na odloženoj četvrtině): predlog p≥{propose_t:.1} ({:.1}% točnost / {:.1}% pokrytje), pregled p≥{review_t:.1} ({:.1}% / {:.1}%).",
             c.holdout_ece,
             100.0 * c.propose_pr.0,
             100.0 * c.propose_pr.1,
             100.0 * c.review_pr.0,
             100.0 * c.review_pr.1,
         ),
-        None => "Kalibracija ne najdena — věrojetnosti sųt syrove ocěny (puštaj `evaluate`).".to_string(),
+        None => "Kalibracija ne najdena — věrojętnosti sųt syrove ocěny (puštaj `evaluate`).".to_string(),
     };
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Predloženja novyh slov</h1>\
@@ -4869,7 +4948,7 @@ fn text_check_page() -> String {
         "<article class='entry'><h1 class='firstHeading'>Prověrka teksta</h1>\
          <p class='lede'>Vstavi medžuslovjansky tekst — vsaky token bųde prověrjeny protiv slovnika i vsěh fleksijnyh form. Sinje = poznato, žėlta obvodka = mašinova rekonstrukcija, čŕveno = nepoznato, ⚠ = semantična past.</p>\
          <p><textarea id='t' rows='6' style='width:100%'></textarea></p>\
-         <p><button onclick='checkText()'>Prověri</button> <span class='muted'>CLI-blizenec: <code>cargo run -- check-text tekst.txt --json</code> (dodatno daje predloženja za nepoznate tokeny).</span></p>\
+         <p><button onclick='checkText()'>Prověri</button> <span class='muted'>CLI-blizenec: <code>cargo run -- check-text tekst.txt --json</code> (dodatno davaje predloženja za nepoznate tokeny).</span></p>\
          <div id='out'></div>\
          <script>{}\
 let notes=null;\
@@ -4903,8 +4982,8 @@ function render(tok,recs,nts,key){{\
 }
 
 fn datasets_page() -> String {
-    let body = "<article class='entry'><h1 class='firstHeading'>Datoteke za snimanje</h1><p class='lede'>Statične JSON datoteke za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Datoteka</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, predok.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom i kalibrovanoju věrojetnostju.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table></article>";
-    page("Datoteke za snimanje", body, 0)
+    let body = "<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost, prědȯk.</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='search.json'>search.json</a></td><td>Klientsky indeks iskanja.</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom i kalibrovanoju věrojetnostju.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table></article>";
+    page("Fajly za dostavanje", body, 0)
 }
 
 fn build_json(build: &BuildMeta) -> String {
@@ -4956,41 +5035,41 @@ fn sitemap_xml(metas: &[SiteEntryMeta]) -> String {
 fn metrics_page() -> String {
     let body = r##"<article class='entry metrics'>
   <h1 class='firstHeading'>Statistiky točnosti</h1>
-  <p class='lede'>Ta strana objasnjaje <b>vsaku statistiku</b>, ktoru měrimo, da bismo proverili točnosť generatora protiv oficialnogo medžuslovjanskogo slovnika. Čisla sų aktualne měrjenja produkcijnoj konfiguracije; vsaky artefakt sę regeneruje v <code>target/eval/</code>.</p>
+  <p class='lede'>Ta strana objasnjaje <b>vsaku statistiku</b>, ktoru měrimo, da bismo proverili točnosť generatora protiv oficialnogo medžuslovjanskogo slovnika. Čisla sųt aktualne měrjenja produkcijnoj konfiguracije; vsaky artefakt sę regeneruje v <code>target/eval/</code>.</p>
 
   <h2 id='setup'>Kako radi testovo množstvo</h2>
-  <p>Za vsaky smysl (16&nbsp;300 jednoslovnyh zapisov) generator dostaje <b>moderne slovjanske srodne slova</b> + časť rěči, rod i priznak internacionalizma (<code>genesis</code>) — ale <b>nikogda</b> oficialnu medžuslovjansku formu (<code>isv</code>). On rekonstruuje lemmu, a my ju sravnjajemo s oficialnoju. Tako testovo množstvo je <b>bez utečki</b> ględe formy. Komanda: <code>evaluate</code>.</p>
+  <p>Za vsaky smysl (16&nbsp;300 jednoslovnyh zapisov) generator dostaje <b>moderne slovjanske srodne slova</b> + časť rěči, rod i priznak internacionalizma (<code>genesis</code>) — ale <b>nikȯgda</b> oficialnu medžuslovjansku formu (<code>isv</code>). On rekonstruuje lemmu, a my ju sravnjajemo s oficialnoju. Tako testovo množstvo je <b>bez utečki</b> ględe formy. Komanda: <code>evaluate</code>.</p>
 
   <h2 id='pravopis'>Dva pravopisa: točno protiv normalizovano</h2>
-  <p>Medžuslovjansky ima dva pravopisa. <b>Naučny (variantny)</b> drži etimologične znaky (ě, ę, ų, å, ȯ, ć, đ, y, mękke ĺ&nbsp;ń&nbsp;ŕ). <b>Standardny</b> jih složaje: ě→e, ę→e, ų→u, å→a, ȯ→o, ć→č, đ→dž. Zato imamo dva urovni sovpadenja — strogo (variantno) i normalizovano.</p>
+  <p>Medžuslovjansky imaje dva pravopisa. <b>Naučny (variantny)</b> dŕži etimologične znaky (ě, ę, ų, å, ȯ, ć, đ, y, mękke ĺ&nbsp;ń&nbsp;ŕ). <b>Standardny</b> jih složaje: ě→e, ę→e, ų→u, å→a, ȯ→o, ć→č, đ→dž. Zato imamo dva urovni sovpadenja — strogo (variantno) i normalizovano.</p>
 
   <h2 id='osnovne'>Osnovne měrky sovpadenja (evaluate)</h2>
   <table class='wikitable'>
     <thead><tr><th>Statistika</th><th>Aktualno</th><th>Značenje</th></tr></thead>
     <tbody>
-    <tr><td><b>točno prvy izbor</b> (povno)</td><td>41,65%</td><td>Prědvidženje je <b>identično</b> oficialnoj variantnoj lemmě, znak-v-znak.</td></tr>
-    <tr><td><b>normalizovano — prvy izbor</b></td><td>49,59%</td><td>Identično <b>po složenju</b> oběh v standardny alfavit (ě=e, ć=č…). Glavna měrka i porog stalnoj integracije.</td></tr>
-    <tr><td>skelet prvy izbor</td><td>—</td><td>Identično po agresivnom ASCII-složenju (bez diakritiky, složene sibilanty). Najslabějše sito.</td></tr>
-    <tr><td><b>normalizovano prve 3 / prve 5</b></td><td>60,48% / 63,12%</td><td>Nekotory od prvyh 3 / 5 rangovanyh kandidatov sovpada (normalizovano).</td></tr>
+    <tr><td><b>točno pŕvy izbor</b> (povno)</td><td>41,65%</td><td>Prědvidženje je <b>identično</b> oficialnoj variantnoj lemmě, znak-v-znak.</td></tr>
+    <tr><td><b>normalizovano — pŕvy izbor</b></td><td>49,59%</td><td>Identično <b>po složenju</b> oběh v standardny alfavit (ě=e, ć=č…). Glavna měrka i porog stalnoj integracije.</td></tr>
+    <tr><td>skelet pŕvy izbor</td><td>—</td><td>Identično po agresivnom ASCII-složenju (bez diakritiky, složene sibilanty). Najslabějše sito.</td></tr>
+    <tr><td><b>normalizovano pŕve 3 / pŕve 5</b></td><td>60,48% / 63,12%</td><td>Nekotory od prvyh 3 / 5 rangovanyh kandidatov sovpadaje (normalizovano).</td></tr>
     <tr><td><b>srědnja pravopisna distancija</b></td><td>0,224</td><td>Srědnja normalizovana Levenshtein-distancija (0 = identično, 1 = vpolno različno).</td></tr>
     </tbody>
   </table>
 
   <h2 id='ladder'>Lěstvica odstranjenja</h2>
-  <p>Točnosť raste od <b>osnovy</b> (27,52% točno — prvobytny prototip) do <b>produkcije</b> (41,65%). Vsaka stupnja dodaje <b>točno jedno</b> pravilo, tako že jego dělta je pripisiva. Pravila, ktore izměrjeno <b>uhudšajų</b> točnosť, sų odbrošene i zapisane kako „odbrošene eksperimenty“. Polny izvěsť: <code>candidate-generation-report.md</code>.</p>
+  <p>Točnosť raste od <b>osnovy</b> (27,52% točno — prvobytny prototip) do <b>produkcije</b> (41,65%). Vsaky stųpenj dodavaje <b>točno jedno</b> pravilo, tako že jego dělta je pripisiva. Pravila, ktore izměrjeno <b>uhudšajųt</b> točnosť, sųt odbrošene i zapisane kako „odbrošene eksperimenty“. Polny izvěsť: <code>candidate-generation-report.md</code>.</p>
 
-  <h2 id='razbivka'>Razbivka po kategorijah</h2>
+  <h2 id='razbivka'>Děljeńje po kategorijah</h2>
   <ul>
-    <li><b>Po časti rěči</b> — točnosť za imenniky, glagoly, pridavniky, čislovniky itd. odděljeno.</li>
-    <li><b>Po pokrytju větvi</b> — kolko od trěh větvi (iztok / zapad / jug) potvŕđaje formu; više pokrytja = viša točnosť.</li>
-    <li><b>Po pouzdanosti</b> — vidi niže.</li>
+    <li><b>Po čęsti rěči</b> — točnosť za imenniky, glagoly, pridavniky, čislovniky itd. odděljeno.</li>
+    <li><b>Po pokrytju větvi</b> — koliko od trěh větvi (iztok / zapad / jug) potvŕđaje formu; više pokrytja = viša točnosť.</li>
+    <li><b>Po věrodostojnosti</b> — vidi niže.</li>
   </ul>
 
-  <h2 id='kalibracija'>Kalibracija pouzdanosti</h2>
-  <p>Vsakomu kandidatu dajemo <b>kalibrovanu pouzdanosť</b>. Dobra kalibracija znači: vysokopouzdane kandidaty sovpadajų čęstěje.</p>
-  <table class='wikitable'><thead><tr><th>Pouzdanosť</th><th>n</th><th>normalizovano sovpadenje</th></tr></thead>
+  <h2 id='kalibracija'>Kalibracija věrodostojnosti</h2>
+  <p>Vsakomu kandidatu dajemo <b>kalibrovanu věrodostojnosť</b>. Dobra kalibracija znači: vysokověrodostojne kandidaty sovpadajųt čęstěje.</p>
+  <table class='wikitable'><thead><tr><th>Věrodostojnosť</th><th>n</th><th>normalizovano sovpadenje</th></tr></thead>
   <tbody><tr><td>vysoka</td><td>6&nbsp;988</td><td>72%</td></tr><tr><td>srědnja</td><td>7&nbsp;097</td><td>39%</td></tr><tr><td>nizka</td><td>2&nbsp;215</td><td>12%</td></tr></tbody></table>
-  <p>Podrobna kalibracija je v <code>methodology.md</code>: tablica pouzdanosti po decilah, ECE i Brier, plus <b>izotonična rekalibracija</b> — naučena na razvojnoj časti i prověrjena na odloženoj četvrtině (ECE na odloženyh: 0,195 syrovo → <b>0,013</b> rekalibrovano). Rekalibrovana věrojetnosť je to, čto třěba čitati kako <i>P(sovpadenja s oficialnoju lemmoju)</i>.</p>
+  <p>Podrobna kalibracija je v <code>methodology.md</code>: tablica věrodostojnosti po decilah, ECE i Brier, plus <b>izotonična rekalibracija</b> — naučena na razvojnoj čęsti i prověrjena na odloženoj četvrtině (ECE na odloženyh: 0,195 syrovo → <b>0,013</b> rekalibrovano). Rekalibrovana věrojętnosť je to, čto třěba čitati kako <i>P(sovpadenja s oficialnoju lemmoju)</i>.</p>
 
   <h2 id='corpus'>Sajtovy pųť (corpus-eval)</h2>
   <p>Sajt koristi ne glavny proces, a svoj <b>put srodnyh množin</b> (<code>corpus::generate_set</code>), měrjeny odděljeno: <b>58,6% točno / 63,1% normalizovano</b> na ~7,4k zapisah s znanym prědkom. Više od glavne linije, potomu što ocěnjaje tȯlko slova, ktore sajt izvodi iz znanogo prědka. Komanda: <code>corpus-eval</code>.</p>
@@ -5003,35 +5082,35 @@ fn metrics_page() -> String {
   </ul>
   <p>Komanda: <code>proto-eval</code>.</p>
 
-  <h2 id='audit'>Analiza promahov (prověrka)</h2>
+  <h2 id='audit'>Analiza grěšek (prověrka)</h2>
   <ul>
-    <li><b>Tri klasy promahov</b>: <i>križna grupa</i> (~48% — oficialny korenj je v dokazě, ale izbran drugy), <i>prava grupa–kriva forma</i> (~30%), <i>korenj otsutny</i> (~21% — oficialnogo korenja net v srodnyh slovah).</li>
-    <li><b>Histogram pripisanja stupnjam</b>: prěigrivaje sled pravil pobědnika i pripisuje promah stupnji, ktora izgubila odgovor — grupa/glas ~33%, sľanje/rang ~22%, korenj-otsutny ~22%, normalizacija/predstavnik ~15%, zakončenja ~6%, praslovjansky stroj ~1,6%. Vidi <code>stage-attribution.md</code>.</li>
-    <li><b>Kohezija</b>: kolko različnyh srodnyh grup ima vsaky smysl (89,5% ima ≥3).</li>
+    <li><b>Tri klasy grěšek</b>: <i>križna grupa</i> (~48% — oficialny korenj je v dokazě, ale izbran drugy), <i>prava grupa–kriva forma</i> (~30%), <i>korenj otsutny</i> (~21% — oficialnogo korenja net v srodnyh slovah).</li>
+    <li><b>Histogram pripisanja stupnjam</b>: prěigrivaje sled pravil pobědnika i pripisyvaje grěšku stųpnju, ktora izgubila odgovor — grupa/glas ~33%, sľanje/rang ~22%, korenj-otsutny ~22%, normalizacija/prědstavitelj ~15%, zakončenja ~6%, praslovjansky stroj ~1,6%. Vidi <code>stage-attribution.md</code>.</li>
+    <li><b>Kohezija</b>: koliko različnyh srodnyh grup imaje vsaky smysl (89,5% imaje ≥3).</li>
   </ul>
   <p>Komanda: <code>audit</code>.</p>
 
   <h2 id='oracle'>Diagnostične granice (idealny test)</h2>
-  <p>Da izměriti <b>gorny prědel</b> vsake stupnje, dělajemo ju „idealnų“ (čitajų oficialny odgovor) dok vse niže ostaje realno. To <b>nikogda</b> ne ide v produkciju — samo pokazuje, gdě je vȯzstanovima greška.</p>
-  <table class='wikitable'><thead><tr><th>Idealna stupnja</th><th>Δ točno</th></tr></thead>
-  <tbody><tr><td>izbor grupy</td><td>+4,5pp — glavno redakcijno, nedostižno slěpo</td></tr><tr><td>izbor predstavnika</td><td>+2,3pp (medoid uže vzęl +1,1pp)</td></tr><tr><td>proto-povęzanje</td><td>+2,7pp</td></tr><tr><td>vse trě zajedno</td><td>+9,4pp</td></tr></tbody></table>
+  <p>Da izměriti <b>gorny prědel</b> vsake stupnje, dělajemo ju „idealnų“ (čitajų oficialny odgovor) dok vse niže ostaje realno. To <b>nikȯgda</b> ne ide v produkciju — samo pokazyvaje, gdě je vȯzstanovima greška.</p>
+  <table class='wikitable'><thead><tr><th>Idealny stųpenj</th><th>Δ točno</th></tr></thead>
+  <tbody><tr><td>izbor grupy</td><td>+4,5pp — glavno redakcijno, nedostižno slěpo</td></tr><tr><td>izbor prědstavitelja</td><td>+2,3pp (medoid uže vzęl +1,1pp)</td></tr><tr><td>proto-povęzanje</td><td>+2,7pp</td></tr><tr><td>vse trě zajedno</td><td>+9,4pp</td></tr></tbody></table>
   <p>Komanda: <code>oracle</code>.</p>
 
-  <h2 id='probes'>Izbor grupy i predstavnika (select-eval / rep-eval)</h2>
-  <p>Měrimo, kolko od gornih prědelov može vȯzstanoviti <b>pravilo bez utečki</b> (ne čitajuče odgovor):</p>
+  <h2 id='probes'>Izbor grupy i prědstavitelja (select-eval / rep-eval)</h2>
+  <p>Měrimo, koliko od gornih prědelov može vȯzstanoviti <b>pravilo bez utečki</b> (ne čitajuče odgovor):</p>
   <ul>
-    <li><b>select-eval</b> (izbor grupy): vse slěpe pravila (najviše językov / větvi, internacionalizm-prvo) <b>uhudšajų</b> — potvŕđaje, že križna grupa je redakcijna granica, ne programna greška.</li>
-    <li><b>rep-eval</b> (izbor predstavnika): pravilo <b>medoid</b> (najcentralnějša forma, najmenša suma distancij do drugih) daje <b>+1,09pp</b> i je uže v produkciji; ostaje ~+2,3pp do granice.</li>
+    <li><b>select-eval</b> (izbor grupy): vse slěpe pravila (najviše językov / větvi, internacionalizm-prvo) <b>uhudšajųt</b> — potvŕđaje, že križna grupa je redakcijna granica, ne programna greška.</li>
+    <li><b>rep-eval</b> (izbor prědstavitelja): pravilo <b>medoid</b> (najcentralnějša forma, najmenša suma distancij do drugih) davaje <b>+1,09pp</b> i je uže v produkciji; ostaje ~+2,3pp do granice.</li>
   </ul>
 
   <h2 id='synonym'>Sinonimno-svěstna točnosť (synonym-eval)</h2>
-  <p>Strogo testovo množstvo pytaje „sovpada li s <b>jedinoju</b> oficialnoju lemmoju?“, ale medžuslovjansky ima mnogo validnyh slov na jedno značenje, a slovnik zapisuje samo jedno. Ta měrka pripisuje prědvidženju, ktore reproduktuje <b>kojukoli</b> oficialnu lemmu s tym že značenjem (iz sinonimnogo tezaurusa):</p>
-  <table class='wikitable'><thead><tr><th>Měrka</th><th>prvy izbor</th></tr></thead>
+  <p>Strogo testovo množstvo pytaje „sovpadaje li s <b>jedinoju</b> oficialnoju lemmoju?“, ale medžuslovjansky imaje mnogo validnyh slov na jedno značenje, a slovnik zapisuje samo jedno. Ta měrka pripisuje prědvidženju, ktore reproduktuje <b>kojukoli</b> oficialnu lemmu s tym že značenjem (iz sinonimnogo tezaurusa):</p>
+  <table class='wikitable'><thead><tr><th>Měrka</th><th>pŕvy izbor</th></tr></thead>
   <tbody><tr><td>točno</td><td>41,65%</td></tr><tr><td>normalizovano (strogo)</td><td>49,59%</td></tr><tr><td><b>sinonimno-vključno</b></td><td><b>55,76%</b></td></tr></tbody></table>
-  <p>Razbivka strogih promahov: <b>12,2% validny sinonim</b> (druga oficialna lemma, isto značenje), 7,9% druga oficialna lemma (drugo značenje), 79,8% ne-oficialna forma (nova ili prava greška — nerazlučima bez tezaurusa maternjego govoritelja). Komanda: <code>synonym-eval</code>.</p>
+  <p>Děljeńje strogih grěšek: <b>12,2% validny sinonim</b> (druga oficialna lemma, isto značenje), 7,9% druga oficialna lemma (drugo značenje), 79,8% ne-oficialna forma (nova ili prava greška — nerazlučima bez tezaurusa maternjego govoritelja). Komanda: <code>synonym-eval</code>.</p>
 
   <h2 id='artefakty'>Artefakty</h2>
-  <p>Vse měrjenja sų zapisane v <code>target/eval/</code>: <code>candidate-generation-report.md</code>, <code>stage-attribution.md</code>, <code>oracle-ladder.md</code>, <code>cluster-selection.md</code>, <code>rep-selection.md</code>, <code>synonym-accuracy.md</code>, <code>methodology.md</code> (razděl razvoj/kontrola bez prěučenja, značimosť stupnjev, bootstrap-intervaly, kalibracija), <code>predictions.csv</code> (vse prědvidženja). Vsaka je reproducibilna jednoju komandoju.</p>
+  <p>Vse měrjenja sųt zapisane v <code>target/eval/</code>: <code>candidate-generation-report.md</code>, <code>stage-attribution.md</code>, <code>oracle-ladder.md</code>, <code>cluster-selection.md</code>, <code>rep-selection.md</code>, <code>synonym-accuracy.md</code>, <code>methodology.md</code> (razděl razvoj/kontrola bez prěučenja, značimosť stupnjev, bootstrap-intervaly, kalibracija), <code>predictions.csv</code> (vse prědvidženja). Vsaka je reproducibilna jednoju komandoju.</p>
 </article>"##;
     page("Statistiky točnosti — medžuslovjansky", body, 0)
 }
@@ -5046,19 +5125,19 @@ fn about_page(n: usize, norm_rate: f32, exact_rate: f32, top3: f32) -> String {
            <p>Za vsaky smysl:</p>
            <ol>
              <li><b>Konsensus izbira korenj.</b> Iz srodnyh slov v {langs} slovjanskyh językah glasujemo po <i>větvah</i> (izток / zapad / jug), da najveći język ne dominuje. Šest poddialektnyh grup s populacijnym vagom rěša, kotory korenj je najbolje medžuslovjansky.</li>
-             <li><b>Praslovjansko pravilo daje formu.</b> Kǫda smysl je bez utečki povezany s praslovjanskoju rekonstrukcijeju (*word) črěz naslědnikov + glosų, determinističny stroj izvodi formų s pravilnymi variantnymi znakami (ě, ć/đ, å, ȯ, y), kotoryh moderne refleksy ne mogųt vȯzstanoviti.</li>
+             <li><b>Praslovjansko pravilo davaje formu.</b> Kǫda smysl je bez utečki povezany s praslovjanskoju rekonstrukcijeju (*word) črěz naslědnikov + glosų, determinističny stroj izvodi formų s pravilnymi variantnymi znakami (ě, ć/đ, å, ȯ, y), kotoryh moderne refleksy ne mogųt vȯzstanoviti.</li>
            </ol>
 
            <h2>Točnost (měrjeno)</h2>
            <div class='statgrid'>
              <div class='stat ok'><div class='statnum'>{exact:.1}%</div><div class='statlbl'>povno točno</div></div>
-             <div class='stat'><div class='statnum'>{norm:.1}%</div><div class='statlbl'>normalizovano — prvy izbor</div></div>
-             <div class='stat'><div class='statnum'>{top3:.1}%</div><div class='statlbl'>prve 3</div></div>
+             <div class='stat'><div class='statnum'>{norm:.1}%</div><div class='statlbl'>normalizovano — pŕvy izbor</div></div>
+             <div class='stat'><div class='statnum'>{top3:.1}%</div><div class='statlbl'>pŕve 3</div></div>
            </div>
            <p class='muted'>Testovo množstvo: {n} zapisov s ≥2 modernymi srodnymi slovami. Generator nikǫda ne vidi oficialnų formų — jedino srodne slova + čęsť rěči + glosų — tako da měrjenje je bez propuščanja. Vsako pravilo je zadŕžano jedino ako je izměrjeno pobolšanje (lěstvica odstranjenja).</p>
 
            <h2>Poznaty prědel</h2>
-           <p>Okolo 38% ostatnyh razlik sų <i>redakcijne</i> izbory (medžuslovjansky komitet izbral menšinny korenj) kotore se ne mogųt vȯzstanoviti iz modernyh srodnyh slov. Čestny algoritmičny prědel je okolo 45–48% točno.</p>
+           <p>Okolo 38% ostatnyh razlik sųt <i>redakcijne</i> izbory (medžuslovjansky komitet izbral menšinny korenj) kotore se ne mogųt vȯzstanoviti iz modernyh srodnyh slov. Čestny algoritmičny prědel je okolo 45–48% točno.</p>
 
            <h2>Izvory i licencija</h2>
            <p>Oficialny slovnik: interslavic-dictionary.com. Praslovjanske rekonstrukcije: Wiktionary (CC BY-SA). Formy prěgibanja: interslavic-rs. Kod: <a href='{repo}'>MIT</a>.</p>
@@ -5344,8 +5423,8 @@ mod tests {
         // RULE_SPEC §3.1: člověk→ljudi, oko→oči — the pinned inflector rev
         // implements them (with the heteroclite byforms); a rev bump that
         // loses them must fail here, not silently reshape the tables.
-        assert!(noun_table("člověk").contains("ljudi"));
-        assert!(noun_table("oko").contains("oči"));
+        assert!(noun_table("člověk", None).contains("ljudi"));
+        assert!(noun_table("oko", None).contains("oči"));
     }
 
     #[test]

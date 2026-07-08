@@ -47,34 +47,48 @@ pub struct Index {
 /// records with their calibrated probability).
 pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) -> Index {
     let mut sink = RecordSink::default();
+    forms::closed_class_records(&mut sink);
     let mut seen: HashSet<String> = HashSet::new();
     for e in entries {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains('#') || isv.contains('!') {
-            continue;
-        }
-        // Two-token lemmas (reflexive verbs AND collocations) are reachable
-        // via the general bigram lookup; only 3+-token phrases stay lemma-only.
-        let single = !isv.contains(' ') || isv.ends_with(" sę");
-        sink.add(
-            isv,
-            "",
-            isv,
-            0,
-            e.pos.code(),
-            "lemma",
-            "official",
-            None,
-            &e.english,
-        );
-        if single
-            && matches!(
-                e.pos,
-                Pos::Noun | Pos::ProperNoun | Pos::Adjective | Pos::Verb
-            )
-            && seen.insert(format!("{isv}|{}", e.pos.code()))
-        {
-            forms::paradigm_records(&mut sink, isv, e.pos, 0, "official", None, &e.english);
+        // ~230 rows list byform variants in one cell ("iměti, imati",
+        // "srědnji, srědny") — each variant is its own lemma.
+        for isv in e.isv.split(',').map(str::trim) {
+            if isv.is_empty() || isv.contains('#') || isv.contains('!') {
+                continue;
+            }
+            // Two-token lemmas (reflexive verbs AND collocations) are reachable
+            // via the general bigram lookup; only 3+-token phrases stay
+            // lemma-only.
+            let single = !isv.contains(' ') || isv.ends_with(" sę");
+            sink.add(
+                isv,
+                "",
+                isv,
+                0,
+                e.pos.code(),
+                "lemma",
+                "official",
+                None,
+                &e.english,
+            );
+            if single
+                && matches!(
+                    e.pos,
+                    Pos::Noun | Pos::ProperNoun | Pos::Adjective | Pos::Verb
+                )
+                && seen.insert(format!("{isv}|{}", e.pos.code()))
+            {
+                forms::paradigm_records(
+                    &mut sink,
+                    isv,
+                    e.pos,
+                    e.noun_traits.gender,
+                    0,
+                    "official",
+                    None,
+                    &e.english,
+                );
+            }
         }
     }
     if let Some(path) = novel_words_tsv {

@@ -422,7 +422,7 @@ Every `export` also writes a **static, deterministic lexical API** under
 `site/api/` (issue #11) — one `FormRecord` pipeline feeds both the website's
 inflection tables and the machine-readable artifacts, so they cannot drift:
 
-- `api/forms/<n>.json` — the **sharded form index** (~328k analysis records:
+- `api/forms/<n>.json` — the **sharded form index** (~384k analysis records:
   every official lemma + its full paradigm, byform variants split, syncretic
   cells merged). Shard routing: `n = fnv1a32(key) % 1024` over the folded key
   (`to_standard` lowercase) — mirrored in the site's client-side JS.

@@ -694,7 +694,7 @@ fn reconstruct(
                     form.clone(),
                     fixed.clone(),
                     format!(
-                        "*y vȯzstanovljeny iz {donor} (jug slil *y→i, medžuslovjansky drži y)."
+                        "*y vȯzstanovljeny iz {donor} (jug slil *y→i, medžuslovjansky dŕži y)."
                     ),
                     Some("https://interslavic.fun/learn/phonology/"),
                 ));
@@ -929,7 +929,8 @@ fn voicing_repair(
                 "loan-ns",
                 w.clone(),
                 fixed.clone(),
-                "Latinska zaimka drži etimologično ns (compensare → kompensovati).".to_string(),
+                "Latinsko pozajęto slovo dŕži etimologično ns (compensare → kompensovati)."
+                    .to_string(),
                 Some(DOC_ORTHO),
             ));
             w = fixed;

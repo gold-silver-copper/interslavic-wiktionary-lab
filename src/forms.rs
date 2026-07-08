@@ -18,7 +18,8 @@
 use crate::model::Pos;
 use crate::orthography as ortho;
 use interslavic::{
-    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber, ISV,
+    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, NounGender as IsvNounGender,
+    Number as IsvNumber, ISV,
 };
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -77,8 +78,97 @@ pub const ADJ_COLS: [(&str, IsvGender, IsvAnimacy); 4] = [
     ("sr.", IsvGender::Neuter, IsvAnimacy::Inanimate),
 ];
 
+/// Clean an inflector cell for display AND keys: expand parenthesized
+/// alternatives into ` / ` variants (`generoval(a)` → `generoval /
+/// generovala`; `generovaný (generovaná, generovanó)` → three variants) and
+/// strip the crate's stress accents (á/ì/ý…) which are neither standard nor
+/// etymological ISV orthography.
+pub fn clean_cell(cell: &str) -> String {
+    // Stress accents first (the inflector marks stress on some forms; neither
+    // standard nor etymological ISV orthography uses them).
+    let deaccent = |x: &str| -> String {
+        x.chars()
+            .map(|c| match c {
+                'á' | 'à' | 'â' | 'ã' => 'a',
+                'é' | 'è' | 'ê' => 'e',
+                'í' | 'ì' | 'î' => 'i',
+                'ó' | 'ò' | 'ô' | 'œ' => 'o',
+                'ú' | 'ù' | 'û' => 'u',
+                'ý' => 'y',
+                c => c,
+            })
+            .collect()
+    };
+    let squeeze = |x: String| -> String { x.split_whitespace().collect::<Vec<_>>().join(" ") };
+    let cell = deaccent(cell);
+    let Some(i) = cell.find('(') else {
+        return cell;
+    };
+    let Some(jrel) = cell[i..].find(')') else {
+        return cell;
+    };
+    let j = i + jrel;
+    let head = &cell[..i];
+    let inside = &cell[i + 1..j];
+    let rest = &cell[j + 1..];
+    let base = squeeze(format!("{head}{rest}"));
+    let mut variants: Vec<String> = Vec::new();
+    if inside.contains(',') || inside.trim_start().starts_with('-') {
+        // Alternative-forms list: "dělaný (dělaná, dělanó)" are full forms;
+        // "dělajemy (-a, -o)" are ending swaps grafted onto the base.
+        variants.push(base.clone());
+        for alt in inside.split(',') {
+            let alt = alt.trim();
+            if let Some(suffix) = alt.strip_prefix('-') {
+                let mut b = base.clone();
+                b.pop();
+                variants.push(squeeze(format!("{b}{suffix}")));
+            } else {
+                variants.push(squeeze(format!("{alt}{rest}")));
+            }
+        }
+    } else {
+        // Optional infix: "byh generoval(a)" → with and without.
+        variants.push(base);
+        variants.push(squeeze(format!("{head}{inside}{rest}")));
+    }
+    // Anything still carrying parens or a bare suffix marker is an unparsed
+    // inflector convention: keep it out of the keys.
+    variants.retain(|v| !v.is_empty() && !v.contains(['(', ')']) && !v.starts_with('-'));
+    if variants.is_empty() {
+        return squeeze(cell.replace(['(', ')'], " "));
+    }
+    variants.join(" / ")
+}
+
+/// Map the dictionary's gender metadata onto the inflector's.
+fn noun_gender(g: Option<crate::model::Gender>) -> Option<IsvNounGender> {
+    match g {
+        Some(crate::model::Gender::Masculine) => Some(IsvNounGender::Masculine),
+        Some(crate::model::Gender::Feminine) => Some(IsvNounGender::Feminine),
+        Some(crate::model::Gender::Neuter) => Some(IsvNounGender::Neuter),
+        _ => None,
+    }
+}
+
+/// A noun cell, gender-aware when the dictionary states the gender. Without
+/// it the inflector GUESSES gender for out-of-lexicon nouns and mis-declines
+/// e.g. feminine i-stems (`točnosť` → masculine `točnosťa`).
+pub fn noun_cell_g(
+    word: &str,
+    case: IsvCase,
+    number: IsvNumber,
+    gender: Option<crate::model::Gender>,
+) -> String {
+    let cell = match noun_gender(gender) {
+        Some(g) => catch(|| ISV::noun_with(word, case, number, g, IsvAnimacy::Inanimate)),
+        None => catch(|| ISV::noun(word, case, number)),
+    };
+    clean_cell(&cell)
+}
+
 pub fn noun_cell(word: &str, case: IsvCase, number: IsvNumber) -> String {
-    catch(|| ISV::noun(word, case, number))
+    noun_cell_g(word, case, number, None)
 }
 
 pub fn adj_cell(
@@ -88,7 +178,7 @@ pub fn adj_cell(
     gender: IsvGender,
     animacy: IsvAnimacy,
 ) -> String {
-    catch(|| ISV::adj(word, case, number, gender, animacy))
+    clean_cell(&catch(|| ISV::adj(word, case, number, gender, animacy)))
 }
 
 /// All of a verb's cells, reflexive particle already applied — the shared
@@ -130,7 +220,7 @@ pub fn verb_cells(word: &str, reflexive: bool) -> Option<VerbCells> {
     let p = std::panic::catch_unwind(|| ISV::verb_forms(word)).ok()?;
     let fix = |v: Vec<String>| -> Vec<String> {
         v.into_iter()
-            .map(|f| append_reflexive(&f, reflexive))
+            .map(|f| append_reflexive(&clean_cell(&f), reflexive))
             .collect()
     };
     let prap = p.prap.unwrap_or_else(|| "—".to_string());
@@ -145,12 +235,30 @@ pub fn verb_cells(word: &str, reflexive: bool) -> Option<VerbCells> {
         conditional: fix(p.conditional),
         imperative: fix(p.imperative),
         nonfinite: vec![
-            ("inf", append_reflexive(&p.infinitive, reflexive)),
-            ("part.akt.tep", append_reflexive(&prap, reflexive)),
-            ("part.pas.tep", append_reflexive(&prpp, reflexive)),
-            ("part.akt.proš", append_reflexive(&p.pfap, reflexive)),
-            ("part.pas.proš", append_reflexive(&pfpp, reflexive)),
-            ("gerund", append_reflexive(&p.gerund, reflexive)),
+            (
+                "inf",
+                append_reflexive(&clean_cell(&p.infinitive), reflexive),
+            ),
+            (
+                "part.akt.tep",
+                append_reflexive(&clean_cell(&prap), reflexive),
+            ),
+            (
+                "part.pas.tep",
+                append_reflexive(&clean_cell(&prpp), reflexive),
+            ),
+            (
+                "part.akt.proš",
+                append_reflexive(&clean_cell(&p.pfap), reflexive),
+            ),
+            (
+                "part.pas.proš",
+                append_reflexive(&clean_cell(&pfpp), reflexive),
+            ),
+            (
+                "gerund",
+                append_reflexive(&clean_cell(&p.gerund), reflexive),
+            ),
         ],
     })
 }
@@ -253,6 +361,7 @@ pub fn paradigm_records(
     sink: &mut RecordSink,
     lemma: &str,
     pos: Pos,
+    gender: Option<crate::model::Gender>,
     entry_id: usize,
     status: &'static str,
     probability: Option<f64>,
@@ -268,7 +377,7 @@ pub fn paradigm_records(
             for (nf, num) in NUMBERS {
                 for (cf, case) in CASES {
                     sink.add(
-                        &noun_cell(bare, case, num),
+                        &noun_cell_g(bare, case, num, gender),
                         &format!("{cf}.{nf}."),
                         lemma,
                         entry_id,
@@ -349,6 +458,30 @@ pub fn paradigm_records(
             }
         }
         _ => {}
+    }
+}
+
+/// Core closed-class function words that are normative Interslavic (STEEN-G
+/// grammar: prepositions and demonstratives) but absent from the dictionary
+/// export (which has `na/do/za/…` yet lacks the single-letter prepositions and
+/// `toj/ta`). Indexed with status "grammar" so verification doesn't flag the
+/// most common words in the language as unknown.
+pub const CLOSED_CLASS: &[(&str, &str, &str)] = &[
+    ("v", "prep", "in, into"),
+    ("s", "prep", "with"),
+    ("k", "prep", "to, towards"),
+    ("o", "prep", "about, concerning"),
+    ("ob", "prep", "about, against"),
+    ("toj", "pron", "that (m.)"),
+    ("ta", "pron", "that (f.)"),
+];
+
+/// Add the closed-class supplement to a sink (used by both the site API and
+/// the check-text index).
+pub fn closed_class_records(sink: &mut RecordSink) {
+    for (w, pos, gloss) in CLOSED_CLASS {
+        let pos: &'static str = pos;
+        sink.add(w, "", w, 0, pos, "lemma", "grammar", None, gloss);
     }
 }
 
@@ -545,7 +678,9 @@ License: {LICENSE}.
      (present, 3rd plural), `"akuz.jd. m.živ."` (adjective, masc animate);
    - `source` — `lemma` (citation form) or `inflection`;
    - `status` — `official` / `official-only` (both verified against the
-     official dictionary) or `generated` (machine reconstruction).
+     official dictionary), `grammar` (closed-class function words from the
+     reference grammar: v, s, k, o, ob, toj, ta — absent from the dictionary
+     export), or `generated` (machine reconstruction).
 
 ## Trust rules
 
@@ -629,7 +764,16 @@ mod tests {
         // The round-trip guarantee at unit scale: every rendered table cell
         // variant appears among the records.
         let mut sink = RecordSink::default();
-        paradigm_records(&mut sink, "voda", Pos::Noun, 1, "official", None, "water");
+        paradigm_records(
+            &mut sink,
+            "voda",
+            Pos::Noun,
+            Some(crate::model::Gender::Feminine),
+            1,
+            "official",
+            None,
+            "water",
+        );
         let recs = sink.into_records();
         for (_, num) in NUMBERS {
             for (_, case) in CASES {
@@ -653,7 +797,16 @@ mod tests {
         // The verb table and the records read the same VerbCells: every cell
         // variant the table would render appears among the records.
         let mut sink = RecordSink::default();
-        paradigm_records(&mut sink, "dělati", Pos::Verb, 3, "official", None, "do");
+        paradigm_records(
+            &mut sink,
+            "dělati",
+            Pos::Verb,
+            None,
+            3,
+            "official",
+            None,
+            "do",
+        );
         let recs = sink.into_records();
         let cells = verb_cells("dělati", false).expect("paradigm");
         let all = cells
@@ -688,6 +841,7 @@ mod tests {
             &mut sink,
             "dobry",
             Pos::Adjective,
+            None,
             4,
             "official",
             None,
@@ -720,6 +874,7 @@ mod tests {
             &mut sink,
             "myti sę",
             Pos::Verb,
+            None,
             2,
             "official",
             None,

@@ -148,7 +148,7 @@ fn derivational_suffixes(
             out.push((
                 next.clone(),
                 "deriv-liv",
-                "Sufiks -liv(y): medžuslovjansky drži tvŕde l (South -ljiv je narodna adaptacija).",
+                "Sufiks -liv(y): medžuslovjansky dŕži tvŕde l (South -ljiv je narodna adaptacija).",
             ));
             w = next;
             break;
@@ -173,7 +173,7 @@ fn derivational_suffixes(
                 out.push((
                     next.clone(),
                     "deriv-telj",
-                    "Sufiks dějatelja *-teljь drži mękke lj i prěd sufiksami (-teljstvo, -teljny).",
+                    "Sufiks dějatelja *-teljь dŕži mękke lj i prěd sufiksami (-teljstvo, -teljny).",
                 ));
                 w = next;
                 break;
@@ -227,7 +227,7 @@ fn loan_hiatus_rule(word: &str, pos: Pos) -> Option<(String, &'static str, &'sta
         return Some((
             w,
             "loan-hiatus",
-            "Grečsko-latinsky zěv -ia-/-io- sę drži v internacionalizmah (socialny, sociolog); -ija- je narodna adaptacija.",
+            "Grečsko-latinsky zěv -ia-/-io- sę dŕži v internacionalizmah (socialny, sociolog); -ija- je narodna adaptacija.",
         ));
     }
     None
