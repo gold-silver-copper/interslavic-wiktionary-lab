@@ -2799,8 +2799,8 @@ struct BuildMeta {
 }
 
 /// `depth` 0 = site root (home), 1 = one subdirectory deep (entry/*.html).
-const REPO_URL: &str = "https://github.com/gold-silver-copper/interslavic-wiktionary-lab";
-const SITE_URL: &str = "https://gold-silver-copper.github.io/interslavic-wiktionary-lab/";
+const REPO_URL: &str = "https://github.com/gold-silver-copper/Slovowiki";
+const SITE_URL: &str = "https://grift.rs/Slovowiki/";
 
 impl BuildMeta {
     fn current(total_entries: usize, lemma_total: usize) -> Self {
@@ -4380,7 +4380,7 @@ fn references_block(m: &SiteEntryMeta) -> String {
     rows.push_str(
         "<tr><th>Prěgibanje</th><td>interslavic-rs</td><td>mašinno generovane formy</td></tr>",
     );
-    rows.push_str("<tr><th>Generator</th><td><a href='https://github.com/gold-silver-copper/interslavic-wiktionary-lab'>izvorny kod</a></td><td>pravila, indeks iskanja, statičny eksport</td></tr>");
+    rows.push_str("<tr><th>Generator</th><td><a href='https://github.com/gold-silver-copper/Slovowiki'>izvorny kod</a></td><td>pravila, indeks iskanja, statičny eksport</td></tr>");
     format!("<section><h2 id='references'>Izvory</h2><table class='wikitable source-table'><tbody>{rows}</tbody></table></section>")
 }
 
@@ -4500,7 +4500,7 @@ fn contribute_page() -> String {
     let body = "<article class='entry'><h1 class='firstHeading'>Kako doprinositi</h1>\
       <p>Projekt je statično generovany: změni podatky, regeneruj sajt, zapusti testy, pošlji prošnju za spoj.</p>\
       <ol><li><code>cargo test</code></li><li><code>cargo run --release -- export --out site</code></li><li>Za ručne noty dodaj <code>data/curation-notes.json</code> s ključem zaglavnogo slova ili id-ja.</li><li>Za grešku v zapisu klikni <i>Popraviti / problem</i> na vrhu strany.</li></ol>\
-      <p><a href='https://github.com/gold-silver-copper/interslavic-wiktionary-lab'>Izvorny kod na GitHub</a>.</p></article>";
+      <p><a href='https://github.com/gold-silver-copper/Slovowiki'>Izvorny kod na GitHub</a>.</p></article>";
     page("Doprinos", body, 0)
 }
 
