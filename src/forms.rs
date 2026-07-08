@@ -321,6 +321,26 @@ pub struct FormRecord {
     pub gloss: String,
 }
 
+/// Sanitize a citation surface for lemma records: strip parenthesized
+/// annotations ("pozirati (na)" government hints), keep only the first
+/// comma-variant ("pleskati,*plěskati" pipeline notation), and reject
+/// surfaces that still carry raw notation (asterisked reconstructions).
+pub fn citation(form: &str) -> Option<String> {
+    let mut f = form.to_string();
+    while let (Some(i), Some(j)) = (f.find('('), f.find(')')) {
+        if i < j {
+            f = format!("{}{}", &f[..i], &f[j + 1..]);
+        } else {
+            break;
+        }
+    }
+    let f = f.split(',').next().unwrap_or("").trim().to_string();
+    if f.is_empty() || f.contains(['*', '(', ')']) {
+        return None;
+    }
+    Some(f)
+}
+
 /// Accumulates records, merging analyses of syncretic cells.
 #[derive(Default)]
 pub struct RecordSink {
@@ -391,8 +411,17 @@ impl RecordSink {
 /// comparative adverb).
 pub fn comparative(adj: &str) -> Option<(String, String)> {
     // Relational adjectives never gradate: -sky/-cky (russky, gręcky) would
-    // otherwise k-strip into garbage (russši).
-    if adj.ends_with("sky") || adj.ends_with("cky") {
+    // otherwise k-strip into garbage (russši). Lemmas that already ARE
+    // comparatives or participial adjectives (94 official ones end -ši/-ći:
+    // bogatši, gorši, bųdųći, goręći) must not double-gradate (*bogatšejši).
+    // Soft -ji possessives/relationals (božji, medvěďji, poslědnji) don't
+    // gradate synthetically either; ji+ejši would be morphologically broken.
+    if adj.ends_with("sky")
+        || adj.ends_with("cky")
+        || adj.ends_with("ši")
+        || adj.ends_with("ći")
+        || adj.ends_with("ji")
+    {
         return None;
     }
     // The seven irregulars (steen adjectives page, verbatim).
@@ -414,14 +443,16 @@ pub fn comparative(adj: &str) -> Option<(String, String)> {
         return None;
     }
     // -ky / -eky / -oky class: -ši on the truncated root, adverb by iotation.
+    // Roots shorter than 3 chars (diky → *di-) fall through to the regular
+    // rule instead (dičejši/dičeje).
     for suf in ["ok", "ek", "k"] {
         if let Some(root) = stem.strip_suffix(suf) {
-            if root.chars().count() >= 2 {
+            if root.chars().count() >= 3 {
                 let comp = format!("{root}ši");
                 let adv = format!("{}e", iotate_comp(root));
                 return Some((comp, adv));
             }
-            return None;
+            break;
         }
     }
     // Regular: palatalize k/g/h, soft stems take -ejši.
@@ -936,6 +967,7 @@ pub fn pronoun_numeral_records(
                     ]
                     .iter()
                     .map(|(e, f)| (format!("{stem}{e}"), *f))
+                    .chain(std::iter::once((l.to_string(), "nom. / akuz.")))
                     .collect();
                     add_lemma_forms(sink, &forms, l, entry_id, "num", status, gloss);
                     return true;
@@ -947,6 +979,7 @@ pub fn pronoun_numeral_records(
                     [("ěh", "gen. / lok."), ("ěm", "dat."), ("ěmi", "instr.")]
                         .iter()
                         .map(|(e, f)| (format!("{stem}{e}"), *f))
+                        .chain(std::iter::once((l.to_string(), "nom. / akuz.")))
                         .collect();
                 add_lemma_forms(sink, &forms, l, entry_id, "num", status, gloss);
                 return true;
@@ -957,10 +990,32 @@ pub fn pronoun_numeral_records(
                     let forms: Vec<(String, &str)> = vec![
                         (format!("{stem}ti"), "gen. / dat. / lok."),
                         (format!("{l}jų"), "instr."),
+                        (l.to_string(), "nom. / akuz."),
                     ];
                     add_lemma_forms(sink, &forms, l, entry_id, "num", status, gloss);
                     return true;
                 }
+            }
+            // Ordinals and other adjectivally-shaped numerals (pŕvy, drugy,
+            // desęty…) decline exactly like adjectives — among the most
+            // frequent inflected words in real text.
+            if l.ends_with(['y', 'i']) && l.chars().count() >= 3 {
+                let mut inner = RecordSink::default();
+                adj_paradigm(&mut inner, l, "", l, entry_id, "num", status, None, gloss);
+                for r in inner.into_records() {
+                    sink.add(
+                        &r.form,
+                        &r.analyses.join(" / "),
+                        l,
+                        entry_id,
+                        "num",
+                        "inflection",
+                        status,
+                        None,
+                        gloss,
+                    );
+                }
+                return true;
             }
             false
         }
@@ -1415,6 +1470,47 @@ mod tests {
         let p = verb_cells("prositi", false).unwrap();
         assert_eq!(p.present[2], "prosi");
         assert_eq!(p.present[5], "prosęt");
+    }
+
+    #[test]
+    fn gradation_guards_and_citation_sanitizer() {
+        // Already-graded and non-gradable classes produce NO degrees.
+        for a in [
+            "russky",
+            "bogatši",
+            "bųdųći",
+            "boljši",
+            "božji",
+            "poslědnji",
+        ] {
+            assert_eq!(comparative(a), None, "{a} must not gradate");
+        }
+        // Short k-roots fall through to the regular rule (not degenerate *diši).
+        assert_eq!(
+            comparative("diky"),
+            Some(("dičejši".to_string(), "dičeje".to_string()))
+        );
+        // Citation sanitizer: pipeline notation and government hints.
+        assert_eq!(citation("pozirati (na)").as_deref(), Some("pozirati"));
+        assert_eq!(citation("pleskati,*plěskati").as_deref(), Some("pleskati"));
+        assert_eq!(citation("*rekonstrukcija"), None);
+        assert_eq!(citation("voda").as_deref(), Some("voda"));
+    }
+
+    #[test]
+    fn numerals_decline_and_carry_citation_analyses() {
+        let mut sink = RecordSink::default();
+        pronoun_numeral_records(&mut sink, "pŕvy", Pos::Numeral, 1, "official", "first");
+        pronoun_numeral_records(&mut sink, "dva", Pos::Numeral, 2, "official", "two");
+        pronoun_numeral_records(&mut sink, "pęť", Pos::Numeral, 3, "official", "five");
+        let recs = sink.into_records();
+        // Ordinals decline like adjectives.
+        assert!(recs.iter().any(|r| r.form == "pŕvogo"), "pŕvogo missing");
+        // Cardinals carry nom./akuz. on the citation form.
+        let dva = recs.iter().find(|r| r.form == "dva").expect("dva");
+        assert!(dva.analyses.iter().any(|a| a.contains("nom")), "{dva:?}");
+        let pet = recs.iter().find(|r| r.form == "pęť").expect("pęť");
+        assert!(pet.analyses.iter().any(|a| a.contains("nom")), "{pet:?}");
     }
 
     #[test]

@@ -75,6 +75,12 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
             if isv.is_empty() || isv.contains('#') || isv.contains('!') {
                 continue;
             }
+            // Strip government hints ("pozirati (na)") and reject raw
+            // notation, same as the site API.
+            let Some(clean) = forms::citation(isv) else {
+                continue;
+            };
+            let isv = clean.as_str();
             // Two-token lemmas (reflexive verbs AND collocations) are reachable
             // via the general bigram lookup; only 3+-token phrases stay
             // lemma-only.

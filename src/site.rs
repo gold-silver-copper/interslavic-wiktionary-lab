@@ -936,6 +936,12 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         if headword.is_empty() || headword.contains('!') {
             continue;
         }
+        // Sanitize the citation: generated forms can carry raw pipeline
+        // notation ("pleskati,*plěskati"), official ones government hints
+        // ("pozirati (na)") — neither belongs in a lookup key.
+        let Some(headword) = crate::forms::citation(&headword) else {
+            continue;
+        };
         let prob = (status == "generated").then(|| {
             calibration
                 .as_ref()
@@ -1002,6 +1008,10 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             if isv.is_empty() || isv.contains('#') || isv.contains('!') {
                 continue;
             }
+            let Some(clean) = crate::forms::citation(isv) else {
+                continue;
+            };
+            let isv = clean.as_str();
             lemma_sink.add(
                 isv,
                 "",
@@ -4926,7 +4936,7 @@ async function routerSelftest(base){if(routerOk!==null)return routerOk;try{const
 function fnv1a32(s){const b=new TextEncoder().encode(s);let h=0x811c9dc5>>>0;for(const x of b){h^=x;h=Math.imul(h,16777619)>>>0;}return h>>>0;}
 const shardCache={};
 async function isvShard(base,n){if(shardCache[n])return shardCache[n];shardCache[n]=fetch(base+'api/forms/'+n+'.json').then(r=>r.ok?r.json():{records:{}}).catch(()=>({records:{}}));return shardCache[n];}
-async function isvLookup(base,q){await routerSelftest(base);const key=isvFold(q);const shard=fnv1a32(key)%__SHARDS__;const j=await isvShard(base,shard);return{key:key,recs:(j.records&&j.records[key])||[]};}
+async function isvLookup(base,q){const ok=await routerSelftest(base);const key=isvFold(q);if(!ok){return{key:key,recs:[],selftestFailed:true};}const shard=fnv1a32(key)%__SHARDS__;const j=await isvShard(base,shard);return{key:key,recs:(j.records&&j.records[key])||[]};}
 function recHtml(base,rec){const[form,lemma,id,pos,analyses,source,status,prob,gloss]=rec;
  const st=status==='generated'?('<span class="pill">mašinova rekonstrukcija p='+(prob==null?'?':prob.toFixed(2))+'</span>'):('<span class="pill src-official">'+escHtml(status)+'</span>');
  const an=analyses.length?('<span class="muted">'+escHtml(analyses.join(', '))+'</span>'):'<span class="muted">(citatna forma)</span>';
@@ -4947,14 +4957,15 @@ fn forms_page() -> String {
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Iskanje form</h1>\
          <p class='lede'>Vpiši kojukoli <b>fleksijnu formu</b> (ne tolika lemmu) — na priklad <span class='mention'>pomoćnogo</span>, <span class='mention'>ljudi</span>, <span class='mention'>piše</span> — i vidiš vse analizy: lemmu, padež/čislo/rod, i stranicu zapisa.</p>\
-         <p><input id='q' type='search' placeholder='forma…' style='min-width:16em'> <button onclick='go()'>Iskaj</button></p>\
+         <p><input id='formq' type='search' placeholder='forma…' style='min-width:16em' onkeydown='if(event.key===String.fromCharCode(69,110,116,101,114))go()'> <button onclick='go()'>Iskaj</button></p>\
          <div id='out'></div>\
          <p class='muted'>Iste dane služęt strojam: <code>api/forms/&lt;n&gt;.json</code> (indeks razděljeny na {} častij), <code>api/lemmas.json</code>, <code>api/meta.json</code>, <a href='api/agent-guide.md'>api/agent-guide.md</a>.</p>\
          <script>{}\
-async function go(){{const q=document.getElementById('q').value;if(!q)return;const r=await isvLookup('',q);const out=document.getElementById('out');\
+async function go(){{const q=document.getElementById('formq').value;if(!q)return;const r=await isvLookup('',q);const out=document.getElementById('out');\
+if(r.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — klient sę ne shoduje s eksporterom (vidi konzolų). Iskanje je zaprěno da ne davaje krive rezultaty.</p>';return;}}\
 if(!r.recs.length){{out.innerHTML='<p>Ničto ne najdeno za ključ <b>'+escHtml(r.key)+'</b>. (Nepoznata forma ili mašinovo prědloženje bez zapisa.)</p>';return;}}\
 out.innerHTML='<p>Ključ: <b>'+escHtml(r.key)+'</b>, '+r.recs.length+' analiz:</p><ul>'+r.recs.map(x=>recHtml('',x)).join('')+'</ul>';}}\
-const p=new URLSearchParams(location.search).get('q');if(p){{document.getElementById('q').value=p;go();}}\
+const p=new URLSearchParams(location.search).get('q');if(p){{document.getElementById('formq').value=p;go();}}\
 </script></article>",
         crate::forms::SHARDS,
         forms_js(),
@@ -4985,8 +4996,8 @@ const nts=await getNotes();\
 const parts=[];let i=0;\
 while(i<toks.length){{\
  const tok=toks[i];\
- if(i+1<toks.length){{const bi=await isvLookup('',tok+' '+toks[i+1]);if(bi.recs.length){{parts.push(render(tok+' '+toks[i+1],bi.recs,nts,bi.key));i+=2;continue;}}}}\
- const r=await isvLookup('',tok);parts.push(render(tok,r.recs,nts,r.key));i+=1;\
+ if(i+1<toks.length){{const bi=await isvLookup('',tok+' '+toks[i+1]);if(bi.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}if(bi.recs.length){{parts.push(render(tok+' '+toks[i+1],bi.recs,nts,bi.key));i+=2;continue;}}}}\
+ const r=await isvLookup('',tok);if(r.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}parts.push(render(tok,r.recs,nts,r.key));i+=1;\
 }}\
 out.innerHTML='<p>'+parts.join(' ')+'</p><p class='+String.fromCharCode(39)+'muted'+String.fromCharCode(39)+'>Klikni slovo za polnu analizu.</p>';\
 }}\
