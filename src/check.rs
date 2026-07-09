@@ -42,9 +42,9 @@ pub struct Index {
     pub notes: BTreeMap<String, SemanticNote>,
     /// Noun lemma key → dictionary gender (m/f/n), for agreement checking.
     pub noun_gender: HashMap<String, char>,
-    /// Preposition key → the cases it governs, parsed from the dictionary's
-    /// own `(+N)` additions (2=gen, 3=dat, 4=akuz, 6=lok, 7=instr), plus the
-    /// hand-listed closed-class supplement (v, s, k, o, ob).
+    /// Preposition key (folded) → the cases it governs, sourced from the
+    /// interslavic crate's curated `prepositions::PREPOSITIONS` table (which
+    /// encodes the community dictionary's `(+N)` government, instrumental = +5).
     pub prep_cases: HashMap<String, Vec<&'static str>>,
 }
 
