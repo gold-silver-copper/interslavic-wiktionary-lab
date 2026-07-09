@@ -1981,9 +1981,14 @@ fn native_etymology_cards(
     rows
 }
 
-/// Extra meanings and semantic links (related / synonyms / antonyms) drawn from
-/// the native RU / PL / CS Wiktionary entries for the cognates, each chip linking
-/// back to its source dictionary.
+/// Source-language meanings, usage quotations, and semantic links (related /
+/// synonyms / antonyms) drawn from the native RU / PL / CS Wiktionary entries for
+/// the cognates. Every enriched member is shown (grouped by edition), its full
+/// numbered sense list rendered under a heading naming that source lemma, with any
+/// recorded usage quotations nested beneath the sense they illustrate. This is
+/// source-language evidence tied to a specific cognate — never an authoritative
+/// Interslavic definition. Chips link back to the source dictionary (or internally
+/// when the term is itself a headword).
 fn enrich_connections_section(
     members: &[(String, String)],
     enrich: &crate::enrich::EnrichIndex,
@@ -1992,79 +1997,117 @@ fn enrich_connections_section(
 ) -> String {
     let mut blocks = String::new();
     for &lang in crate::enrich::ENRICH_LANGS {
-        // The richest enriched member for this edition.
-        let mut best: Option<(&str, &crate::enrich::EnrichEntry)> = None;
+        // Every enriched member of this edition, in member order, deduped by word.
+        let mut seen: BTreeSet<String> = BTreeSet::new();
         for (l, w) in members.iter().filter(|(l, _)| l == lang) {
-            if let Some(e) = enrich.get(l, w) {
-                let score = e.senses.len() + e.related.len() + e.synonyms.len();
-                let better = best
-                    .map(|(_, b)| score > b.senses.len() + b.related.len() + b.synonyms.len())
-                    .unwrap_or(true);
-                if better {
-                    best = Some((w, e));
-                }
+            let Some(e) = enrich.get(l, w) else { continue };
+            if !seen.insert(w.to_lowercase()) {
+                continue;
             }
-        }
-        let Some((word, e)) = best else { continue };
-        let mut inner = String::new();
-        if e.senses.len() > 1 {
-            let items: String = e
-                .senses
-                .iter()
-                .map(|x| format!("<li>{}</li>", esc(&source_display(lang, x))))
-                .collect();
+            let inner = enrich_member_block(lang, e, xref, self_id);
+            if inner.is_empty() {
+                continue;
+            }
+            let visible_word = source_display(lang, w);
             let _ = write!(
-                inner,
-                "<div class='conn'><h5>Značenja</h5><ol>{items}</ol></div>"
+                blocks,
+                "<div class='src-block'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
+                esc(&crate::lang::lang_name(lang)),
+                esc(&crate::enrich::source_url(lang, w)),
+                esc(&visible_word),
+                inner
             );
         }
-        let chips = |title: &str, words: &[String]| -> String {
-            if words.is_empty() {
-                return String::new();
-            }
-            let cs: String = words
-                .iter()
-                .map(|w| {
-                    // Link internally when the term is itself a dictionary headword
-                    // (and not this very page); otherwise out to native Wiktionary.
-                    let visible = source_display(lang, w);
-                    match xref.and_then(|x| x.get(lang, w)).filter(|&t| t != self_id) {
-                        Some(target) => format!(
-                            "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
-                            esc(&visible)
-                        ),
-                        None => format!(
-                            "<a class='chip' href='{}'>{}</a>",
-                            esc(&crate::enrich::source_url(lang, w)),
-                            esc(&visible)
-                        ),
-                    }
-                })
-                .collect();
-            format!("<div class='conn'><h5>{title}</h5><div class='chips'>{cs}</div></div>")
-        };
-        inner.push_str(&chips("Srodne slova", &e.related));
-        inner.push_str(&chips("Sinonimy", &e.synonyms));
-        inner.push_str(&chips("Antonimy", &e.antonyms));
-        if inner.is_empty() {
-            continue;
-        }
-        let visible_word = source_display(lang, word);
-        let _ = write!(
-            blocks,
-            "<div class='src-block'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
-            esc(&crate::lang::lang_name(lang)),
-            esc(&crate::enrich::source_url(lang, word)),
-            esc(&visible_word),
-            inner
-        );
     }
     if blocks.is_empty() {
         return String::new();
     }
     format!(
-        "<section><h2 id='vezi'>Značenja i semantične vęzi (RU / PL / CS)</h2>{blocks}</section>"
+        "<section><h2 id='vezi'>Značenja srodnyh slov i semantične vęzi (RU / PL / CS)</h2>\
+         <p class='muted'>Značenja i priměry upotrěby zapisane v narodnyh Wiktionary (RU / PL / CS) za navedene srodne slova — dokaz v izvornom języku, ne oficialne medžuslovjanske definicije; rusky tekst jest transliterovany.</p>{blocks}</section>"
     )
+}
+
+/// One enriched member's block: its full numbered sense list (each sense carrying
+/// any recorded usage quotations) plus related / synonym / antonym chips.
+fn enrich_member_block(
+    lang: &str,
+    e: &crate::enrich::EnrichEntry,
+    xref: Option<&crate::enrich::Xref>,
+    self_id: usize,
+) -> String {
+    let mut inner = String::new();
+    // Every documented sense is shown (a single sense is legitimate evidence too);
+    // usage quotations render beneath the sense they illustrate.
+    if !e.senses.is_empty() {
+        let items: String = e
+            .senses
+            .iter()
+            .map(|sense| {
+                let quotes: String = e
+                    .examples
+                    .iter()
+                    .filter(|q| &q.sense == sense)
+                    .map(|q| {
+                        let cite = if q.source.is_empty() {
+                            String::new()
+                        } else {
+                            format!(
+                                " <span class='muted cite'>— {}</span>",
+                                esc(&source_display(lang, &q.source))
+                            )
+                        };
+                        format!(
+                            "<li class='quote'>„{}“{cite}</li>",
+                            esc(&source_display(lang, &q.text))
+                        )
+                    })
+                    .collect();
+                let quote_block = if quotes.is_empty() {
+                    String::new()
+                } else {
+                    format!("<ul class='quotes'>{quotes}</ul>")
+                };
+                format!(
+                    "<li>{}{quote_block}</li>",
+                    esc(&source_display(lang, sense))
+                )
+            })
+            .collect();
+        let _ = write!(
+            inner,
+            "<div class='conn'><h5>Značenja</h5><ol>{items}</ol></div>"
+        );
+    }
+    let chips = |title: &str, words: &[String]| -> String {
+        if words.is_empty() {
+            return String::new();
+        }
+        let cs: String = words
+            .iter()
+            .map(|w| {
+                // Link internally when the term is itself a dictionary headword
+                // (and not this very page); otherwise out to native Wiktionary.
+                let visible = source_display(lang, w);
+                match xref.and_then(|x| x.get(lang, w)).filter(|&t| t != self_id) {
+                    Some(target) => format!(
+                        "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
+                        esc(&visible)
+                    ),
+                    None => format!(
+                        "<a class='chip' href='{}'>{}</a>",
+                        esc(&crate::enrich::source_url(lang, w)),
+                        esc(&visible)
+                    ),
+                }
+            })
+            .collect();
+        format!("<div class='conn'><h5>{title}</h5><div class='chips'>{cs}</div></div>")
+    };
+    inner.push_str(&chips("Srodne slova", &e.related));
+    inner.push_str(&chips("Sinonimy", &e.synonyms));
+    inner.push_str(&chips("Antonimy", &e.antonyms));
+    inner
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -5615,6 +5658,9 @@ a.ext:hover{color:var(--link);text-decoration:none;border-color:var(--link)}
 .conn{margin:.5rem 0}
 .conn h5{margin:.3em 0;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 .conn ol{margin:.2em 0 .2em 1.2em}
+.conn ul.quotes{list-style:none;margin:.2em 0 .4em 0;padding:0}
+.conn li.quote{font-size:.92em;color:var(--muted);font-style:italic;margin:.15em 0;border-left:2px solid var(--line);padding-left:.5em}
+.conn li.quote .cite{font-style:normal;font-size:.9em}
 .chips{display:flex;flex-wrap:wrap;gap:.3rem}
 a.chip{display:inline-block;background:var(--th);border:1px solid var(--line);border-radius:10px;padding:.05em .55em;font-size:.9em;color:var(--text)}
 a.chip:hover{background:#eaf3ff;border-color:var(--link);text-decoration:none}
