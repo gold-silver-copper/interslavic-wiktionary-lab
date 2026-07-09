@@ -876,6 +876,136 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             score: 1.0,
         });
     }
+
+    // Raw Slavic Wiktionary lemmas (issue #34, PR-2): a THIRD, SITE-ONLY loop,
+    // after the generated and official-only loops and before search.json closes.
+    // Every low-evidence dictionary word that no generated/official page already
+    // covers gets a page + search row, badged as a raw attestation. These entries
+    // are NEVER verification-grade: this loop touches neither `lemma_sink`/
+    // `form_sink` nor any paradigm emission (those already emitted only from
+    // `prepared`/`official_only_records`), so the forms API stays byte-identical.
+    // They also stay out of the wiki/homograph/graph indexes (already written) and
+    // the home list. Only the English-dump glosses + raw etymology are shown; the
+    // native RU/PL/CS merge is a later PR. Skipped gracefully when the cache is
+    // absent, so a checkout without the 68 MB cache still exports cleanly.
+    let (mut raw_rendered, mut raw_deduped) = (0usize, 0usize);
+    match crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)) {
+        Ok(raw_corpus) => {
+            // Raw-vs-raw dedup: collapse raw lemmas whose phonemic-Latin fold
+            // coincides (same word under several POS, cross-language skeleton
+            // twins), so each attested spelling gets exactly one page.
+            let mut raw_covered: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            for lemma in &raw_corpus.lemmas {
+                let word = lemma.word.trim();
+                if word.is_empty() {
+                    continue;
+                }
+                // Primary dedup: this word is already a cognate member of a
+                // generated page (verbatim `(lang, word)` match).
+                if xref.get(&lemma.lang, word).is_some() {
+                    raw_deduped += 1;
+                    continue;
+                }
+                // Secondary dedup: another raw lemma already claimed this fold.
+                let raw_key = crate::orthography::to_standard(
+                    &crate::normalize::to_phonemic_latin(&lemma.lang, word).to_lowercase(),
+                );
+                if raw_key.is_empty() || !raw_covered.insert(raw_key) {
+                    raw_deduped += 1;
+                    continue;
+                }
+                id += 1;
+                // Display headword: Russian Cyrillic is transliterated (пластинка
+                // → plastinka); Polish/Czech pass through verbatim.
+                let display = source_display(&lemma.lang, word);
+                let gloss = lemma.glosses.join("; ");
+                let meta = {
+                    let mut m = entry_meta(
+                        id,
+                        &display,
+                        &gloss,
+                        &lemma.pos,
+                        MatchStatus::NoOfficialEntry,
+                        Confidence::Low,
+                        0.0,
+                        1,
+                        1,
+                        false,
+                        false,
+                        None,
+                        String::new(),
+                        vec![lemma.lang.clone()],
+                        Vec::new(),
+                    );
+                    m.raw = true;
+                    m
+                };
+                let html = raw_lemma_page(&display, lemma, id, &meta);
+                std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
+
+                // Search row (schema 2, 15 elements). Status char 'R'; the folds
+                // of the display headword are keys; e[14] carries the verbatim
+                // attested spelling (Cyrillic пластинка) + its Latin fold so a
+                // query in either script finds the page via the client aliasMatch.
+                let mut keys: Vec<(String, usize)> = Vec::new();
+                let disp_lower = display.to_lowercase();
+                for k in [
+                    crate::orthography::to_standard(&disp_lower),
+                    crate::orthography::ascii_skeleton(&display),
+                ] {
+                    if k.chars().count() >= 2
+                        && k != disp_lower
+                        && !keys.iter().any(|(kk, _)| kk == &k)
+                    {
+                        keys.push((k, 1));
+                    }
+                }
+                let mut aliases: Vec<SourceAlias> = Vec::new();
+                let mut alias_seen: std::collections::HashSet<(String, String)> =
+                    std::collections::HashSet::new();
+                collect_source_aliases(
+                    std::iter::once((lemma.lang.as_str(), word)),
+                    &mut aliases,
+                    &mut alias_seen,
+                );
+                if !first_search {
+                    search.push_str(",\n");
+                }
+                first_search = false;
+                let _ = write!(
+                    search,
+                    "[{},{},{},{},{},{},{:.2},{},{},{},{},{},{},{},{}]",
+                    id,
+                    json_str(&display),
+                    json_str(&truncate(&gloss, 70)),
+                    json_str(&lemma.pos),
+                    json_str("R"),
+                    json_str("N"),
+                    0.0,
+                    keys_json(&keys),
+                    1,
+                    1,
+                    0,
+                    json_str(quality_label(&meta)),
+                    json_str(&meta.first),
+                    json_str(&meta.ancestor),
+                    source_aliases_json(&aliases),
+                );
+                raw_rendered += 1;
+            }
+            println!(
+                "wrote {raw_rendered} raw Wiktionary attestation pages (site-only, low-evidence; {raw_deduped} deduped against generated/raw pages)."
+            );
+        }
+        Err(_) => {
+            println!(
+                "(no {} — skipping raw Wiktionary attestation pages; run extract-raw-slavic to build it)",
+                crate::DEFAULT_RAW_LEMMA_CACHE
+            );
+        }
+    }
+
     search.push_str("\n]\n");
 
     std::fs::write(out_dir.join("search.json"), search)?;
@@ -1740,6 +1870,93 @@ fn official_only_page(
     page(&format!("{isv} — medžuslovjansky"), &body, 1)
 }
 
+/// A SITE-ONLY, low-evidence entry for one raw Slavic Wiktionary lemma (issue #34,
+/// PR-2). Cloned from [`official_only_page`] but with every official-only /
+/// generation section dropped: it shows ONLY the English-Wiktionary dump data —
+/// the attested glosses and the raw etymology text — clearly badged as a raw,
+/// low-evidence attestation that is NOT an Interslavic standard.
+///
+/// It is deliberately NOT wired into the verification/forms API, the cognate
+/// graph, categories, homograph indexes, talk/backlink pages, or the home list:
+/// these pages exist purely so every dictionary word is discoverable and
+/// searchable. The native RU/PL/CS merge (real senses) is a later PR. All dump
+/// text is escaped through [`esc`].
+fn raw_lemma_page(
+    display: &str,
+    lemma: &crate::dump::RawSlavicLemma,
+    id: usize,
+    meta: &SiteEntryMeta,
+) -> String {
+    // Attested English-Wiktionary glosses, verbatim (escaped). Low-evidence.
+    let mut gloss_items = String::new();
+    for g in &lemma.glosses {
+        let g = g.trim();
+        if g.is_empty() {
+            continue;
+        }
+        let _ = write!(gloss_items, "<li>{}</li>", esc(g));
+    }
+    let glosses = if gloss_items.is_empty() {
+        "<p class='muted'>Bez zapisanogo smysla.</p>".to_string()
+    } else {
+        format!("<ul class='compact-list'>{gloss_items}</ul>")
+    };
+    // Raw etymology text from English Wiktionary, line breaks preserved (escaped).
+    let etymology = {
+        let t = lemma.etymology_text.trim();
+        if t.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "<section><h2 id='etimologija'>Etimologija <span class='muted'>(surovy tekst iz Wiktionary)</span></h2><p class='etym-raw'>{}</p></section>",
+                esc(t).replace('\n', "<br>")
+            )
+        }
+    };
+    let lang_name = crate::lang::lang_name(&lemma.lang);
+    let src_url = crate::enrich::source_url(&lemma.lang, &lemma.word);
+    let banner = format!(
+        "<div class='banner warn'><b>Surova atestacija iz Wiktionary — nizko dokazano.</b> \
+         Ta zapis pokazuje samo dane iz anglijskoj Wiktionary ({lang} <span class='mention'>{word}</span>): \
+         zapisane smysly i surovy etimologičny tekst. Ne ma slovjanskogo konsensusa ni oficialnoj \
+         validacije — ne oficialny standard.</div>",
+        lang = esc(lang_name),
+        word = esc(&lemma.word),
+    );
+    let mut info_rows = String::new();
+    let _ = write!(
+        info_rows,
+        "<tr><th>Izvor</th><td><a href='{src}'>{lang} · Wiktionary</a></td></tr>\
+         <tr><th>Atestovana forma</th><td><span class='mention'>{word}</span></td></tr>\
+         <tr><th>Dokaz</th><td>surova (bez konsensusa)</td></tr>",
+        src = esc(&src_url),
+        lang = esc(lang_name),
+        word = esc(&lemma.word),
+    );
+    let entry_card = entry_infobox(meta, &info_rows);
+    let body = format!(
+        "<article class='entry entry-with-rail'>\
+           <div class='entry-grid'>\
+             <div class='entry-main'>\
+               <h1 class='page-title firstHeading'>{disp}</h1>\
+               {banner}\
+               <section><h2 id='smysly'>Anglijske značenja <span class='muted'>(Wiktionary)</span></h2>{glosses}</section>\
+               {etymology}\
+               <p class='foot'>Surova atestacija iz anglijskoj Wiktionary (CC BY-SA): <a href='{src}'>{lang} · {word}</a>. \
+                Nizko dokazano; samo za sajt, ne oficialny standard. Prěgibanje ne generovano.</p>\
+             </div>\
+             <aside class='entry-rail'>{entry_card}</aside>\
+           </div>\
+         </article>",
+        disp = esc(display),
+        src = esc(&src_url),
+        lang = esc(lang_name),
+        word = esc(&lemma.word),
+    );
+    let _ = id;
+    page(&format!("{display} — surova atestacija"), &body, 1)
+}
+
 /// The full search-results page (search.html). Reads `?q=` and lists every match;
 /// the header search box (present on every page) submits here on Enter.
 fn search_page() -> String {
@@ -1748,7 +1965,7 @@ fn search_page() -> String {
       <p class='muted'>Napiši v polje gore i pritisni <b>Enter</b>, ili filtruj statičny indeks. Najdeno: <b id='rescount'>0</b> rezultatov.</p>\
       <form class='filter-grid' onsubmit='return false'>\
         <label>Čęst rěči <select id='f-pos'><option value=''>vse</option><option value='noun'>imennik</option><option value='verb'>glagol</option><option value='adj'>pridavnik</option><option value='adv'>narěčje</option><option value='proper_noun'>vlastno imę</option><option value='num'>čislovnik</option></select></label>\
-        <label>Stav <select id='f-status'><option value=''>vse</option><option value='O'>oficialne</option><option value='N'>samo generovane</option></select></label>\
+        <label>Stav <select id='f-status'><option value=''>vse</option><option value='O'>oficialne</option><option value='N'>samo generovane</option><option value='R'>surove atestacije</option></select></label>\
         <label>Uvěrjenost <select id='f-conf'><option value=''>vse</option><option value='V'>vysoka</option><option value='S'>srědnja</option><option value='N'>nizka</option></select></label>\
         <label>Tip <select id='f-borrowed'><option value=''>vse</option><option value='0'>naslědovane</option><option value='1'>zaimky</option></select></label>\
         <label>Min. językov <input id='f-langs' type='number' min='0' value='0'></label>\
@@ -3468,6 +3685,9 @@ struct SiteEntryMeta {
     n_branches: usize,
     borrowed: bool,
     official_only: bool,
+    /// A SITE-ONLY, low-evidence raw Wiktionary attestation (issue #34): not
+    /// verification-grade, not in the forms API, cognate graph, or wiki indexes.
+    raw: bool,
     official_lemma: Option<String>,
     ancestor: String,
     languages: Vec<String>,
@@ -3548,6 +3768,7 @@ fn entry_meta(
         n_branches,
         borrowed,
         official_only,
+        raw: false,
         official_lemma,
         ancestor,
         languages,
@@ -3600,7 +3821,9 @@ fn category_title(path: &[String]) -> String {
 }
 
 fn quality_label(m: &SiteEntryMeta) -> &'static str {
-    if m.official_only {
+    if m.raw {
+        "surova atestacija"
+    } else if m.official_only {
         "samo oficialno"
     } else if m.official_lemma.is_some() {
         "oficialne sovpadenje"
