@@ -2,10 +2,13 @@
 //! pipeline feeding BOTH the website's inflection tables and the agent-facing
 //! static API, so the two can never drift apart.
 //!
-//! - Cell getters (`noun_cell`, `adj_cell`, `verb_cells`) are the single
-//!   source: the HTML tables in `site.rs` render from them, and
-//!   `paradigm_records` enumerates the same calls into [`FormRecord`]s. A CI
-//!   round-trip test asserts every rendered table cell appears in the records.
+//! - Paradigm builders ([`noun_paradigm_forms`]/`ISV::adj_forms`, issue #20)
+//!   are the single source: the site's HTML tables and `paradigm_records`
+//!   both build one paradigm struct per lemma and index it, so the rendered
+//!   tables and the exported [`FormRecord`]s cannot drift. The single-cell
+//!   getters (`noun_cell`/`adj_cell`, panic-guarded) back the agreement
+//!   checker and are pinned equal to the struct path by `inflect-eval` over
+//!   the whole corpus and by CI round-trip tests.
 //! - The API is **sharded**: `api/forms/<n>.json`, `n = fnv1a32(key) % SHARDS`
 //!   over the folded key — a full index would be tens of MB (231k+ official
 //!   paradigm cells), useless to an agent context window. Shards are compact
@@ -126,6 +129,23 @@ pub fn noun_cell_g(
 
 pub fn noun_cell(word: &str, case: IsvCase, number: IsvNumber) -> String {
     noun_cell_g(word, case, number, None)
+}
+
+/// Build a noun's whole paradigm once (issue #20), inferring gender exactly as
+/// [`noun_cell_g`] does — THE shared source for both the API records
+/// ([`paradigm_records`]) and the site's HTML inflection table, so the two
+/// render from one struct. Index a cell with `.get(case, number)` and normalize
+/// it through [`clean_cell`] to reproduce [`noun_cell_g`] byte-for-byte. Panics
+/// propagate (the official corpus is panic-free — asserted by `inflect-eval`);
+/// single-cell callers wanting the `—`-on-panic guard use [`noun_cell_g`].
+pub fn noun_paradigm_forms(
+    word: &str,
+    gender: Option<crate::model::Gender>,
+) -> interslavic::NounParadigm {
+    match noun_gender(gender) {
+        Some(g) => ISV::noun_forms_with(word, g, IsvAnimacy::Inanimate),
+        None => ISV::noun_forms(word),
+    }
 }
 
 pub fn adj_cell(
@@ -389,11 +409,9 @@ pub fn paradigm_records(
     }
     match pos {
         Pos::Noun | Pos::ProperNoun => {
-            // Build the whole noun paradigm once from the crate (issue #20).
-            let forms = match noun_gender(gender) {
-                Some(g) => ISV::noun_forms_with(bare, g, IsvAnimacy::Inanimate),
-                None => ISV::noun_forms(bare),
-            };
+            // Build the whole noun paradigm once from the crate (issue #20) —
+            // the same struct the site's noun_table renders from.
+            let forms = noun_paradigm_forms(bare, gender);
             for (nf, num) in NUMBERS {
                 for (cf, case) in CASES {
                     sink.add(
