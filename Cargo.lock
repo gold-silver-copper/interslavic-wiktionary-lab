@@ -118,9 +118,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "interslavic"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31b7729db7f973d2f07221a7cac1738416565f7040eae4f07e8a6bc3b33d0f0b"
+checksum = "e547bb14809c6438a6047fd0120b7ade918ae14742ed121ae5f0bde5b9c7e96f"
 dependencies = [
  "interslavic-core",
  "phf",
@@ -128,9 +128,9 @@ dependencies = [
 
 [[package]]
 name = "interslavic-core"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc1d72e24ed5066d00b0155fc3fe6d10bf4454d028ed04b00f0f2376f901dbc2"
+checksum = "421bbbfa93125b6d63d803bbfbb719ec87e341bd9078f6319532de1f5e1f097c"
 
 [[package]]
 name = "interslavic-wiktionary-lab"

@@ -40,14 +40,6 @@ pub struct Derived {
     pub label: &'static str,
 }
 
-use interslavic::phono::{iotate_final, palatalize_final};
-
-/// A stem counts as soft for the O⇒E ending alternation (RULE_SPEC §3.4).
-/// One definition of softness for the whole crate: morph's.
-fn ends_soft(stem: &str) -> bool {
-    crate::morph::stem_is_soft(stem) || stem.ends_with("rj")
-}
-
 fn strip_final_vowel(w: &str) -> &str {
     match w.chars().last() {
         Some('a' | 'o' | 'e' | 'y' | 'i') => &w[..w.len() - w.chars().last().unwrap().len_utf8()],
@@ -58,150 +50,29 @@ fn strip_final_vowel(w: &str) -> &str {
 /// The regular derivational family of a lemma (seam-aware). Only patterns whose
 /// preconditions hold fire; the caller filters against attestation if needed.
 pub fn derive_family(base: &str, pos: Pos) -> Vec<Derived> {
-    let mut out = Vec::new();
-    let b = base.trim();
-    if b.is_empty() || b.contains(' ') {
-        return out;
-    }
-    let push = |out: &mut Vec<Derived>, form: String, pos, pattern, label| {
-        if !form.is_empty() && form != b {
-            out.push(Derived {
-                form,
-                pos,
-                pattern,
-                label,
-            });
-        }
+    // The seam-aware derivation rules moved to the interslavic crate (issue
+    // #21); map this project's rich Pos to the crate's four derivation
+    // categories and back. Only nouns/adjectives/verbs derive anything.
+    let crate_pos = match pos {
+        Pos::Noun => interslavic::derivation::Pos::Noun,
+        Pos::Adjective => interslavic::derivation::Pos::Adjective,
+        Pos::Verb => interslavic::derivation::Pos::Verb,
+        _ => return Vec::new(),
     };
-
-    match pos {
-        Pos::Adjective => {
-            let stem = strip_final_vowel(b).to_string();
-            if stem.chars().count() >= 2 {
-                // Abstract noun: dobry → dobrosť.
-                push(
-                    &mut out,
-                    format!("{stem}osť"),
-                    Pos::Noun,
-                    "ost",
-                    "odvlečeny imennik",
-                );
-                // Adverb: neut.sg -o, -e after a soft stem (svěži → svěže).
-                let adv_end = if ends_soft(&stem) { "e" } else { "o" };
-                push(
-                    &mut out,
-                    format!("{stem}{adv_end}"),
-                    Pos::Adverb,
-                    "adv",
-                    "prislovnik",
-                );
-                // Negation: dobry → nedobry.
-                if !b.starts_with("ne") {
-                    push(&mut out, format!("ne{b}"), Pos::Adjective, "ne", "negacija");
-                }
-            }
-        }
-        Pos::Verb => {
-            if let Some(stem) = b.strip_suffix("ti") {
-                // Verbal noun (gerund): -ati→-ańje, -ěti→-ěńje, -ovati→-ovańje,
-                // -iti → iotated stem + -jeńje (prositi→prošeńje, roditi→rođeńje,
-                // loviti→lovjeńje).
-                if stem.ends_with('a') || stem.ends_with('ě') {
-                    push(
-                        &mut out,
-                        format!("{stem}ńje"),
-                        Pos::Noun,
-                        "vnoun",
-                        "odglagolny imennik",
-                    );
-                } else if let Some(istem) = stem.strip_suffix('i') {
-                    // Root i-verbs (piti, biti, žiti) take -ťje (piťje), not the
-                    // iotated -jeńje; only derive suffixal -iti stems (≥2 chars).
-                    if istem.chars().count() >= 2 {
-                        push(
-                            &mut out,
-                            format!("{}eńje", iotate_final(istem)),
-                            Pos::Noun,
-                            "vnoun",
-                            "odglagolny imennik",
-                        );
-                    }
-                }
-                // Agentive: učiti → učitelj, izdavati → izdavatelj.
-                if stem.chars().count() >= 2 && !stem.ends_with('n') {
-                    push(
-                        &mut out,
-                        format!("{stem}telj"),
-                        Pos::Noun,
-                        "telj",
-                        "dějatelj",
-                    );
-                }
-            }
-        }
-        Pos::Noun => {
-            if b.ends_with("telj") {
-                // Agent-noun family: -teljstvo, -teljka.
-                push(
-                    &mut out,
-                    format!("{b}stvo"),
-                    Pos::Noun,
-                    "teljstvo",
-                    "odvlečeny imennik",
-                );
-                push(
-                    &mut out,
-                    format!("{b}ka"),
-                    Pos::Noun,
-                    "teljka",
-                    "žensky dějatelj",
-                );
-            }
-            let stem = strip_final_vowel(b).to_string();
-            if stem.chars().count() >= 2 {
-                // Denominal adjectives with first palatalization at the seam:
-                // kniga → knižny, Grek → grečsky. (Rejected experiment: a -j
-                // stem → -any allomorph (zemjany) regressed −1.4pp exact — most
-                // -j stems take plain -ny; the -any class is lexical.)
-                push(
-                    &mut out,
-                    format!("{}ny", palatalize_final(&stem)),
-                    Pos::Adjective,
-                    "ny",
-                    "pridavnik",
-                );
-                push(
-                    &mut out,
-                    format!("{}sky", palatalize_final(&stem)),
-                    Pos::Adjective,
-                    "sky",
-                    "pridavnik",
-                );
-            }
-            if let Some(astem) = b.strip_suffix('a') {
-                if astem.chars().count() >= 2 {
-                    // Feminine diminutive: kniga → knižka, ruka → ručka.
-                    push(
-                        &mut out,
-                        format!("{}ka", palatalize_final(astem)),
-                        Pos::Noun,
-                        "dimka",
-                        "umenšeny imennik",
-                    );
-                    // -ica: voda → vodica, ruka → ručica.
-                    push(
-                        &mut out,
-                        format!("{}ica", palatalize_final(astem)),
-                        Pos::Noun,
-                        "ica",
-                        "umenšeny/žensky imennik",
-                    );
-                }
-            }
-        }
-        _ => {}
-    }
-    out
+    interslavic::derivation::derive(base, crate_pos)
+        .into_iter()
+        .map(|d| Derived {
+            form: d.form,
+            pos: match d.pos {
+                interslavic::derivation::Pos::Noun => Pos::Noun,
+                interslavic::derivation::Pos::Adjective => Pos::Adjective,
+                interslavic::derivation::Pos::Verb => Pos::Verb,
+                interslavic::derivation::Pos::Adverb => Pos::Adverb,
+            },
+            pattern: d.pattern,
+            label: d.label,
+        })
+        .collect()
 }
 
 /// The naive baseline: same suffix targets, ZERO seam rules and no flavored

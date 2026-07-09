@@ -91,70 +91,11 @@ pub const ADJ_COLS: [(&str, IsvGender, IsvAnimacy); 4] = [
 /// strip the crate's stress accents (á/ì/ý…) which are neither standard nor
 /// etymological ISV orthography.
 pub fn clean_cell(cell: &str) -> String {
-    // Stress accents first (the inflector marks stress on some forms; neither
-    // standard nor etymological ISV orthography uses them).
-    let deaccent = |x: &str| -> String {
-        x.chars()
-            .map(|c| match c {
-                'á' | 'à' | 'â' | 'ã' => 'a',
-                'é' | 'è' | 'ê' => 'e',
-                'í' | 'ì' | 'î' => 'i',
-                'ó' | 'ò' | 'ô' | 'œ' => 'o',
-                'ú' | 'ù' | 'û' => 'u',
-                'ý' => 'y',
-                // The inflector's internal intervocalic-j marker (dělaĵųći).
-                'ĵ' => 'j',
-                c => c,
-            })
-            .collect()
-    };
-    let squeeze = |x: String| -> String { x.split_whitespace().collect::<Vec<_>>().join(" ") };
-    let cell = deaccent(cell);
-    // Double-citation convention "A (…), B (…)": clean each citation
-    // separately (the -aje- conjugation's passive participles ship this way).
-    if let Some(idx) = cell.find("), ") {
-        let first = clean_cell(&cell[..idx + 1]);
-        let rest = clean_cell(cell[idx + 2..].trim_start());
-        return format!("{first} / {rest}");
-    }
-    let Some(i) = cell.find('(') else {
-        return cell;
-    };
-    let Some(jrel) = cell[i..].find(')') else {
-        return cell;
-    };
-    let j = i + jrel;
-    let head = &cell[..i];
-    let inside = &cell[i + 1..j];
-    let rest = &cell[j + 1..];
-    let base = squeeze(format!("{head}{rest}"));
-    let mut variants: Vec<String> = Vec::new();
-    if inside.contains(',') || inside.trim_start().starts_with('-') {
-        // Alternative-forms list: "dělaný (dělaná, dělanó)" are full forms;
-        // "dělajemy (-a, -o)" are ending swaps grafted onto the base.
-        variants.push(base.clone());
-        for alt in inside.split(',') {
-            let alt = alt.trim();
-            if let Some(suffix) = alt.strip_prefix('-') {
-                let mut b = base.clone();
-                b.pop();
-                variants.push(squeeze(format!("{b}{suffix}")));
-            } else {
-                variants.push(squeeze(format!("{alt}{rest}")));
-            }
-        }
-    } else {
-        // Optional infix: "byh generoval(a)" → with and without.
-        variants.push(base);
-        variants.push(squeeze(format!("{head}{inside}{rest}")));
-    }
-    // Anything still carrying parens or a bare suffix marker is an unparsed
-    // inflector convention: keep it out of the keys.
-    variants.retain(|v| !v.is_empty() && !v.contains(['(', ')']) && !v.starts_with('-'));
-    if variants.is_empty() {
-        return squeeze(cell.replace(['(', ')'], " "));
-    }
-    variants.join(" / ")
+    // The flavored→variants normalization moved to the interslavic crate
+    // (issue #22); this rejoins its structured output into the ` / `-separated
+    // form the index/display paths expect. `variants(x).join(" / ")` is
+    // byte-identical to the former local implementation.
+    interslavic::cells::variants(cell).join(" / ")
 }
 
 /// Map the dictionary's gender metadata onto the inflector's.
@@ -403,11 +344,15 @@ fn adj_paradigm(
     probability: Option<f64>,
     gloss: &str,
 ) {
+    // Build the whole adjective paradigm once from the crate (issue #20) and
+    // index it, instead of a single-form call per cell. clean_cell normalizes
+    // the raw cell exactly as adj_cell did.
+    let forms = ISV::adj_forms(adj);
     for (nf, num) in NUMBERS {
         for (cf, case) in CASES {
             for (gf, g, a) in ADJ_COLS {
                 sink.add(
-                    &adj_cell(adj, case, num, g, a),
+                    &clean_cell(forms.get(case, num, g, a)),
                     &format!("{feat_prefix}{cf}.{nf}. {gf}"),
                     lemma,
                     entry_id,
@@ -444,10 +389,15 @@ pub fn paradigm_records(
     }
     match pos {
         Pos::Noun | Pos::ProperNoun => {
+            // Build the whole noun paradigm once from the crate (issue #20).
+            let forms = match noun_gender(gender) {
+                Some(g) => ISV::noun_forms_with(bare, g, IsvAnimacy::Inanimate),
+                None => ISV::noun_forms(bare),
+            };
             for (nf, num) in NUMBERS {
                 for (cf, case) in CASES {
                     sink.add(
-                        &noun_cell_g(bare, case, num, gender),
+                        &clean_cell(forms.get(case, num)),
                         &format!("{cf}.{nf}."),
                         lemma,
                         entry_id,
