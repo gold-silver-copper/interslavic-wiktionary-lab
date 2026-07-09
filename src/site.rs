@@ -950,7 +950,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                     m.raw = true;
                     m
                 };
-                let html = raw_lemma_page(&display, lemma, id, &meta);
+                let html = raw_lemma_page(&display, lemma, id, &meta, enrich.as_ref());
                 std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
 
                 // Search row (schema 2, 15 elements). Status char 'R'; the folds
@@ -1879,22 +1879,26 @@ fn official_only_page(
     page(&format!("{isv} — medžuslovjansky"), &body, 1)
 }
 
-/// A SITE-ONLY, low-evidence entry for one raw Slavic Wiktionary lemma (issue #34,
-/// PR-2). Cloned from [`official_only_page`] but with every official-only /
-/// generation section dropped: it shows ONLY the English-Wiktionary dump data —
-/// the attested glosses and the raw etymology text — clearly badged as a raw,
-/// low-evidence attestation that is NOT an Interslavic standard.
+/// A SITE-ONLY, low-evidence entry for one raw Slavic Wiktionary lemma (issue #34).
+/// Cloned from [`official_only_page`] but with every official-only / generation
+/// section dropped. It MERGES two independent dictionary sources for the word,
+/// each clearly labelled: the English-Wiktionary dump data (attested glosses +
+/// raw etymology text) and — when the enrichment cache has it (issue #33) — the
+/// NATIVE RU/PL/CS Wiktionary entry (its own senses, usage quotations, semantic
+/// links, and etymology). It stays clearly badged as a raw, low-evidence
+/// attestation that is NOT an Interslavic standard.
 ///
 /// It is deliberately NOT wired into the verification/forms API, the cognate
 /// graph, categories, homograph indexes, talk/backlink pages, or the home list:
 /// these pages exist purely so every dictionary word is discoverable and
-/// searchable. The native RU/PL/CS merge (real senses) is a later PR. All dump
-/// text is escaped through [`esc`].
+/// searchable. All dump text is escaped through [`esc`]; RU source text is
+/// transliterated via [`source_display`].
 fn raw_lemma_page(
     display: &str,
     lemma: &crate::dump::RawSlavicLemma,
     id: usize,
     meta: &SiteEntryMeta,
+    enrich: Option<&crate::enrich::EnrichIndex>,
 ) -> String {
     // Attested English-Wiktionary glosses, verbatim (escaped). Low-evidence.
     let mut gloss_items = String::new();
@@ -1910,28 +1914,43 @@ fn raw_lemma_page(
     } else {
         format!("<ul class='compact-list'>{gloss_items}</ul>")
     };
-    // Raw etymology text from English Wiktionary, line breaks preserved (escaped).
-    let etymology = {
-        let t = lemma.etymology_text.trim();
-        if t.is_empty() {
-            String::new()
-        } else {
-            format!(
-                "<section><h2 id='etimologija'>Etimologija <span class='muted'>(surovy tekst iz Wiktionary)</span></h2><p class='etym-raw'>{}</p></section>",
-                esc(t).replace('\n', "<br>")
-            )
-        }
-    };
+    // Native RU/PL/CS enrichment for THIS raw word (accent-stripped key lookup),
+    // when the enrich cache carries it (issue #33). Its senses, usage quotations,
+    // and semantic links render via the same helper the generated pages use.
+    let native = enrich.and_then(|ix| ix.get(&lemma.lang, &lemma.word));
+    let native_members = [(lemma.lang.clone(), lemma.word.clone())];
+    let native_conn = enrich
+        .map(|ix| enrich_connections_section(&native_members, ix, None, id))
+        .unwrap_or_default();
+    // Merged etymology: the native (non-stub) etymology and the English dump text,
+    // side by side and source-labelled. A native `Происходит от ??` stub is
+    // dropped so the English etymology_text fills the gap instead.
+    let etymology = raw_etymology_section(lemma, native);
+    // The page has native content to show when the native entry contributed
+    // senses, links, or a non-stub etymology.
+    let native_shown = !native_conn.is_empty()
+        || native.is_some_and(|e| e.etymology.iter().any(|p| !etym_is_stub(p)));
     let lang_name = crate::lang::lang_name(&lemma.lang);
     let src_url = crate::enrich::source_url(&lemma.lang, &lemma.word);
-    let banner = format!(
-        "<div class='banner warn'><b>Surova atestacija iz Wiktionary — nizko dokazano.</b> \
-         Ta zapis pokazuje samo dane iz anglijskoj Wiktionary ({lang} <span class='mention'>{word}</span>): \
-         zapisane smysly i surovy etimologičny tekst. Ne ma slovjanskogo konsensusa ni oficialnoj \
-         validacije — ne oficialny standard.</div>",
-        lang = esc(lang_name),
-        word = esc(&lemma.word),
-    );
+    let banner = if native_shown {
+        format!(
+            "<div class='banner warn'><b>Surova atestacija iz Wiktionary — nizko dokazano.</b> \
+             Ta zapis kombinuje dane iz anglijskoj Wiktionary i iz narodnoj {lang} Wiktionary \
+             (<span class='mention'>{word}</span>): zapisane smysly, značenja, priměry i etimologiju. \
+             Ne ma slovjanskogo konsensusa ni oficialnoj validacije — ne oficialny standard.</div>",
+            lang = esc(lang_name),
+            word = esc(&lemma.word),
+        )
+    } else {
+        format!(
+            "<div class='banner warn'><b>Surova atestacija iz Wiktionary — nizko dokazano.</b> \
+             Ta zapis pokazuje samo dane iz anglijskoj Wiktionary ({lang} <span class='mention'>{word}</span>): \
+             zapisane smysly i surovy etimologičny tekst. Ne ma slovjanskogo konsensusa ni oficialnoj \
+             validacije — ne oficialny standard.</div>",
+            lang = esc(lang_name),
+            word = esc(&lemma.word),
+        )
+    };
     let mut info_rows = String::new();
     let _ = write!(
         info_rows,
@@ -1949,9 +1968,10 @@ fn raw_lemma_page(
              <div class='entry-main'>\
                <h1 class='page-title firstHeading'>{disp}</h1>\
                {banner}\
-               <section><h2 id='smysly'>Anglijske značenja <span class='muted'>(Wiktionary)</span></h2>{glosses}</section>\
+               <section><h2 id='smysly'>Anglijske značenja <span class='muted'>(anglijska Wiktionary)</span></h2>{glosses}</section>\
+               {native_conn}\
                {etymology}\
-               <p class='foot'>Surova atestacija iz anglijskoj Wiktionary (CC BY-SA): <a href='{src}'>{lang} · {word}</a>. \
+               <p class='foot'>Surova atestacija iz Wiktionary (CC BY-SA): <a href='{src}'>{lang} · {word}</a>. \
                 Nizko dokazano; samo za sajt, ne oficialny standard. Prěgibanje ne generovano.</p>\
              </div>\
              <aside class='entry-rail'>{entry_card}</aside>\
@@ -1962,8 +1982,66 @@ fn raw_lemma_page(
         lang = esc(lang_name),
         word = esc(&lemma.word),
     );
-    let _ = id;
     page(&format!("{display} — surova atestacija"), &body, 1)
+}
+
+/// True when a native etymology paragraph is a bare placeholder stub — empty or
+/// wiktextract's `Происходит от ??` / `?? ` unknown-origin marker — which carries
+/// no real etymology and should yield to the English `etymology_text` instead.
+fn etym_is_stub(s: &str) -> bool {
+    let t = s.trim();
+    t.is_empty() || t.contains("??")
+}
+
+/// The merged etymology `<section>` for a raw lemma page (issue #33): the native
+/// RU/PL/CS etymology (stubs dropped, RU transliterated) and the English-dump
+/// `etymology_text` (verbatim), each rendered as a source-labelled card. Returns
+/// an empty string when neither source has usable etymology.
+fn raw_etymology_section(
+    lemma: &crate::dump::RawSlavicLemma,
+    native: Option<&crate::enrich::EnrichEntry>,
+) -> String {
+    let mut cards = String::new();
+    // Native etymology (non-stub paragraphs only), from the native edition.
+    if let Some(e) = native {
+        let paras: String = e
+            .etymology
+            .iter()
+            .filter(|p| !etym_is_stub(p))
+            .map(|p| format!("<p>{}</p>", esc(&source_display(&lemma.lang, p))))
+            .collect();
+        if !paras.is_empty() {
+            let _ = write!(
+                cards,
+                "<div class='etym-src'><div class='src-head'><span class='lc'>{} · Wiktionary</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
+                esc(crate::lang::lang_name(&lemma.lang)),
+                esc(&crate::enrich::source_url(&lemma.lang, &lemma.word)),
+                esc(&source_display(&lemma.lang, &lemma.word)),
+                paras
+            );
+        }
+    }
+    // English-Wiktionary etymology_text, verbatim (escaped) — always shown when
+    // present, and the fallback that fills a dropped native `??` stub.
+    let t = lemma.etymology_text.trim();
+    if !t.is_empty() {
+        let _ = write!(
+            cards,
+            "<div class='etym-src'><div class='src-head'><span class='lc'>anglijska Wiktionary · {}</span> <a class='ext' href='https://en.wiktionary.org/wiki/{}#{}'>{}↗</a></div><p class='etym-raw'>{}</p></div>",
+            esc(crate::lang::lang_name(&lemma.lang)),
+            esc(&lemma.word.replace(' ', "_")),
+            esc(&lemma.lang),
+            esc(&source_display(&lemma.lang, &lemma.word)),
+            esc(t).replace('\n', "<br>")
+        );
+    }
+    if cards.trim().is_empty() {
+        return String::new();
+    }
+    format!(
+        "<section><h2 id='etimologija'>Etimologija</h2><div class='etym-sources'>{cards}</div>\
+         <p class='muted'>Etimologije iz Wiktionary (CC BY-SA); anglijsky tekst ostaje anglijsky, rusky tekst jest transliterovany.</p></section>"
+    )
 }
 
 /// The full search-results page (search.html). Reads `?q=` and lists every match;

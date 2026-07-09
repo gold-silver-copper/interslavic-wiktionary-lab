@@ -282,7 +282,13 @@ fn main() -> Result<()> {
         } => {
             let corpus = dump::LemmaCorpus::load(&lemmas)?;
             let official = official::load(&official)?;
-            let wanted = enrich::build_wanted(&corpus, &official);
+            // Union the RAW low-evidence Slavic lemmas (issue #33) into the wanted
+            // set so raw ru/pl/cs words gain native enrichment too. Loaded from the
+            // committed cache; absent → empty, extract-enrich still runs.
+            let raw = dump::RawSlavicCorpus::load(std::path::Path::new(DEFAULT_RAW_LEMMA_CACHE))
+                .map(|c| c.lemmas)
+                .unwrap_or_default();
+            let wanted = enrich::build_wanted(&corpus, &official, &raw);
             let total: usize = wanted.values().map(|s| s.len()).sum();
             println!(
                 "Enriching {} wanted cognate words across {:?} from {}",

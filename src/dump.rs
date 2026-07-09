@@ -7,12 +7,56 @@
 
 use crate::model::Pos;
 use anyhow::{Context, Result};
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
+
+// ---------------------------------------------------------------------------
+// Gzip-on-disk cache format (issue #34)
+//
+// The committed caches keep their `.json` filenames but hold a gzip stream, so
+// the 147 MB enrich cache fits under GitHub's 100 MB blob limit without Git LFS.
+// Loading is format-agnostic: a pre-existing PLAIN cache still parses, and a
+// shell-produced `gzip -c` stream decodes identically to what `write_gz` emits
+// (both are ordinary gzip). Decompressed bytes equal the exact serde JSON, so
+// serialization is byte-for-byte preserved.
+// ---------------------------------------------------------------------------
+
+/// Read a cache file, transparently gunzipping it when it begins with the gzip
+/// magic bytes (`0x1f 0x8b`). A plain (uncompressed) file is returned as-is, so
+/// older non-gzip caches still load. Plain JSON never starts with `0x1f`, so the
+/// magic-byte sniff cannot misfire.
+pub fn read_maybe_gz(path: &Path) -> std::io::Result<Vec<u8>> {
+    let raw = std::fs::read(path)?;
+    if raw.len() >= 2 && raw[0] == 0x1f && raw[1] == 0x8b {
+        let mut out = Vec::new();
+        GzDecoder::new(&raw[..]).read_to_end(&mut out)?;
+        Ok(out)
+    } else {
+        Ok(raw)
+    }
+}
+
+/// Write `bytes` gzip-compressed to `path`, atomically (tmp file + rename),
+/// mirroring the plain-JSON atomic-save pattern. The file keeps its `.json`
+/// name but holds a gzip stream; [`read_maybe_gz`] auto-detects it on load.
+pub fn write_gz(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    let mut enc = GzEncoder::new(File::create(&tmp)?, Compression::default());
+    enc.write_all(bytes)?;
+    enc.finish()?.flush()?;
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
 
 /// One Proto-Slavic reconstruction, distilled from a `sla-pro` page.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,12 +150,16 @@ pub struct LemmaCorpus {
 
 impl LemmaCorpus {
     pub fn load(path: &Path) -> Result<Self> {
-        use std::io::Read;
-        let mut json = String::new();
-        File::open(path)
-            .with_context(|| format!("open lemma corpus {}", path.display()))?
-            .read_to_string(&mut json)?;
-        serde_json::from_str(&json).context("parse lemma corpus")
+        let bytes =
+            read_maybe_gz(path).with_context(|| format!("open lemma corpus {}", path.display()))?;
+        serde_json::from_slice(&bytes).context("parse lemma corpus")
+    }
+
+    /// Atomic gzip write (tmp file + rename). Decompressed bytes are the exact
+    /// serde JSON, so the on-disk data round-trips byte-for-byte.
+    pub fn save(&self, path: &Path) -> Result<()> {
+        write_gz(path, &serde_json::to_vec(self)?)?;
+        Ok(())
     }
 }
 
@@ -145,24 +193,14 @@ pub struct RawSlavicCorpus {
 
 impl RawSlavicCorpus {
     pub fn load(path: &Path) -> Result<Self> {
-        use std::io::Read;
-        let mut json = String::new();
-        File::open(path)
-            .with_context(|| format!("open raw slavic corpus {}", path.display()))?
-            .read_to_string(&mut json)?;
-        serde_json::from_str(&json).context("parse raw slavic corpus")
+        let bytes = read_maybe_gz(path)
+            .with_context(|| format!("open raw slavic corpus {}", path.display()))?;
+        serde_json::from_slice(&bytes).context("parse raw slavic corpus")
     }
 
-    /// Atomic write (tmp file + rename), mirroring [`extract_lemmas`]'s save.
+    /// Atomic gzip write (tmp file + rename), mirroring [`extract_lemmas`]'s save.
     pub fn save(&self, path: &Path) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        let tmp = path.with_extension("json.tmp");
-        let mut f = File::create(&tmp)?;
-        serde_json::to_writer(&mut f, self)?;
-        f.flush()?;
-        std::fs::rename(&tmp, path)?;
+        write_gz(path, &serde_json::to_vec(self)?)?;
         Ok(())
     }
 }
@@ -212,14 +250,7 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
         entry_count: entries.len(),
         entries,
     };
-    if let Some(parent) = out.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let tmp = out.with_extension("json.tmp");
-    let mut f = File::create(&tmp)?;
-    serde_json::to_writer(&mut f, &corpus)?;
-    f.flush()?;
-    std::fs::rename(&tmp, out)?;
+    corpus.save(out)?;
     println!(
         "wrote {} ({} Slavic lemmas from {} lines)",
         out.display(),
@@ -690,14 +721,7 @@ pub fn extract(dump: &Path, out: &Path) -> Result<()> {
         entry_count: entries.len(),
         entries,
     };
-    if let Some(parent) = out.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let tmp = out.with_extension("json.tmp");
-    let mut f = File::create(&tmp)?;
-    serde_json::to_writer(&mut f, &cache)?;
-    f.flush()?;
-    std::fs::rename(&tmp, out)?;
+    write_gz(out, &serde_json::to_vec(&cache)?)?;
     println!(
         "wrote {} ({} Proto-Slavic entries from {} lines)",
         out.display(),
@@ -843,12 +867,9 @@ pub struct ProtoIndex {
 
 impl ProtoIndex {
     pub fn load(path: &Path) -> Result<Self> {
-        let mut json = String::new();
-        use std::io::Read;
-        File::open(path)
-            .with_context(|| format!("open proto cache {}", path.display()))?
-            .read_to_string(&mut json)?;
-        let cache: ProtoCache = serde_json::from_str(&json).context("parse proto cache")?;
+        let bytes =
+            read_maybe_gz(path).with_context(|| format!("open proto cache {}", path.display()))?;
+        let cache: ProtoCache = serde_json::from_slice(&bytes).context("parse proto cache")?;
         let mut idx = Self::build(cache.entries);
         // Attach Wiktionary's explicit (lang, lemma) -> ancestor etymology if the
         // lemma corpus is available next to the proto cache.

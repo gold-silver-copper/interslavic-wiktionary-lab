@@ -101,12 +101,10 @@ pub struct EnrichIndex {
 
 impl EnrichIndex {
     pub fn load(path: &Path) -> Result<Self> {
-        use std::io::Read;
-        let mut json = String::new();
-        File::open(path)
-            .with_context(|| format!("open enrich cache {}", path.display()))?
-            .read_to_string(&mut json)?;
-        let mut cache: EnrichCache = serde_json::from_str(&json).context("parse enrich cache")?;
+        let bytes = crate::dump::read_maybe_gz(path)
+            .with_context(|| format!("open enrich cache {}", path.display()))?;
+        let mut cache: EnrichCache =
+            serde_json::from_slice(&bytes).context("parse enrich cache")?;
         // Drop the handful of strings where wiktextract leaked unparsed wiki markup
         // (`[[">*melko< / [[span>#…|span>]]]]`, `''…''`, stray tags) so no page shows
         // garbage. A bare `<` is kept — it is legit descent notation ("*ognь < …").
@@ -201,10 +199,16 @@ pub fn source_url(lang: &str, word: &str) -> String {
 }
 
 /// The set of cognate words we actually show on the site, per enrich language —
-/// the union of the corpus lemma members and the official dictionary's cells.
+/// the union of the corpus lemma members, the official dictionary's cells, and
+/// the RAW low-evidence Slavic lemmas (issue #33). The raw lemmas are unioned so
+/// `extract-enrich` also pulls native RU/PL/CS entries for raw words like
+/// пластинка, which the raw entry page then merges with the English-dump data.
+/// Only ru/pl/cs raw lemmas can match a `wanted` bucket (the only editions with a
+/// dump); raw lemmas of any other language are silently ignored, as intended.
 pub fn build_wanted(
     lemmas: &LemmaCorpus,
     official: &[OfficialEntry],
+    raw: &[crate::dump::RawSlavicLemma],
 ) -> HashMap<String, HashSet<String>> {
     let mut wanted: HashMap<String, HashSet<String>> = HashMap::new();
     for &l in ENRICH_LANGS {
@@ -224,6 +228,11 @@ pub fn build_wanted(
                     }
                 }
             }
+        }
+    }
+    for e in raw {
+        if let Some(set) = wanted.get_mut(e.lang.as_str()) {
+            set.insert(norm_word(&e.word));
         }
     }
     wanted
@@ -298,7 +307,7 @@ pub fn extract(dir: &Path, wanted: &HashMap<String, HashSet<String>>, out: &Path
         entry_count: entries.len(),
         entries,
     };
-    std::fs::write(out, serde_json::to_string(&cache)?)?;
+    crate::dump::write_gz(out, &serde_json::to_vec(&cache)?)?;
     eprintln!(
         "Wrote {} enrichment entries to {}",
         cache.entry_count,
