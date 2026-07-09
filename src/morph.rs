@@ -633,7 +633,7 @@ fn is_letter(c: char) -> bool {
 /// A stem is grammatically soft when it ends in a hushing/soft consonant.
 /// The crate's single definition of softness (derive.rs reuses it).
 pub(crate) fn stem_is_soft(stem: &str) -> bool {
-    crate::phono::is_soft(stem)
+    interslavic::phono::is_soft(stem)
 }
 
 #[cfg(test)]

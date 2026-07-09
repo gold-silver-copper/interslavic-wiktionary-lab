@@ -40,7 +40,7 @@ pub struct Derived {
     pub label: &'static str,
 }
 
-use crate::phono::{iotate_final, palatalize_final};
+use interslavic::phono::{iotate_final, palatalize_final};
 
 /// A stem counts as soft for the O⇒E ending alternation (RULE_SPEC §3.4).
 /// One definition of softness for the whole crate: morph's.
@@ -262,13 +262,13 @@ fn naive_family(base: &str, pos: Pos) -> Vec<Derived> {
 /// Undo the first palatalization (for inverse base lookup). Returns the
 /// alternates to try INCLUDING the unchanged stem.
 fn inverse_palatalization(stem: &str) -> Vec<String> {
-    crate::phono::inverse_palatalization(stem)
+    interslavic::phono::inverse_palatalization(stem)
 }
 
 /// Undo iotation (for inverse -jeńje lookup). Includes the unchanged stem so
 /// hushing-final stems (učiti → uč-) resolve too.
 fn inverse_iotation(t: &str) -> Vec<String> {
-    crate::phono::inverse_iotation(t)
+    interslavic::phono::inverse_iotation(t)
 }
 
 struct Pair {

@@ -33,7 +33,6 @@ mod normalize;
 mod official;
 mod orthography;
 mod overrides;
-mod phono;
 mod pipeline;
 mod proto;
 mod proto_link;
