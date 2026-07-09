@@ -2951,7 +2951,8 @@ function scoreAll(raw){
     if(sc>0)hits.push([sc,e,anchor,srclab]); if(hits.length>5000)break; }
   hits.sort(function(a,b){return b[0]-a[0] || a[1][1].localeCompare(b[1][1]);}); return hits;
 }
-function hitHTML(e,a,src){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+(e[11]||'')+"</span>"; if(e[13])meta+=" <span class='ha'>"+e[13]+"</span>"; meta+=" <span class='hl'>"+(e[8]||0)+" jęz. / "+(e[9]||0)+" vět.</span>"; if(src)meta+=" <span class='hsrc' title='Slovnikovy dokaz: perevod komiteta / kognat'>"+src+"</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+e[1]+"</b> <span class='hp'>"+posLabel(e[3])+"</span> <span class='hg'>"+e[2]+"</span> "+meta+"</a>"; }
+function eh(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hitHTML(e,a,src){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+eh(e[11]||'')+"</span>"; if(e[13])meta+=" <span class='ha'>"+eh(e[13])+"</span>"; meta+=" <span class='hl'>"+(e[8]||0)+" jęz. / "+(e[9]||0)+" vět.</span>"; if(src)meta+=" <span class='hsrc' title='Slovnikovy dokaz: perevod komiteta / kognat'>"+eh(src)+"</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+eh(e[1])+"</b> <span class='hp'>"+posLabel(e[3])+"</span> <span class='hg'>"+eh(e[2])+"</span> "+meta+"</a>"; }
 async function run(showDropdown){
   await ensure(); var v=q?q.value:''; var hits=scoreAll(v);
   // The search page has full results below the filters, so never reopen the
@@ -2976,7 +2977,7 @@ if(q){ var t=null; q.addEventListener('input',function(){ clearTimeout(t); t=set
 document.addEventListener('click',function(ev){ if(out&&!ev.target.closest('.hsearch'))closeDropdown(); });
 async function randomWord(){ await ensure(); if(!IDX.length)return; var pool=IDX.filter(function(e){return e[5]==='V'||e[4]==='O'}); if(!pool.length)pool=IDX; var e=pool[Math.floor(Math.random()*pool.length)];
   var el=document.getElementById('spotlight'); if(!el)return; var box=document.getElementById('spotbox'); if(box)box.style.display='';
-  el.innerHTML="<a class='spotlight-word' href='"+SITE_BASE+"entry/"+e[0]+".html'>"+e[1]+"</a><div class='muted'>"+posLabel(e[3])+" · "+e[2]+"</div><div class='spot-strength'>"+strBadge(e)+" "+(e[11]||'')+"</div>"; }
+  el.innerHTML="<a class='spotlight-word' href='"+SITE_BASE+"entry/"+e[0]+".html'>"+eh(e[1])+"</a><div class='muted'>"+posLabel(e[3])+" · "+eh(e[2])+"</div><div class='spot-strength'>"+strBadge(e)+" "+eh(e[11]||'')+"</div>"; }
 var rb=document.getElementById('randbtn'); if(rb) rb.addEventListener('click',randomWord);
 if(document.getElementById('spotlight')) randomWord();
 (function(){ var p=new URLSearchParams(location.search).get('q'); if(p&&q)q.value=p; if(pageRes||p)run(false); })();
@@ -4864,7 +4865,7 @@ fn featured_page(rows: &[SiteEntryMeta], build: &BuildMeta) -> String {
 }
 
 fn random_page() -> String {
-    let body = r#"<article class='entry'><h1 class='firstHeading'>Speciaľno:Slučajno</h1><p>Ta statična strana koristi lokalny <code>search.json</code> i izbere slučajnu stranu zapisa bez servera.</p><p id='random-target' class='notice'>Nakladajě sę…</p><script>document.addEventListener('DOMContentLoaded',function(){ensure().then(function(idx){if(!idx.length)return;var e=idx[Math.floor(Math.random()*idx.length)];var a='entry/'+e[0]+'.html';document.getElementById('random-target').innerHTML='<a href="'+a+'">'+e[1]+'</a> — '+e[2]+'<br><a href="'+a+'">Idi</a>';});});</script></article>"#;
+    let body = r#"<article class='entry'><h1 class='firstHeading'>Speciaľno:Slučajno</h1><p>Ta statična strana koristi lokalny <code>search.json</code> i izbere slučajnu stranu zapisa bez servera.</p><p id='random-target' class='notice'>Nakladajě sę…</p><script>document.addEventListener('DOMContentLoaded',function(){ensure().then(function(idx){if(!idx.length)return;var eh=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};var e=idx[Math.floor(Math.random()*idx.length)];var a='entry/'+e[0]+'.html';document.getElementById('random-target').innerHTML='<a href="'+a+'">'+eh(e[1])+'</a> — '+eh(e[2])+'<br><a href="'+a+'">Idi</a>';});});</script></article>"#;
     page("Speciaľno:Slučajno", body, 0)
 }
 
