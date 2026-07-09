@@ -974,6 +974,10 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     crate::forms::closed_class_records(&mut form_sink);
     crate::forms::closed_class_records(&mut lemma_sink);
     let mut seen_paradigm: std::collections::HashSet<String> = std::collections::HashSet::new();
+    // Attested bases (official + official-only lemmas, with their OFFICIAL POS,
+    // page id, and gloss) to derive `generated` families off (issue #37). Never
+    // reconstructions: deriving off a wrong root inherits the ~33% wrong-root cap.
+    let mut attested_bases: Vec<(String, crate::model::Pos, usize, String)> = Vec::new();
     for p in &prepared {
         if p.suppressed {
             continue;
@@ -1049,6 +1053,11 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                 &gloss,
             );
         }
+        // An attested (official-matched) base: derive its family later. The
+        // reconstruction path (status == "generated") is deliberately excluded.
+        if status == "official" {
+            attested_bases.push((headword.clone(), pos, p.id, gloss.clone()));
+        }
     }
     for (oid, e) in &official_only_records {
         // ~230 rows list byform variants in one cell ("iměti, imati"): each
@@ -1103,8 +1112,26 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                     &e.english,
                 );
             }
+            attested_bases.push((isv.to_string(), e.pos, *oid, e.english.clone()));
         }
     }
+    // ---- Generated derivatives off attested bases (issue #37) ----
+    // Every official / official-only lemma's regular family is derived; a
+    // derivative ships ONLY if its folded key is absent from the form index
+    // (dedup against attested INFLECTED forms and already-emitted lemmas, not
+    // just headwords), as `status = "generated"`, `source = "lemma"`, with a
+    // per-pattern holdout-fit probability and NO inflected paradigm. Pure, so
+    // the export stays byte-reproducible.
+    let deriv_probs = crate::derive::pattern_probabilities(&official_entries);
+    let mut taken = form_sink.form_key_set();
+    let deriv_added = inject_generated_derivatives(
+        &mut form_sink,
+        &mut lemma_sink,
+        &mut taken,
+        &attested_bases,
+        &deriv_probs,
+    );
+    println!("api: added {deriv_added} generated derivative lemmas off attested bases (issue #37)");
     let form_records = form_sink.into_records();
     let lemma_records = lemma_sink.into_records();
     // Semantic-trap notes for the web text-checker (same file the CLI reads),
@@ -1181,6 +1208,60 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
         if panics > 0 { format!("; {panics} inflection cells blank") } else { String::new() }
     );
     Ok(())
+}
+
+/// Inject `generated` derivative FormRecords off attested bases (issue #37) into
+/// both sinks. Each base's regular family is derived on the attested-base path;
+/// a derivative is kept ONLY if its folded key is absent from `taken` — the set
+/// of every key already in the form index (official / official-only lemmas AND
+/// their inflected forms, generated reconstructions, and derivatives added
+/// earlier in this pass). That guarantees no derivative collides with an
+/// attested `form_key`. Survivors ship as `status = "generated"`,
+/// `source = "lemma"`, probability from the pattern's leakage-free holdout
+/// precision, provenance = `deriv:<pattern>` (in analyses) + the base entry id —
+/// and deliberately NO inflected paradigm (an inflected form of a proposed
+/// derivative would be confidently wrong). Returns the count added; pure and
+/// order-deterministic, so the export stays byte-reproducible.
+fn inject_generated_derivatives(
+    form_sink: &mut crate::forms::RecordSink,
+    lemma_sink: &mut crate::forms::RecordSink,
+    taken: &mut std::collections::HashSet<String>,
+    bases: &[(String, crate::model::Pos, usize, String)],
+    probs: &crate::derive::DerivationProbabilities,
+) -> usize {
+    let mut added = 0usize;
+    for (base, pos, base_id, base_gloss) in bases {
+        for d in crate::derive::derive_family(base, *pos) {
+            let form = d.form.trim();
+            if form.is_empty() || form.contains(' ') || form.contains(['!', '#']) {
+                continue;
+            }
+            let key = crate::forms::form_key(form);
+            // Absent-only + dedup in one step: skip when the key is already
+            // taken (attested form, prior lemma, or an earlier derivative).
+            if key.is_empty() || !taken.insert(key) {
+                continue;
+            }
+            let prob = probs.probability(d.pattern);
+            let gloss = format!("{} ← {} ({})", d.label, base, truncate(base_gloss, 50));
+            let feats = format!("deriv:{}", d.pattern);
+            for sink in [&mut *lemma_sink, &mut *form_sink] {
+                sink.add(
+                    form,
+                    &feats,
+                    form,
+                    *base_id,
+                    d.pos.code(),
+                    "lemma",
+                    "generated",
+                    Some(prob),
+                    &gloss,
+                );
+            }
+            added += 1;
+        }
+    }
+    added
 }
 
 /// The family key of a cognate set: inherited sets share a family when their
@@ -5756,6 +5837,85 @@ fn json_str(v: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn generated_derivatives_never_collide_and_are_all_generated() {
+        // Issue #37 invariants: injected derivatives are pure ADDITIONS that (a)
+        // never collide with an official / official-only form_key (incl. INFLECTED
+        // forms), (b) are all status="generated", source="lemma", probability set,
+        // provenance-tagged, and (c) never re-emit a form the dictionary already has.
+        use crate::model::{Gender, Pos};
+        let mut form_sink = crate::forms::RecordSink::default();
+        let mut lemma_sink = crate::forms::RecordSink::default();
+        // An official base + its FULL paradigm — dedup must see inflected forms.
+        for s in [&mut form_sink, &mut lemma_sink] {
+            s.add("kniga", "", "kniga", 1, "n", "lemma", "official", None, "book");
+        }
+        crate::forms::paradigm_records(
+            &mut form_sink,
+            "kniga",
+            Pos::Noun,
+            Some(Gender::Feminine),
+            1,
+            "official",
+            None,
+            "book",
+        );
+        // Force a would-be derivative to already be official (knižny, denominal
+        // adjective): the derivation of it MUST be dropped as a collision.
+        for s in [&mut form_sink, &mut lemma_sink] {
+            s.add(
+                "knižny", "", "knižny", 2, "adj", "lemma", "official", None, "bookish",
+            );
+        }
+
+        let official_keys = form_sink.form_key_set();
+        let mut taken = official_keys.clone();
+        let bases = vec![("kniga".to_string(), Pos::Noun, 1usize, "book".to_string())];
+        let probs = crate::derive::DerivationProbabilities::flat(0.5);
+        let added =
+            inject_generated_derivatives(&mut form_sink, &mut lemma_sink, &mut taken, &bases, &probs);
+        assert!(added > 0, "kniga must derive at least one absent family member");
+
+        let records = form_sink.into_records();
+        for r in &records {
+            if r.status == "generated" {
+                assert!(
+                    !official_keys.contains(&r.key),
+                    "generated {} collides with an official/official-only key",
+                    r.key
+                );
+                assert_eq!(r.source, "lemma", "generated {} must be lemma-only", r.key);
+                assert!(
+                    r.probability.is_some(),
+                    "generated {} must carry a probability",
+                    r.key
+                );
+                assert!(
+                    r.analyses.iter().any(|a| a.starts_with("deriv:")),
+                    "generated {} must carry deriv provenance",
+                    r.key
+                );
+            }
+        }
+        // The colliding member survives ONLY as the seeded official record.
+        let knizny_key = crate::forms::form_key("knižny");
+        assert!(
+            records
+                .iter()
+                .filter(|r| r.key == knizny_key)
+                .all(|r| r.status == "official"),
+            "knižny must not be re-emitted as a generated derivative"
+        );
+        // A non-colliding member (the diminutive knižka) ships as generated.
+        let knizka_key = crate::forms::form_key("knižka");
+        assert!(
+            records
+                .iter()
+                .any(|r| r.key == knizka_key && r.status == "generated"),
+            "knižka should ship as a generated derivative"
+        );
+    }
 
     #[test]
     fn source_aliases_index_cyrillic_latin_and_folded_forms() {

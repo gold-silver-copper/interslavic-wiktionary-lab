@@ -347,6 +347,14 @@ impl RecordSink {
     pub fn into_records(self) -> Vec<FormRecord> {
         self.map.into_values().collect()
     }
+
+    /// The set of folded form keys currently held — the absence test for
+    /// generated derivatives (issue #37): a derivative is shipped only if its
+    /// key is NOT already present as an official / official-only inflected form
+    /// or an already-emitted lemma.
+    pub fn form_key_set(&self) -> std::collections::HashSet<String> {
+        self.map.keys().map(|(k, _, _)| k.clone()).collect()
+    }
 }
 
 /// Decline an adjective-shaped lemma into the sink with a feature prefix
@@ -918,18 +926,30 @@ License: {LICENSE}.
    - `status` — `official` / `official-only` (both verified against the
      official dictionary), `grammar` (closed-class function words from the
      reference grammar: v, s, k, o, ob, toj, ta — absent from the dictionary
-     export), or `generated` (machine reconstruction).
+     export), or `generated` (NOT in the official dictionary — either a machine
+     reconstruction from cognates, or a regular derivative generated off an
+     attested official base; see Trust rules).
 
 ## Trust rules
 
 - `status: official`/`official-only` records are verification-grade.
-- `status: generated` records carry `probability` — the isotonic-calibrated
-  P(this lemma matches an official decision), holdout-validated. **Treat
-  p < 0.6 as a suggestion, never as verification.** Generated lemmas have NO
-  inflection records on purpose: an inflected form of a wrong reconstruction
-  is confidently wrong.
-- Machine-proposed derivatives (the site's "Slovotvorstvo" chips) are NOT in
-  this index — a missing key means "unknown to Slovowiki", not "wrong".
+- `status: generated` records are NOT verification-grade; each carries a
+  `probability`. Two kinds:
+  - **cognate-set reconstructions** — `probability` is the isotonic-calibrated
+    P(this lemma matches an official decision), holdout-validated;
+  - **regular derivatives off attested bases** (the site's "Slovotvorstvo"
+    families) — a base lemma's productive family (`-osť`, adverb, `-ńje`,
+    `-telj`, `-ny`/`-sky`, `-ka`/`-ica`, `ne-`), restricted to members ABSENT
+    from the dictionary. These ARE now in this index. Their `analyses` carry a
+    single `deriv:<pattern>` tag and their `entry_id` points at the attested
+    BASE's page. `probability` is the per-pattern Wilson-95 lower bound of an
+    off-official-base holdout's exact-match rate (capped 0.90; see
+    `derivation-report.md`) — a form-accuracy proxy that cannot measure whether
+    the derivative is a real word, so treat it as a suggestion.
+- **Treat p < 0.6 as a suggestion, never as verification.** Generated lemmas
+  (both kinds) have NO inflection records on purpose: an inflected form of a
+  wrong lemma is confidently wrong. A missing key means "unknown to Slovowiki",
+  not "wrong".
 
 ## Coverage (schema 2)
 

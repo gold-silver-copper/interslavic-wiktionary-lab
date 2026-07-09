@@ -23,6 +23,23 @@
 | teljstvo | 9 | 100.00% | 100.00% | 100.00% | 100.00% |
 | vnoun | 452 | 99.34% | 100.00% | 0.00% | 59.51% |
 
+## Off-official-base holdout (issue #37) — shipped derivative probability
+
+The `generated` derivatives the export ships off attested official bases are ABSENT from the dictionary, so they have no gold and cannot be scored directly. This is the leakage-free proxy: hold out a slice of official derivatives by `is_holdout_id` (the shared seeded split), hide them from view, derive them off their still-visible official base, and score the derivation. Because `derive_family` never consults the dictionary, the hidden derivative is genuinely unseen. The shipped `probability` for a pattern is the **Wilson 95% lower bound of its holdout EXACT-match rate** (conservative: it shrinks toward 0 as the sample thins), capped at 0.90 — an irreducible existence/semantics margin the form-accuracy proxy cannot measure (the holdout asks *did we spell the derivative right*, not *is the derivative a real word*). Overall holdout exact **95.53%** over **559** held-out pairs. This is NOT the 96.03% derive-eval headline above, which scores a different, both-attested population.
+
+| pattern | holdout pairs | exact | normalized | shipped probability |
+|---|---:|---:|---:|---:|
+| adv | 98 | 98.98% | 100.00% | 0.900 |
+| dimka | 3 | 100.00% | 100.00% | 0.439 |
+| ica | 2 | 50.00% | 100.00% | 0.095 |
+| ne | 40 | 97.50% | 100.00% | 0.871 |
+| ny | 118 | 87.29% | 99.15% | 0.801 |
+| ost | 111 | 99.10% | 100.00% | 0.900 |
+| sky | 38 | 89.47% | 100.00% | 0.759 |
+| telj | 21 | 100.00% | 100.00% | 0.845 |
+| teljka | 1 | 100.00% | 100.00% | 0.207 |
+| vnoun | 127 | 98.43% | 100.00% | 0.900 |
+
 ## Nearest misses (dev split only — holdout misses are never published)
 
 ```

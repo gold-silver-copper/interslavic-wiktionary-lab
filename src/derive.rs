@@ -317,6 +317,113 @@ struct PatStat {
     naive_norm: usize,
 }
 
+// ---------------------------------------------------------------------------
+// Off-official-base holdout (issue #37): the shipped-derivative probability.
+// ---------------------------------------------------------------------------
+
+/// The conservative cap on any shipped generated-derivative probability. Even a
+/// morphologically perfect derivation carries an irreducible existence/semantic
+/// risk — does the derivative actually EXIST as a word? — that a form-accuracy
+/// holdout cannot measure, so no `generated` derivative ever ships above this.
+pub const DERIV_PROB_CAP: f64 = 0.90;
+
+/// Off-official-base HOLDOUT stats per pattern (issue #37). Same leakage story
+/// as `run_eval`, restricted to the holdout derivatives (`is_holdout_id`, the
+/// shared seeded split): the layer derives the official BASE forward and is
+/// scored against the held-out official DERIVATIVE it never sees — the derivative
+/// is effectively "hidden" because `derive_family` is pure and never consults the
+/// dictionary. This is the leakage-free proxy population for the ABSENT
+/// derivatives the export ships (measured on attested pairs held out of view).
+fn holdout_pattern_stats(
+    entries: &[OfficialEntry],
+) -> std::collections::BTreeMap<&'static str, PatStat> {
+    let pairs = mine_pairs(entries);
+    let mut by_pat: std::collections::BTreeMap<&'static str, PatStat> = Default::default();
+    for p in &pairs {
+        let derived = &entries[p.derived];
+        if !crate::eval::is_holdout_id(&derived.id) {
+            continue;
+        }
+        let base = &entries[p.base];
+        let got = derive_family(base.isv.trim(), base.pos)
+            .into_iter()
+            .find(|x| x.pattern == p.pattern);
+        let gold = derived.isv.trim();
+        let st = by_pat.entry(p.pattern).or_default();
+        st.n += 1;
+        st.exact += got
+            .as_ref()
+            .map(|x| ortho::exact_match(&x.form, gold))
+            .unwrap_or(false) as usize;
+        st.norm += got
+            .as_ref()
+            .map(|x| ortho::normalized_match(&x.form, gold))
+            .unwrap_or(false) as usize;
+    }
+    by_pat
+}
+
+/// Wilson score-interval lower bound at ~95% (z = 1.96) for `k` successes in
+/// `n` trials — a conservative binomial rate estimate that shrinks toward 0 as
+/// `n` shrinks, so a thinly-observed pattern ships a lower probability.
+fn wilson_lower(k: usize, n: usize) -> f64 {
+    if n == 0 {
+        return 0.0;
+    }
+    let z = 1.959_964_f64;
+    let (k, nn) = (k as f64, n as f64);
+    let p = k / nn;
+    let denom = 1.0 + z * z / nn;
+    let center = p + z * z / (2.0 * nn);
+    let margin = z * ((p * (1.0 - p) + z * z / (4.0 * nn)) / nn).sqrt();
+    ((center - margin) / denom).max(0.0)
+}
+
+/// Per-pattern shipped probability for `generated` derivatives (issue #37), fit
+/// on the leakage-free off-official-base holdout. `probability(pattern)` is the
+/// Wilson-95 lower bound of that pattern's holdout EXACT-match rate, capped at
+/// [`DERIV_PROB_CAP`]; a pattern with NO leakage-free holdout observation has no
+/// measured off-official-base accuracy, so it falls back to a low-confidence
+/// suggestion at the review floor ([`crate::calibrate::REVIEW_T`], below
+/// `PROPOSE_T`) rather than inheriting the pool's large-n confidence. Pure
+/// function of the official dictionary → byte-reproducible.
+pub struct DerivationProbabilities {
+    per_pattern: std::collections::BTreeMap<&'static str, f64>,
+    fallback: f64,
+}
+
+impl DerivationProbabilities {
+    pub fn probability(&self, pattern: &str) -> f64 {
+        self.per_pattern.get(pattern).copied().unwrap_or(self.fallback)
+    }
+
+    /// A flat table (fallback/test helper): every pattern ships `p`.
+    pub fn flat(p: f64) -> Self {
+        Self {
+            per_pattern: Default::default(),
+            fallback: p,
+        }
+    }
+}
+
+/// Fit per-pattern shipped probabilities from the off-official-base holdout.
+pub fn pattern_probabilities(entries: &[OfficialEntry]) -> DerivationProbabilities {
+    let stats = holdout_pattern_stats(entries);
+    let mut per = std::collections::BTreeMap::new();
+    for (pat, st) in &stats {
+        per.insert(*pat, wilson_lower(st.exact, st.n).min(DERIV_PROB_CAP));
+    }
+    DerivationProbabilities {
+        per_pattern: per,
+        // A pattern with NO leakage-free holdout observation has no measured
+        // off-official-base accuracy — borrowing the pool's large-n bound would
+        // ship an *unobserved* pattern at the cap, contradicting "shrinks with
+        // n". Ship its derivatives as a low-confidence suggestion at the review
+        // floor (below PROPOSE_T), never verification-grade. (#37 review)
+        fallback: crate::calibrate::REVIEW_T,
+    }
+}
+
 /// The `derive-eval` benchmark. Leakage story: input = the official BASE lemma
 /// + its POS; gold = the official DERIVATIVE, which the layer never sees. Pairs
 /// are mined by inverse folded-form lookup, so pair SELECTION shares alternation
@@ -462,6 +569,49 @@ pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             pct(st.norm, st.n),
             pct(st.naive_exact, st.n),
             pct(st.naive_norm, st.n)
+        )?;
+    }
+    // --- Off-official-base holdout (issue #37): the leakage-free proxy for the
+    // ABSENT derivatives the export ships, and the source of their probability.
+    let hstats = holdout_pattern_stats(&entries);
+    let probs = pattern_probabilities(&entries);
+    let (mut hk, mut hn) = (0usize, 0usize);
+    for st in hstats.values() {
+        hk += st.exact;
+        hn += st.n;
+    }
+    println!(
+        "  off-official-base holdout (issue #37): {} pairs, exact {:.2}%  (shipped p = per-pattern Wilson-95 lower bound of exact, cap {:.2})",
+        hn,
+        pct(hk, hn),
+        DERIV_PROB_CAP
+    );
+    writeln!(
+        s,
+        "\n## Off-official-base holdout (issue #37) — shipped derivative probability\n"
+    )?;
+    writeln!(
+        s,
+        "The `generated` derivatives the export ships off attested official bases are ABSENT from the dictionary, so they have no gold and cannot be scored directly. This is the leakage-free proxy: hold out a slice of official derivatives by `is_holdout_id` (the shared seeded split), hide them from view, derive them off their still-visible official base, and score the derivation. Because `derive_family` never consults the dictionary, the hidden derivative is genuinely unseen. The shipped `probability` for a pattern is the **Wilson 95% lower bound of its holdout EXACT-match rate** (conservative: it shrinks toward 0 as the sample thins), capped at {:.2} — an irreducible existence/semantics margin the form-accuracy proxy cannot measure (the holdout asks *did we spell the derivative right*, not *is the derivative a real word*). Overall holdout exact **{:.2}%** over **{}** held-out pairs. This is NOT the {:.2}% derive-eval headline above, which scores a different, both-attested population.\n",
+        DERIV_PROB_CAP,
+        pct(hk, hn),
+        hn,
+        pct(ex, n)
+    )?;
+    writeln!(
+        s,
+        "| pattern | holdout pairs | exact | normalized | shipped probability |"
+    )?;
+    writeln!(s, "|---|---:|---:|---:|---:|")?;
+    for (pat, st) in &hstats {
+        writeln!(
+            s,
+            "| {} | {} | {:.2}% | {:.2}% | {:.3} |",
+            pat,
+            st.n,
+            pct(st.exact, st.n),
+            pct(st.norm, st.n),
+            probs.probability(pat)
         )?;
     }
     writeln!(
