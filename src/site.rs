@@ -1402,6 +1402,7 @@ fn official_display_sections(o: &OfficialDisplay) -> String {
     s
 }
 
+#[allow(clippy::too_many_arguments)]
 fn corpus_entry_page(
     id: usize,
     g: &crate::corpus::GeneratedWord,
