@@ -50,6 +50,26 @@ pub struct EnrichEntry {
     pub topics: Vec<String>,
     #[serde(default)]
     pub tags: Vec<String>,
+    /// Source-language usage quotations from the native edition, each tied to the
+    /// sense gloss it illustrates. Old caches deserialize with an empty list;
+    /// re-run `extract-enrich` to populate. Skipped when empty so entries without
+    /// quotations serialize byte-identically to pre-quotation caches.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<Quotation>,
+}
+
+/// One native-Wiktionary usage quotation, kept as source-language evidence and
+/// tied (by gloss text) to the sense it illustrates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Quotation {
+    /// The sense gloss text this quotation illustrates — matches an entry in
+    /// `EnrichEntry::senses`, so display can render it under the right sense.
+    pub sense: String,
+    /// The quotation sentence itself, in the native language.
+    pub text: String,
+    /// A compact citation/source string, when the dump records one.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source: String,
 }
 
 impl EnrichEntry {
@@ -62,6 +82,7 @@ impl EnrichEntry {
             && self.categories.is_empty()
             && self.topics.is_empty()
             && self.tags.is_empty()
+            && self.examples.is_empty()
     }
 }
 
@@ -95,6 +116,10 @@ impl EnrichIndex {
             e.related.retain(|s| !looks_like_markup(s));
             e.synonyms.retain(|s| !looks_like_markup(s));
             e.antonyms.retain(|s| !looks_like_markup(s));
+            // Quotations carry natural-language sentences, but the same leaked
+            // wiki/HTML markup can slip into a quote or its citation; drop those.
+            e.examples
+                .retain(|q| !looks_like_markup(&q.text) && !looks_like_markup(&q.source));
         }
         let mut by_key = HashMap::new();
         for (i, e) in cache.entries.iter().enumerate() {
@@ -302,6 +327,15 @@ fn merge(into: &mut EnrichEntry, other: &EnrichEntry) {
     push_new(&mut into.categories, &other.categories, 32);
     push_new(&mut into.topics, &other.topics, 24);
     push_new(&mut into.tags, &other.tags, 24);
+    // Quotations: dedup by quote text, cap the merged list.
+    for q in &other.examples {
+        if into.examples.len() >= EXAMPLES_PER_ENTRY {
+            break;
+        }
+        if !into.examples.iter().any(|x| x.text == q.text) {
+            into.examples.push(q.clone());
+        }
+    }
 }
 
 /// Distil one wiktextract entry into a compact enrichment record.
@@ -313,6 +347,7 @@ fn entry_from_value(v: &Value, lang: &str, word: &str) -> EnrichEntry {
         .collect();
 
     let mut senses = Vec::new();
+    let mut examples: Vec<Quotation> = Vec::new();
     if let Some(arr) = v.get("senses").and_then(Value::as_array) {
         for s in arr {
             if senses.len() >= 8 {
@@ -326,7 +361,12 @@ fn entry_from_value(v: &Value, lang: &str, word: &str) -> EnrichEntry {
                     .collect();
                 let text = truncate(&joined.join("; "), 220);
                 if !text.trim().is_empty() && !senses.contains(&text) {
-                    senses.push(text);
+                    senses.push(text.clone());
+                }
+                // Usage quotations attached to this sense, tied by gloss text so
+                // display can render them under the matching numbered sense.
+                if !text.trim().is_empty() {
+                    collect_examples(s, lang, &text, &mut examples);
                 }
             }
         }
@@ -355,6 +395,59 @@ fn entry_from_value(v: &Value, lang: &str, word: &str) -> EnrichEntry {
         categories,
         topics,
         tags,
+        examples,
+    }
+}
+
+/// Max quotations kept per source entry, and per individual sense.
+const EXAMPLES_PER_ENTRY: usize = 6;
+const EXAMPLES_PER_SENSE: usize = 2;
+
+/// Read the `examples[]` of one wiktextract sense object and append the usable
+/// usage quotations, each tied (by gloss text) to `sense_text`.
+fn collect_examples(sense: &Value, lang: &str, sense_text: &str, out: &mut Vec<Quotation>) {
+    if out.len() >= EXAMPLES_PER_ENTRY {
+        return;
+    }
+    let Some(arr) = sense.get("examples").and_then(Value::as_array) else {
+        return;
+    };
+    let mut per_sense = 0usize;
+    for ex in arr {
+        if out.len() >= EXAMPLES_PER_ENTRY || per_sense >= EXAMPLES_PER_SENSE {
+            break;
+        }
+        let Some(text) = ex.get("text").and_then(Value::as_str) else {
+            continue;
+        };
+        let text = text.trim();
+        // Skip fragments and — for RU — foreign-script text (letter entries carry
+        // translation examples in other Cyrillic-using languages).
+        if text.chars().count() < 6 {
+            continue;
+        }
+        if lang == "ru" && !text.chars().any(|c| ('\u{0400}'..='\u{04FF}').contains(&c)) {
+            continue;
+        }
+        let quote = truncate(text, 240);
+        if out.iter().any(|q| q.text == quote) {
+            continue;
+        }
+        // A compact citation, when present and meaningful ("table" is a template
+        // artifact, not a real source).
+        let source = ex
+            .get("ref")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|r| r.chars().count() >= 3 && *r != "table")
+            .map(|r| truncate(r, 160))
+            .unwrap_or_default();
+        out.push(Quotation {
+            sense: sense_text.to_string(),
+            text: quote,
+            source,
+        });
+        per_sense += 1;
     }
 }
 
@@ -502,6 +595,61 @@ mod tests {
         assert_eq!(e.senses, vec!["tekutina", "vodstvo"]);
         assert_eq!(e.related, vec!["vodní", "vodník"]);
         assert_eq!(e.synonyms, vec!["H2O"]);
+        assert!(e.examples.is_empty());
         assert!(!e.is_empty());
+    }
+
+    #[test]
+    fn entry_from_value_captures_quotations_tied_to_sense() {
+        let v: serde_json::Value = serde_json::from_str(
+            r#"{"word":"hlavní","lang_code":"cs",
+                "senses":[
+                  {"glosses":["nejdůležitější"],
+                   "examples":[{"text":"Hlavní příčinou porážky byly chyby.","ref":"Zdroj X"},
+                               {"text":"To je hlavní bod."}]},
+                  {"glosses":["centrální"],
+                   "examples":[{"text":"Hlavní město Španělska je Madrid."}]}
+                ]}"#,
+        )
+        .unwrap();
+        let e = entry_from_value(&v, "cs", "hlavní");
+        assert_eq!(e.senses, vec!["nejdůležitější", "centrální"]);
+        assert_eq!(e.examples.len(), 3);
+        // Each quotation is tied to the gloss it illustrates.
+        assert_eq!(e.examples[0].sense, "nejdůležitější");
+        assert_eq!(e.examples[0].text, "Hlavní příčinou porážky byly chyby.");
+        assert_eq!(e.examples[0].source, "Zdroj X");
+        assert_eq!(e.examples[1].source, "");
+        assert_eq!(e.examples[2].sense, "centrální");
+        assert!(!e.is_empty());
+    }
+
+    #[test]
+    fn quotation_caps_and_filters_apply() {
+        // >2 examples on one sense are capped to EXAMPLES_PER_SENSE; the RU
+        // Cyrillic guard drops foreign-script text and the "table" ref is dropped.
+        let v: serde_json::Value = serde_json::from_str(
+            r#"{"word":"дом","lang_code":"ru",
+                "senses":[{"glosses":["жилище"],
+                   "examples":[
+                     {"text":"Мой дом большой и светлый.","ref":"table"},
+                     {"text":"Этот дом стоит у реки давно.","ref":"Автор, книга"},
+                     {"text":"Третий русский пример про дом здесь."},
+                     {"text":"Latin only sentence, no Cyrillic."}
+                   ]}]}"#,
+        )
+        .unwrap();
+        let e = entry_from_value(&v, "ru", "дом");
+        assert_eq!(e.examples.len(), 2, "per-sense cap");
+        assert_eq!(e.examples[0].source, "", "\"table\" ref dropped");
+        assert_eq!(e.examples[1].source, "Автор, книга");
+        assert!(
+            e.examples.iter().all(|q| q.sense == "жилище"),
+            "all tied to the gloss"
+        );
+        assert!(
+            !e.examples.iter().any(|q| q.text.contains("Latin")),
+            "non-Cyrillic RU text filtered"
+        );
     }
 }
