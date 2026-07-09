@@ -292,6 +292,22 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             });
     }
 
+    // Folded ISV lemma → full official entry, so a matched/generated search row
+    // can pull in the committee's own per-language cells (issue #31 scope
+    // extension) — the ISV headword itself is the join key, mirroring
+    // `official_map`'s first-wins-on-homograph rule.
+    let mut official_by_fold: std::collections::HashMap<String, &OfficialEntry> =
+        std::collections::HashMap::new();
+    for e in &official_entries {
+        let isv = e.isv.trim();
+        if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
+            continue;
+        }
+        official_by_fold
+            .entry(crate::orthography::to_standard(&isv.to_lowercase()))
+            .or_insert(e);
+    }
+
     let entry_dir = out_dir.join("entry");
     let _ = std::fs::remove_dir_all(&entry_dir); // clear any stale pages
     std::fs::create_dir_all(&entry_dir)?;
@@ -725,9 +741,29 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                 }
             }
         }
+        // Slavic source/cognate aliases (issue #31): the generated set's cognate
+        // members, plus — when this row sits under an official headword — the
+        // committee's own per-language cells (which may list languages/variants
+        // the set didn't carry). Verbatim dictionary evidence, deduped.
+        let mut aliases: Vec<SourceAlias> = Vec::new();
+        let mut alias_seen: std::collections::HashSet<(String, String)> =
+            std::collections::HashSet::new();
+        collect_source_aliases(
+            p.g.set
+                .members
+                .iter()
+                .map(|m| (m.lang.as_str(), m.word.as_str())),
+            &mut aliases,
+            &mut alias_seen,
+        );
+        if let Some(e) = p.matched.as_ref().and_then(|(_, isv, _)| {
+            official_by_fold.get(&crate::orthography::to_standard(&isv.to_lowercase()))
+        }) {
+            collect_source_aliases(official_cell_pairs(e), &mut aliases, &mut alias_seen);
+        }
         let _ = write!(
             search,
-            "[{},{},{},{},{},{},{:.2},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{:.2},{},{},{},{},{},{},{},{}]",
             p.id,
             json_str(&p.display),
             json_str(&truncate(&p.g.set.gloss, 70)),
@@ -742,6 +778,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             json_str(quality_label(meta)),
             json_str(&meta.first),
             json_str(&meta.ancestor),
+            source_aliases_json(&aliases),
         );
         rows.push(HomeRow {
             // sort the home list by coverage (n_langs) so the best-attested show first
@@ -797,13 +834,21 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                 keys.push((k, 1));
             }
         }
+        // The committee's per-language translations (issue #31): this makes an
+        // official-only lemma findable by any of its Slavic cognate spellings —
+        // Cyrillic or Latinized — plus `de`/`nl`/`eo` as lower-weight
+        // international aliases. Verbatim dictionary evidence, not a claim.
+        let mut aliases: Vec<SourceAlias> = Vec::new();
+        let mut alias_seen: std::collections::HashSet<(String, String)> =
+            std::collections::HashSet::new();
+        collect_source_aliases(official_cell_pairs(e), &mut aliases, &mut alias_seen);
         if !first_search {
             search.push_str(",\n");
         }
         first_search = false;
         let _ = write!(
             search,
-            "[{},{},{},{},{},{},{:.2},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{:.2},{},{},{},{},{},{},{},{}]",
             oid,
             json_str(isv),
             json_str(&truncate(&e.english, 70)),
@@ -818,6 +863,7 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             json_str(quality_label(meta)),
             json_str(&meta.first),
             json_str(&meta.ancestor),
+            source_aliases_json(&aliases),
         );
         rows.push(HomeRow {
             freq: 0.5,
@@ -2339,6 +2385,92 @@ fn keys_json(keys: &[(String, usize)]) -> String {
     s
 }
 
+/// One source-word alias for the search index: `(language code, attested word,
+/// folded search forms)`. The attested word is matched verbatim (so a Cyrillic
+/// query hits it); the folded forms — phonemic Latin, standard fold, ASCII
+/// skeleton — let a transliterated or diacritic-folded query hit it too.
+type SourceAlias = (String, String, Vec<String>);
+
+/// The committee's source cells for one official entry, in a deterministic order
+/// (the 12 Slavic CSV columns, then `de`/`nl`/`eo`). Kept stable so `search.json`
+/// is byte-reproducible despite `cells` being a `HashMap`.
+fn official_cell_pairs(e: &OfficialEntry) -> Vec<(&str, &str)> {
+    let mut pairs: Vec<(&str, &str)> = Vec::new();
+    for li in crate::lang::LANGS.iter() {
+        if li.csv_col.is_empty() {
+            continue;
+        }
+        if let Some(cell) = e.cells.get(li.code) {
+            pairs.push((li.code, cell.as_str()));
+        }
+    }
+    for (code, cell) in [("de", &e.de), ("nl", &e.nl), ("eo", &e.eo)] {
+        if !cell.trim().is_empty() {
+            pairs.push((code, cell.as_str()));
+        }
+    }
+    pairs
+}
+
+/// Fold `(lang, raw cell)` pairs into deduplicated [`SourceAlias`]es (issue #31).
+///
+/// Each cell is split into its listed variants with the same
+/// [`normalize::normalize_cell`] the generation path uses, so a multi-variant
+/// cell (`быстрый, скорый`) yields one alias per variant. Per variant we emit the
+/// attested spelling plus its phonemic-Latin / standard-fold / ASCII-skeleton
+/// search forms. This is verbatim **dictionary evidence** (the committee/cognate
+/// spelling), never generated content. Dedup is by `(lang, attested word)`; the
+/// caller shares one `seen` set across sources so a member and a committee cell
+/// for the same word collapse.
+fn collect_source_aliases<'a>(
+    cells: impl IntoIterator<Item = (&'a str, &'a str)>,
+    aliases: &mut Vec<SourceAlias>,
+    seen: &mut std::collections::HashSet<(String, String)>,
+) {
+    for (code, cell) in cells {
+        for nf in crate::normalize::normalize_cell(code, cell) {
+            let original = nf.original.trim().to_lowercase();
+            if original.chars().count() < 2 {
+                continue;
+            }
+            if !seen.insert((code.to_string(), original.clone())) {
+                continue;
+            }
+            let mut forms: Vec<String> = Vec::new();
+            for f in [
+                nf.latin.clone(),
+                crate::orthography::to_standard(&nf.latin),
+                nf.skeleton.clone(),
+            ] {
+                if f.chars().count() >= 2 && f != original && !forms.contains(&f) {
+                    forms.push(f);
+                }
+            }
+            aliases.push((code.to_string(), original, forms));
+        }
+    }
+}
+
+/// JSON-encode the alias list as `[["ru","пластинка",["plastinka"]],…]`.
+fn source_aliases_json(aliases: &[SourceAlias]) -> String {
+    let mut s = String::from("[");
+    for (i, (lang, orig, forms)) in aliases.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        let _ = write!(s, "[{},{},[", json_str(lang), json_str(orig));
+        for (j, f) in forms.iter().enumerate() {
+            if j > 0 {
+                s.push(',');
+            }
+            s.push_str(&json_str(f));
+        }
+        s.push_str("]]");
+    }
+    s.push(']');
+    s
+}
+
 // Client-side search. Loaded on EVERY page (the search box lives in the header),
 // so SITE_BASE ('' at root, '../' under /entry/) resolves the fetch and links.
 // Typing shows a top-8 dropdown; Enter (or the full-results link) goes to
@@ -2353,6 +2485,20 @@ function posLabel(p){return POS[p]||p||'';}
 function strBadge(e){ var s=STR[e[5]]||STR.N; return "<span class='reliability "+s[1]+"'>"+s[0]+"</span>"; }
 function closeDropdown(){ if(out){ out.style.display='none'; out.innerHTML=''; } }
 function fold(x){ return (x||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d'); }
+// International committee columns (de/nl/eo) rank below the 12 Slavic cognates.
+var INTL={de:1,nl:1,eo:1};
+// Best source-word alias match for the query (issue #31 dictionary evidence:
+// verbatim committee/cognate spellings, e[14]). Ranks exact source word high
+// (just under the ISV headword), then transliteration/fold, then prefix; the
+// international columns weigh less. Returns [score,'lang word'] so the hit can
+// show why it matched.
+function aliasMatch(al,s2,sf){ var best=0,lab='';
+  for(var i=0;i<al.length;i++){ var a=al[i],lang=a[0],w=a[1]||'',wl=w.toLowerCase(),wf=fold(wl),fs=a[2]||[],lo=INTL[lang]?1:0,sc=0;
+    if(wl===s2||wl===sf){ sc=lo?62:82; }
+    else{ var hit=(wf===sf); for(var j=0;!hit&&j<fs.length;j++){ if(fs[j]===s2||fs[j]===sf)hit=1; } if(hit){ sc=lo?54:72; }
+      else if(sf.length>=2){ var pre=(wl.indexOf(s2)===0||wf.indexOf(sf)===0); for(var j2=0;!pre&&j2<fs.length;j2++){ if(fs[j2].indexOf(sf)===0)pre=1; } if(pre){ sc=lo?44:56; } } }
+    if(sc>best){ best=sc; lab=lang+' '+w; } }
+  return [best,lab]; }
 function filters(){ return {
   pos:(document.getElementById('f-pos')||{}).value||'', status:(document.getElementById('f-status')||{}).value||'',
   conf:(document.getElementById('f-conf')||{}).value||'', borrowed:(document.getElementById('f-borrowed')||{}).value||'',
@@ -2362,7 +2508,7 @@ function pass(e,f){ if(f.pos&&e[3]!==f.pos)return false; if(f.status&&e[4]!==f.s
 function scoreAll(raw){
   var s=(raw||'').trim().toLowerCase(), ftr=filters(); var showAll=pageRes&&!s, s2=s.replace(/^to\s+/,''), sf=fold(s2), hits=[];
   for(var i=0;i<IDX.length;i++){ var e=IDX[i]; if(!pass(e,ftr))continue; var f=e[1].toLowerCase(), g=e[2].toLowerCase(), ks=e[7]||[];
-    var gs=g.split(/[,;]\s*/), ff=fold(f), sc=showAll?1:0, anchor=0;
+    var gs=g.split(/[,;]\s*/), ff=fold(f), sc=showAll?1:0, anchor=0, srclab='';
     if(!showAll){
       if(f===s||f===s2)sc=100; else if(ff===sf)sc=90;
       else{ for(var k=0;k<ks.length;k++){ var kr=ks[k]; if(kr[0]===s2||kr[0]===sf){ sc=85-3*Math.min(kr[1],5); if(kr[1]>1)anchor=kr[1]; break; } } }
@@ -2370,21 +2516,24 @@ function scoreAll(raw){
         else if(gs.some(function(x){return x.trim()===s||x.trim()===s2;}))sc=55;
         else if(ks.some(function(kr){return kr[0].indexOf(sf)===0;}))sc=50;
         else if(f.indexOf(s2)>=0)sc=40; else if(g.indexOf(s2)>=0)sc=20; }
+      // A Slavic source/cognate match (committee evidence) outranks a mere
+      // form/gloss substring and annotates the hit with the matched word.
+      var am=aliasMatch(e[14]||[],s2,sf); if(am[0]>sc){ sc=am[0]; anchor=0; srclab=am[1]; } else if(am[0]>0&&am[0]===sc){ srclab=am[1]; }
     }
-    if(sc>0)hits.push([sc,e,anchor]); if(hits.length>5000)break; }
+    if(sc>0)hits.push([sc,e,anchor,srclab]); if(hits.length>5000)break; }
   hits.sort(function(a,b){return b[0]-a[0] || a[1][1].localeCompare(b[1][1]);}); return hits;
 }
-function hitHTML(e,a){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+(e[11]||'')+"</span>"; if(e[13])meta+=" <span class='ha'>"+e[13]+"</span>"; meta+=" <span class='hl'>"+(e[8]||0)+" jęz. / "+(e[9]||0)+" vět.</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+e[1]+"</b> <span class='hp'>"+posLabel(e[3])+"</span> <span class='hg'>"+e[2]+"</span> "+meta+"</a>"; }
+function hitHTML(e,a,src){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+(e[11]||'')+"</span>"; if(e[13])meta+=" <span class='ha'>"+e[13]+"</span>"; meta+=" <span class='hl'>"+(e[8]||0)+" jęz. / "+(e[9]||0)+" vět.</span>"; if(src)meta+=" <span class='hsrc' title='Slovnikovy dokaz: perevod komiteta / kognat'>"+src+"</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+e[1]+"</b> <span class='hp'>"+posLabel(e[3])+"</span> <span class='hg'>"+e[2]+"</span> "+meta+"</a>"; }
 async function run(showDropdown){
   await ensure(); var v=q?q.value:''; var hits=scoreAll(v);
   // The search page has full results below the filters, so never reopen the
   // compact header dropdown there. Filter changes also pass showDropdown=false.
-  if(out){ if(showDropdown && !pageRes && v.trim()){ var h=hits.slice(0,8).map(function(x){return hitHTML(x[1],x[2]);}).join('');
+  if(out){ if(showDropdown && !pageRes && v.trim()){ var h=hits.slice(0,8).map(function(x){return hitHTML(x[1],x[2],x[3]);}).join('');
       if(!h)h="<div class='muted nohit'>Ničto ne najdeno.</div>";
       else if(hits.length>8)h+="<a class='hit more' href='"+SITE_BASE+"search.html?q="+encodeURIComponent(v.trim())+"'>Vse "+hits.length+" rezultatov -></a>";
       out.innerHTML=h; out.style.display='block'; } else closeDropdown(); }
   if(pageRes){ var c=document.getElementById('rescount'); if(c)c.textContent=hits.length;
-    pageRes.innerHTML=hits.slice(0,400).map(function(x){return hitHTML(x[1],x[2]);}).join('')||"<div class='muted'>Ničto ne najdeno.</div>"; }
+    pageRes.innerHTML=hits.slice(0,400).map(function(x){return hitHTML(x[1],x[2],x[3]);}).join('')||"<div class='muted'>Ničto ne najdeno.</div>"; }
 }
 function goSearch(e){
   e.preventDefault(); var v=q?q.value.trim():''; closeDropdown(); if(q)q.blur();
@@ -5395,6 +5544,7 @@ tr:target{background:#fff3bf;outline:2px solid #f0c000}
 .hit b{color:var(--link)}
 .hit .hp{color:var(--muted);font-size:.8em;margin:0 .4em}
 .hit .hg{color:var(--muted)}
+.hit .hsrc{font-size:.8em;color:var(--muted);background:var(--th);border:1px solid var(--line);border-radius:2px;padding:.02rem .35rem;margin-left:.35em;white-space:nowrap}
 
 /* Stat cards. */
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin:1rem 0}
@@ -5560,6 +5710,56 @@ fn json_str(v: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_aliases_index_cyrillic_latin_and_folded_forms() {
+        // Issue #31: committee/cognate source words become searchable aliases.
+        // Each alias carries the attested spelling + its folded search forms so
+        // the entry is findable by Cyrillic, transliteration, and diacritic-fold.
+        let mut aliases: Vec<SourceAlias> = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        collect_source_aliases(
+            [
+                ("ru", "пластинка"),
+                ("pl", "płyta"),
+                ("cs", "žena"),
+                // A multi-variant cell splits into one alias per listed variant.
+                ("uk", "швидкий, скорий"),
+            ],
+            &mut aliases,
+            &mut seen,
+        );
+        let has = |lang: &str, word: &str| aliases.iter().any(|(l, w, _)| l == lang && w == word);
+        // Attested spellings are indexed verbatim (Cyrillic query hits directly).
+        assert!(has("ru", "пластинка"), "{aliases:?}");
+        assert!(has("uk", "швидкий") && has("uk", "скорий"), "split: {aliases:?}");
+        // Folded search forms make the Latinized / diacritic-folded query hit.
+        let forms = |lang: &str, word: &str| {
+            aliases
+                .iter()
+                .find(|(l, w, _)| l == lang && w == word)
+                .map(|(_, _, f)| f.clone())
+                .unwrap_or_default()
+        };
+        assert!(
+            forms("ru", "пластинка").iter().any(|f| f == "plastinka"),
+            "ru transliteration: {aliases:?}"
+        );
+        // Polish ł does not decompose under the client's NFD fold, so the ASCII
+        // skeleton (plyta) must be stored explicitly for the folded query to hit.
+        assert!(
+            forms("pl", "płyta").iter().any(|f| f == "plyta"),
+            "pl skeleton: {aliases:?}"
+        );
+        assert!(
+            forms("cs", "žena").iter().any(|f| f == "zena"),
+            "cs skeleton: {aliases:?}"
+        );
+        // JSON is well-formed and preserves the attested spelling.
+        let json = source_aliases_json(&aliases);
+        assert!(json.starts_with('[') && json.ends_with(']'), "{json}");
+        assert!(json.contains("[\"ru\",\"пластинка\","), "{json}");
+    }
 
     #[test]
     fn search_keys_make_alternatives_and_folds_findable() {
