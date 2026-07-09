@@ -382,8 +382,11 @@ fn wilson_lower(k: usize, n: usize) -> f64 {
 /// Per-pattern shipped probability for `generated` derivatives (issue #37), fit
 /// on the leakage-free off-official-base holdout. `probability(pattern)` is the
 /// Wilson-95 lower bound of that pattern's holdout EXACT-match rate, capped at
-/// [`DERIV_PROB_CAP`]; a pattern with no holdout data falls back to the overall
-/// holdout bound. Pure function of the official dictionary → byte-reproducible.
+/// [`DERIV_PROB_CAP`]; a pattern with NO leakage-free holdout observation has no
+/// measured off-official-base accuracy, so it falls back to a low-confidence
+/// suggestion at the review floor ([`crate::calibrate::REVIEW_T`], below
+/// `PROPOSE_T`) rather than inheriting the pool's large-n confidence. Pure
+/// function of the official dictionary → byte-reproducible.
 pub struct DerivationProbabilities {
     per_pattern: std::collections::BTreeMap<&'static str, f64>,
     fallback: f64,
@@ -406,16 +409,18 @@ impl DerivationProbabilities {
 /// Fit per-pattern shipped probabilities from the off-official-base holdout.
 pub fn pattern_probabilities(entries: &[OfficialEntry]) -> DerivationProbabilities {
     let stats = holdout_pattern_stats(entries);
-    let (mut tk, mut tn) = (0usize, 0usize);
     let mut per = std::collections::BTreeMap::new();
     for (pat, st) in &stats {
         per.insert(*pat, wilson_lower(st.exact, st.n).min(DERIV_PROB_CAP));
-        tk += st.exact;
-        tn += st.n;
     }
     DerivationProbabilities {
         per_pattern: per,
-        fallback: wilson_lower(tk, tn).min(DERIV_PROB_CAP),
+        // A pattern with NO leakage-free holdout observation has no measured
+        // off-official-base accuracy — borrowing the pool's large-n bound would
+        // ship an *unobserved* pattern at the cap, contradicting "shrinks with
+        // n". Ship its derivatives as a low-confidence suggestion at the review
+        // floor (below PROPOSE_T), never verification-grade. (#37 review)
+        fallback: crate::calibrate::REVIEW_T,
     }
 }
 
