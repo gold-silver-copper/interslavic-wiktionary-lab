@@ -891,9 +891,9 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     let (mut raw_rendered, mut raw_deduped) = (0usize, 0usize);
     match crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)) {
         Ok(raw_corpus) => {
-            // Raw-vs-raw dedup: collapse raw lemmas whose phonemic-Latin fold
-            // coincides (same word under several POS, cross-language skeleton
-            // twins), so each attested spelling gets exactly one page.
+            // Raw-vs-raw dedup: collapse raw lemmas whose ISV display headword
+            // fold coincides (same word under several POS, cross-language twins),
+            // so each attested ISV spelling gets exactly one page.
             let mut raw_covered: std::collections::HashSet<String> =
                 std::collections::HashSet::new();
             for lemma in &raw_corpus.lemmas {
@@ -907,18 +907,27 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                     raw_deduped += 1;
                     continue;
                 }
-                // Secondary dedup: another raw lemma already claimed this fold.
-                let raw_key = crate::orthography::to_standard(
-                    &crate::normalize::to_phonemic_latin(&lemma.lang, word).to_lowercase(),
-                );
-                if raw_key.is_empty() || !raw_covered.insert(raw_key) {
+                // Display headword: Russian Cyrillic is transliterated (пластинка
+                // → plastinka); Polish/Czech pass through verbatim.
+                let display = source_display(&lemma.lang, word);
+                let disp_fold = crate::orthography::to_standard(&display.to_lowercase());
+                if disp_fold.is_empty() {
+                    raw_deduped += 1;
+                    continue;
+                }
+                // Dedup against existing pages (issue #34: only surface words NOT
+                // already covered). Skip a raw lemma whose ISV display headword is
+                // already an official / generated / official-only entry — catches
+                // internationalisms (konflikt, abandon, razdel) whose source spelling
+                // isn't a generated cognate member but whose ISV form already has a
+                // page. Then raw-vs-raw dedup on the same display fold, so each ISV
+                // headword gets exactly one raw page (and distinct words like vođa /
+                // voda, which the phonemic fold conflated, stay separate).
+                if isv_to_id.contains_key(&disp_fold) || !raw_covered.insert(disp_fold) {
                     raw_deduped += 1;
                     continue;
                 }
                 id += 1;
-                // Display headword: Russian Cyrillic is transliterated (пластинка
-                // → plastinka); Polish/Czech pass through verbatim.
-                let display = source_display(&lemma.lang, word);
                 let gloss = lemma.glosses.join("; ");
                 let meta = {
                     let mut m = entry_meta(
