@@ -199,7 +199,7 @@ Extends `russian_translit.rs`; differences flagged.
 | `э→e` | A | этаж→etaž | |
 | `и→i`, `ы→y` | A | | |
 | `ю`: → `ju` everywhere | B | бюро→bjuro | **differs from translit** (`u` after C); preserves the soft signal as `j` |
-| `я`: → `ja` everywhere | B | буря→burja ✓, земля→zemlja ✓ | ditto; мясо→mjaso (~ISV meso) accepted |
+| `я`: → `ja` everywhere | B | буря→burja ✓, земля→zěmlja (~ISV zemja) | ditto; мясо→mjaso (~ISV meso) accepted |
 | `щ→šč` | A | щука→ščuka ✓ | |
 | `ль`, `нь` (final or before C) → `lj`, `nj` | B | соль→solj ✓, конь→konj ✓, деньги→denjgi | matches ISV lj/nj; **differs from translit (drop ь)** |
 | other `Cь` → `C` (drop) | A | кровать→krovat | ISV t́→t fold |
@@ -244,12 +244,13 @@ Reference: `[VM]` pl_slo + `[NORM]`, display-tuned.
 | `ó→o` | A | góra→gora ✓ | ó < \*o |
 | `ł→l` | A | łapa→lapa | |
 | `ą→u` | B | wąż→vuž (~ISV už), dąb→dub ✓ | ISV ų→u fold; word-initial prothetic w- not stripped (§8) |
-| `ę→e` | B | imię→ime ✓, pięć→pět (~ISV pet) | right for \*ę; fails for \*ǫ-grade (ręka→reka vs ISV ruka) — accepted, flagged |
+| `ę→e`; soft-marked `ię/ią → e` | B | imię→ime ✓, pięć→pet ✓, wiązać→vezati ✓ (ią < \*ę: only \*ę palatalized) | right for \*ę; fails for \*ǫ-grade (ręka→reka vs ISV ruka) — accepted, flagged |
 | `rz` + `e` → `rě`; `rz` else → `r` | B | rzeka→rěka ✓, przed→prěd ✓, dobrze→dobrě ✓, przy→pri ✓, brzeg→brěg ✓ | rz < \*ŕ always; morze→morě (~ISV morje) is the known miss |
-| `ci/dzi/si/zi/ni` + vowel → `t/d/s/z/n` + vowel (soft-marker `i` deleted; a following `e` takes §3: `→ě`) | B | niebo→něbo (~nebo), ciało→talo (~tělo), nici→niti ✓ | de-palatalization to the etymological stop `[VM]`; before C or `#` the `i` is a real vowel and stays (`ti/di/si/zi/ni`) |
+| `ci/dzi/si/zi` + vowel → `t/d/s/z` + vowel (soft-marker `i` deleted; a following `e` takes §3: `→ě`, `ę/ą → e`); `ni` + a/o/u → `nja/njo/nju` (ISV has nj) | B | niebo→něbo (~nebo), ciało→talo (~tělo), nici→niti ✓, niania→njanja | de-palatalization to the etymological stop `[VM]`; before C or `#` the `i` is a real vowel and stays (`ti/di/si/zi/ni`) |
+| husher + `y` → husher + `i` (`rzy/czy/szy/ży → ri/či/ši/ži`) | B | przy→pri ✓, czysty→čisty ✓, żyto→žito ✓, szyja→šija ✓ | after a husher Polish spells `y` where etymology has \*i (hushers were historically soft) |
 | `ć/dź/ś/ź/ń` (final or pre-C) → `t/d/s/z/n`; final `ń→nj` | B | radość→radost ✓, koń→konj ✓ | ISV t́/d́/ś/ź/ń folds `[ORTH]`; verb `-ć` already consumed by §2.2 (być→byti ✓) |
 | `ie` after other consonants (labials etc.) → `ě` | B | wiek→věk ✓, niebo→něbo (~nebo) | §3 |
-| `ia/io/iu` (soft marker) → `ja/jo/ju` | B | biały→bjaly, wiara→vjara (~ISV věra) | przegłos (`ia < *ě`) NOT reversed — needs etymology (§8) |
+| `ia/io/iu` (soft marker) → `ja/jo/ju` (`ię/ią` → `e`, see nasal row) | B | biały→bjaly, wiara→vjara (~ISV věra) | przegłos (`ia < *ě`) NOT reversed — needs etymology (§8) |
 | `y→y` | A | winyl→vinyl ✓ | **not** folded to i (voting folds it; display must not) |
 | adj `-y` already ✓; verb `-ć→-ti` §2.2 | | | |
 

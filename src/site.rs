@@ -896,6 +896,11 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // native RU/PL/CS merge is a later PR. Skipped gracefully when the cache is
     // absent, so a checkout without the 68 MB cache still exports cleanly.
     let (mut raw_rendered, mut raw_deduped) = (0usize, 0usize);
+    // Flavorization validation residue (spec §2 stage 5): rendered raw
+    // headwords whose letters fall outside the ISV standard alphabet get
+    // counted and reported loudly, never silently shipped.
+    let mut flavor_residue_words = 0usize;
+    let mut flavor_residue: BTreeMap<char, usize> = BTreeMap::new();
     match crate::dump::load_optional(
         Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
         crate::dump::RawSlavicCorpus::load,
@@ -931,9 +936,19 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                     continue;
                 }
                 let word = lemma.word.trim();
-                // Display headword: Russian Cyrillic is transliterated (пластинка
-                // → plastinka); Polish/Czech pass through verbatim.
-                let display = source_display(&lemma.lang, word);
+                // Display headword: the attested word flavorized into ISV
+                // orthography (winyl→vinyl, дело→dělo; issue #62 /
+                // data/FLAVORIZATION_SPEC.md). MUST stay the same call as in
+                // `raw_lemma_fate`, which deduped on this display's fold.
+                let display = crate::flavorize::flavorize_word(&lemma.lang, &lemma.pos, word);
+                let mut had_residue = false;
+                for c in crate::flavorize::residue_chars(&display) {
+                    *flavor_residue.entry(c).or_default() += 1;
+                    had_residue = true;
+                }
+                if had_residue {
+                    flavor_residue_words += 1;
+                }
                 id += 1;
                 let gloss = lemma.glosses.join("; ");
                 let meta = {
@@ -1021,6 +1036,20 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             println!(
                 "wrote {raw_rendered} raw Wiktionary attestation pages (site-only, low-evidence; {raw_deduped} deduped against generated/raw pages)."
             );
+            // Loud flavorization validation (spec §2 stage 5 / issue #62).
+            if flavor_residue_words > 0 {
+                let top: Vec<String> = flavor_residue
+                    .iter()
+                    .map(|(c, n)| format!("{c}×{n}"))
+                    .take(8)
+                    .collect();
+                println!(
+                    "flavorize: {flavor_residue_words}/{raw_rendered} raw headwords carry non-ISV residue letters ({})",
+                    top.join(", ")
+                );
+            } else {
+                println!("flavorize: all {raw_rendered} raw headwords are ISV-alphabet-clean.");
+            }
         }
         None => {
             println!(
@@ -1621,12 +1650,22 @@ fn raw_lemma_fate(
     if xref.get(&lemma.lang, word).is_some() {
         return RawFate::Deduped;
     }
-    let display = source_display(&lemma.lang, word);
+    // Same call as the render loop's display headword, by construction —
+    // dedup and display must never diverge (issue #62).
+    let display = crate::flavorize::flavorize_word(&lemma.lang, &lemma.pos, word);
     let disp_fold = crate::orthography::to_standard(&display.to_lowercase());
     if disp_fold.is_empty() {
         return RawFate::Deduped;
     }
-    if isv_to_id.contains_key(&disp_fold) || !raw_covered.insert(disp_fold) {
+    // ě-tolerant dedup (spec §6): flavorization can over-mark ě relative to
+    // the official jat (ru день→děnj vs official denj), so the official
+    // collision check tries both the fold and its ě→e variant, and raw-vs-raw
+    // dedup keys on the ě-blind fold (cs město and sr mesto = one page).
+    let efold = disp_fold.replace('ě', "e");
+    if isv_to_id.contains_key(&disp_fold)
+        || isv_to_id.contains_key(&efold)
+        || !raw_covered.insert(efold)
+    {
         return RawFate::Deduped;
     }
     RawFate::Rendered
@@ -1677,11 +1716,25 @@ pub fn run_coverage(out: &Path) -> Result<()> {
     let mut deduped = 0usize;
     let mut rendered_by_lang: BTreeMap<String, usize> = BTreeMap::new();
     let mut deduped_by_lang: BTreeMap<String, usize> = BTreeMap::new();
+    // Flavorization residue over the rendered set (spec §2 stage 5 / #62):
+    // rendered headwords whose letters fall outside the ISV alphabet.
+    let mut flavor_residue_words = 0usize;
+    let mut flavor_residue: BTreeMap<char, usize> = BTreeMap::new();
     for lemma in &raw_corpus.lemmas {
         match raw_lemma_fate(lemma, &xref, &isv_to_id, &mut raw_covered) {
             RawFate::Rendered => {
                 rendered += 1;
                 *rendered_by_lang.entry(lemma.lang.clone()).or_default() += 1;
+                let display =
+                    crate::flavorize::flavorize_word(&lemma.lang, &lemma.pos, lemma.word.trim());
+                let mut had_residue = false;
+                for c in crate::flavorize::residue_chars(&display) {
+                    *flavor_residue.entry(c).or_default() += 1;
+                    had_residue = true;
+                }
+                if had_residue {
+                    flavor_residue_words += 1;
+                }
             }
             RawFate::Deduped => {
                 deduped += 1;
@@ -1759,6 +1812,8 @@ pub fn run_coverage(out: &Path) -> Result<()> {
         official_only_pages,
         &native_hits,
         native_total,
+        flavor_residue_words,
+        &flavor_residue,
     );
     std::fs::write(out.join("raw-coverage.json"), report_json)?;
 
@@ -1879,6 +1934,25 @@ pub fn run_coverage(out: &Path) -> Result<()> {
         "\n> Correctness check: this `rendered-raw` count must equal the number of \
          `R`-status rows in a fresh `export`'s `search.json`."
     );
+    let _ = writeln!(
+        md,
+        "\nDisplay headwords are flavorized into ISV orthography \
+         (`data/FLAVORIZATION_SPEC.md`, issue #62). Validation residue: \
+         **{flavor_residue_words}** of {rendered} rendered headwords carry a letter \
+         outside the ISV standard alphabet{}.",
+        if flavor_residue.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " (by letter: {})",
+                flavor_residue
+                    .iter()
+                    .map(|(c, n)| format!("{c}×{n}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+    );
 
     let _ = writeln!(md, "\n## 5. Native-join (ru/pl/cs enrichment) hit rate\n");
     if enrich.is_some() {
@@ -1973,6 +2047,8 @@ fn coverage_report_json(
     official_only_pages: usize,
     native_hits: &BTreeMap<String, usize>,
     native_total: usize,
+    flavor_residue_words: usize,
+    flavor_residue: &BTreeMap<char, usize>,
 ) -> Vec<u8> {
     let total = raw_corpus.lemmas.len();
     let extraction = cov_stats.map(|s| {
@@ -2004,6 +2080,13 @@ fn coverage_report_json(
             "generated_pages": generated_pages,
             "official_only_pages": official_only_pages,
             "reconciles": rendered + deduped == total,
+            "flavorize_residue": {
+                "words": flavor_residue_words,
+                "by_letter": flavor_residue
+                    .iter()
+                    .map(|(c, n)| (c.to_string(), *n))
+                    .collect::<BTreeMap<String, usize>>(),
+            },
         },
         "native_join": {
             "total_hits": native_total,
@@ -2512,7 +2595,11 @@ fn official_only_page(
                 cog,
                 "<tr><td class='lc'>{}</td><td>{}</td></tr>",
                 esc(&ev.lang_name),
-                esc(&source_display(&ev.lang_code, &ev.form))
+                esc(&crate::flavorize::flavorize_word(
+                    &ev.lang_code,
+                    "",
+                    &ev.form
+                ))
             );
         }
         cog.push_str("</tbody></table>");
@@ -2565,8 +2652,10 @@ fn official_only_page(
 /// It is deliberately NOT wired into the verification/forms API, the cognate
 /// graph, categories, homograph indexes, talk/backlink pages, or the home list:
 /// these pages exist purely so every dictionary word is discoverable and
-/// searchable. All dump text is escaped through [`esc`]; RU source text is
-/// transliterated via [`source_display`].
+/// searchable. All dump text is escaped through [`esc`]. The `display`
+/// headword arrives flavorized into ISV orthography (issue #62); the attested
+/// original stays in the banner, infobox, and source URL. Running text is
+/// transliterated via [`source_display`], never flavorized.
 fn raw_lemma_page(
     display: &str,
     lemma: &crate::dump::RawSlavicLemma,
@@ -2669,7 +2758,8 @@ fn raw_lemma_page(
 /// Slavic languages, grouped by token then language. Bridged by a shared English
 /// gloss — an approximate meaning link, not an etymological cognate. Chips link
 /// into the site when the word is a dictionary headword (via `xref`), else out to
-/// the native Wiktionary. RU words are transliterated for display.
+/// the native Wiktionary. Chip words are flavorized into ISV orthography
+/// (`flavorize_word`, POS unknown here so ending adaptation is off).
 fn cross_lingual_meanings_section(
     gx: &crate::glossxref::GlossXref,
     lang: &str,
@@ -2694,7 +2784,7 @@ fn cross_lingual_meanings_section(
                 .iter()
                 .take(crate::glossxref::MAX_PER_LANG)
                 .map(|w| {
-                    let visible = source_display(l, w);
+                    let visible = crate::flavorize::flavorize_word(l, "", w);
                     match xref.and_then(|x| x.get(l, w)).filter(|&t| t != self_id) {
                         Some(target) => format!(
                             "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
@@ -2724,7 +2814,7 @@ fn cross_lingual_meanings_section(
     }
     format!(
         "<section><h2 id='drugojezyk'>To slovo v drugih slovjanskih językah <span class='muted'>(po značenju)</span></h2>\
-         <p class='muted'>Slova v drugih slovjanskih językah s tym že anglijskym značenjem (most čerez anglijsku Wiktionary) — pomožny prěgled, ne etimologičny ni oficialny dokaz; rusky tekst jest transliterovany.</p>{blocks}</section>"
+         <p class='muted'>Slova v drugih slovjanskih językah s tym že anglijskym značenjem (most čerez anglijsku Wiktionary) — pomožny prěgled, ne etimologičny ni oficialny dokaz; slova sųt pokazane v medžuslovjanskoj latinici (flavorizacija), originalny zapis jest na strancě slova.</p>{blocks}</section>"
     )
 }
 
@@ -2805,15 +2895,14 @@ fn search_page() -> String {
     page("Iskanje — medžuslovjansky", body, 0)
 }
 
-/// Display text from a source language. Russian Wiktionary text is rendered in
-/// deterministic Interslavic-style Latin transliteration on every site export;
-/// source URLs still use the original Cyrillic spelling.
+/// Display for RUNNING TEXT from a source language (quoted etymology
+/// paragraphs, gloss truncations): script-faithful transliteration only —
+/// Russian is transliterated, other editions pass through (extending them is
+/// issue #38). Words displayed AS WORDS (raw headwords, chips, cognate
+/// mentions) use [`crate::flavorize::flavorize_word`] instead (issue #62);
+/// flavorizing a quoted sentence would misquote the source.
 fn source_display(lang: &str, text: &str) -> String {
-    if lang == "ru" {
-        crate::russian_translit::to_interslavic(text)
-    } else {
-        text.to_string()
-    }
+    crate::flavorize::translit_text(lang, text)
 }
 
 /// Human-readable borrowing source: `la computare` → `latinsky computare`.
@@ -2969,7 +3058,7 @@ fn cognate_block(
                 .and_then(|e| e.senses.first())
                 .map(|x| truncate(&source_display(&m.lang, x), 44))
                 .unwrap_or_else(|| truncate(&source_display(&m.lang, &m.gloss), 32));
-            let visible_word = source_display(&m.lang, &m.word);
+            let visible_word = crate::flavorize::flavorize_word(&m.lang, &m.pos, &m.word);
             let norm = crate::normalize::to_phonemic_latin(&m.lang, &m.word);
             let norm_note = if norm != visible_word {
                 format!("<br><span class='muted'>→ {}</span>", esc(&norm))
@@ -3058,7 +3147,7 @@ fn english_etymology_cards(members: &[crate::dump::LemmaEntry]) -> String {
             .iter()
             .map(|p| format!("<p>{}</p>", esc(p)))
             .collect();
-        let visible_word = source_display(&m.lang, &m.word);
+        let visible_word = crate::flavorize::flavorize_word(&m.lang, &m.pos, &m.word);
         let _ = write!(
             rows,
             "<div class='etym-src'><div class='src-head'><span class='lc'>anglijska Wiktionary · {}</span> <a class='ext' href='https://en.wiktionary.org/wiki/{}#{}'>{}↗</a></div>{}</div>",
@@ -3096,7 +3185,7 @@ fn native_etymology_cards(
             .iter()
             .map(|p| format!("<p>{}</p>", esc(&source_display(lang, p))))
             .collect();
-        let visible_word = source_display(lang, word);
+        let visible_word = crate::flavorize::flavorize_word(lang, "", word);
         let _ = write!(
             rows,
             "<div class='etym-src'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",
@@ -3136,7 +3225,7 @@ fn enrich_connections_section(
             if inner.is_empty() {
                 continue;
             }
-            let visible_word = source_display(lang, w);
+            let visible_word = crate::flavorize::flavorize_word(lang, "", w);
             let _ = write!(
                 blocks,
                 "<div class='src-block'><div class='src-head'><span class='lc'>{}</span> <a class='ext' href='{}'>{}↗</a></div>{}</div>",

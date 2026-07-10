@@ -25,6 +25,7 @@ mod derive;
 mod dump;
 mod enrich;
 mod eval;
+mod flavorize;
 mod forms;
 mod generator;
 mod glossxref;
@@ -38,7 +39,6 @@ mod overrides;
 mod pipeline;
 mod proto;
 mod proto_link;
-mod russian_translit;
 mod site;
 mod thesaurus;
 

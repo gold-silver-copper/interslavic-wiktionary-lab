@@ -344,12 +344,14 @@ src/
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
   thesaurus.rs     dictionary-derived ISV synonym thesaurus
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
-  russian_translit.rs deterministic RU→Latin display transliteration
+  flavorize.rs     display flavorization of source words into ISV orthography
+                   (winyl→vinyl, дело→dělo) + RU running-text transliteration
   site.rs          static site generator (export) — HTML pages, search, api/
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
   overrides.toml          manual curation file
   RULE_SPEC.md            authoritative Proto-Slavic → Interslavic rule spec
+  FLAVORIZATION_SPEC.md   display flavorization of raw source words (issue #62)
   proto-slavic.cache.json Proto-Slavic reconstructions (built by extract-proto)
   slavic-lemmas.cache.json every inherited + borrowed Slavic lemma (built by extract-lemmas)
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
