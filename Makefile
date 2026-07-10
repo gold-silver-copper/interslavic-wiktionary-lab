@@ -1,9 +1,11 @@
-DUMP ?= /Users/kisaczka/Desktop/code/english/raw-wiktextract-data.jsonl
+DUMP ?= /Users/kisaczka/Desktop/code/wikidata/raw-wiktextract-data.jsonl
+WIKI_DIR ?= /Users/kisaczka/Desktop/code/wikidata
 OFFICIAL ?= data/official-isv.csv
 SITE ?= site
 OUT ?= target/eval
 
-.PHONY: extract-proto eval proto-eval audit export serve explain check fmt test clean
+.PHONY: extract-proto extract-lemmas extract-raw-slavic extract-enrich extract-all \
+	eval proto-eval audit export serve explain coverage check fmt test clean
 
 # One-time: stream the 23GB dump into the Proto-Slavic cache (enables +proto-derived).
 extract-proto:
@@ -12,6 +14,23 @@ extract-proto:
 # One-time: stream the dump into the Slavic-lemma corpus (drives the cognate-set site).
 extract-lemmas:
 	cargo run --release -- extract-lemmas --dump "$(DUMP)"
+
+# One-time: stream the dump into the RAW (evidence-free) Slavic lemma cache +
+# extraction tally (drives the site's raw-attestation pages; issue #33/#34).
+extract-raw-slavic:
+	cargo run --release -- extract-raw-slavic --dump "$(DUMP)"
+
+# Native RU/PL/CS Wiktionary enrichment. Needs the lemma + raw caches first
+# (build_wanted unions both), so run it AFTER extract-lemmas/extract-raw-slavic.
+extract-enrich:
+	cargo run --release -- extract-enrich --dir "$(WIKI_DIR)"
+
+# Rebuild every cache in dependency order after an extractor-logic change.
+extract-all: extract-proto extract-lemmas extract-raw-slavic extract-enrich
+
+# Raw-lemma coverage report (reconciles extraction tally vs export dedup).
+coverage:
+	cargo run --release -- coverage --out "$(OUT)"
 
 # Reproducible accuracy benchmark against the official Interslavic dictionary.
 eval:
