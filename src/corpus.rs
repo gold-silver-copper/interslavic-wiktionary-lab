@@ -56,7 +56,7 @@ pub fn branch_of(lang: &str) -> Option<Branch> {
     Some(match lang {
         "ru" | "uk" | "be" | "rue" => Branch::East,
         "pl" | "cs" | "sk" | "dsb" | "hsb" | "csb" | "szl" => Branch::West,
-        "sl" | "hr" | "sr" | "bs" | "bg" | "mk" | "cu" => Branch::South,
+        "sl" | "hr" | "sr" | "bs" | "sh" | "bg" | "mk" | "cu" => Branch::South,
         _ => return None,
     })
 }

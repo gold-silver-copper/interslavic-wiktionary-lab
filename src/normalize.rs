@@ -258,7 +258,7 @@ fn translit_latin(lang: &str, s: &str) -> String {
         "cs" | "sk" => {
             t = t.replace("ch", "h").replace("dž", "dž");
         }
-        "sl" | "hr" | "bs" => {
+        "sl" | "hr" | "bs" | "sh" => {
             t = t
                 .replace("dž", "dž")
                 .replace("lj", "lj")
