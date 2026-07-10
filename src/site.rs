@@ -909,36 +909,21 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
             let mut raw_covered: std::collections::HashSet<String> =
                 std::collections::HashSet::new();
             for lemma in &raw_corpus.lemmas {
-                let word = lemma.word.trim();
-                if word.is_empty() {
-                    continue;
-                }
-                // Primary dedup: this word is already a cognate member of a
-                // generated page (verbatim `(lang, word)` match).
-                if xref.get(&lemma.lang, word).is_some() {
+                // Rendered-vs-deduped is decided by `raw_lemma_fate` — the single
+                // dedup rule, shared with the `coverage` command — so export and
+                // coverage reconcile by construction and can never drift. (See
+                // `raw_lemma_fate` for the dedup rationale.)
+                if matches!(
+                    raw_lemma_fate(lemma, &xref, &isv_to_id, &mut raw_covered),
+                    RawFate::Deduped
+                ) {
                     raw_deduped += 1;
                     continue;
                 }
+                let word = lemma.word.trim();
                 // Display headword: Russian Cyrillic is transliterated (пластинка
                 // → plastinka); Polish/Czech pass through verbatim.
                 let display = source_display(&lemma.lang, word);
-                let disp_fold = crate::orthography::to_standard(&display.to_lowercase());
-                if disp_fold.is_empty() {
-                    raw_deduped += 1;
-                    continue;
-                }
-                // Dedup against existing pages (issue #34: only surface words NOT
-                // already covered). Skip a raw lemma whose ISV display headword is
-                // already an official / generated / official-only entry — catches
-                // internationalisms (konflikt, abandon, razdel) whose source spelling
-                // isn't a generated cognate member but whose ISV form already has a
-                // page. Then raw-vs-raw dedup on the same display fold, so each ISV
-                // headword gets exactly one raw page (and distinct words like vođa /
-                // voda, which the phonemic fold conflated, stay separate).
-                if isv_to_id.contains_key(&disp_fold) || !raw_covered.insert(disp_fold) {
-                    raw_deduped += 1;
-                    continue;
-                }
                 id += 1;
                 let gloss = lemma.glosses.join("; ");
                 let meta = {
@@ -1592,9 +1577,20 @@ fn build_corpus_render_index(
     (xref, isv_to_id, generated_pages, official_only)
 }
 
-/// Classify one raw lemma exactly as `export_corpus`'s raw loop does. `raw_covered`
-/// carries the running raw-vs-raw dedup set (mutated). This is the single dedup
-/// rule the export renders by and the coverage reconciles against.
+/// The single raw-lemma dedup rule: BOTH `export_corpus`'s raw render loop and
+/// the `coverage` command classify through this function, so the rendered/deduped
+/// split always reconciles. `raw_covered` carries the running raw-vs-raw dedup
+/// set (mutated).
+///
+/// A lemma is `Deduped` when: its word is empty (extraction never produces one);
+/// it is already a cognate member of a generated page (verbatim `(lang, word)`
+/// xref match); its ISV display-headword fold is empty; that fold is already an
+/// official / generated / official-only entry (catches internationalisms like
+/// konflikt whose source spelling isn't a cognate member but whose ISV form has a
+/// page); or another raw lemma already claimed the same display fold (same word
+/// under several POS, cross-language twins) — so each attested ISV spelling gets
+/// exactly one page, while distinct words the phonemic fold conflated (vođa /
+/// voda) stay separate.
 fn raw_lemma_fate(
     lemma: &crate::dump::RawSlavicLemma,
     xref: &crate::enrich::Xref,
@@ -1603,8 +1599,6 @@ fn raw_lemma_fate(
 ) -> RawFate {
     let word = lemma.word.trim();
     if word.is_empty() {
-        // Export silently skips empty words (never counted); extraction never
-        // produces one, so treat it as a dedup for the tally's total accounting.
         return RawFate::Deduped;
     }
     if xref.get(&lemma.lang, word).is_some() {

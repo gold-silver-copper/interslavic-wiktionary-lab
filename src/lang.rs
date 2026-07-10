@@ -204,6 +204,23 @@ pub const LANGS: &[LangInfo] = &[
         modern: true,
         csv_col: "",
     },
+    LangInfo {
+        code: "szl",
+        name: "šlęzsky",
+        branch: Branch::West,
+        script: Script::Latin,
+        modern: true,
+        csv_col: "",
+    },
+    // Archaic East Slavic (raw-corpus only): an etymological hint, not a modern voter.
+    LangInfo {
+        code: "orv",
+        name: "starovȯstočnoslovjansky",
+        branch: Branch::East,
+        script: Script::Cyrillic,
+        modern: false,
+        csv_col: "",
+    },
 ];
 
 pub fn lang_info(code: &str) -> Option<&'static LangInfo> {
