@@ -86,17 +86,20 @@ pub struct ProtoCache {
 const MARKER: &str = "\"lang_code\": \"sla-pro\"";
 
 /// The modern (and near-modern) Slavic languages we collect lemmas for.
+/// Includes the Serbo-Croatian macro-code `sh` — the code English Wiktionary
+/// actually files hr/sr/bs entries under (the individual codes exist but carry
+/// almost no entries), so omitting it silences the whole language in the
+/// cognate-set corpus.
 pub const SLAVIC_LANGS: &[&str] = &[
-    "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bg", "mk", "bs", "cu", "csb", "szl",
-    "dsb", "hsb", "rue",
+    "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bg", "mk", "bs", "sh", "cu", "csb",
+    "szl", "dsb", "hsb", "rue",
 ];
 
 /// The Slavic top-level `lang_code`s the RAW extraction path (issue #33) accepts.
-/// Superset of [`SLAVIC_LANGS`], adding the Serbo-Croatian macro-code `sh` (where
-/// English Wiktionary actually files hr/sr/bs entries) and Old East Slavic `orv`.
-/// This is a SEPARATE, evidence-free path from [`extract_lemmas`]; it must never
-/// feed the benchmark, which is why its output uses the distinct
-/// [`RawSlavicCorpus`] type and never the benchmark-gated [`LemmaCorpus`].
+/// Superset of [`SLAVIC_LANGS`], adding Old East Slavic `orv`. This is a
+/// SEPARATE, evidence-free path from [`extract_lemmas`]; it must never feed the
+/// benchmark, which is why its output uses the distinct [`RawSlavicCorpus`] type
+/// and never the benchmark-gated [`LemmaCorpus`].
 pub const RAW_SLAVIC_LANGS: &[&str] = &[
     "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bs", "bg", "mk", "sh", "dsb", "hsb",
     "szl", "csb", "rue", "cu", "orv",

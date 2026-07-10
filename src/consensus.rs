@@ -241,15 +241,15 @@ impl ConsensusConfig {
 const REP_PRIORITY: &[&str] = &[
     // *g-preserving languages first (Interslavic keeps *g as g); Czech/Slovak/
     // Ukrainian/Belarusian, which shifted *g→h, come after so the surface keeps g.
-    "sl", "hr", "sr", "pl", "bg", "mk", "ru", "cs", "sk", "uk", "be",
+    "sl", "hr", "sr", "sh", "pl", "bg", "mk", "ru", "cs", "sk", "uk", "be",
 ];
 const REP_PRIORITY_NO_SOUTH_BIAS: &[&str] = &[
-    "ru", "pl", "cs", "uk", "sk", "sl", "hr", "sr", "bg", "mk", "be",
+    "ru", "pl", "cs", "uk", "sk", "sl", "hr", "sr", "sh", "bg", "mk", "be",
 ];
 /// Adjective representative priority: long-form languages first (they keep the
 /// full -y/-ý ending and the *y vowel), South last.
 const REP_PRIORITY_ADJ: &[&str] = &[
-    "ru", "pl", "cs", "sk", "uk", "be", "hr", "sr", "sl", "bg", "mk",
+    "ru", "pl", "cs", "sk", "uk", "be", "hr", "sr", "sh", "sl", "bg", "mk",
 ];
 
 /// Diagnostic-only oracle hints (V7 §2.4). Every field READS THE OFFICIAL ANSWER
@@ -826,7 +826,7 @@ fn reconstruct(
 
 /// Languages that did NOT undergo the *g→h spirantization, so their cognates
 /// witness the etymological g/h faithfully.
-const G_PRESERVING: &[&str] = &["ru", "pl", "sl", "hr", "sr", "bs", "bg", "mk"];
+const G_PRESERVING: &[&str] = &["ru", "pl", "sl", "hr", "sr", "bs", "sh", "bg", "mk"];
 
 /// The consonant sequence of a form in folded-ASCII space (vowels and the glide
 /// `j` dropped), used to align consonant positions across cognates whose vowels
@@ -1216,7 +1216,7 @@ fn palatal_from_south(
     word: &str,
     per_lang: &BTreeMap<&str, &SourceForm>,
 ) -> Option<(String, String)> {
-    for code in ["hr", "sr", "bs", "sl", "mk"] {
+    for code in ["hr", "sr", "bs", "sh", "sl", "mk"] {
         if let Some(sf) = per_lang.get(code) {
             let s = &sf.norm.latin;
             if s.contains('ć') && !word.contains('ć') {
@@ -1474,7 +1474,7 @@ const SUBGROUPS: &[&[&str]] = &[
     &["uk", "be"],
     &["pl"],
     &["cs", "sk"],
-    &["sl", "hr", "sr", "bs"],
+    &["sl", "hr", "sr", "bs", "sh"],
     &["bg", "mk"],
 ];
 
@@ -1490,6 +1490,9 @@ fn pop_weight(code: &str) -> f32 {
         "bg" => 0.08,
         "sk" => 0.05,
         "hr" => 0.05,
+        // Serbo-Croatian macro-code (English Wiktionary's `sh`): the combined
+        // sr+hr+bs speaker base.
+        "sh" => 0.17,
         "bs" => 0.03,
         "sl" => 0.02,
         "mk" => 0.02,

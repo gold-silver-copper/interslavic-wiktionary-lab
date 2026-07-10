@@ -1278,10 +1278,11 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let cfg = ConsensusConfig::production();
     let corpus = crate::dump::LemmaCorpus::load(Path::new(crate::DEFAULT_LEMMA_CACHE))?;
 
-    // Gloss-token index over the cache, restricted to the 11 benchmark
-    // languages (the small lects have no column in the dictionary anyway).
+    // Gloss-token index over the cache, restricted to the benchmark languages
+    // (the small lects have no column in the dictionary anyway). `sh` is the
+    // Serbo-Croatian macro-code English Wiktionary files hr/sr/bs entries under.
     const LANGS: &[&str] = &[
-        "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bg", "mk",
+        "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "sh", "bg", "mk",
     ];
     let mut by_token: HashMap<String, Vec<usize>> = HashMap::new();
     for (i, l) in corpus.entries.iter().enumerate() {
