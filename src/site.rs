@@ -891,6 +891,18 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
     let (mut raw_rendered, mut raw_deduped) = (0usize, 0usize);
     match crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)) {
         Ok(raw_corpus) => {
+            // Cross-lingual "same meaning" index (reverse gloss links): every raw
+            // + benchmark lemma's English gloss tokens -> its (lang, word), so each
+            // raw page can show the words for its meaning(s) in other Slavic
+            // languages. Display-only; approximate (bridged by shared English gloss).
+            let mut gx = crate::glossxref::GlossXref::new();
+            for l in &raw_corpus.lemmas {
+                gx.add(&l.lang, &l.word, &l.glosses);
+            }
+            for e in &corpus.entries {
+                gx.add(&e.lang, &e.word, std::slice::from_ref(&e.gloss));
+            }
+            gx.finalize();
             // Raw-vs-raw dedup: collapse raw lemmas whose ISV display headword
             // fold coincides (same word under several POS, cross-language twins),
             // so each attested ISV spelling gets exactly one page.
@@ -935,7 +947,8 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                     m.raw = true;
                     m
                 };
-                let html = raw_lemma_page(&display, lemma, id, &meta, enrich.as_ref());
+                let html =
+                    raw_lemma_page(&display, lemma, id, &meta, enrich.as_ref(), &gx, Some(&xref));
                 std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
 
                 // Search row (schema 2, 15 elements). Status char 'R'; the folds
@@ -2533,6 +2546,8 @@ fn raw_lemma_page(
     id: usize,
     meta: &SiteEntryMeta,
     enrich: Option<&crate::enrich::EnrichIndex>,
+    gx: &crate::glossxref::GlossXref,
+    xref: Option<&crate::enrich::Xref>,
 ) -> String {
     // Attested English-Wiktionary glosses, verbatim (escaped). Low-evidence.
     let mut gloss_items = String::new();
@@ -2596,6 +2611,8 @@ fn raw_lemma_page(
         word = esc(&lemma.word),
     );
     let entry_card = entry_infobox(meta, &info_rows);
+    // Reverse gloss links: the same meaning(s) in other Slavic languages.
+    let cross = cross_lingual_meanings_section(gx, &lemma.lang, &lemma.glosses, xref, id);
     let body = format!(
         "<article class='entry entry-with-rail'>\
            <div class='entry-grid'>\
@@ -2605,6 +2622,7 @@ fn raw_lemma_page(
                <section><h2 id='smysly'>Anglijske značenja <span class='muted'>(anglijska Wiktionary)</span></h2>{glosses}</section>\
                {native_conn}\
                {etymology}\
+               {cross}\
                <p class='foot'>Surova atestacija iz Wiktionary (CC BY-SA): <a href='{src}'>{lang} · {word}</a>. \
                 Nizko dokazano; samo za sajt, ne oficialny standard. Prěgibanje ne generovano.</p>\
              </div>\
@@ -2617,6 +2635,70 @@ fn raw_lemma_page(
         word = esc(&lemma.word),
     );
     page(&format!("{display} — surova atestacija"), &body, 1)
+}
+
+/// "Same meaning in other Slavic languages" (reverse gloss links): for each
+/// English gloss token of the entry, the words carrying that gloss in OTHER
+/// Slavic languages, grouped by token then language. Bridged by a shared English
+/// gloss — an approximate meaning link, not an etymological cognate. Chips link
+/// into the site when the word is a dictionary headword (via `xref`), else out to
+/// the native Wiktionary. RU words are transliterated for display.
+fn cross_lingual_meanings_section(
+    gx: &crate::glossxref::GlossXref,
+    lang: &str,
+    glosses: &[String],
+    xref: Option<&crate::enrich::Xref>,
+    self_id: usize,
+) -> String {
+    let groups = gx.matches(lang, glosses);
+    if groups.is_empty() {
+        return String::new();
+    }
+    let mut blocks = String::new();
+    for (tok, others) in &groups {
+        let mut by_lang: std::collections::BTreeMap<&str, Vec<&str>> =
+            std::collections::BTreeMap::new();
+        for (l, w) in others {
+            by_lang.entry(l.as_str()).or_default().push(w.as_str());
+        }
+        let mut rows = String::new();
+        for (l, ws) in by_lang.iter().take(crate::glossxref::MAX_LANGS) {
+            let chips: String = ws
+                .iter()
+                .take(crate::glossxref::MAX_PER_LANG)
+                .map(|w| {
+                    let visible = source_display(l, w);
+                    match xref.and_then(|x| x.get(l, w)).filter(|&t| t != self_id) {
+                        Some(target) => format!(
+                            "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
+                            esc(&visible)
+                        ),
+                        None => format!(
+                            "<a class='chip' href='{}'>{}</a>",
+                            esc(&crate::enrich::source_url(l, w)),
+                            esc(&visible)
+                        ),
+                    }
+                })
+                .collect();
+            let _ = write!(
+                rows,
+                "<tr><td class='lc'>{}</td><td><div class='chips'>{}</div></td></tr>",
+                esc(crate::lang::lang_name(l)),
+                chips
+            );
+        }
+        let _ = write!(
+            blocks,
+            "<div class='conn'><h5><span class='mention'>{}</span></h5><table class='wikitable compact-table'><tbody>{}</tbody></table></div>",
+            esc(tok),
+            rows
+        );
+    }
+    format!(
+        "<section><h2 id='drugojezyk'>To slovo v drugih slovjanskih językah <span class='muted'>(po značenju)</span></h2>\
+         <p class='muted'>Slova v drugih slovjanskih językah s tym že anglijskym značenjem (most čerez anglijsku Wiktionary) — pomožny prěgled, ne etimologičny ni oficialny dokaz; rusky tekst jest transliterovany.</p>{blocks}</section>"
+    )
 }
 
 /// True when a native etymology paragraph is a bare placeholder stub — empty or

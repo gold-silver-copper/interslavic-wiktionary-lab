@@ -26,6 +26,7 @@ mod enrich;
 mod eval;
 mod forms;
 mod generator;
+mod glossxref;
 mod lang;
 mod model;
 mod morph;
