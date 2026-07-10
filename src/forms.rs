@@ -616,14 +616,28 @@ where
                 for (gf, form) in &cols {
                     let feats = format!("{cf}{num_part}. {gf}");
                     sink.add(
-                        form, &feats, lemma, entry_id, pos_label, "inflection", status, None,
+                        form,
+                        &feats,
+                        lemma,
+                        entry_id,
+                        pos_label,
+                        "inflection",
+                        status,
+                        None,
                         gloss,
                     );
                 }
             } else {
                 let feats = format!("{cf}{num_part}.");
                 sink.add(
-                    &cols[0].1, &feats, lemma, entry_id, pos_label, "inflection", status, None,
+                    &cols[0].1,
+                    &feats,
+                    lemma,
+                    entry_id,
+                    pos_label,
+                    "inflection",
+                    status,
+                    None,
                     gloss,
                 );
             }
@@ -660,11 +674,9 @@ pub fn pronoun_numeral_records(
                 ISV::pronoun(l, c, n, g, a)
             })
         }
-        Pos::Numeral => {
-            emit_closed_class(sink, l, "num", entry_id, status, gloss, |c, n, g, a| {
-                ISV::numeral(l, c, n, g, a)
-            })
-        }
+        Pos::Numeral => emit_closed_class(sink, l, "num", entry_id, status, gloss, |c, n, g, a| {
+            ISV::numeral(l, c, n, g, a)
+        }),
         _ => false,
     }
 }

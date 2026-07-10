@@ -394,7 +394,10 @@ pub struct DerivationProbabilities {
 
 impl DerivationProbabilities {
     pub fn probability(&self, pattern: &str) -> f64 {
-        self.per_pattern.get(pattern).copied().unwrap_or(self.fallback)
+        self.per_pattern
+            .get(pattern)
+            .copied()
+            .unwrap_or(self.fallback)
     }
 
     /// A flat table (fallback/test helper): every pattern ships `p`.

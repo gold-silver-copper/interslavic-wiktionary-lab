@@ -947,8 +947,15 @@ pub fn export_corpus(lemmas_path: &Path, out_dir: &Path) -> Result<()> {
                     m.raw = true;
                     m
                 };
-                let html =
-                    raw_lemma_page(&display, lemma, id, &meta, enrich.as_ref(), &gx, Some(&xref));
+                let html = raw_lemma_page(
+                    &display,
+                    lemma,
+                    id,
+                    &meta,
+                    enrich.as_ref(),
+                    &gx,
+                    Some(&xref),
+                );
                 std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
 
                 // Search row (schema 2, 15 elements). Status char 'R'; the folds
@@ -2208,7 +2215,12 @@ fn official_frequency_chip(freq: Option<f32>) -> String {
 /// wikitable in a `Prěvody` section — deliberately distinct from the branch-
 /// grouped "Srodne slova" cognate *evidence*. Verbatim; the leading `!` marker
 /// is stripped consistently. Display-only.
-fn official_translations_block(cells: &std::collections::HashMap<String, String>, de: &str, nl: &str, eo: &str) -> String {
+fn official_translations_block(
+    cells: &std::collections::HashMap<String, String>,
+    de: &str,
+    nl: &str,
+    eo: &str,
+) -> String {
     let mut rows = String::new();
     // 12 Slavic columns in official CSV/branch order.
     for li in crate::lang::official_slavic_cols() {
@@ -2404,7 +2416,9 @@ fn corpus_entry_page(
     let freq_chip = official_disp
         .map(|o| official_frequency_chip(o.frequency))
         .unwrap_or_default();
-    let official_sections = official_disp.map(official_display_sections).unwrap_or_default();
+    let official_sections = official_disp
+        .map(official_display_sections)
+        .unwrap_or_default();
     let cognates = cognate_block(g, enrich);
     let enrich_members: Vec<(String, String)> = g
         .set
@@ -2501,8 +2515,7 @@ fn official_only_page(
     let entry_card = entry_infobox(meta, &info_rows);
     let word_formation = word_formation_block(derivation, "");
     let freq_chip = official_frequency_chip(e.frequency);
-    let official_sections =
-        official_display_sections(&OfficialDisplay::from_entry(e));
+    let official_sections = official_display_sections(&OfficialDisplay::from_entry(e));
     let body = format!(
         "<article class='entry entry-with-rail'>\
            {wiki_top}\
@@ -4260,7 +4273,11 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                         }
                     }
                 }
-                check(&mut inv, "adj table struct path = cell getter", adj_struct_ok);
+                check(
+                    &mut inv,
+                    "adj table struct path = cell getter",
+                    adj_struct_ok,
+                );
                 if !adj_struct_ok && fail_sample.len() < 30 {
                     fail_sample.push(format!("{bare}: adj struct/getter mismatch"));
                 }
@@ -6963,7 +6980,9 @@ mod tests {
         let mut lemma_sink = crate::forms::RecordSink::default();
         // An official base + its FULL paradigm — dedup must see inflected forms.
         for s in [&mut form_sink, &mut lemma_sink] {
-            s.add("kniga", "", "kniga", 1, "n", "lemma", "official", None, "book");
+            s.add(
+                "kniga", "", "kniga", 1, "n", "lemma", "official", None, "book",
+            );
         }
         crate::forms::paradigm_records(
             &mut form_sink,
@@ -6987,9 +7006,17 @@ mod tests {
         let mut taken = official_keys.clone();
         let bases = vec![("kniga".to_string(), Pos::Noun, 1usize, "book".to_string())];
         let probs = crate::derive::DerivationProbabilities::flat(0.5);
-        let added =
-            inject_generated_derivatives(&mut form_sink, &mut lemma_sink, &mut taken, &bases, &probs);
-        assert!(added > 0, "kniga must derive at least one absent family member");
+        let added = inject_generated_derivatives(
+            &mut form_sink,
+            &mut lemma_sink,
+            &mut taken,
+            &bases,
+            &probs,
+        );
+        assert!(
+            added > 0,
+            "kniga must derive at least one absent family member"
+        );
 
         let records = form_sink.into_records();
         for r in &records {
@@ -7052,7 +7079,10 @@ mod tests {
         let has = |lang: &str, word: &str| aliases.iter().any(|(l, w, _)| l == lang && w == word);
         // Attested spellings are indexed verbatim (Cyrillic query hits directly).
         assert!(has("ru", "пластинка"), "{aliases:?}");
-        assert!(has("uk", "швидкий") && has("uk", "скорий"), "split: {aliases:?}");
+        assert!(
+            has("uk", "швидкий") && has("uk", "скорий"),
+            "split: {aliases:?}"
+        );
         // Folded search forms make the Latinized / diacritic-folded query hit.
         let forms = |lang: &str, word: &str| {
             aliases

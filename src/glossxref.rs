@@ -22,10 +22,40 @@ pub const MAX_TOKENS: usize = 6;
 
 /// English stop / grammatical words that carry no cross-lingual meaning.
 const STOP: &[&str] = &[
-    "to", "the", "a", "an", "of", "or", "and", "esp", "e.g.", "i.e.", "etc", "etc.", "vocative",
-    "accusative", "genitive", "dative", "locative", "instrumental", "nominative", "singular",
-    "plural", "imperfective", "perfective", "diminutive", "augmentative", "someone", "something",
-    "one", "used", "form", "variant", "alternative", "obsolete", "archaic",
+    "to",
+    "the",
+    "a",
+    "an",
+    "of",
+    "or",
+    "and",
+    "esp",
+    "e.g.",
+    "i.e.",
+    "etc",
+    "etc.",
+    "vocative",
+    "accusative",
+    "genitive",
+    "dative",
+    "locative",
+    "instrumental",
+    "nominative",
+    "singular",
+    "plural",
+    "imperfective",
+    "perfective",
+    "diminutive",
+    "augmentative",
+    "someone",
+    "something",
+    "one",
+    "used",
+    "form",
+    "variant",
+    "alternative",
+    "obsolete",
+    "archaic",
 ];
 
 /// Reverse index: English gloss head-token → the `(lang, word)` lemmas glossed
@@ -66,11 +96,7 @@ impl GlossXref {
     /// also excludes the word itself). Over-generic tokens (in > `FREQ_CAP`
     /// lemmas) are skipped. Each group's `(lang, word)` list is already
     /// language-sorted (from [`finalize`]).
-    pub fn matches(
-        &self,
-        lang: &str,
-        glosses: &[String],
-    ) -> Vec<(String, Vec<(String, String)>)> {
+    pub fn matches(&self, lang: &str, glosses: &[String]) -> Vec<(String, Vec<(String, String)>)> {
         let mut out = Vec::new();
         let mut seen = HashSet::new();
         for tok in head_tokens(glosses) {
@@ -83,11 +109,8 @@ impl GlossXref {
             if all.len() > FREQ_CAP {
                 continue;
             }
-            let others: Vec<(String, String)> = all
-                .iter()
-                .filter(|(l, _)| l != lang)
-                .cloned()
-                .collect();
+            let others: Vec<(String, String)> =
+                all.iter().filter(|(l, _)| l != lang).cloned().collect();
             if !others.is_empty() {
                 out.push((tok, others));
             }
@@ -146,7 +169,10 @@ mod tests {
 
     #[test]
     fn head_tokens_drop_stopwords_and_of_phrases() {
-        let g = vec!["alternative form of foo".to_string(), "the, a, of".to_string()];
+        let g = vec![
+            "alternative form of foo".to_string(),
+            "the, a, of".to_string(),
+        ];
         // "alternative form of foo" contains " of " -> dropped; stopwords dropped.
         assert!(head_tokens(&g).is_empty());
     }
