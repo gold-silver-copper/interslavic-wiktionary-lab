@@ -57,6 +57,28 @@ impl Calibration {
         let b = ((score.clamp(0.0, 1.0) * 10.0) as usize).min(9);
         self.deciles[b]
     }
+
+    /// Band-exclusive precision of the review band p ∈ [REVIEW_T, PROPOSE_T)
+    /// — the Medium badge's own population. `review_pr` is
+    /// threshold-INCLUSIVE (all p ≥ 0.3, so it also counts the High band and
+    /// overstates the band rate). Derived from the two persisted operating
+    /// points: with H = total holdout matches, hits_t = recall_t·H and
+    /// n_t = hits_t/precision_t, so band precision =
+    /// (r₁−r₂) / (r₁/p₁ − r₂/p₂), H cancelling. `None` when the derived
+    /// band is empty or degenerate.
+    pub fn review_band_precision(&self) -> Option<f64> {
+        let (p_prec, p_rec) = self.propose_pr;
+        let (r_prec, r_rec) = self.review_pr;
+        if p_prec <= 0.0 || r_prec <= 0.0 {
+            return None;
+        }
+        let band_hits = r_rec - p_rec;
+        let band_n = r_rec / r_prec - p_rec / p_prec;
+        if band_n <= 0.0 || band_hits < 0.0 {
+            return None;
+        }
+        Some(band_hits / band_n)
+    }
 }
 
 #[cfg(test)]
@@ -76,6 +98,31 @@ mod tests {
         assert_eq!(c.probability(0.55), 0.5);
         // Scores of exactly 1.0 clamp into the top decile.
         assert_eq!(c.probability(1.0), 0.9);
+    }
+
+    /// The Medium badge's band-exclusive precision derived from the two
+    /// COMMITTED operating points (data/score-calibration.json as of this
+    /// commit): propose (0.71615, 0.66348), review (0.61657, 0.88866)
+    /// → ≈0.437, NOT review_pr's threshold-inclusive 0.617 (issue #77
+    /// review finding 2). Pinned to ±0.01 of 0.439.
+    #[test]
+    fn review_band_precision_is_band_exclusive() {
+        let c = Calibration {
+            fitted_on: String::new(),
+            holdout_ece: 0.0,
+            propose_pr: (0.7161500815660685, 0.6634760705289673),
+            review_pr: (0.6165676336945124, 0.8886649874055416),
+            deciles: [0.0; 10],
+        };
+        let band = c.review_band_precision().expect("band exists");
+        assert!((band - 0.439).abs() < 0.01, "band precision {band}");
+        // Degenerate operating points yield None, never a bogus rate.
+        let degenerate = Calibration {
+            propose_pr: (0.0, 0.0),
+            review_pr: (0.0, 0.0),
+            ..c
+        };
+        assert_eq!(degenerate.review_band_precision(), None);
     }
 
     /// The display re-bucket (issue #77: `from_probability ∘ probability`)

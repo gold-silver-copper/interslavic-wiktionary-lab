@@ -153,13 +153,16 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
             }
         }
         let gloss70 = truncate(&entry.english, 70);
-        // Razumlivost (element 12) from the meaning's own source-cell
-        // languages — the legacy path has no cognate-set meta.
+        // Razumlivost (element 12) from the committee's own sameInLanguages
+        // attestation — the translation cells are filled for every language
+        // and would claim a constant ~99%; null when the column is empty.
         let razum = {
-            let mut l: Vec<String> = input.forms.iter().map(|f| f.lang_code.clone()).collect();
-            l.sort();
-            l.dedup();
-            razum_pct(&l)
+            let same_in = entry.same_in_langs();
+            if same_in.is_empty() {
+                "null".to_string()
+            } else {
+                (crate::lang::razumlivost(&same_in).overall.round() as u32).to_string()
+            }
         };
         search_rows.push(SearchRow {
             id,
@@ -855,7 +858,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         //   (rank 1-5 = candidate deep-link anchor, 6 = gloss-token sentinel,
         //   no anchor) · 7 n_langs · 8 n_branches · 9 borrowed 0/1 ·
         //   10 quality label · 11 proto ancestor · 12 razumlivost % (integer
-        //   0-100, issue #79) · 13 source aliases [[lang,word,[folds]],…]
+        //   0-100, issue #79; basis = cognate members on generated rows, the
+        //   attesting language on raw rows, the committee's sameInLanguages
+        //   on official-only rows — null there when that column is empty) ·
+        //   13 source aliases [[lang,word,[folds]],…]
         //   (issue #31; MUST stay last — SearchRow splits head/aliases on it).
         let gloss70 = truncate(&p.g.set.gloss, 70);
         search_rows.push(SearchRow {
@@ -951,7 +957,18 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         let mut alias_seen: std::collections::HashSet<(String, String)> =
             std::collections::HashSet::new();
         collect_source_aliases(official_cell_pairs(e), &mut aliases, &mut alias_seen);
-        // Same 14-element row schema as the generated loop above.
+        // Same 14-element row schema as the generated loop above. Element 12
+        // comes from the committee's own sameInLanguages attestation — the
+        // translation cells are filled for every language and would claim a
+        // constant ~99%; null when the column is empty (the client guards).
+        let razum = {
+            let same_in = e.same_in_langs();
+            if same_in.is_empty() {
+                "null".to_string()
+            } else {
+                (crate::lang::razumlivost(&same_in).overall.round() as u32).to_string()
+            }
+        };
         let gloss70 = truncate(&e.english, 70);
         search_rows.push(SearchRow {
             id: *oid,
@@ -969,7 +986,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 if meta.borrowed { 1 } else { 0 },
                 json_str(quality_label(meta)),
                 json_str(&meta.ancestor),
-                razum_pct(&meta.languages),
+                razum,
             ),
             aliases: source_aliases_json(&aliases),
             core: true,
@@ -2685,7 +2702,12 @@ fn corpus_entry_page(
         "<tr><th>Opomba</th><td>{}</td></tr>",
         official_note
     );
-    let entry_card = entry_infobox(meta, &info_rows);
+    // Generated page: razumlivost over the cognate-set membership.
+    let razum = {
+        let codes: Vec<&str> = meta.languages.iter().map(String::as_str).collect();
+        razum_row(&codes, RAZUM_TITLE)
+    };
+    let entry_card = entry_infobox(meta, &razum, &info_rows);
     let freq_chip = official_disp
         .map(|o| official_frequency_chip(o.frequency))
         .unwrap_or_default();
@@ -2790,7 +2812,16 @@ fn official_only_page(
         "<tr><th>Smysl</th><td>{}</td></tr><tr><th>Opomba</th><td>Generator ješče ne izvodi tu formu iz srodnogo dokaza.</td></tr>",
         esc(&e.english)
     );
-    let entry_card = entry_infobox(meta, &info_rows);
+    // Official-only page: the honest razumlivost basis is the committee's
+    // OWN sameInLanguages attestation — the translation cells are filled for
+    // every language and would claim a constant ~99%. Empty column → no row.
+    let same_in = e.same_in_langs();
+    let razum = if same_in.is_empty() {
+        String::new()
+    } else {
+        razum_row(&same_in, RAZUM_TITLE_OFFICIAL)
+    };
+    let entry_card = entry_infobox(meta, &razum, &info_rows);
     let word_formation = word_formation_block(derivation, "");
     let freq_chip = official_frequency_chip(e.frequency);
     let official_sections = official_display_sections(&OfficialDisplay::from_entry(e));
@@ -2907,7 +2938,12 @@ fn raw_lemma_page(
         lang = esc(lang_name),
         word = esc(&lemma.word),
     );
-    let entry_card = entry_infobox(meta, &info_rows);
+    // Raw page: razumlivost of the single attesting language.
+    let razum = {
+        let codes: Vec<&str> = meta.languages.iter().map(String::as_str).collect();
+        razum_row(&codes, RAZUM_TITLE)
+    };
+    let entry_card = entry_infobox(meta, &razum, &info_rows);
     // Reverse gloss links: the same meaning(s) in other Slavic languages.
     let cross = cross_lingual_meanings_section(gx, &lemma.lang, &lemma.glosses, xref, raw_xref, id);
     let body = format!(
@@ -4347,7 +4383,7 @@ async function searchFor(raw){
   return hits;
 }
 function eh(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function hitHTML(e,a,src){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+eh(e[10]||'')+"</span>"; if(e[11])meta+=" <span class='ha'>"+eh(e[11])+"</span>"; meta+=" <span class='hl'>"+(e[7]||0)+" jęz. / "+(e[8]||0)+" vět.</span>"; if(e[12]!=null)meta+=" <span class='hrz' title='razumlivosť: dolja govoriteljev slovjanskyh językov s poznatym srodnym slovom (po atestaciji)'>"+e[12]+"%</span>"; if(src)meta+=" <span class='hsrc' title='Slovnikovy dokaz: perevod komiteta / kognat'>"+eh(src)+"</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+eh(e[1])+"</b> <span class='hp'>"+eh(posLabel(e[3]))+"</span> <span class='hg'>"+eh(e[2])+"</span> "+meta+"</a>"; }
+function hitHTML(e,a,src){ var meta="<span class='hs'>"+strBadge(e)+"</span> <span class='hq'>"+eh(e[10]||'')+"</span>"; if(e[11])meta+=" <span class='ha'>"+eh(e[11])+"</span>"; meta+=" <span class='hl'>"+(e[7]||0)+" jęz. / "+(e[8]||0)+" vět.</span>"; if(e[12]!=null)meta+=" <span class='hrz' title='razumlivosť: dolja govoriteljev slovjanskyh językov s poznatym srodnym ili istym slovom (po atestaciji) — ne izměrjena razumlivosť'>"+e[12]+"%</span>"; if(src)meta+=" <span class='hsrc' title='Slovnikovy dokaz: perevod komiteta / kognat'>"+eh(src)+"</span>"; return "<a class='hit' href='"+SITE_BASE+"entry/"+e[0]+".html"+(a?('#cand-'+a):'')+"'><b>"+eh(e[1])+"</b> <span class='hp'>"+eh(posLabel(e[3]))+"</span> <span class='hg'>"+eh(e[2])+"</span> "+meta+"</a>"; }
 async function run(showDropdown){
   var v=q?q.value:''; var hits=await searchFor(v);
   var note=NOTE?"<div class='muted nohit'>"+eh(NOTE)+"</div>":'';
@@ -5177,12 +5213,22 @@ fn calibration_note(c: Confidence, cal: Option<&crate::calibrate::Calibration>) 
             100.0 * cal.propose_pr.0,
             100.0 * cal.propose_pr.1,
         ),
-        Confidence::Medium => format!(
-            "pregled p≥{:.1}: {:.1}% takyh kandidatov odgovara oficialnomu slovniku ({:.1}% pokrytje)",
-            crate::calibrate::REVIEW_T,
-            100.0 * cal.review_pr.0,
-            100.0 * cal.review_pr.1,
-        ),
+        // Medium = the band p ∈ [0.3, 0.6) EXCLUSIVE of the High band —
+        // review_pr's threshold-inclusive precision (all p ≥ 0.3) would
+        // overstate this bucket's own match rate (~62% vs ~44%).
+        Confidence::Medium => match cal.review_band_precision() {
+            Some(band) => format!(
+                "pregled p∈[{:.1},{:.1}): ≈{:.0}% takyh kandidatov odgovara oficialnomu slovniku",
+                crate::calibrate::REVIEW_T,
+                crate::calibrate::PROPOSE_T,
+                100.0 * band,
+            ),
+            None => format!(
+                "pregled p∈[{:.1},{:.1})",
+                crate::calibrate::REVIEW_T,
+                crate::calibrate::PROPOSE_T,
+            ),
+        },
         Confidence::Low => "pod pragom pregleda (p<0.3)".to_string(),
     };
     format!(
@@ -6721,11 +6767,28 @@ fn entry_tabs(m: &SiteEntryMeta) -> String {
 /// and is not — plus the population source.
 const RAZUM_TITLE: &str = "dolja govoriteljev slovjanskyh językov s poznatym srodnym slovom (po atestaciji) — ne izměrjena razumlivosť; izvor populacij: voting machine (steen)";
 
+/// The official-only variant of [`RAZUM_TITLE`]: the basis there is the
+/// committee's own sameInLanguages attestation, NOT cognate-set membership
+/// (the translation cells are filled for every language and would claim a
+/// constant ~99%).
+const RAZUM_TITLE_OFFICIAL: &str = "dolja govoriteljev slovjanskyh językov, v ktoryh slovo je isto po oficialnom slovniku (sameInLanguages) — ne izměrjena razumlivosť; izvor populacij: voting machine (steen)";
+
 /// Razumlivost overall percent for a language-code list, as the integer the
 /// search row carries in element 12 (issue #79).
 fn razum_pct(langs: &[String]) -> u32 {
     let codes: Vec<&str> = langs.iter().map(String::as_str).collect();
     crate::lang::razumlivost(&codes).overall.round() as u32
+}
+
+/// The infobox "Razumlivosť" row for a set of attesting language codes, with
+/// the basis-appropriate tooltip (issue #79).
+fn razum_row(codes: &[&str], title: &str) -> String {
+    let r = crate::lang::razumlivost(codes);
+    format!(
+        "<tr><th title='{title}'>Razumlivosť</th><td><b>{:.0}%</b> {}</td></tr>",
+        r.overall,
+        razum_bars(&r),
+    )
 }
 
 /// Three compact per-branch coverage bars for a [`crate::lang::Razumlivost`]
@@ -6748,7 +6811,12 @@ fn razum_bars(r: &crate::lang::Razumlivost) -> String {
     )
 }
 
-fn entry_infobox(m: &SiteEntryMeta, extra_rows: &str) -> String {
+/// `razum` is the prebuilt "Razumlivosť" row (or empty to omit): the honest
+/// membership differs per page kind — cognate-set members on generated
+/// pages, the single attesting language on raw pages, and the committee's
+/// sameInLanguages on official-only pages (empty column → no row), so the
+/// caller supplies it (issue #79).
+fn entry_infobox(m: &SiteEntryMeta, razum: &str, extra_rows: &str) -> String {
     let root = ancestor_slug(m)
         .map(|sl| format!("<a href='../root/{sl}.html'>{}</a>", esc(&m.ancestor)))
         .unwrap_or_else(|| {
@@ -6779,18 +6847,6 @@ fn entry_infobox(m: &SiteEntryMeta, extra_rows: &str) -> String {
             "<tr><th>Uvěrjenost</th><td><span class='reliability {}'>{}</span>{p}</td></tr>",
             conf_class(m.conf),
             m.conf.label(),
-        )
-    };
-    // Speaker-weighted cognate coverage (issue #79): honest on all three page
-    // kinds — generated (cognate members), official-only (committee cells) and
-    // raw (the single attesting language).
-    let razum = {
-        let codes: Vec<&str> = m.languages.iter().map(String::as_str).collect();
-        let r = crate::lang::razumlivost(&codes);
-        format!(
-            "<tr><th title='{RAZUM_TITLE}'>Razumlivosť</th><td><b>{:.0}%</b> {}</td></tr>",
-            r.overall,
-            razum_bars(&r),
         )
     };
     format!(

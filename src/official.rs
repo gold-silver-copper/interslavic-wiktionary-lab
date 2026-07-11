@@ -60,6 +60,53 @@ impl OfficialEntry {
             )
     }
 
+    /// Registry language codes expanded from the `same_in` column — the
+    /// committee's own record of which languages natively share the word
+    /// (the honest membership for an official-only razumlivost, issue #79;
+    /// the translation cells are filled for every language and say nothing
+    /// about relatedness). Token inventory of the committed CSV: branch
+    /// markers `v`/`z`/`j` (expanded to the branch's modern CSV languages),
+    /// registry codes (ru pl cs bg uk mk sl be sk hr sr cu rue hsb csb dsb;
+    /// `sh` expands to sr+hr+bs), and the dictionary's own group codes
+    /// `ub`=uk+be, `cz`=cs+sk, `sb`=Sorbian (hsb+dsb), `bm`=bg+mk,
+    /// `yu`=Slovene+BCMS. A `~` suffix (partial match) and stray
+    /// punctuation (`(sh)`, `#ru`) are stripped and count fully; unknown
+    /// leftovers (`ps`, `mg`, `sx` — one or two rows each) are skipped.
+    /// Sorted, deduped; empty when the column is empty (~61% of rows).
+    pub fn same_in_langs(&self) -> Vec<&'static str> {
+        let mut out: Vec<&'static str> = Vec::new();
+        for tok in self.same_in.split_whitespace() {
+            let tok = tok.trim_matches(|c: char| !c.is_alphabetic());
+            let expanded: Vec<&'static str> = match tok {
+                "v" | "z" | "j" => {
+                    let branch = match tok {
+                        "v" => Branch::East,
+                        "z" => Branch::West,
+                        _ => Branch::South,
+                    };
+                    crate::lang::official_slavic_cols()
+                        .iter()
+                        .filter(|l| l.modern && l.branch == branch)
+                        .map(|l| l.code)
+                        .collect()
+                }
+                "ub" => vec!["uk", "be"],
+                "cz" => vec!["cs", "sk"],
+                "sb" => vec!["hsb", "dsb"],
+                "bm" => vec!["bg", "mk"],
+                "yu" => vec!["sl", "sr", "hr", "bs"],
+                other => crate::lang::population_atoms(other).to_vec(),
+            };
+            for code in expanded {
+                if !out.contains(&code) {
+                    out.push(code);
+                }
+            }
+        }
+        out.sort_unstable();
+        out
+    }
+
     /// Branch markers parsed from the `same_in` column. `v`=East, `z`=West,
     /// `j`=South; specific language codes also count toward their branch.
     pub fn native_branches(&self) -> Vec<Branch> {
@@ -203,4 +250,49 @@ pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
         });
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry_with_same_in(same_in: &str) -> OfficialEntry {
+        OfficialEntry {
+            id: String::new(),
+            isv: "slovo".to_string(),
+            addition: String::new(),
+            pos_raw: String::new(),
+            pos: Pos::Noun,
+            noun_traits: NounTraits::default(),
+            english: String::new(),
+            same_in: same_in.to_string(),
+            genesis: String::new(),
+            cells: HashMap::new(),
+            frequency: None,
+            de: String::new(),
+            nl: String::new(),
+            eo: String::new(),
+            intelligibility: String::new(),
+            using_example: String::new(),
+        }
+    }
+
+    /// The same_in expansion (issue #79 review): branch markers cover the
+    /// branch's modern CSV languages, the committee group codes expand to
+    /// their members, punctuation/`~` are stripped, `sh` expands to its
+    /// atoms, unknown tokens are skipped, and the result dedups.
+    #[test]
+    fn same_in_langs_expands_committee_tokens() {
+        let langs = |s: &str| entry_with_same_in(s).same_in_langs();
+        assert_eq!(langs("v"), vec!["be", "ru", "uk"]);
+        assert_eq!(langs("cz~"), vec!["cs", "sk"]);
+        assert_eq!(langs("bm"), vec!["bg", "mk"]);
+        assert_eq!(langs("(sh)"), vec!["bs", "hr", "sr"]);
+        assert_eq!(langs("yu"), vec!["bs", "hr", "sl", "sr"]);
+        assert_eq!(langs("sb"), vec!["dsb", "hsb"]);
+        // Unknown committee typos contribute nothing; dedup across tokens.
+        assert_eq!(langs("ps"), Vec::<&str>::new());
+        assert_eq!(langs("j yu mk"), vec!["bg", "bs", "hr", "mk", "sl", "sr"]);
+        assert_eq!(langs(""), Vec::<&str>::new());
+    }
 }
