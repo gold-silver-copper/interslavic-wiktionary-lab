@@ -590,7 +590,9 @@ fn finalize(input: &str, trace: &mut Vec<RuleStep>) -> String {
 /// Map an accented base vowel (acute/grave/circumflex/macron/tilde/double-grave/
 /// inverted-breve) to its plain base. Written with explicit escapes to avoid any
 /// source-encoding ambiguity. Etymological letters (ě ę ǫ ъ ь ȯ y) are preserved.
-fn debase_vowel(ch: char) -> char {
+/// `pub(crate)`: the site's proto-reflex join (issue #73b) folds ancestor and
+/// cache words with this same table, so the two sides can never drift.
+pub(crate) fn debase_vowel(ch: char) -> char {
     match ch {
         '\u{00E0}' | '\u{00E1}' | '\u{00E2}' | '\u{00E3}' | '\u{0101}' | '\u{01CE}'
         | '\u{0201}' | '\u{0203}' => 'a',
