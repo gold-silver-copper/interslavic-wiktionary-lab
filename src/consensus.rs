@@ -137,6 +137,11 @@ pub struct ConsensusConfig {
     /// (*kamy) but the dictionary cites the extended oblique stem (kamenj);
     /// the Wiktionary declension category supplies the class.
     pub proto_stem_class_endings: bool,
+    /// Rescue a sub-threshold proto link (confidence in [0.34, 0.42)) when the
+    /// cognates' own Wiktionary etymologies name the same deep
+    /// (Proto-Balto-Slavic / PIE) ancestor as the candidate reconstruction
+    /// (issue #76) — coverage without loosening the confidence gate itself.
+    pub proto_link_deep_corroboration: bool,
 }
 
 impl ConsensusConfig {
@@ -170,6 +175,7 @@ impl ConsensusConfig {
             loan_hiatus: false,
             spirantization_repair: false,
             proto_stem_class_endings: false,
+            proto_link_deep_corroboration: false,
         }
     }
 
@@ -211,6 +217,12 @@ impl ConsensusConfig {
             // Rejected by the benchmark (regress accuracy in the consensus path):
             y_recovery: false,
             adj_longform_rep: false,
+            // Rejected by the benchmark (issue #76): the deep-corroboration
+            // rescue fired on exactly 1 of 16,300 meanings (linked 3,929 →
+            // 3,930) and moved nothing (+0.00pp exact/normalized, p = 1.0) —
+            // only ~7.7% of lemma etymologies name a PBS/PIE ancestor, so the
+            // ≥50%-of-cognates corroboration bar is almost never reachable.
+            proto_link_deep_corroboration: false,
         }
     }
 
@@ -242,6 +254,7 @@ impl ConsensusConfig {
             loan_hiatus: true,
             spirantization_repair: true,
             proto_stem_class_endings: true,
+            proto_link_deep_corroboration: true,
         }
     }
 }

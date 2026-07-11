@@ -66,11 +66,13 @@ Each is the production config plus one experimental rule. All regress accuracy o
 | prod+jat | 41.02% | -0.71 pp | 49.64% | -0.01 pp |
 | prod+adj-longform | 41.73% | +0.00 pp | 49.65% | +0.00 pp |
 | prod+y-recovery | 38.98% | -2.75 pp | 46.01% | -3.64 pp |
+| prod+link-corroboration | 41.73% | +0.00 pp | 49.65% | +0.00 pp |
 
 - **prod+palatals** — Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.
 - **prod+jat** — Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.
 - **prod+adj-longform** — Long-form (ru/pl/cs) adjective representative — East/West orthographic quirks outweigh the fleeting-vowel fix.
 - **prod+y-recovery** — Recover *y from East/West where South merged *y→i — too aggressive, flips correct i→y.
+- **prod+link-corroboration** — Deep-ancestor corroboration rescue in the proto linker (issue #76): accept a sub-threshold link (confidence in [0.34, 0.42), floored to the gate) when ≥ half of the primary cognates' own Wiktionary etymologies name the candidate's Proto-Balto-Slavic/PIE ancestor. Measured +0.00pp exact/normalized: the rescue fires on exactly 1 of 16,300 meanings — only ~7.7% of lemma etymologies name a deep ancestor, so the corroboration bar is almost never reachable. Kept out of production.
 
 ## POS-specific accuracy (final config)
 

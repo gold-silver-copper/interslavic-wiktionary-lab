@@ -1135,6 +1135,11 @@ pub struct ProtoIndex {
     /// reconstruction (`*voda`). Built from the lemma corpus when present. Lets the
     /// linker use the attested ancestor directly instead of guessing.
     etym: HashMap<String, String>,
+    /// Deep (pre-Slavic) ancestors named by a modern lemma's English etymology:
+    /// "lang\u{1}phonemic-latin" -> folded Proto-Balto-Slavic / PIE tokens
+    /// (issue #76). Built alongside `etym`; consumed by the linker's
+    /// deep-corroboration rescue.
+    deep_etym: HashMap<String, Vec<String>>,
 }
 
 impl ProtoIndex {
@@ -1178,16 +1183,30 @@ impl ProtoIndex {
 
     fn attach_etymology(&mut self, corpus: &LemmaCorpus) {
         for e in &corpus.entries {
-            if e.proto.is_empty() || !self.by_word.contains_key(e.proto.trim_start_matches('*')) {
-                continue; // only ancestors we actually have a reconstruction for
-            }
             let latin = crate::normalize::to_phonemic_latin(&e.lang, &e.word);
             if latin.is_empty() {
                 continue;
             }
-            self.etym
-                .entry(format!("{}\u{1}{latin}", e.lang))
-                .or_insert_with(|| e.proto.clone());
+            let key = format!("{}\u{1}{latin}", e.lang);
+            // Deep (pre-Slavic) ancestors the lemma's own etymology names,
+            // scraped with the same needle logic as the proto cache's pbs/pie
+            // fields so both sides of the corroboration match fold-equal.
+            let mut deep: Vec<String> = Vec::new();
+            for text in &e.etymology {
+                for needle in ["Proto-Balto-Slavic", "Proto-Indo-European"] {
+                    let tok = crate::normalize::fold_deep_token(&after_needle(text, needle));
+                    if !tok.is_empty() && !deep.contains(&tok) {
+                        deep.push(tok);
+                    }
+                }
+            }
+            if !deep.is_empty() {
+                self.deep_etym.entry(key.clone()).or_insert(deep);
+            }
+            if e.proto.is_empty() || !self.by_word.contains_key(e.proto.trim_start_matches('*')) {
+                continue; // only ancestors we actually have a reconstruction for
+            }
+            self.etym.entry(key).or_insert_with(|| e.proto.clone());
         }
     }
 
@@ -1196,6 +1215,14 @@ impl ProtoIndex {
         self.etym
             .get(&format!("{lang}\u{1}{latin}"))
             .map(|s| s.as_str())
+    }
+
+    /// The folded deep (Proto-Balto-Slavic / PIE) ancestor tokens a modern
+    /// lemma's English etymology names, if any (issue #76).
+    pub fn deep_ancestors(&self, lang: &str, latin: &str) -> Option<&[String]> {
+        self.deep_etym
+            .get(&format!("{lang}\u{1}{latin}"))
+            .map(|v| v.as_slice())
     }
 
     /// The entry index for a reconstruction word (`voda`, no `*`).
@@ -1231,6 +1258,7 @@ impl ProtoIndex {
             by_desc_skeleton,
             by_word,
             etym: HashMap::new(),
+            deep_etym: HashMap::new(),
         }
     }
 

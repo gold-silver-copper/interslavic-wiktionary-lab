@@ -45,10 +45,21 @@ pub fn generate_oracle(
                 // form is closest to the official lemma — the linker's upper bound.
                 proto_link::link_oracle(index, input, o.official)
             } else if cfg.explicit_etymology {
-                proto_link::link_explicit(index, input)
-                    .or_else(|| proto_link::link(index, input, cfg.proto_prefix_stripping))
+                proto_link::link_explicit(index, input).or_else(|| {
+                    proto_link::link(
+                        index,
+                        input,
+                        cfg.proto_prefix_stripping,
+                        cfg.proto_link_deep_corroboration,
+                    )
+                })
             } else {
-                proto_link::link(index, input, cfg.proto_prefix_stripping)
+                proto_link::link(
+                    index,
+                    input,
+                    cfg.proto_prefix_stripping,
+                    cfg.proto_link_deep_corroboration,
+                )
             };
             if let Some(l) = linked {
                 // Feed the modern reflexes to the yer resolver so lexicalized
