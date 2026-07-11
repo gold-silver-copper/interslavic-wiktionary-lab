@@ -570,6 +570,30 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             .or_insert(*oid);
     }
 
+    // Raw-attestation pre-pass (issue #64): load the raw corpus and decide
+    // every raw lemma's fate BEFORE any page renders, so (a) raw entry ids
+    // exist by the time word chips on ANY page — including raw pages rendered
+    // early in the raw loop — want to link to them, and (b) raw words whose
+    // display fold deduped onto an official/generated page resolve to that
+    // page's id. Fate is still decided by `raw_lemma_fate` (the single dedup
+    // rule shared with `coverage`), exactly once per lemma per export; the
+    // raw render loop below consumes this plan instead of re-classifying.
+    let raw_corpus = crate::dump::load_optional(
+        Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        crate::dump::RawSlavicCorpus::load,
+    )?;
+    let raw_plan = raw_corpus
+        .as_ref()
+        .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, id))
+        .unwrap_or_default();
+    // Advance the shared id counter past the reserved raw ids, so any future
+    // allocation below cannot collide with them. (Nothing reads `id` after the
+    // raw render loop today — the allow documents that this is protective.)
+    #[allow(unused_assignments)]
+    if let Some(&(_, last_id)) = raw_plan.pages.last() {
+        id = last_id;
+    }
+
     let mut metas: Vec<SiteEntryMeta> = Vec::new();
     for p in prepared.iter().filter(|p| !p.suppressed) {
         let ancestor = if p.g.set.borrowed {
@@ -718,6 +742,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             &family,
             enrich.as_ref(),
             Some(&xref),
+            &raw_plan.xref,
             &synonyms,
             &derivation,
             &wiki_top,
@@ -825,6 +850,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             e,
             enrich.as_ref(),
             Some(&xref),
+            &raw_plan.xref,
             *oid,
             &syn,
             &deriv,
@@ -901,11 +927,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // counted and reported loudly, never silently shipped.
     let mut flavor_residue_words = 0usize;
     let mut flavor_residue: BTreeMap<char, usize> = BTreeMap::new();
-    match crate::dump::load_optional(
-        Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
-        crate::dump::RawSlavicCorpus::load,
-    )? {
+    match &raw_corpus {
         Some(raw_corpus) => {
+            raw_deduped = raw_plan.deduped;
             // Cross-lingual "same meaning" index (reverse gloss links): every raw
             // + benchmark lemma's English gloss tokens -> its (lang, word), so each
             // raw page can show the words for its meaning(s) in other Slavic
@@ -918,23 +942,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 gx.add(&e.lang, &e.word, std::slice::from_ref(&e.gloss));
             }
             gx.finalize();
-            // Raw-vs-raw dedup: collapse raw lemmas whose ISV display headword
-            // fold coincides (same word under several POS, cross-language twins),
-            // so each attested ISV spelling gets exactly one page.
-            let mut raw_covered: std::collections::HashSet<String> =
-                std::collections::HashSet::new();
-            for lemma in &raw_corpus.lemmas {
-                // Rendered-vs-deduped is decided by `raw_lemma_fate` — the single
-                // dedup rule, shared with the `coverage` command — so export and
-                // coverage reconcile by construction and can never drift. (See
-                // `raw_lemma_fate` for the dedup rationale.)
-                if matches!(
-                    raw_lemma_fate(lemma, &xref, &isv_to_id, &mut raw_covered),
-                    RawFate::Deduped
-                ) {
-                    raw_deduped += 1;
-                    continue;
-                }
+            // Rendered-vs-deduped and the id sequence were decided by the raw
+            // pre-pass above (`plan_raw_pages`, wrapping `raw_lemma_fate` — the
+            // single dedup rule shared with the `coverage` command — so export
+            // and coverage reconcile by construction and can never drift).
+            for &(lemma_idx, id) in &raw_plan.pages {
+                let lemma = &raw_corpus.lemmas[lemma_idx];
                 let word = lemma.word.trim();
                 // Display headword: the attested word flavorized into ISV
                 // orthography (winyl→vinyl, дело→dělo; issue #62 /
@@ -949,7 +962,6 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 if had_residue {
                     flavor_residue_words += 1;
                 }
-                id += 1;
                 let gloss = lemma.glosses.join("; ");
                 let meta = {
                     let mut m = entry_meta(
@@ -980,6 +992,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                     enrich.as_ref(),
                     &gx,
                     Some(&xref),
+                    &raw_plan.xref,
                 );
                 std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
 
@@ -1429,11 +1442,25 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
 // the (display-only) site index, keeping the raw path benchmark-isolated.
 // ---------------------------------------------------------------------------
 
-/// One raw lemma's fate under the export dedup (site coverage view).
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// One raw lemma's fate under the export dedup (site coverage view). The
+/// deduped variants carry WHERE the word's content lives (issue #64), so the
+/// raw pre-pass can point word chips at that internal page instead of out to
+/// the native Wiktionary; `coverage` only distinguishes rendered vs deduped.
+#[derive(Clone, PartialEq, Eq)]
 enum RawFate {
-    Rendered,
-    Deduped,
+    /// Gets its own raw page; carries the ě-blind display fold it claimed.
+    Rendered { efold: String },
+    /// Word or display fold empty — nothing to render or point at.
+    Skipped,
+    /// Verbatim `(lang, word)` is already a cognate member of an entry — the
+    /// cognate `xref` resolves chip links to it, nothing extra to record.
+    DedupedXref,
+    /// Display fold (or its ě-blind variant) is an official / generated /
+    /// official-only headword: `target` is that page's id.
+    DedupedFold { target: usize },
+    /// An earlier raw lemma claimed the same ě-blind fold; the pre-pass
+    /// resolves the fold to that twin's page id.
+    DedupedRawTwin { efold: String },
 }
 
 /// Minimal replica of `export_corpus`'s per-set state, enough to rebuild the
@@ -1628,15 +1655,15 @@ fn build_corpus_render_index(
 /// split always reconciles. `raw_covered` carries the running raw-vs-raw dedup
 /// set (mutated).
 ///
-/// A lemma is `Deduped` when: its word is empty (extraction never produces one);
-/// it is already a cognate member of a generated page (verbatim `(lang, word)`
-/// xref match); its ISV display-headword fold is empty; that fold is already an
-/// official / generated / official-only entry (catches internationalisms like
-/// konflikt whose source spelling isn't a cognate member but whose ISV form has a
-/// page); or another raw lemma already claimed the same display fold (same word
-/// under several POS, cross-language twins) — so each attested ISV spelling gets
-/// exactly one page, while distinct words the phonemic fold conflated (vođa /
-/// voda) stay separate.
+/// A lemma is deduped when: its word or display fold is empty (`Skipped`); it
+/// is already a cognate member of a generated page (verbatim `(lang, word)`
+/// xref match — `DedupedXref`); its display fold is already an official /
+/// generated / official-only entry (`DedupedFold`; catches internationalisms
+/// like konflikt whose source spelling isn't a cognate member but whose ISV
+/// form has a page); or another raw lemma already claimed the same display
+/// fold (`DedupedRawTwin`; same word under several POS, cross-language twins)
+/// — so each attested ISV spelling gets exactly one page, while distinct words
+/// the phonemic fold conflated (vođa / voda) stay separate.
 fn raw_lemma_fate(
     lemma: &crate::dump::RawSlavicLemma,
     xref: &crate::enrich::Xref,
@@ -1645,30 +1672,85 @@ fn raw_lemma_fate(
 ) -> RawFate {
     let word = lemma.word.trim();
     if word.is_empty() {
-        return RawFate::Deduped;
+        return RawFate::Skipped;
     }
     if xref.get(&lemma.lang, word).is_some() {
-        return RawFate::Deduped;
+        return RawFate::DedupedXref;
     }
     // Same call as the render loop's display headword, by construction —
     // dedup and display must never diverge (issue #62).
     let display = crate::flavorize::flavorize_word(&lemma.lang, &lemma.pos, word);
     let disp_fold = crate::orthography::to_standard(&display.to_lowercase());
     if disp_fold.is_empty() {
-        return RawFate::Deduped;
+        return RawFate::Skipped;
     }
     // ě-tolerant dedup (spec §6): flavorization can over-mark ě relative to
     // the official jat (ru день→děnj vs official denj), so the official
     // collision check tries both the fold and its ě→e variant, and raw-vs-raw
     // dedup keys on the ě-blind fold (cs město and sr mesto = one page).
     let efold = disp_fold.replace('ě', "e");
-    if isv_to_id.contains_key(&disp_fold)
-        || isv_to_id.contains_key(&efold)
-        || !raw_covered.insert(efold)
-    {
-        return RawFate::Deduped;
+    if let Some(&target) = isv_to_id.get(&disp_fold).or_else(|| isv_to_id.get(&efold)) {
+        return RawFate::DedupedFold { target };
     }
-    RawFate::Rendered
+    if !raw_covered.insert(efold.clone()) {
+        return RawFate::DedupedRawTwin { efold };
+    }
+    RawFate::Rendered { efold }
+}
+
+/// The raw pre-pass result (issue #64): every rendered raw lemma with its
+/// pre-assigned entry id, plus a cross-reference from EVERY raw `(lang, word)`
+/// to the internal page that shows it — its own raw page, the official /
+/// generated page its display fold collided with, or the earlier raw twin
+/// that claimed the same fold. Built before any page renders so word chips on
+/// every page (including raw pages rendered early in the loop) can link
+/// internally.
+#[derive(Default)]
+struct RawPlan {
+    /// (index into the raw corpus's lemma list, assigned entry id).
+    pages: Vec<(usize, usize)>,
+    /// (lang, verbatim attested word) → internal entry id. Consulted by word
+    /// chips AFTER the cognate `xref` (which resolves generated membership).
+    xref: crate::enrich::Xref,
+    deduped: usize,
+}
+
+/// Classify every raw lemma once (via [`raw_lemma_fate`] — still the single
+/// dedup rule shared with `coverage`), assigning sequential ids from
+/// `next_id + 1` to the rendered ones in corpus order — the same ids the old
+/// in-loop allocation produced.
+fn plan_raw_pages(
+    lemmas: &[crate::dump::RawSlavicLemma],
+    xref: &crate::enrich::Xref,
+    isv_to_id: &std::collections::HashMap<String, usize>,
+    mut next_id: usize,
+) -> RawPlan {
+    let mut plan = RawPlan::default();
+    let mut raw_covered: std::collections::HashSet<String> = std::collections::HashSet::new();
+    // ě-blind fold → the raw page id that claimed it (for twin resolution).
+    let mut fold_owner: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for (i, lemma) in lemmas.iter().enumerate() {
+        match raw_lemma_fate(lemma, xref, isv_to_id, &mut raw_covered) {
+            RawFate::Rendered { efold } => {
+                next_id += 1;
+                plan.pages.push((i, next_id));
+                plan.xref.insert(&lemma.lang, lemma.word.trim(), next_id);
+                fold_owner.insert(efold, next_id);
+            }
+            RawFate::DedupedFold { target } => {
+                plan.deduped += 1;
+                plan.xref.insert(&lemma.lang, lemma.word.trim(), target);
+            }
+            RawFate::DedupedRawTwin { efold } => {
+                plan.deduped += 1;
+                if let Some(&owner) = fold_owner.get(&efold) {
+                    plan.xref.insert(&lemma.lang, lemma.word.trim(), owner);
+                }
+            }
+            RawFate::DedupedXref | RawFate::Skipped => plan.deduped += 1,
+        }
+    }
+    plan
 }
 
 /// Compute the raw-lemma coverage report and write it to `out` as both
@@ -1722,7 +1804,7 @@ pub fn run_coverage(out: &Path) -> Result<()> {
     let mut flavor_residue: BTreeMap<char, usize> = BTreeMap::new();
     for lemma in &raw_corpus.lemmas {
         match raw_lemma_fate(lemma, &xref, &isv_to_id, &mut raw_covered) {
-            RawFate::Rendered => {
+            RawFate::Rendered { .. } => {
                 rendered += 1;
                 *rendered_by_lang.entry(lemma.lang.clone()).or_default() += 1;
                 let display =
@@ -1736,7 +1818,7 @@ pub fn run_coverage(out: &Path) -> Result<()> {
                     flavor_residue_words += 1;
                 }
             }
-            RawFate::Deduped => {
+            _ => {
                 deduped += 1;
                 *deduped_by_lang.entry(lemma.lang.clone()).or_default() += 1;
             }
@@ -2439,6 +2521,7 @@ fn corpus_entry_page(
     family: &str,
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
     synonyms: &str,
     derivation: &str,
     wiki_top: &str,
@@ -2525,7 +2608,7 @@ fn corpus_entry_page(
         .collect();
     let etymology = unified_etymology_section(g, enrich);
     let native_conn = enrich
-        .map(|e| enrich_connections_section(&enrich_members, e, xref, id))
+        .map(|e| enrich_connections_section(&enrich_members, e, xref, raw_xref, id))
         .unwrap_or_default();
     let alternatives = alternatives_block(&g.candidates);
     let word_formation = word_formation_block(derivation, family);
@@ -2567,6 +2650,7 @@ fn official_only_page(
     e: &OfficialEntry,
     enrich: Option<&crate::enrich::EnrichIndex>,
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
     id: usize,
     synonyms: &str,
     derivation: &str,
@@ -2585,7 +2669,7 @@ fn official_only_page(
         .collect();
     let etymology = unified_official_etymology_section(&enrich_members, enrich);
     let native_conn = enrich
-        .map(|ix| enrich_connections_section(&enrich_members, ix, xref, id))
+        .map(|ix| enrich_connections_section(&enrich_members, ix, xref, raw_xref, id))
         .unwrap_or_default();
     let mut cog = String::new();
     if !evidence.is_empty() {
@@ -2656,6 +2740,7 @@ fn official_only_page(
 /// headword arrives flavorized into ISV orthography (issue #62); the attested
 /// original stays in the banner, infobox, and source URL. Running text is
 /// transliterated via [`source_display`], never flavorized.
+#[allow(clippy::too_many_arguments)]
 fn raw_lemma_page(
     display: &str,
     lemma: &crate::dump::RawSlavicLemma,
@@ -2664,6 +2749,7 @@ fn raw_lemma_page(
     enrich: Option<&crate::enrich::EnrichIndex>,
     gx: &crate::glossxref::GlossXref,
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
 ) -> String {
     // Attested English-Wiktionary glosses, verbatim (escaped). Low-evidence.
     let mut gloss_items = String::new();
@@ -2684,8 +2770,10 @@ fn raw_lemma_page(
     // and semantic links render via the same helper the generated pages use.
     let native = enrich.and_then(|ix| ix.get(&lemma.lang, &lemma.word));
     let native_members = [(lemma.lang.clone(), lemma.word.clone())];
+    // Semantic-link chips on raw pages now resolve internally too (issue #64):
+    // pass both cross-references (this used to pass None and always link out).
     let native_conn = enrich
-        .map(|ix| enrich_connections_section(&native_members, ix, None, id))
+        .map(|ix| enrich_connections_section(&native_members, ix, xref, raw_xref, id))
         .unwrap_or_default();
     // Merged etymology: the native (non-stub) etymology and the English dump text,
     // side by side and source-labelled. A native `Происходит от ??` stub is
@@ -2728,7 +2816,7 @@ fn raw_lemma_page(
     );
     let entry_card = entry_infobox(meta, &info_rows);
     // Reverse gloss links: the same meaning(s) in other Slavic languages.
-    let cross = cross_lingual_meanings_section(gx, &lemma.lang, &lemma.glosses, xref, id);
+    let cross = cross_lingual_meanings_section(gx, &lemma.lang, &lemma.glosses, xref, raw_xref, id);
     let body = format!(
         "<article class='entry entry-with-rail'>\
            <div class='entry-grid'>\
@@ -2760,11 +2848,42 @@ fn raw_lemma_page(
 /// into the site when the word is a dictionary headword (via `xref`), else out to
 /// the native Wiktionary. Chip words are flavorized into ISV orthography
 /// (`flavorize_word`, POS unknown here so ending adaptation is off).
+/// One word chip: link to the Slovowiki page for `(lang, word)` when one
+/// exists — the cognate `xref` first (generated cognate membership), then the
+/// raw-attestation cross-reference (raw pages and their fold-dedup targets;
+/// issue #64) — else out to the native Wiktionary. Self-links fall through to
+/// the external target so a page never links to itself.
+fn word_chip(
+    lang: &str,
+    word: &str,
+    visible: &str,
+    xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
+    self_id: usize,
+) -> String {
+    let target = xref
+        .and_then(|x| x.get(lang, word))
+        .filter(|&t| t != self_id)
+        .or_else(|| raw_xref.get(lang, word).filter(|&t| t != self_id));
+    match target {
+        Some(t) => format!(
+            "<a class='chip xref' title='v slovniku' href='{t}.html'>{}</a>",
+            esc(visible)
+        ),
+        None => format!(
+            "<a class='chip' href='{}'>{}</a>",
+            esc(&crate::enrich::source_url(lang, word)),
+            esc(visible)
+        ),
+    }
+}
+
 fn cross_lingual_meanings_section(
     gx: &crate::glossxref::GlossXref,
     lang: &str,
     glosses: &[String],
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
     self_id: usize,
 ) -> String {
     let groups = gx.matches(lang, glosses);
@@ -2785,17 +2904,7 @@ fn cross_lingual_meanings_section(
                 .take(crate::glossxref::MAX_PER_LANG)
                 .map(|w| {
                     let visible = crate::flavorize::flavorize_word(l, "", w);
-                    match xref.and_then(|x| x.get(l, w)).filter(|&t| t != self_id) {
-                        Some(target) => format!(
-                            "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
-                            esc(&visible)
-                        ),
-                        None => format!(
-                            "<a class='chip' href='{}'>{}</a>",
-                            esc(&crate::enrich::source_url(l, w)),
-                            esc(&visible)
-                        ),
-                    }
+                    word_chip(l, w, &visible, xref, raw_xref, self_id)
                 })
                 .collect();
             let _ = write!(
@@ -3210,6 +3319,7 @@ fn enrich_connections_section(
     members: &[(String, String)],
     enrich: &crate::enrich::EnrichIndex,
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
     self_id: usize,
 ) -> String {
     let mut blocks = String::new();
@@ -3221,7 +3331,7 @@ fn enrich_connections_section(
             if !seen.insert(w.to_lowercase()) {
                 continue;
             }
-            let inner = enrich_member_block(lang, e, xref, self_id);
+            let inner = enrich_member_block(lang, e, xref, raw_xref, self_id);
             if inner.is_empty() {
                 continue;
             }
@@ -3251,6 +3361,7 @@ fn enrich_member_block(
     lang: &str,
     e: &crate::enrich::EnrichEntry,
     xref: Option<&crate::enrich::Xref>,
+    raw_xref: &crate::enrich::Xref,
     self_id: usize,
 ) -> String {
     let mut inner = String::new();
@@ -3303,20 +3414,11 @@ fn enrich_member_block(
         let cs: String = words
             .iter()
             .map(|w| {
-                // Link internally when the term is itself a dictionary headword
-                // (and not this very page); otherwise out to native Wiktionary.
-                let visible = source_display(lang, w);
-                match xref.and_then(|x| x.get(lang, w)).filter(|&t| t != self_id) {
-                    Some(target) => format!(
-                        "<a class='chip xref' title='v slovniku' href='{target}.html'>{}</a>",
-                        esc(&visible)
-                    ),
-                    None => format!(
-                        "<a class='chip' href='{}'>{}</a>",
-                        esc(&crate::enrich::source_url(lang, w)),
-                        esc(&visible)
-                    ),
-                }
+                // Link internally when Slovowiki has ANY page for the term —
+                // generated cognate membership or a raw attestation (#64);
+                // otherwise out to native Wiktionary.
+                let visible = crate::flavorize::flavorize_word(lang, "", w);
+                word_chip(lang, w, &visible, xref, raw_xref, self_id)
             })
             .collect();
         format!("<div class='conn'><h5>{title}</h5><div class='chips'>{cs}</div></div>")
@@ -7313,5 +7415,83 @@ mod tests {
             )),
             "dobra"
         );
+    }
+
+    fn raw_lem(lang: &str, word: &str, pos: &str) -> crate::dump::RawSlavicLemma {
+        crate::dump::RawSlavicLemma {
+            word: word.to_string(),
+            lang: lang.to_string(),
+            pos: pos.to_string(),
+            glosses: vec!["g".to_string()],
+            etymology_text: String::new(),
+            proto: String::new(),
+            etymon: String::new(),
+        }
+    }
+
+    /// Issue #64 invariants: the raw pre-pass assigns sequential ids in corpus
+    /// order, and every raw `(lang, word)` with a Slovowiki home resolves in
+    /// the plan's cross-reference — its own raw page, the official page its
+    /// display fold collided with, or the earlier raw twin that claimed the
+    /// same ě-blind fold. Cognate-xref members stay with the cognate xref;
+    /// empty words resolve nowhere.
+    #[test]
+    fn raw_plan_assigns_ids_and_points_chips_at_internal_pages() {
+        let mut xref = crate::enrich::Xref::new();
+        xref.insert("pl", "xyz", 7); // cognate member of generated page 7
+        let mut isv_to_id = std::collections::HashMap::new();
+        isv_to_id.insert("delo".to_string(), 42); // an official headword fold
+        let lemmas = vec![
+            raw_lem("pl", "winyl", "noun"), // rendered → id 101
+            raw_lem("cs", "mouka", "noun"), // rendered (muka) → id 102
+            raw_lem("sl", "muka", "noun"),  // raw twin of mouka → points at 102
+            raw_lem("sl", "delo", "noun"),  // folds onto official 42
+            raw_lem("pl", "xyz", "noun"),   // cognate member → xref resolves
+            raw_lem("pl", "", "noun"),      // skipped
+        ];
+        let plan = plan_raw_pages(&lemmas, &xref, &isv_to_id, 100);
+        assert_eq!(plan.pages, vec![(0, 101), (1, 102)]);
+        assert_eq!(plan.deduped, 4);
+        assert_eq!(plan.xref.get("pl", "winyl"), Some(101));
+        assert_eq!(plan.xref.get("cs", "mouka"), Some(102));
+        assert_eq!(plan.xref.get("sl", "muka"), Some(102));
+        assert_eq!(plan.xref.get("sl", "delo"), Some(42));
+        assert_eq!(plan.xref.get("pl", "xyz"), None);
+        assert_eq!(plan.xref.get("pl", ""), None);
+    }
+
+    /// The chip lookup chain: cognate xref beats the raw cross-reference beats
+    /// the external native-Wiktionary fallback, and a self-link falls through
+    /// to the external target.
+    #[test]
+    fn word_chip_prefers_generated_then_raw_then_external() {
+        let mut xref = crate::enrich::Xref::new();
+        xref.insert("ru", "дело", 5);
+        let mut raw_xref = crate::enrich::Xref::new();
+        raw_xref.insert("ru", "грампластинка", 123);
+        raw_xref.insert("ru", "дело", 999); // shadowed by the cognate xref
+        assert!(
+            word_chip("ru", "дело", "dělo", Some(&xref), &raw_xref, 0).contains("href='5.html'")
+        );
+        assert!(word_chip(
+            "ru",
+            "грампластинка",
+            "gramplastinka",
+            Some(&xref),
+            &raw_xref,
+            0
+        )
+        .contains("href='123.html'"));
+        let self_chip = word_chip(
+            "ru",
+            "грампластинка",
+            "gramplastinka",
+            Some(&xref),
+            &raw_xref,
+            123,
+        );
+        assert!(self_chip.contains("ru.wiktionary.org"), "{self_chip}");
+        assert!(word_chip("uk", "щось", "ščos", Some(&xref), &raw_xref, 0)
+            .contains("uk.wiktionary.org"));
     }
 }
