@@ -127,7 +127,9 @@ pub struct ProtoEntry {
 
 /// Bump when `extract-proto` changes what goes into [`ProtoCache`] (fields,
 /// filters, normalization); see the cache-schema-stamp note above.
-pub const PROTO_CACHE_SCHEMA: u32 = 0;
+/// Schema 1: `stem_class` also scans sense-level categories (issue #76) —
+/// the declension category almost never sits on the page level.
+pub const PROTO_CACHE_SCHEMA: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtoCache {
@@ -1077,24 +1079,39 @@ fn after_needle(text: &str, needle: &str) -> String {
 }
 
 fn stem_class(value: &Value) -> Option<String> {
-    let cats = value.get("categories").and_then(Value::as_array)?;
-    for c in cats.iter().filter_map(Value::as_str) {
-        let lc = c.to_lowercase();
-        for key in [
-            "o-stem",
-            "a-stem",
-            "ā-stem",
-            "i-stem",
-            "u-stem",
-            "n-stem",
-            "s-stem",
-            "r-stem",
-            "jo-stem",
-            "ja-stem",
-            "consonant stem",
-        ] {
-            if lc.contains(key) {
-                return Some(c.to_string());
+    // The declension category ("Proto-Slavic masculine n-stem nouns") usually
+    // sits on the SENSE level in wiktextract, not the page level — *kamy* and
+    // *bratrъ* have no top-level `categories` at all. Scan both.
+    let top = value.get("categories").and_then(Value::as_array);
+    let sense_cats = value
+        .get("senses")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|s| s.get("categories").and_then(Value::as_array));
+    for cats in top.into_iter().chain(sense_cats) {
+        for c in cats.iter().filter_map(Value::as_str) {
+            let lc = c.to_lowercase();
+            for key in [
+                "o-stem",
+                "a-stem",
+                "ā-stem",
+                "i-stem",
+                "u-stem",
+                // Wiktionary files the feminine ū-stems (*kry, *svekry, *buky)
+                // as "v-stem" after their oblique extension — there is no
+                // "ū-stem" category in the dump.
+                "v-stem",
+                "n-stem",
+                "s-stem",
+                "r-stem",
+                "jo-stem",
+                "ja-stem",
+                "consonant stem",
+            ] {
+                if lc.contains(key) {
+                    return Some(c.to_string());
+                }
             }
         }
     }
