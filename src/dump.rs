@@ -1480,4 +1480,38 @@ mod tests {
         s.kept_by_lang.insert("ru".into(), 6);
         assert_eq!(s.kept_by_lang.values().sum::<u64>(), s.kept);
     }
+
+    #[test]
+    fn stem_class_reads_sense_level_categories() {
+        use serde_json::json;
+        // Issue #76: the declension category almost always sits on the SENSE
+        // level in wiktextract (*kamy has no page-level `categories` at all),
+        // so the extractor must scan both levels.
+        let sense_only = json!({
+            "word": "kamy",
+            "senses": [{
+                "glosses": ["stone"],
+                "categories": ["Proto-Slavic lemmas", "Proto-Slavic masculine n-stem nouns"]
+            }]
+        });
+        assert_eq!(
+            stem_class(&sense_only).as_deref(),
+            Some("Proto-Slavic masculine n-stem nouns")
+        );
+        // Page-level categories keep working.
+        let page_level = json!({
+            "word": "kry",
+            "categories": ["Proto-Slavic hard v-stem nouns"]
+        });
+        assert_eq!(
+            stem_class(&page_level).as_deref(),
+            Some("Proto-Slavic hard v-stem nouns")
+        );
+        // No declension category anywhere → None.
+        let none = json!({
+            "word": "x",
+            "senses": [{ "categories": ["Proto-Slavic lemmas"] }]
+        });
+        assert_eq!(stem_class(&none), None);
+    }
 }

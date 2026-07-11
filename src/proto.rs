@@ -991,4 +991,40 @@ mod tests {
         .form;
         assert!(normalized_match(&brati, "brati"), "brati was {brati}");
     }
+
+    #[test]
+    fn n_stem_stem_class_cites_oblique_stem() {
+        // Issue #76: a masculine n-stem's archaic nominative *-y survives the
+        // sound rules, but the dictionary cites the extended oblique stem.
+        // Pinned exactly — the flavored letters are the point.
+        let n_stem = Some("Proto-Slavic masculine n-stem nouns");
+        let cite = |proto: &str| generate_with_reflexes(proto, Pos::Noun, None, &[], n_stem).form;
+        assert_eq!(cite("*kamy"), "kamenj");
+        // The override composes with the earlier sound rules: prothetic j-
+        // (*ely → jely) and liquid-metathesis å (*polmy → plåmy).
+        assert_eq!(cite("*ely"), "jelenj");
+        assert_eq!(cite("*polmy"), "plåmenj");
+        // Without the declension category the archaic nominative stays.
+        assert_eq!(
+            generate_with_reflexes("*kamy", Pos::Noun, None, &[], None).form,
+            "kamy"
+        );
+        // Neuter n-stems end in -ę, not -y: untouched.
+        assert_eq!(
+            generate_with_reflexes(
+                "*jьmę",
+                Pos::Noun,
+                None,
+                &[],
+                Some("Proto-Slavic n-stem nouns")
+            )
+            .form,
+            "imę"
+        );
+        // The override lives in the Noun arm only: other POS are untouched.
+        assert_eq!(
+            generate_with_reflexes("*kamy", Pos::Adjective, None, &[], n_stem).form,
+            "kamy"
+        );
+    }
 }
