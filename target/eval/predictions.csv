@@ -3022,7 +3022,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23891,1,hunchback,noun,grbač,garbun,0,0,0.523,medium,1,13,0.500
 16407,0,humpy,adj,grbaty,gŕbaty,0,1,0.940,high,3,11,0.000
 5665,0,disparage,verb,grditi,znevažovati,0,0,0.412,low,1,25,0.818
-1920,0,comb,noun,grebenj,greby,0,0,0.960,high,3,15,0.429
+1920,0,comb,noun,grebenj,grebenj,1,1,0.960,high,3,15,0.000
 738,0,dig,verb,grebti,kopati,0,0,0.940,high,3,10,0.667
 25802,0,rake,verb,grebti,greti,0,0,0.920,high,3,13,0.167
 33926,0,scrape,verb,grebti,skreti,0,0,0.920,high,3,11,0.500
@@ -4170,8 +4170,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 8249,1,fucker,noun,jebatelj,ebač,0,0,0.499,medium,1,19,0.625
 528,0,fuck,verb,jebati,jebati,1,1,0.940,high,3,23,0.000
 2862,0,whine,verb,jęčati,ječati,0,1,0.460,medium,2,27,0.000
-1574,1,barley,noun,jęčmenj,jęčmy,0,0,0.960,high,3,11,0.429
-36479,1,"stye, hordeolum",noun,jęčmenj,jęčmy,0,0,0.960,high,3,13,0.429
+1574,1,barley,noun,jęčmenj,jęčmenj,1,1,0.960,high,3,11,0.000
+36479,1,"stye, hordeolum",noun,jęčmenj,jęčmenj,1,1,0.960,high,3,13,0.000
 16798,0,barley,adj,jęčmenny,jęčmenny,1,1,0.903,high,3,11,0.000
 2944,1,food,noun,jeda,jeđa,0,0,0.920,high,3,21,0.200
 26340,0,eater,noun,jedak,jadok,0,0,0.523,medium,1,18,0.400
@@ -4250,7 +4250,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26365,0,dace,noun,jelec,klen,0,0,0.940,high,3,11,0.600
 26366,0,fawn,noun,jelenę,lanę,0,0,0.843,high,1,16,0.500
 26368,1,venison,noun,jelenina,olenina,0,0,0.639,medium,2,13,0.250
-2202,0,deer,noun,jelenj,jely,0,0,0.980,high,3,11,0.500
+2202,0,deer,noun,jelenj,jelenj,1,1,0.980,high,3,11,0.000
 26367,0,deer’s,adj,jeleńji,jelenji,0,1,0.837,high,1,13,0.000
 3058,0,intestine,noun,jelito,kyška,0,0,0.940,high,3,11,1.000
 17616,0,food,noun,jelo,jeđa,0,0,0.920,high,3,19,0.600
@@ -4395,7 +4395,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37065,1,Kama,noun,Kama,kama,1,1,0.970,high,3,11,0.000
 26453,0,"turn into stone, be petrified",verb,kameněti,kameneti,0,1,0.693,medium,3,13,0.000
 26455,0,stony,adj,kamenisty,kamenisty,1,1,0.892,high,3,13,0.000
-1313,0,stone,noun,kamenj,kamy,0,0,0.980,high,3,11,0.500
+1313,0,stone,noun,kamenj,kamenj,1,1,0.980,high,3,11,0.000
 26459,0,stone,adj,kamenny,kamenny,1,1,0.875,high,3,12,0.000
 20404,0,"quarry, stone-pit",noun,kamenolom,kamenolom,1,1,0.724,high,2,13,0.000
 26461,0,stone,verb,kamenovati,kamenovati,1,1,0.508,medium,2,9,0.000
@@ -4737,7 +4737,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4869,1,"quantity, amount",noun,kolikosť,količina,0,0,0.481,medium,1,12,0.500
 19595,1,how many times,adv,kolikråt,koliko puta,0,0,0.435,low,1,12,0.455
 19587,0,how big,adj,koliky,jak velky,0,0,0.523,medium,1,11,0.667
-8518,0,ring,noun,koljce,pŕsty,0,0,0.960,high,3,13,1.000
+8518,0,ring,noun,koljce,pŕstenj,0,0,0.960,high,3,13,1.000
 37265,0,chain mail,noun,koljčuga,kolčuga,0,0,0.639,medium,2,12,0.125
 1332,1,wheel,noun,kolo,kolo,1,1,0.960,high,3,13,0.000
 17666,0,wheelchair,noun,kolokrěslo,invalidny vozik,0,0,0.470,medium,2,15,0.867
@@ -4964,8 +4964,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26697,0,"corrector, proofreader",noun,korektor,korektor,1,1,0.970,high,3,11,0.000
 17684,0,correlative,noun,korelativ,korelativ,1,1,0.857,high,3,13,0.000
 26699,0,rooty,adj,korenisty,korenisty,1,1,0.776,high,3,13,0.000
-2913,1,root,noun,korenj,kory,0,0,0.980,high,3,11,0.500
-26702,1,"radical, root (mathematics)",noun,korenj,kory,0,0,0.960,high,3,18,0.500
+2913,1,root,noun,korenj,korenj,1,1,0.980,high,3,11,0.000
+26702,1,"radical, root (mathematics)",noun,korenj,korenj,1,1,0.960,high,3,18,0.000
 6063,1,correspondence,noun,korespondencija,korespondencija,1,1,0.921,high,3,21,0.000
 6056,1,correspondent,noun,korespondent,korespondent,1,1,0.970,high,3,14,0.000
 26707,0,coriander,noun,koriandr,koriandr,1,1,0.851,high,3,13,0.000
@@ -5132,7 +5132,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37148,0,cracker,noun,kreker,kreker,1,1,0.724,high,2,15,0.000
 32032,0,body cream,noun,krem,krem,1,1,0.921,high,3,12,0.000
 26853,0,silicious,adj,kremenisty,kremnistyji,0,0,0.523,medium,1,15,0.273
-3039,0,"flint, flintstone",noun,kremenj,kremy,0,0,0.960,high,3,14,0.429
+3039,0,"flint, flintstone",noun,kremenj,kremenj,1,1,0.960,high,3,14,0.000
 26856,1,flint,adj,kremenny,kremenny,1,1,0.632,medium,3,14,0.000
 36198,0,Kremlin,noun,Kremlj,kreml,0,0,0.970,high,3,11,0.167
 22609,0,silicon,noun,kremnij,kremnij,1,1,0.523,medium,1,14,0.000
@@ -9432,7 +9432,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35219,0,plagiarism,noun,plagiat,plagiat,1,1,0.921,high,3,13,0.000
 2261,1,"placard, poster",noun,plakat,plakati,0,0,0.923,high,3,21,0.143
 2177,0,"weep, cry",verb,plakati,plakati,1,1,0.960,high,3,17,0.000
-380,0,flame,noun,plåmenj,plåmy,0,0,0.960,high,3,14,0.429
+380,0,flame,noun,plåmenj,plåmenj,1,1,0.960,high,3,14,0.000
 2872,0,plan,noun,plan,plan,1,1,0.970,high,3,14,0.000
 581,0,planet,noun,planeta,planeta,1,1,0.967,high,3,12,0.000
 36624,1,plankton,noun,plankton,plankton,1,1,0.970,high,3,11,0.000
@@ -11242,7 +11242,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21486,0,burst,verb,prskati,praskati,0,0,0.508,medium,2,21,0.125
 21686,1,burst,verb,prsknųti,lopnuti,0,0,0.464,medium,1,19,0.500
 1723,0,"finger, toe, digit",noun,pŕst,pŕst,1,1,0.960,high,3,14,0.000
-30033,1,ring,noun,pŕstenj,pŕsty,0,0,0.960,high,3,16,0.429
+30033,1,ring,noun,pŕstenj,pŕstenj,1,1,0.960,high,3,16,0.000
 21103,0,"stripe, streak",noun,prųga,prųga,1,1,0.858,high,1,21,0.000
 35634,0,Prussia,noun,Prusija,prusija,1,1,0.857,high,3,12,0.000
 16760,0,rod,noun,prųt,palka,0,0,0.920,high,3,30,0.800
@@ -11989,7 +11989,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 88,0,religious,adj,religiozny,religiozny,1,1,0.551,medium,2,16,0.000
 30608,1,relict,noun,relikt,relikt,1,1,0.921,high,3,16,0.000
 32289,0,relic,noun,relikvija,relikvija,1,1,0.970,high,3,14,0.000
-18634,0,belt,noun,remenj,remy,0,0,0.960,high,3,22,0.500
+18634,0,belt,noun,remenj,remenj,1,1,0.960,high,3,22,0.000
 3233,0,craftsman,noun,remesľnik,remeslnik,0,1,0.639,medium,2,17,0.000
 1566,0,craft,noun,remeslo,remeslo,1,1,0.940,high,3,16,0.000
 33724,0,"repair, refit, maintenance",noun,remont,remont,1,1,0.702,medium,3,24,0.000
@@ -13314,7 +13314,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21909,1,arrange,verb,strojiti,strojiti,1,1,0.831,high,1,28,0.000
 5203,0,"ceiling, upper bound",noun,strop,strop,1,1,0.920,high,3,16,0.000
 34283,0,"plane, shave, scrape, whittle, chip",verb,strugati,strugati,1,1,0.940,high,3,19,0.000
-4989,0,"stream, current",noun,struja,strumy,0,0,0.920,high,3,25,0.333
+4989,0,"stream, current",noun,struja,strumenj,0,0,0.920,high,3,25,0.500
 16363,1,structure,noun,struktura,struktura,1,1,0.970,high,3,14,0.000
 36307,1,structural,adj,strukturny,strukturny,1,1,0.787,high,2,11,0.000
 1097,1,string,noun,struna,struna,1,1,0.960,high,3,14,0.000
@@ -13622,7 +13622,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37077,0,Scheldt,noun,Šeľda,šelda,0,1,0.914,high,3,11,0.000
 33271,0,whisper,noun,šepot,šepȯt,0,1,0.980,high,3,13,0.000
 33270,1,whisper,verb,šeptati,šeptati,1,1,0.960,high,3,11,0.000
-18807,0,hornet,noun,šeršenj,sŕhy,0,0,0.960,high,3,11,0.857
+18807,0,hornet,noun,šeršenj,sŕhenj,0,0,0.960,high,3,11,0.429
 1739,0,six,num,šesť,šest,0,1,0.960,high,3,11,0.000
 3111,0,sixty,num,šesťdesęt,šestdesat,0,0,0.632,medium,3,11,0.111
 23688,1,sixtieth,num,šesťdesęty,šestdeset,0,0,0.632,medium,3,11,0.100

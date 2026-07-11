@@ -653,6 +653,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1265,grenade launcher,noun,granatomet,granatomot,granatomet
 2347,hump,noun,grb,gorb,gŕb
 16407,humpy,adj,grbaty,gorbatyj,gŕbaty
+1920,comb,noun,grebenj,grebienj,grebenj
 3183,Greek,adj,grėčsky,grecky,grečsky
 36483,"Greenlandish, Greenlandic",adj,grenlandsky,grenlandskij,grenlandsky
 25813,"sinful, peccable",adj,grěšny,grešnyj,grěšny
@@ -875,6 +876,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 4461,"fuck, fucking",noun,jebańje,jebanie,jebanje
 8248,fucked,adj,jebany,jobanyj,jebany
 2862,whine,verb,jęčati,ječeti,ječati
+1574,barley,noun,jęčmenj,jačmen,jęčmenj
+36479,"stye, hordeolum",noun,jęčmenj,jačmen,jęčmenj
 16798,barley,adj,jęčmenny,jačmennyj,jęčmenny
 531,one,num,jedin,odin,jedin
 999,"only, single, alone",adj,jediny,jedyny,jediny
@@ -892,6 +895,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 716,"him, it",pron,jego,ego,jego
 2195,"her, hers",pron,jej,ejo,jej
 26364,"spruce, fir",noun,jela,el,jela
+2202,deer,noun,jelenj,olen,jelenj
 26367,deer’s,adj,jeleńji,olenij,jelenji
 3017,mistletoe,noun,jemela,omela,jemela
 2771,to him,pron,jemu,emu,jemu
@@ -932,6 +936,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 20871,calligrapher,noun,kaligraf,kalligraf,kaligraf
 20872,calligraphy,noun,kaligrafija,kalligrafija,kaligrafija
 26455,stony,adj,kamenisty,kamenistyj,kamenisty
+1313,stone,noun,kamenj,kamen,kamenj
 26459,stone,adj,kamenny,kamennyj,kamenny
 20404,"quarry, stone-pit",noun,kamenolom,kamieniolom,kamenolom
 2561,Canadian,adj,kanadsky,kanadskij,kanadsky
@@ -1065,6 +1070,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 26697,"corrector, proofreader",noun,korektor,korrektor,korektor
 17684,correlative,noun,korelativ,korrelativ,korelativ
 26699,rooty,adj,korenisty,kornistyj,korenisty
+2913,root,noun,korenj,koren,korenj
+26702,"radical, root (mathematics)",noun,korenj,koren,korenj
 6063,correspondence,noun,korespondencija,korrespondencija,korespondencija
 6056,correspondent,noun,korespondent,korrespondent,korespondent
 1509,"profit, benefit",noun,korisť,koryst,korist
@@ -1113,6 +1120,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 850,contract,verb,krčiti,korčiti,kŕčiti
 847,tavern,noun,krčma,korčma,kŕčma
 32029,creative,adj,kreativny,kreativnyj,kreativny
+3039,"flint, flintstone",noun,kremenj,kremen,kremenj
 26856,flint,adj,kremenny,kremienny,kremenny
 22609,silicon,noun,kremnij,kremik,kremnij
 26858,creamy,adj,kremovy,kremovyj,kremovy
@@ -1866,6 +1874,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 10562,pyrotechnic,adj,pirotehničny,pyrotehnicky,pirotehničny
 3939,writer,noun,pisatelj,pisatel,pisatelj
 1147,"squeak, squeal",verb,piskati,piščati,piskati
+380,flame,noun,plåmenj,plomienj,plåmenj
 36925,plasticine,noun,plastelin,plastilin,plastelin
 18211,plastic,adj,plastičny,plastičnyj,plastičny
 18213,plastic,adj,plastikovy,plastikovyj,plastikovy
@@ -2165,6 +2174,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 22428,Providence (rel.),noun,Providěńje,providenie,providenje
 22256,guide,noun,provodnik,vodič,provodnik
 6213,transparent,adj,prozråčny,prozračnyj,prozračny
+30033,ring,noun,pŕstenj,prsten,pŕstenj
 21103,"stripe, streak",noun,prųga,pręga,prųga
 35634,Prussia,noun,Prusija,prussija,prusija
 16913,"primacy, precedence, priority, right of way",noun,pŕveństvo,pervenstvo,prvenstvo
@@ -2327,6 +2337,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 11941,"advertising, advertizing",adj,reklamny,reklamnyj,reklamny
 1550,recreation,noun,rekreacija,rekreacja,rekreacija
 88,religious,adj,religiozny,religioznyj,religiozny
+18634,belt,noun,remenj,remen,remenj
 3233,craftsman,noun,remesľnik,remeslennik,remeslnik
 6300,repression,noun,represija,repressija,represija
 35520,republican,adj,republikansky,republikanjsky,republikansky

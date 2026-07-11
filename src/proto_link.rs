@@ -32,6 +32,14 @@ pub struct ProtoLink<'a> {
 /// Minimum combined confidence to accept a proto link. Tuned on the benchmark.
 pub const DEFAULT_THRESHOLD: f32 = 0.42;
 
+/// Deep-corroboration rescue band (issue #76, pre-registered — do not tune):
+/// a best candidate whose confidence lands in `[RESCUE_FLOOR, DEFAULT_THRESHOLD)`
+/// is accepted anyway when at least [`RESCUE_SHARE`] of the meaning's primary
+/// cognates' own Wiktionary etymologies name the candidate's Proto-Balto-Slavic
+/// or PIE ancestor. The 0.42/0.36/0.22 weight mix and the gate itself stay put.
+const RESCUE_FLOOR: f32 = 0.34;
+const RESCUE_SHARE: f32 = 0.5;
+
 /// Link by Wiktionary's **explicit** etymology: if ≥2 primary cognates are
 /// attested (via `inh`/`der` templates) as continuing the same Proto-Slavic
 /// ancestor, use that ancestor directly instead of the fuzzy descendant+gloss
@@ -128,6 +136,7 @@ pub fn link<'a>(
     index: &'a ProtoIndex,
     input: &MeaningInput,
     try_prefix: bool,
+    deep_corroboration: bool,
 ) -> Option<ProtoLink<'a>> {
     // Primary-cognate phonemic-Latin forms (secondary synonyms would blur it).
     let latins: Vec<String> = input
@@ -143,13 +152,22 @@ pub fn link<'a>(
 
     // Direct attempt: match the full cognate skeletons.
     let full_skeletons: Vec<String> = latins.iter().map(|l| ortho::ascii_skeleton(l)).collect();
-    if let Some(l) = link_core(index, &full_skeletons, &gloss_toks, input, None) {
+    if let Some(l) = link_core(
+        index,
+        &full_skeletons,
+        &gloss_toks,
+        input,
+        None,
+        deep_corroboration,
+    ) {
         return Some(l);
     }
 
     // Fallback: strip a shared verbal/nominal prefix off the cognates and link
     // the bare root (råzprostirati → the *prostirati reconstruction), then the
-    // pipeline re-attaches the Interslavic prefix.
+    // pipeline re-attaches the Interslavic prefix. The deep-corroboration
+    // rescue does not apply here: a rescued-then-discounted confidence would
+    // land below the threshold again anyway.
     if try_prefix {
         if let Some((isv_prefix, bare)) = strip_shared_prefix(&latins) {
             let bare_sk: Vec<String> = bare.iter().map(|l| ortho::ascii_skeleton(l)).collect();
@@ -159,6 +177,7 @@ pub fn link<'a>(
                 &gloss_toks,
                 input,
                 Some(isv_prefix.clone()),
+                false,
             ) {
                 // Stripped links are slightly less certain.
                 l.confidence *= 0.94;
@@ -178,6 +197,7 @@ fn link_core<'a>(
     gloss_toks: &[String],
     input: &MeaningInput,
     prefix: Option<String>,
+    deep_corroboration: bool,
 ) -> Option<ProtoLink<'a>> {
     if skeletons.is_empty() {
         return None;
@@ -259,7 +279,50 @@ fn link_core<'a>(
             });
         }
     }
-    best.filter(|b| b.confidence >= DEFAULT_THRESHOLD)
+    let mut best = best?;
+    if best.confidence >= DEFAULT_THRESHOLD {
+        return Some(best);
+    }
+    // Deep-ancestor rescue (issue #76): a near-threshold candidate is accepted
+    // when the cognates' own etymologies independently name its PBS/PIE
+    // ancestor. The confidence is floored to the gate value, not raised above
+    // it — corroboration grows coverage, it never outranks a real link.
+    if deep_corroboration
+        && best.confidence >= RESCUE_FLOOR
+        && deep_share(index, input, best.entry) >= RESCUE_SHARE
+    {
+        best.confidence = DEFAULT_THRESHOLD;
+        return Some(best);
+    }
+    None
+}
+
+/// The share of the meaning's primary modern cognates whose own Wiktionary
+/// etymology names the candidate reconstruction's deep (Proto-Balto-Slavic or
+/// PIE) ancestor, fold-compared ([`crate::normalize::fold_deep_token`]).
+fn deep_share(index: &ProtoIndex, input: &MeaningInput, entry: &ProtoEntry) -> f32 {
+    let pbs = crate::normalize::fold_deep_token(&entry.pbs);
+    let pie = crate::normalize::fold_deep_token(&entry.pie);
+    if pbs.is_empty() && pie.is_empty() {
+        return 0.0;
+    }
+    let (mut hits, mut n) = (0usize, 0usize);
+    for f in input.forms.iter().filter(|f| f.modern && f.primary) {
+        n += 1;
+        if let Some(toks) = index.deep_ancestors(&f.lang_code, &f.norm.latin) {
+            if toks
+                .iter()
+                .any(|t| (!pbs.is_empty() && *t == pbs) || (!pie.is_empty() && *t == pie))
+            {
+                hits += 1;
+            }
+        }
+    }
+    if n == 0 {
+        0.0
+    } else {
+        hits as f32 / n as f32
+    }
 }
 
 /// Interslavic prefixes and the surface variants that mark them across the

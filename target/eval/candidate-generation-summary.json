@@ -1729,11 +1729,94 @@
       "exact_top1": 0.4166257679462433,
       "mean_normalized_edit_distance": 0.2244085818529129,
       "n": 16300,
-      "name": "+spirantization (production)",
+      "name": "+spirantization",
       "normalized_top1": 0.49582821130752563,
       "normalized_top3": 0.604969322681427,
       "normalized_top5": 0.6312883496284485,
       "skeleton_top1": 0.49846625328063965
+    },
+    {
+      "by_branch_coverage": [
+        {
+          "branch_coverage": 0,
+          "exact": 0.23076923191547394,
+          "n": 13,
+          "normalized": 0.23076923191547394
+        },
+        {
+          "branch_coverage": 1,
+          "exact": 0.12893171608448029,
+          "n": 3529,
+          "normalized": 0.17143666744232178
+        },
+        {
+          "branch_coverage": 2,
+          "exact": 0.3238421380519867,
+          "n": 5549,
+          "normalized": 0.417192280292511
+        },
+        {
+          "branch_coverage": 3,
+          "exact": 0.6307393312454224,
+          "n": 7209,
+          "normalized": 0.7171590924263
+        }
+      ],
+      "by_confidence": {
+        "high": {
+          "n": 7007,
+          "normalized": 0.7222777009010315
+        },
+        "low": {
+          "n": 2215,
+          "normalized": 0.1200902909040451
+        },
+        "medium": {
+          "n": 7078,
+          "normalized": 0.39078834652900696
+        }
+      },
+      "by_pos": {
+        "adj": {
+          "exact": 0.37258288264274597,
+          "n": 2896,
+          "normalized": 0.4892955720424652
+        },
+        "adv": {
+          "exact": 0.21004566550254822,
+          "n": 657,
+          "normalized": 0.3333333432674408
+        },
+        "noun": {
+          "exact": 0.508490800857544,
+          "n": 8362,
+          "normalized": 0.5759387612342834
+        },
+        "num": {
+          "exact": 0.1517857164144516,
+          "n": 112,
+          "normalized": 0.2589285671710968
+        },
+        "pron": {
+          "exact": 0.4141414165496826,
+          "n": 99,
+          "normalized": 0.4444444477558136
+        },
+        "verb": {
+          "exact": 0.30546239018440247,
+          "n": 4174,
+          "normalized": 0.3756588399410248
+        }
+      },
+      "description": "Stem-class-aware citation endings (issue #76): a masculine n-stem's archaic nominative *-y survives the sound rules (*kamy→kamy) but the dictionary cites the extended oblique stem (kamenj, jęčmenj, plåmenj) — categorical in the official CSV. The Wiktionary declension category on the linked reconstruction supplies the class; link scoring stays stem_class-blind.",
+      "exact_top1": 0.41730061173439026,
+      "mean_normalized_edit_distance": 0.2240813970565796,
+      "n": 16300,
+      "name": "+stem-class-endings (production)",
+      "normalized_top1": 0.4965030550956726,
+      "normalized_top3": 0.605644166469574,
+      "normalized_top5": 0.6319631934165955,
+      "skeleton_top1": 0.4991410970687866
     }
   ]
 }

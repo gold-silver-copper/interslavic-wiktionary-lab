@@ -137,6 +137,21 @@ pub fn fold_proto_homoglyphs(s: &str) -> String {
         .collect()
 }
 
+/// Fold a scraped deep-ancestor (Proto-Balto-Slavic / PIE) token for equality
+/// comparison. The cache and etymology values are raw `after_needle` scrapes
+/// (`*bʰréh₂tēr.` keeps a trailing dot, `*kā́ˀmō` carries combining accents), so
+/// two mentions of the same reconstruction only match after stripping the
+/// reconstruction star, trailing punctuation, combining marks and case.
+pub fn fold_deep_token(s: &str) -> String {
+    s.trim()
+        .trim_start_matches('*')
+        .trim_end_matches(['.', ',', ';', ':', '!', '?', '"', '\''])
+        .chars()
+        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
 /// Language-aware Cyrillic → phonemic Latin.
 fn translit_cyrillic(lang: &str, s: &str) -> String {
     // OCS/Church-Slavonic digraph оу = /u/ — fold it on the Cyrillic *input*,

@@ -45,10 +45,21 @@ pub fn generate_oracle(
                 // form is closest to the official lemma — the linker's upper bound.
                 proto_link::link_oracle(index, input, o.official)
             } else if cfg.explicit_etymology {
-                proto_link::link_explicit(index, input)
-                    .or_else(|| proto_link::link(index, input, cfg.proto_prefix_stripping))
+                proto_link::link_explicit(index, input).or_else(|| {
+                    proto_link::link(
+                        index,
+                        input,
+                        cfg.proto_prefix_stripping,
+                        cfg.proto_link_deep_corroboration,
+                    )
+                })
             } else {
-                proto_link::link(index, input, cfg.proto_prefix_stripping)
+                proto_link::link(
+                    index,
+                    input,
+                    cfg.proto_prefix_stripping,
+                    cfg.proto_link_deep_corroboration,
+                )
             };
             if let Some(l) = linked {
                 // Feed the modern reflexes to the yer resolver so lexicalized
@@ -67,11 +78,20 @@ pub fn generate_oracle(
                     .map(|f| f.norm.latin.clone())
                     .filter(|r| ortho::shares_consonant_root(&ortho::consonant_key(r), &recon_key))
                     .collect();
+                // Stem-class-aware citation endings (issue #76), flag-gated.
+                // The linker's own internal derivations stay stem_class-blind
+                // so the rung cannot feed back into link confidences.
+                let stem_class = if cfg.proto_stem_class_endings {
+                    l.entry.stem_class.as_deref()
+                } else {
+                    None
+                };
                 let mut pc = crate::proto::generate_with_reflexes(
                     &l.entry.word,
                     input.pos,
                     input.gender,
                     &reflexes,
+                    stem_class,
                 );
                 // Prefix-stripped link: re-attach the Interslavic prefix onto the
                 // derived bare root (*prostirati → prostirati → råzprostirati).

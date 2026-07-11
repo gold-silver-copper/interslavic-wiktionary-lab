@@ -26,7 +26,8 @@ Entries are split by a deterministic hash of their dictionary id (~25% held out,
 | +medoid-rep | 41.27% | 40.29% | +0.98 | 49.20% | 47.94% | +1.26 |
 | +deriv-suffixes | 41.52% | 40.53% | +0.98 | 49.33% | 48.11% | +1.22 |
 | +loan-hiatus | 41.59% | 40.56% | +1.03 | 49.41% | 48.14% | +1.27 |
-| +spirantization (production) | 41.91% | 40.93% | +0.98 | 49.89% | 48.68% | +1.21 |
+| +spirantization | 41.91% | 40.93% | +0.98 | 49.89% | 48.68% | +1.21 |
+| +stem-class-endings (production) | 41.96% | 41.05% | +0.91 | 49.93% | 48.80% | +1.14 |
 
 ## Ladder-rung significance (paired sign test)
 
@@ -53,12 +54,13 @@ Each rung vs the previous rung, paired per entry: `fixed` = newly matched, `brok
 | +medoid-rep | +1.10pp | 550/371 | 0.0000 | +1.79pp | 819/528 | 0.0000 |
 | +deriv-suffixes | +0.25pp | 40/0 | 0.0000 | +0.14pp | 23/0 | 0.0000 |
 | +loan-hiatus | +0.06pp | 10/0 | 0.0044 | +0.07pp | 11/0 | 0.0026 |
-| +spirantization (production) | +0.33pp | 57/3 | 0.0000 | +0.49pp | 83/3 | 0.0000 |
+| +spirantization | +0.33pp | 57/3 | 0.0000 | +0.49pp | 83/3 | 0.0000 |
+| +stem-class-endings (production) | +0.07pp | 11/0 | 0.0026 | +0.07pp | 11/0 | 0.0026 |
 
 ## Headline uncertainty (percentile bootstrap, 1000 seeded resamples)
 
-- exact top-1 **41.66%** (95% CI 40.93–42.39%)
-- normalized top-1 **49.58%** (95% CI 48.82–50.31%)
+- exact top-1 **41.73%** (95% CI 40.99–42.47%)
+- normalized top-1 **49.65%** (95% CI 48.89–50.38%)
 
 Deltas smaller than ~half this interval width should not be read as real without the paired test above (the paired test is far more sensitive than comparing two independent CIs).
 
@@ -72,10 +74,10 @@ Deltas smaller than ~half this interval width should not be read as real without
 | 0.6–0.7 | 1519 | 0.650 | 0.583 | -0.067 |
 | 0.7–0.8 | 1298 | 0.750 | 0.661 | -0.089 |
 | 0.8–0.9 | 1279 | 0.846 | 0.738 | -0.108 |
-| 0.9–1.0 | 4666 | 0.948 | 0.730 | -0.218 |
+| 0.9–1.0 | 4666 | 0.948 | 0.732 | -0.216 |
 
-- **ECE (expected calibration error): 0.1852** — mean |score − empirical match rate| weighted by bin size; 0 is perfectly calibrated.
-- **Brier score: 0.2328** (lower is better; a constant base-rate predictor scores 0.2500).
+- **ECE (expected calibration error): 0.1846** — mean |score − empirical match rate| weighted by bin size; 0 is perfectly calibrated.
+- **Brier score: 0.2321** (lower is better; a constant base-rate predictor scores 0.2500).
 - The three-way confidence badge (high/medium/low, thresholds 0.72/0.45 in `Confidence::from_score`) is derived from this score; if a bin's gap drifts past ~0.1 the thresholds should be re-fit.
 
 ### Isotonic recalibration (fit on dev, validated on holdout)
@@ -84,8 +86,8 @@ A monotone score→probability map (decile histogram + pool-adjacent-violators) 
 
 | Holdout metric | raw score | recalibrated | Δ |
 |---|---:|---:|---:|
-| ECE | 0.1951 | 0.0115 | -0.1836 |
-| Brier | 0.2343 | 0.1956 | -0.0387 |
+| ECE | 0.1939 | 0.0108 | -0.1831 |
+| Brier | 0.2332 | 0.1951 | -0.0381 |
 
 The recalibrated probability is what a downstream consumer (site reliability badge, novel-word filter) should read as *P(matches the official lemma)*; the raw score remains the ranking key. Refit whenever the ladder changes.
 
@@ -93,10 +95,10 @@ The recalibrated probability is what a downstream consumer (site reliability bad
 
 | threshold | n ≥ t | precision | recall |
 |---:|---:|---:|---:|
-| ≥ 0.3 | 2861 | 61.7% | 88.9% |
-| ≥ 0.4 | 2216 | 68.8% | 76.8% |
-| ≥ 0.5 | 2216 | 68.8% | 76.8% |
-| ≥ 0.6 | 1839 | 71.6% | 66.3% |
-| ≥ 0.7 | 1495 | 72.8% | 54.9% |
+| ≥ 0.3 | 2861 | 61.8% | 88.9% |
+| ≥ 0.4 | 2216 | 69.0% | 76.9% |
+| ≥ 0.5 | 2216 | 69.0% | 76.9% |
+| ≥ 0.6 | 1839 | 71.9% | 66.4% |
+| ≥ 0.7 | 1495 | 73.2% | 55.0% |
 
 The site's novel-word buckets (`export`) read these operating points: **propose** = calibrated p at the high-precision cutoff, **review** = the middle band, below = not shown. The committed calibrator is `data/score-calibration.json`.

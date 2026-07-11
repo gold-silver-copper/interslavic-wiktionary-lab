@@ -415,7 +415,10 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
             .map(|f| f.norm.latin.clone())
             .collect();
         let proto_word = set.proto.trim_start_matches('*');
-        let mut pc = crate::proto::generate_with_reflexes(proto_word, set.pos, None, &reflexes);
+        // stem_class stays None on the site path: site output must not change
+        // until the display side ships its own readers (issue #76).
+        let mut pc =
+            crate::proto::generate_with_reflexes(proto_word, set.pos, None, &reflexes, None);
         if reflexive && !pc.form.is_empty() && !pc.form.ends_with(" sę") {
             pc.form.push_str(" sę");
         }

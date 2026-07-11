@@ -127,7 +127,9 @@ pub struct ProtoEntry {
 
 /// Bump when `extract-proto` changes what goes into [`ProtoCache`] (fields,
 /// filters, normalization); see the cache-schema-stamp note above.
-pub const PROTO_CACHE_SCHEMA: u32 = 0;
+/// Schema 1: `stem_class` also scans sense-level categories (issue #76) —
+/// the declension category almost never sits on the page level.
+pub const PROTO_CACHE_SCHEMA: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtoCache {
@@ -1077,24 +1079,39 @@ fn after_needle(text: &str, needle: &str) -> String {
 }
 
 fn stem_class(value: &Value) -> Option<String> {
-    let cats = value.get("categories").and_then(Value::as_array)?;
-    for c in cats.iter().filter_map(Value::as_str) {
-        let lc = c.to_lowercase();
-        for key in [
-            "o-stem",
-            "a-stem",
-            "ā-stem",
-            "i-stem",
-            "u-stem",
-            "n-stem",
-            "s-stem",
-            "r-stem",
-            "jo-stem",
-            "ja-stem",
-            "consonant stem",
-        ] {
-            if lc.contains(key) {
-                return Some(c.to_string());
+    // The declension category ("Proto-Slavic masculine n-stem nouns") usually
+    // sits on the SENSE level in wiktextract, not the page level — *kamy* and
+    // *bratrъ* have no top-level `categories` at all. Scan both.
+    let top = value.get("categories").and_then(Value::as_array);
+    let sense_cats = value
+        .get("senses")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|s| s.get("categories").and_then(Value::as_array));
+    for cats in top.into_iter().chain(sense_cats) {
+        for c in cats.iter().filter_map(Value::as_str) {
+            let lc = c.to_lowercase();
+            for key in [
+                "o-stem",
+                "a-stem",
+                "ā-stem",
+                "i-stem",
+                "u-stem",
+                // Wiktionary files the feminine ū-stems (*kry, *svekry, *buky)
+                // as "v-stem" after their oblique extension — there is no
+                // "ū-stem" category in the dump.
+                "v-stem",
+                "n-stem",
+                "s-stem",
+                "r-stem",
+                "jo-stem",
+                "ja-stem",
+                "consonant stem",
+            ] {
+                if lc.contains(key) {
+                    return Some(c.to_string());
+                }
             }
         }
     }
@@ -1118,6 +1135,11 @@ pub struct ProtoIndex {
     /// reconstruction (`*voda`). Built from the lemma corpus when present. Lets the
     /// linker use the attested ancestor directly instead of guessing.
     etym: HashMap<String, String>,
+    /// Deep (pre-Slavic) ancestors named by a modern lemma's English etymology:
+    /// "lang\u{1}phonemic-latin" -> folded Proto-Balto-Slavic / PIE tokens
+    /// (issue #76). Built alongside `etym`; consumed by the linker's
+    /// deep-corroboration rescue.
+    deep_etym: HashMap<String, Vec<String>>,
 }
 
 impl ProtoIndex {
@@ -1161,16 +1183,30 @@ impl ProtoIndex {
 
     fn attach_etymology(&mut self, corpus: &LemmaCorpus) {
         for e in &corpus.entries {
-            if e.proto.is_empty() || !self.by_word.contains_key(e.proto.trim_start_matches('*')) {
-                continue; // only ancestors we actually have a reconstruction for
-            }
             let latin = crate::normalize::to_phonemic_latin(&e.lang, &e.word);
             if latin.is_empty() {
                 continue;
             }
-            self.etym
-                .entry(format!("{}\u{1}{latin}", e.lang))
-                .or_insert_with(|| e.proto.clone());
+            let key = format!("{}\u{1}{latin}", e.lang);
+            // Deep (pre-Slavic) ancestors the lemma's own etymology names,
+            // scraped with the same needle logic as the proto cache's pbs/pie
+            // fields so both sides of the corroboration match fold-equal.
+            let mut deep: Vec<String> = Vec::new();
+            for text in &e.etymology {
+                for needle in ["Proto-Balto-Slavic", "Proto-Indo-European"] {
+                    let tok = crate::normalize::fold_deep_token(&after_needle(text, needle));
+                    if !tok.is_empty() && !deep.contains(&tok) {
+                        deep.push(tok);
+                    }
+                }
+            }
+            if !deep.is_empty() {
+                self.deep_etym.entry(key.clone()).or_insert(deep);
+            }
+            if e.proto.is_empty() || !self.by_word.contains_key(e.proto.trim_start_matches('*')) {
+                continue; // only ancestors we actually have a reconstruction for
+            }
+            self.etym.entry(key).or_insert_with(|| e.proto.clone());
         }
     }
 
@@ -1179,6 +1215,14 @@ impl ProtoIndex {
         self.etym
             .get(&format!("{lang}\u{1}{latin}"))
             .map(|s| s.as_str())
+    }
+
+    /// The folded deep (Proto-Balto-Slavic / PIE) ancestor tokens a modern
+    /// lemma's English etymology names, if any (issue #76).
+    pub fn deep_ancestors(&self, lang: &str, latin: &str) -> Option<&[String]> {
+        self.deep_etym
+            .get(&format!("{lang}\u{1}{latin}"))
+            .map(|v| v.as_slice())
     }
 
     /// The entry index for a reconstruction word (`voda`, no `*`).
@@ -1214,6 +1258,7 @@ impl ProtoIndex {
             by_desc_skeleton,
             by_word,
             etym: HashMap::new(),
+            deep_etym: HashMap::new(),
         }
     }
 
@@ -1434,5 +1479,39 @@ mod tests {
         assert_eq!(s.kept + s.dropped_total(), s.slavic_pages_seen);
         s.kept_by_lang.insert("ru".into(), 6);
         assert_eq!(s.kept_by_lang.values().sum::<u64>(), s.kept);
+    }
+
+    #[test]
+    fn stem_class_reads_sense_level_categories() {
+        use serde_json::json;
+        // Issue #76: the declension category almost always sits on the SENSE
+        // level in wiktextract (*kamy has no page-level `categories` at all),
+        // so the extractor must scan both levels.
+        let sense_only = json!({
+            "word": "kamy",
+            "senses": [{
+                "glosses": ["stone"],
+                "categories": ["Proto-Slavic lemmas", "Proto-Slavic masculine n-stem nouns"]
+            }]
+        });
+        assert_eq!(
+            stem_class(&sense_only).as_deref(),
+            Some("Proto-Slavic masculine n-stem nouns")
+        );
+        // Page-level categories keep working.
+        let page_level = json!({
+            "word": "kry",
+            "categories": ["Proto-Slavic hard v-stem nouns"]
+        });
+        assert_eq!(
+            stem_class(&page_level).as_deref(),
+            Some("Proto-Slavic hard v-stem nouns")
+        );
+        // No declension category anywhere → None.
+        let none = json!({
+            "word": "x",
+            "senses": [{ "categories": ["Proto-Slavic lemmas"] }]
+        });
+        assert_eq!(stem_class(&none), None);
     }
 }

@@ -30,7 +30,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 | +medoid-rep | 41.02% | 48.88% | +1.79 pp | 59.58% | 0.226 |
 | +deriv-suffixes | 41.27% | 49.02% | +0.14 pp | 59.88% | 0.226 |
 | +loan-hiatus | 41.33% | 49.09% | +0.07 pp | 59.95% | 0.226 |
-| +spirantization (production) | 41.66% | 49.58% | +0.49 pp | 60.50% | 0.224 |
+| +spirantization | 41.66% | 49.58% | +0.49 pp | 60.50% | 0.224 |
+| +stem-class-endings (production) | 41.73% | 49.65% | +0.07 pp | 60.56% | 0.224 |
 
 - **baseline** — Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).
 - **+branch-consensus** — Branch-balanced skeleton vote + South-Slavic representative.
@@ -52,7 +53,8 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 - **+medoid-rep** — Pick the winning cluster's representative as the medoid — the member minimizing total folded edit distance to the others (the most central attested form) — instead of the fixed REP_PRIORITY, avoiding dialectal/oblique outliers. Measured by rep-eval (+1.09pp exact), the biggest recoverable slice of the +3.7pp oracle-representative ceiling.
 - **+deriv-suffixes** — Derivational-suffix normalization (root-consistency invariant [DERIV]), each categorical in the dictionary: -telj- kept before suffixes (53 -teljstvo/-teljny/-teljsky vs 0 hard), feminine i-stem soft -sť (516 vs 0), deverbal -livy (152 vs 0 -ljivy).
 - **+loan-hiatus** — Keep the Graeco-Latin -ia-/-io- hiatus in internationalisms (socialny, entuziazm, sociolog) where the Slavic cognates' -ija- glide is a national adaptation: 24 -ial- vs 0 -ijal- in the dictionary, 139 midword -io- vs 1 -ijo-.
-- **+spirantization (production)** — Undo the *g→h spirantization a Czech/Slovak/Ukrainian/Belarusian representative leaks into the surface (blahosklonnost→blago-), corroborated per consonant position by ≥2 g-preserving cognates (ru/pl/South). ISV has no g→h rule (RULE_SPEC §2); genuine *x/loan h stays because the g-preserving lects write h there too.
+- **+spirantization** — Undo the *g→h spirantization a Czech/Slovak/Ukrainian/Belarusian representative leaks into the surface (blahosklonnost→blago-), corroborated per consonant position by ≥2 g-preserving cognates (ru/pl/South). ISV has no g→h rule (RULE_SPEC §2); genuine *x/loan h stays because the g-preserving lects write h there too.
+- **+stem-class-endings (production)** — Stem-class-aware citation endings (issue #76): a masculine n-stem's archaic nominative *-y survives the sound rules (*kamy→kamy) but the dictionary cites the extended oblique stem (kamenj, jęčmenj, plåmenj) — categorical in the official CSV. The Wiktionary declension category on the linked reconstruction supplies the class; link scoring stays stem_class-blind.
 
 ## Rejected rules — tested and reverted
 
@@ -60,15 +62,17 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |
 |---|---:|---:|---:|---:|
-| prod+palatals | 41.32% | -0.34 pp | 49.13% | -0.45 pp |
-| prod+jat | 40.96% | -0.71 pp | 49.58% | -0.01 pp |
-| prod+adj-longform | 41.66% | +0.00 pp | 49.58% | +0.00 pp |
-| prod+y-recovery | 38.91% | -2.75 pp | 45.94% | -3.64 pp |
+| prod+palatals | 41.39% | -0.34 pp | 49.20% | -0.45 pp |
+| prod+jat | 41.02% | -0.71 pp | 49.64% | -0.01 pp |
+| prod+adj-longform | 41.73% | +0.00 pp | 49.65% | +0.00 pp |
+| prod+y-recovery | 38.98% | -2.75 pp | 46.01% | -3.64 pp |
+| prod+link-corroboration | 41.73% | +0.00 pp | 49.65% | +0.00 pp |
 
 - **prod+palatals** — Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.
 - **prod+jat** — Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.
 - **prod+adj-longform** — Long-form (ru/pl/cs) adjective representative — East/West orthographic quirks outweigh the fleeting-vowel fix.
 - **prod+y-recovery** — Recover *y from East/West where South merged *y→i — too aggressive, flips correct i→y.
+- **prod+link-corroboration** — Deep-ancestor corroboration rescue in the proto linker (issue #76): accept a sub-threshold link (confidence in [0.34, 0.42), floored to the gate) when ≥ half of the primary cognates' own Wiktionary etymologies name the candidate's Proto-Balto-Slavic/PIE ancestor. Measured +0.00pp exact/normalized: the rescue fires on exactly 1 of 16,300 meanings — only ~7.7% of lemma etymologies name a deep ancestor, so the corroboration bar is almost never reachable. Kept out of production.
 
 ## POS-specific accuracy (final config)
 
@@ -76,7 +80,7 @@ Each is the production config plus one experimental rule. All regress accuracy o
 |---|---:|---:|---:|
 | adj | 2896 | 37.26% | 48.93% |
 | adv | 657 | 21.00% | 33.33% |
-| noun | 8362 | 50.72% | 57.46% |
+| noun | 8362 | 50.85% | 57.59% |
 | num | 112 | 15.18% | 25.89% |
 | pron | 99 | 41.41% | 44.44% |
 | verb | 4174 | 30.55% | 37.57% |
@@ -88,7 +92,7 @@ Each is the production config plus one experimental rule. All regress accuracy o
 | 0 | 13 | 23.08% |
 | 1 | 3529 | 17.14% |
 | 2 | 5549 | 41.72% |
-| 3 | 7209 | 71.56% |
+| 3 | 7209 | 71.72% |
 
 ## Confidence calibration (final config)
 
@@ -96,28 +100,28 @@ High-confidence candidates should match the official dictionary more often than 
 
 | confidence | n | normalized match |
 |---|---:|---:|
-| high | 7007 | 72.07% |
+| high | 7007 | 72.23% |
 | medium | 7078 | 39.08% |
 | low | 2215 | 12.01% |
 
 ## Before / after
 
 - Baseline normalized top-1: **35.23%**
-- Final normalized top-1: **49.58%** (+14.35 pp)
+- Final normalized top-1: **49.65%** (+14.42 pp)
 - Baseline exact top-1: **27.52%**
-- Final exact top-1: **41.66%** (+14.15 pp)
+- Final exact top-1: **41.73%** (+14.21 pp)
 
 ## Remaining systematic errors (final config)
 
-Of **8218** misses, **1821** (22%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6397** are farther (usually a different root chosen by Interslavic).
+Of **8207** misses, **1821** (22%) are near-misses (normalized edit < 0.20 — an ending/one-letter fix) and **6386** are farther (usually a different root chosen by Interslavic).
 
 | Error class | count | share of misses |
 |---|---:|---:|
-| different root / derivation | 4481 | 54.5% |
+| different root / derivation | 4471 | 54.5% |
 | missing letter (fleeting vowel / cluster) | 1263 | 15.4% |
 | extra letter (epenthesis / ending) | 1027 | 12.5% |
 | single-letter substitution | 1008 | 12.3% |
-| y / i distinction | 396 | 4.8% |
+| y / i distinction | 395 | 4.8% |
 | flavored letter (ě/ę/ų/å/ć/đ) not recovered | 43 | 0.5% |
 
 ## Next recommended linguistic rules
@@ -126,6 +130,6 @@ The Proto-Slavic-derived-form path (§4.4) is implemented — consensus picks th
 
 1. **Expand Proto-Slavic link coverage.** Only meanings with a matched `sla-pro` reconstruction get the flavored derivation; raising cache coverage and loosening the link gate (without admitting bad links) directly grows the proto-derived slice.
 2. **Reduce the reconstruction's non-yer errors** (endings, palatalizations) so the proto form can be trusted even when it disagrees with the reflexes — currently such disagreements defer to the reflexes, capping the proto gain.
-3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6397 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
+3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~6386 far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.
 4. **Secondary-imperfective verb stems** (`-yva-/-iva-/-ava-`) and the agentive `-telj`/abstract `-teljstvo` suffixes, seen repeatedly in the verb/noun error tail.
 5. **POS-specific gender/animacy inference** to pick the right nominal ending where the modern citation forms disagree.

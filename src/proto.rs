@@ -15,7 +15,7 @@ const ORTHO: &str = "https://interslavic.fun/learn/orthography/";
 
 /// Generate an Interslavic candidate from a Proto-Slavic reconstruction.
 pub fn generate(proto_word: &str, pos: Pos, gender: Option<Gender>) -> Candidate {
-    generate_with_reflexes(proto_word, pos, gender, &[])
+    generate_with_reflexes(proto_word, pos, gender, &[], None)
 }
 
 /// As [`generate`], but with the modern-cognate reflexes (phonemic Latin) as
@@ -23,11 +23,16 @@ pub fn generate(proto_word: &str, pos: Pos, gender: Option<Gender>) -> Candidate
 /// level): a weak yer that most reflexes vocalize is retained, not dropped, so
 /// e.g. *pьsati → pisati (which strict Havlík would render *psati, matching only
 /// Czech). Pass `&[]` for the pure rule-only derivation.
+///
+/// `stem_class` is the linked entry's Wiktionary declension category
+/// ([`crate::dump::ProtoEntry::stem_class`]), used only for the stem-class-aware
+/// citation endings (issue #76). Pass `None` to keep the archaic nominative.
 pub fn generate_with_reflexes(
     proto_word: &str,
     pos: Pos,
     gender: Option<Gender>,
     reflexes: &[String],
+    stem_class: Option<&str>,
 ) -> Candidate {
     let mut trace = Vec::new();
     let mut s = clean(proto_word, &mut trace);
@@ -73,7 +78,7 @@ pub fn generate_with_reflexes(
     }
     s = collective_je(&s, &mut trace);
     s = yers(&s, reflexes, &mut trace);
-    s = endings(&s, pos, gender, &mut trace);
+    s = endings(&s, pos, gender, stem_class, &mut trace);
     s = finalize(&s, &mut trace);
 
     // The rule engine is deterministic; score reflects how much survived intact
@@ -500,7 +505,13 @@ fn yers(input: &str, reflexes: &[String], trace: &mut Vec<RuleStep>) -> String {
 }
 
 /// POS-aware lemma endings.
-fn endings(input: &str, pos: Pos, gender: Option<Gender>, trace: &mut Vec<RuleStep>) -> String {
+fn endings(
+    input: &str,
+    pos: Pos,
+    gender: Option<Gender>,
+    stem_class: Option<&str>,
+    trace: &mut Vec<RuleStep>,
+) -> String {
     let mut out = input.to_string();
     match pos {
         Pos::Verb => {
@@ -536,6 +547,16 @@ fn endings(input: &str, pos: Pos, gender: Option<Gender>, trace: &mut Vec<RuleSt
             // the final yer (already gone) leaving a consonant.
             if gender == Some(Gender::Neuter) && ends_cons(&out) {
                 out.push('o');
+            }
+            // Masculine n-stem: the archaic nominative *-y survives the sound
+            // rules (*kamy → kamy), but the dictionary cites the extended
+            // oblique stem (kamenj) — categorical in the official CSV (issue
+            // #76 pre-check: every cache n-stem in -y is cited in -enj, none
+            // in -y). Wiktionary's declension category supplies the class;
+            // neuter n-stems (*jьmę → imę) end in -ę and are untouched.
+            if stem_class.is_some_and(|sc| sc.contains("n-stem")) && out.ends_with('y') {
+                out.truncate(out.len() - 1);
+                out.push_str("enj");
             }
         }
         _ => {}
@@ -869,6 +890,7 @@ mod tests {
             Pos::Noun,
             None,
             &["vojna".into(), "vojna".into(), "vojna".into()],
+            None,
         )
         .form;
         assert!(normalized_match(&out, "vojna"), "got {out}");
@@ -898,6 +920,7 @@ mod tests {
             Pos::Adjective,
             None,
             &["novyj".into(), "novy".into(), "novy".into()],
+            None,
         )
         .form;
         assert!(normalized_match(&novy, "novy"), "got {novy}");
@@ -906,28 +929,35 @@ mod tests {
             Pos::Adjective,
             None,
             &["gotovyj".into(), "gotovy".into()],
+            None,
         )
         .form;
         assert!(normalized_match(&gotovy, "gotovy"), "got {gotovy}");
         // A true possessive (short reflexes) keeps the short form.
         let materin =
-            generate_with_reflexes("*materinъ", Pos::Adjective, None, &["materin".into()]).form;
+            generate_with_reflexes("*materinъ", Pos::Adjective, None, &["materin".into()], None)
+                .form;
         assert!(!materin.ends_with('y'), "got {materin}");
     }
 
     #[test]
     fn weak_yer_retention_requires_corroboration() {
         // Two agreeing reflexes retain the weak yer (*dъska→dȯska)...
-        let two =
-            generate_with_reflexes("*dъska", Pos::Noun, None, &["doska".into(), "deska".into()])
-                .form;
+        let two = generate_with_reflexes(
+            "*dъska",
+            Pos::Noun,
+            None,
+            &["doska".into(), "deska".into()],
+            None,
+        )
+        .form;
         assert!(
             !normalized_match(&two, "dska"),
             "two-reflex retention: {two}"
         );
         // ...but a single (possibly misaligned) reflex is not enough: the yer
         // drops rather than injecting a spurious vowel (babka, not babaka).
-        let one = generate_with_reflexes("*dъska", Pos::Noun, None, &["doska".into()]).form;
+        let one = generate_with_reflexes("*dъska", Pos::Noun, None, &["doska".into()], None).form;
         assert!(normalized_match(&one, "dska"), "single-reflex guard: {one}");
     }
 
@@ -943,6 +973,7 @@ mod tests {
             Pos::Verb,
             None,
             &["pisati".into(), "pisat".into(), "pisac".into()],
+            None,
         )
         .form;
         assert!(
@@ -955,8 +986,45 @@ mod tests {
             Pos::Verb,
             None,
             &["brati".into(), "brat".into(), "brac".into()],
+            None,
         )
         .form;
         assert!(normalized_match(&brati, "brati"), "brati was {brati}");
+    }
+
+    #[test]
+    fn n_stem_stem_class_cites_oblique_stem() {
+        // Issue #76: a masculine n-stem's archaic nominative *-y survives the
+        // sound rules, but the dictionary cites the extended oblique stem.
+        // Pinned exactly — the flavored letters are the point.
+        let n_stem = Some("Proto-Slavic masculine n-stem nouns");
+        let cite = |proto: &str| generate_with_reflexes(proto, Pos::Noun, None, &[], n_stem).form;
+        assert_eq!(cite("*kamy"), "kamenj");
+        // The override composes with the earlier sound rules: prothetic j-
+        // (*ely → jely) and liquid-metathesis å (*polmy → plåmy).
+        assert_eq!(cite("*ely"), "jelenj");
+        assert_eq!(cite("*polmy"), "plåmenj");
+        // Without the declension category the archaic nominative stays.
+        assert_eq!(
+            generate_with_reflexes("*kamy", Pos::Noun, None, &[], None).form,
+            "kamy"
+        );
+        // Neuter n-stems end in -ę, not -y: untouched.
+        assert_eq!(
+            generate_with_reflexes(
+                "*jьmę",
+                Pos::Noun,
+                None,
+                &[],
+                Some("Proto-Slavic n-stem nouns")
+            )
+            .form,
+            "imę"
+        );
+        // The override lives in the Noun arm only: other POS are untouched.
+        assert_eq!(
+            generate_with_reflexes("*kamy", Pos::Adjective, None, &[], n_stem).form,
+            "kamy"
+        );
     }
 }

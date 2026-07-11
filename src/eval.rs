@@ -74,6 +74,8 @@ fn kept_ladder() -> Vec<Rung> {
     hiatus.loan_hiatus = true;
     let mut spirant = hiatus;
     spirant.spirantization_repair = true;
+    let mut stemclass = spirant;
+    stemclass.proto_stem_class_endings = true;
 
     vec![
         Rung { name: "baseline", description: "Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).", cfg: base },
@@ -96,7 +98,8 @@ fn kept_ladder() -> Vec<Rung> {
         Rung { name: "+medoid-rep", description: "Pick the winning cluster's representative as the medoid — the member minimizing total folded edit distance to the others (the most central attested form) — instead of the fixed REP_PRIORITY, avoiding dialectal/oblique outliers. Measured by rep-eval (+1.09pp exact), the biggest recoverable slice of the +3.7pp oracle-representative ceiling.", cfg: medoid },
         Rung { name: "+deriv-suffixes", description: "Derivational-suffix normalization (root-consistency invariant [DERIV]), each categorical in the dictionary: -telj- kept before suffixes (53 -teljstvo/-teljny/-teljsky vs 0 hard), feminine i-stem soft -sť (516 vs 0), deverbal -livy (152 vs 0 -ljivy).", cfg: deriv },
         Rung { name: "+loan-hiatus", description: "Keep the Graeco-Latin -ia-/-io- hiatus in internationalisms (socialny, entuziazm, sociolog) where the Slavic cognates' -ija- glide is a national adaptation: 24 -ial- vs 0 -ijal- in the dictionary, 139 midword -io- vs 1 -ijo-.", cfg: hiatus },
-        Rung { name: "+spirantization (production)", description: "Undo the *g→h spirantization a Czech/Slovak/Ukrainian/Belarusian representative leaks into the surface (blahosklonnost→blago-), corroborated per consonant position by ≥2 g-preserving cognates (ru/pl/South). ISV has no g→h rule (RULE_SPEC §2); genuine *x/loan h stays because the g-preserving lects write h there too.", cfg: spirant },
+        Rung { name: "+spirantization", description: "Undo the *g→h spirantization a Czech/Slovak/Ukrainian/Belarusian representative leaks into the surface (blahosklonnost→blago-), corroborated per consonant position by ≥2 g-preserving cognates (ru/pl/South). ISV has no g→h rule (RULE_SPEC §2); genuine *x/loan h stays because the g-preserving lects write h there too.", cfg: spirant },
+        Rung { name: "+stem-class-endings (production)", description: "Stem-class-aware citation endings (issue #76): a masculine n-stem's archaic nominative *-y survives the sound rules (*kamy→kamy) but the dictionary cites the extended oblique stem (kamenj, jęčmenj, plåmenj) — categorical in the official CSV. The Wiktionary declension category on the linked reconstruction supplies the class; link scoring stays stem_class-blind.", cfg: stemclass },
     ]
 }
 
@@ -131,11 +134,14 @@ fn rejected_experiments() -> Vec<Rung> {
     adjrep.adj_longform_rep = true;
     let mut yrec = prod;
     yrec.y_recovery = true;
+    let mut deepcorr = prod;
+    deepcorr.proto_link_deep_corroboration = true;
     vec![
         Rung { name: "prod+palatals", description: "Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.", cfg: palatal },
         Rung { name: "prod+jat", description: "Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.", cfg: jat },
         Rung { name: "prod+adj-longform", description: "Long-form (ru/pl/cs) adjective representative — East/West orthographic quirks outweigh the fleeting-vowel fix.", cfg: adjrep },
         Rung { name: "prod+y-recovery", description: "Recover *y from East/West where South merged *y→i — too aggressive, flips correct i→y.", cfg: yrec },
+        Rung { name: "prod+link-corroboration", description: "Deep-ancestor corroboration rescue in the proto linker (issue #76): accept a sub-threshold link (confidence in [0.34, 0.42), floored to the gate) when ≥ half of the primary cognates' own Wiktionary etymologies name the candidate's Proto-Balto-Slavic/PIE ancestor. Measured +0.00pp exact/normalized: the rescue fires on exactly 1 of 16,300 meanings — only ~7.7% of lemma etymologies name a deep ancestor, so the corroboration bar is almost never reachable. Kept out of production.", cfg: deepcorr },
     ]
 }
 
@@ -235,10 +241,9 @@ pub fn run_corpus_eval(official_path: &Path) -> Result<()> {
         let proto_word = if borrowed {
             String::new()
         } else {
-            match proto
-                .as_ref()
-                .and_then(|idx| crate::proto_link::link(idx, &input, true))
-            {
+            match proto.as_ref().and_then(|idx| {
+                crate::proto_link::link(idx, &input, true, cfg.proto_link_deep_corroboration)
+            }) {
                 Some(l) => format!("*{}", l.entry.word),
                 None => continue, // no ancestor and not international: site skips it
             }
@@ -2049,8 +2054,9 @@ pub fn run_proto_engine(official_path: &Path, out_dir: &Path) -> Result<()> {
         }
         n += 1;
         // Direct links only: this benchmark isolates the derivation engine, so it
-        // derives the bare entry word without prefix re-attachment.
-        let Some(l) = crate::proto_link::link(&proto, &input, false) else {
+        // derives the bare entry word without prefix re-attachment and without
+        // the deep-corroboration rescue.
+        let Some(l) = crate::proto_link::link(&proto, &input, false, false) else {
             continue;
         };
         linked += 1;
@@ -2062,9 +2068,14 @@ pub fn run_proto_engine(official_path: &Path, out_dir: &Path) -> Result<()> {
             .map(|f| f.norm.latin.clone())
             .filter(|r| ortho::shares_consonant_root(&ortho::consonant_key(r), &recon_key))
             .collect();
-        let form =
-            crate::proto::generate_with_reflexes(&l.entry.word, input.pos, input.gender, &reflexes)
-                .form;
+        let form = crate::proto::generate_with_reflexes(
+            &l.entry.word,
+            input.pos,
+            input.gender,
+            &reflexes,
+            l.entry.stem_class.as_deref(),
+        )
+        .form;
         let e = ortho::exact_match(&form, &entry.isv);
         let nm = ortho::normalized_match(&form, &entry.isv);
         exact += e as usize;
