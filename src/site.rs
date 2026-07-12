@@ -18,7 +18,7 @@ use interslavic::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Counts inflection-table panics swallowed by the quiet hook (see below).
 static INFLECTION_PANICS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
@@ -303,205 +303,22 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
 // lemmas in Wiktionary, independent of the official Interslavic dictionary.
 // ===========================================================================
 
-/// Committed compatibility registry for public entry permalinks. The generated
-/// `site/` directory is gitignored and absent in CI/Pages checkouts.
-const ENTRY_ID_REGISTRY: &str = "data/entry-id-registry.json";
-
-/// Stable core-page id allocator backed by the previous export. Public entry
-/// URLs must not be positional: extraction/grouping improvements reorder sets.
+/// Core IDs are assigned from the finalized deterministic export order. They
+/// deliberately do not consult previous output or a compatibility registry:
+/// identical inputs produce identical IDs, while corpus changes may renumber.
 #[derive(Default)]
-struct StableEntryIds {
-    by_identity: std::collections::HashMap<String, std::collections::VecDeque<usize>>,
+struct DeterministicEntryIds {
     high_water: usize,
 }
 
-impl StableEntryIds {
-    fn load(path: &Path, official_entries: &[OfficialEntry]) -> Result<Self> {
-        if !path.exists() {
-            return Ok(Self::default());
-        }
-        let value: serde_json::Value = serde_json::from_slice(&crate::dump::read_maybe_gz(path)?)?;
-        let mut ids: std::collections::HashMap<String, Vec<usize>> =
-            std::collections::HashMap::new();
-        let mut official_senses: std::collections::HashMap<
-            (String, String, String),
-            std::collections::VecDeque<String>,
-        > = std::collections::HashMap::new();
-        let mut official_by_title_gloss: std::collections::HashMap<(String, String), Vec<String>> =
-            std::collections::HashMap::new();
-        let mut official_meta_by_id: std::collections::HashMap<String, (String, String, String)> =
-            std::collections::HashMap::new();
-        for e in official_entries {
-            let title = e.isv.trim().to_lowercase();
-            let gloss = e.english.trim().to_lowercase();
-            official_senses
-                .entry((
-                    title.clone(),
-                    official_pos_code(e).to_string(),
-                    gloss.clone(),
-                ))
-                .or_default()
-                .push_back(e.id.clone());
-            official_by_title_gloss
-                .entry((title.clone(), gloss.clone()))
-                .or_default()
-                .push(e.id.clone());
-            official_meta_by_id.insert(
-                e.id.clone(),
-                (title, official_pos_code(e).to_string(), gloss),
-            );
-        }
-        let mut claimed_official_senses: std::collections::HashSet<String> =
-            std::collections::HashSet::new();
-        let mut high_water = 0usize;
-        if let Some(rows) = value.as_array() {
-            for row in rows {
-                let Some(id) = row.get("id").and_then(|v| v.as_u64()).map(|v| v as usize) else {
-                    continue;
-                };
-                let Some(title) = row.get("title").and_then(|v| v.as_str()) else {
-                    continue;
-                };
-                let pos = row.get("pos").and_then(|v| v.as_str()).unwrap_or("");
-                let gloss = row.get("gloss").and_then(|v| v.as_str()).unwrap_or("");
-                let official = row
-                    .get("official")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                let ancestor = row.get("ancestor").and_then(|v| v.as_str()).unwrap_or("");
-                let n_langs = row.get("langs").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                let n_branches = row.get("branches").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                let sense_id = if official {
-                    let title_key = title.trim().to_lowercase();
-                    let gloss_key = gloss.trim().to_lowercase();
-                    let mut found = None;
-                    if let Some(queue) = official_senses.get_mut(&(
-                        title_key.clone(),
-                        pos.to_string(),
-                        gloss_key.clone(),
-                    )) {
-                        while let Some(candidate) = queue.pop_front() {
-                            if !claimed_official_senses.contains(&candidate) {
-                                found = Some(candidate);
-                                break;
-                            }
-                        }
-                    }
-                    // Older registries sometimes stored a derived display POS
-                    // that disagrees with today's source parser. Preserve the
-                    // permalink only when title+gloss identify exactly one
-                    // still-unclaimed authoritative row.
-                    if found.is_none() {
-                        let candidates: Vec<String> = official_by_title_gloss
-                            .get(&(title_key, gloss_key))
-                            .into_iter()
-                            .flatten()
-                            .filter(|id| !claimed_official_senses.contains(*id))
-                            .cloned()
-                            .collect();
-                        if candidates.len() == 1 {
-                            found = candidates.into_iter().next();
-                        }
-                    }
-                    if let Some(id) = &found {
-                        claimed_official_senses.insert(id.clone());
-                    }
-                    found
-                } else {
-                    None
-                };
-                let source_meta = sense_id
-                    .as_ref()
-                    .and_then(|source_id| official_meta_by_id.get(source_id));
-                let identity_title = source_meta.map(|m| m.0.as_str()).unwrap_or(title);
-                let identity_pos = source_meta.map(|m| m.1.as_str()).unwrap_or(pos);
-                let identity_gloss = source_meta.map(|m| m.2.as_str()).unwrap_or(gloss);
-                ids.entry(entry_identity(
-                    official,
-                    sense_id.as_deref(),
-                    identity_title,
-                    identity_pos,
-                    identity_gloss,
-                    ancestor,
-                    n_langs,
-                    n_branches,
-                ))
-                .or_default()
-                .push(id);
-                high_water = high_water.max(id);
-            }
-        }
-        let by_identity = ids
-            .into_iter()
-            .map(|(key, mut values)| {
-                values.sort_unstable();
-                (key, values.into())
-            })
-            .collect();
-        Ok(Self {
-            by_identity,
-            high_water,
-        })
-    }
-
-    fn alloc(&mut self, identity: &str) -> usize {
-        if let Some(id) = self
-            .by_identity
-            .get_mut(identity)
-            .and_then(std::collections::VecDeque::pop_front)
-        {
-            return id;
-        }
+impl DeterministicEntryIds {
+    fn alloc(&mut self) -> usize {
         self.high_water += 1;
         self.high_water
     }
 
     fn max_id(&self) -> usize {
         self.high_water
-    }
-}
-
-/// Official identities retain exact scientific spelling and the dictionary
-/// sense gloss. Evidence growth may turn an official-only sense into a matched
-/// sense, but search folding must never let another spelling or homograph steal
-/// its permalink. Machine-only homographs also include their evidence identity.
-#[allow(clippy::too_many_arguments)]
-fn entry_identity(
-    official: bool,
-    official_sense_id: Option<&str>,
-    title: &str,
-    pos: &str,
-    gloss: &str,
-    ancestor: &str,
-    n_langs: usize,
-    n_branches: usize,
-) -> String {
-    let exact_title = title.trim().to_lowercase();
-    if official {
-        format!(
-            "O\u{1f}{}\u{1f}{pos}\u{1f}{exact_title}\u{1f}{}",
-            official_sense_id.unwrap_or("missing-source-id"),
-            gloss.trim().to_lowercase()
-        )
-    } else {
-        let title = crate::orthography::to_standard(&exact_title);
-        // The evidence signature separates otherwise identical generated
-        // homographs (e.g. two didžej/DJ sets). If grouping changes that
-        // signature, it is a genuinely different evidence page and must not
-        // silently inherit the old permalink.
-        format!(
-            "G\u{1f}{pos}\u{1f}{title}\u{1f}{}\u{1f}{}\u{1f}{n_langs}\u{1f}{n_branches}",
-            gloss.trim().to_lowercase(),
-            ancestor.trim().to_lowercase(),
-        )
-    }
-}
-
-fn official_pos_code(e: &OfficialEntry) -> &str {
-    if crate::aspect::aspect(&e.pos_raw).is_some() {
-        "verb"
-    } else {
-        e.pos.code()
     }
 }
 
@@ -590,21 +407,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             .push(i);
     }
 
-    // Entry URLs are public permalinks. Evidence growth can reorder cognate
-    // sets, so positional ids would silently retarget every old URL (issue #86
-    // moved aloe from /entry/19717 to /entry/9679). Reuse ids by semantic
-    // identity from the previous export. For a clean CI/Pages checkout, use
-    // the committed compact compatibility registry (the generated `site/`
-    // directory is intentionally gitignored).
-    let previous_entries = {
-        let local = out_dir.join("entries.json");
-        if local.exists() {
-            local
-        } else {
-            PathBuf::from(ENTRY_ID_REGISTRY)
-        }
-    };
-    let mut entry_ids = StableEntryIds::load(&previous_entries, &official_entries)?;
+    // IDs depend only on the finalized deterministic export order. No previous
+    // site or compatibility registry participates in allocation.
+    let mut entry_ids = DeterministicEntryIds::default();
 
     let entry_dir = out_dir.join("entry");
     let _ = std::fs::remove_dir_all(&entry_dir); // clear any stale pages
@@ -851,42 +656,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         println!("Suppressed {suppressed_n} same-concept duplicate pages.");
     }
 
-    // Allocate public ids only after match demotion and suppression have
-    // finalized each rendered page. Allocating in the generation loop would
-    // key losers as official and then render them as generated, retargeting
-    // old URLs despite the compatibility registry.
+    // Allocate only after demotion/suppression finalize the rendered sequence.
     for p in prepared.iter_mut().filter(|p| !p.suppressed) {
-        let ancestor = if p.g.set.borrowed {
-            &p.g.set.etymon
-        } else {
-            &p.g.set.proto
-        };
-        let identity = match p.matched {
-            Some(m) => {
-                let e = &official_entries[m.entry];
-                entry_identity(
-                    true,
-                    Some(&e.id),
-                    e.isv.trim(),
-                    official_pos_code(e),
-                    &e.english,
-                    ancestor,
-                    p.g.n_langs,
-                    p.g.n_branches,
-                )
-            }
-            None => entry_identity(
-                false,
-                None,
-                &p.display,
-                p.g.set.pos.code(),
-                &p.g.set.gloss,
-                ancestor,
-                p.g.n_langs,
-                p.g.n_branches,
-            ),
-        };
-        p.id = entry_ids.alloc(&identity);
+        p.id = entry_ids.alloc();
     }
 
     // Track-E issue metric: evidence growth for official internationalisms.
@@ -980,16 +752,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if !covered.insert(e.id.clone()) {
             continue; // this exact official sense already has a generated page
         }
-        let entry_id = entry_ids.alloc(&entry_identity(
-            true,
-            Some(&e.id),
-            isv,
-            official_pos_code(e),
-            &e.english,
-            "",
-            0,
-            0,
-        ));
+        let entry_id = entry_ids.alloc();
         official_only += 1;
         official_only_records.push((entry_id, e.clone()));
     }
@@ -1019,7 +782,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         raw_plan.credit.len(),
         raw_plan.credit.values().map(Vec::len).sum::<usize>(),
     );
-    // `plan_raw_pages` starts after the largest stable core id, so raw ids
+    // `plan_raw_pages` starts after the largest deterministic core id, so raw ids
     // cannot collide even though the core id space may now contain holes.
 
     let mut metas: Vec<SiteEntryMeta> = Vec::new();
@@ -6114,10 +5877,17 @@ impl BuildMeta {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "neznany".to_string());
-        let generated = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| format!("{} UNIX", d.as_secs()))
-            .unwrap_or_else(|_| "neznany".to_string());
+        // Reproducible build stamp: wall-clock time would perturb build.json,
+        // page footers and random-word selection on every identical export.
+        let generated = std::process::Command::new("git")
+            .args(["show", "-s", "--format=%ct", "HEAD"])
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .map(|s| format!("{s} UNIX"))
+            .unwrap_or_else(|| "0 UNIX".to_string());
         Self {
             git,
             generated,
@@ -6738,6 +6508,13 @@ fn build_edges<T: FamilyEntry>(
             }
         }
     }
+    edges.sort_by(|a, b| {
+        a.source_id
+            .cmp(&b.source_id)
+            .then_with(|| a.target_id.cmp(&b.target_id))
+            .then_with(|| a.kind.cmp(&b.kind))
+            .then_with(|| a.target_title.cmp(&b.target_title))
+    });
     edges
 }
 
@@ -8077,7 +7854,7 @@ fn graph_page(edges: &[LinkEdge], metas: &[SiteEntryMeta]) -> String {
     let meta_by_id: std::collections::HashMap<usize, &SiteEntryMeta> =
         metas.iter().map(|m| (m.id, m)).collect();
     let mut top: Vec<(usize, usize)> = degree.into_iter().collect();
-    top.sort_by(|a, b| b.1.cmp(&a.1));
+    top.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     let mut top_items = String::new();
     for (id, n) in top.into_iter().take(40) {
         if let Some(m) = meta_by_id.get(&id) {
@@ -10115,99 +9892,18 @@ mod tests {
         assert!(line.contains("+1 dalje"), "{line}");
     }
 
-    /// Issue #86: the committed compatibility registry keeps public official
-    /// URLs stable when evidence growth reorders cognate sets. In particular,
-    /// aloe must remain entry/19717 while exact official homographs stay distinct.
     #[test]
-    fn stable_entry_ids_preserve_the_aloe_permalink() {
-        let official_entries = crate::official::load(Path::new("data/official-isv.csv")).unwrap();
-        let mut ids =
-            StableEntryIds::load(Path::new(ENTRY_ID_REGISTRY), &official_entries).unwrap();
-        let key = entry_identity(
-            true,
-            Some("24283"),
-            "aloe",
-            "noun",
-            "aloe",
-            "different evidence is irrelevant too",
-            99,
-            3,
+    fn deterministic_entry_ids_ignore_previous_output() {
+        let sequence = || {
+            let mut ids = DeterministicEntryIds::default();
+            (ids.alloc(), ids.alloc(), ids.max_id())
+        };
+        assert_eq!(sequence(), (1, 2, 2));
+        assert_eq!(sequence(), sequence());
+        assert_eq!(
+            BuildMeta::current(1, 1).generated,
+            BuildMeta::current(1, 1).generated
         );
-        assert_eq!(ids.alloc(&key), 19717);
-        let drzati_key =
-            entry_identity(true, Some("2617"), "dŕžati", "verb", "hold, keep", "", 0, 0);
-        assert_eq!(ids.alloc(&drzati_key), 1164);
-        assert_ne!(
-            drzati_key,
-            entry_identity(
-                true,
-                Some("25399"),
-                "držati",
-                "verb",
-                "shudder, shiver, tremble",
-                "",
-                0,
-                0,
-            )
-        );
-        let bug_key = entry_identity(true, Some("37054"), "Bug", "noun", "Bug", "", 0, 0);
-        assert_eq!(ids.alloc(&bug_key), 11);
-
-        let dokumentovati_first = entry_identity(
-            true,
-            Some("35297"),
-            "dokumentovati",
-            "verb",
-            "document",
-            "",
-            0,
-            0,
-        );
-        let dokumentovati_second = entry_identity(
-            true,
-            Some("37308"),
-            "dokumentovati",
-            "verb",
-            "document",
-            "",
-            0,
-            0,
-        );
-        assert_eq!(ids.alloc(&dokumentovati_first), 24784);
-        assert_ne!(dokumentovati_first, dokumentovati_second);
-        assert_ne!(
-            entry_identity(
-                true,
-                Some("5015"),
-                "pasti",
-                "verb",
-                "fall, tumble",
-                "",
-                0,
-                0,
-            ),
-            entry_identity(
-                true,
-                Some("5017"),
-                "pasti",
-                "verb",
-                "graze, pasture",
-                "",
-                0,
-                0,
-            ),
-        );
-        let fresh = ids.alloc(&entry_identity(
-            false,
-            None,
-            "never-seen",
-            "noun",
-            "test",
-            "en test",
-            1,
-            1,
-        ));
-        assert!(fresh > 35_000, "new ids belong above the registry: {fresh}");
     }
 
     /// Test metas for the official-fact-treatment invariants (issue #86).

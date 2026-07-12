@@ -43,6 +43,10 @@ jobs:
           cargo run --release -- export --out /tmp/slovowiki-aspect-ci
           python3 tools/validate-aspect-export.py /tmp/slovowiki-aspect-ci
           python3 tools/validate-linguistic-logic.py /tmp/slovowiki-aspect-ci
+          (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-a.sha256
+          cargo run --release -- export --out /tmp/slovowiki-aspect-ci
+          (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-b.sha256
+          diff -u /tmp/export-tree-a.sha256 /tmp/export-tree-b.sha256
           git diff --exit-code -- data/novel-words.tsv data/score-calibration.json
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
