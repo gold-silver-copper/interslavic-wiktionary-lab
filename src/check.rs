@@ -106,7 +106,18 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
                         _ => ' ',
                     };
                     if c != ' ' {
-                        noun_gender.entry(forms::form_key(isv)).or_insert(c);
+                        // A spelling can name nouns of different genders
+                        // (`družba` friendship f. / best man m.). Agreement must
+                        // abstain instead of letting CSV order choose a gender
+                        // for every homograph (issue #89 B04/G12).
+                        noun_gender
+                            .entry(forms::form_key(isv))
+                            .and_modify(|known| {
+                                if *known != c {
+                                    *known = ' ';
+                                }
+                            })
+                            .or_insert(c);
                     }
                 }
             }
@@ -979,6 +990,19 @@ mod tests {
         let reps = check_text(&index, UNKNOWN_PROBE);
         assert!(reps.iter().any(|r| r.status == "unknown"));
         assert!(reps.iter().all(|r| r.agreement.is_none()));
+    }
+
+    #[test]
+    fn homographic_noun_genders_abstain_from_agreement() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None);
+        for word in ["dodatȯk", "družba", "led"] {
+            assert_eq!(
+                index.noun_gender.get(&forms::form_key(word)),
+                Some(&' '),
+                "mixed-gender homograph {word} must not inherit the first CSV row's gender"
+            );
+        }
     }
 
     #[test]
