@@ -984,10 +984,11 @@ endpoints/page IDs, shared-anchor generated forms, the fired rule, and
 ## Trust rules
 
 - `status: official`/`official-only` records are verification-grade.
-- `status: generated` records are NOT verification-grade; each carries a
-  `probability`. Two kinds:
-  - **cognate-set reconstructions** — `probability` is the isotonic-calibrated
-    P(this lemma matches an official decision), holdout-validated;
+- `status: generated` records are NOT verification-grade. `probability` is
+  model-specific and may be null:
+  - **cognate-set reconstructions** — `probability` is currently null because
+    their coverage score has no corpus-path holdout calibrator; the separate
+    official-row pipeline calibrator is deliberately rejected as incompatible;
   - **regular derivatives off attested bases** (the site's "Slovotvorstvo"
     families) — a base lemma's productive family (`-osť`, adverb, `-ńje`,
     `-telj`, `-ny`/`-sky`, `-ka`/`-ica`, `ne-`), restricted to members ABSENT
@@ -997,8 +998,9 @@ endpoints/page IDs, shared-anchor generated forms, the fired rule, and
     off-official-base holdout's exact-match rate (capped 0.90; see
     `derivation-report.md`) — a form-accuracy proxy that cannot measure whether
     the derivative is a real word, so treat it as a suggestion.
-- **Treat p < 0.6 as a suggestion, never as verification.** Generated lemmas
-  (both kinds) have NO inflection records on purpose: an inflected form of a
+- **Any non-null generated probability is still a suggestion, never
+  verification.** Generated lemmas (both kinds) have NO inflection records on
+  purpose: an inflected form of a
   wrong lemma is confidently wrong. A missing key means "unknown to Slovowiki",
   not "wrong".
 

@@ -3340,15 +3340,15 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
     let (ece_cal, brier_cal) = eval_split(&held, true);
     writeln!(
         s,
-        "\n### Isotonic recalibration (fit on dev, validated on holdout)\n\nA monotone score→probability map (decile histogram + pool-adjacent-violators) fit on the dev split only, then applied to the untouched holdout:\n\n| Holdout metric | raw score | recalibrated | Δ |\n|---|---:|---:|---:|\n| ECE | {ece_raw:.4} | {ece_cal:.4} | {:+.4} |\n| Brier | {brier_raw:.4} | {brier_cal:.4} | {:+.4} |\n\nThe recalibrated probability is what a downstream consumer (site reliability badge, novel-word filter) should read as *P(matches the official lemma)*; the raw score remains the ranking key. Refit whenever the ladder changes.",
+        "\n### Isotonic recalibration (fit on dev, validated on holdout)\n\nA monotone score→probability map (decile histogram + pool-adjacent-violators) fit on the dev split only, then applied to the untouched holdout:\n\n| Holdout metric | raw score | recalibrated | Δ |\n|---|---:|---:|---:|\n| ECE | {ece_raw:.4} | {ece_cal:.4} | {:+.4} |\n| Brier | {brier_raw:.4} | {brier_cal:.4} | {:+.4} |\n\nThe recalibrated probability is valid for downstream consumers of this same official-row pipeline score as *P(matches the official lemma)*; the raw score remains the ranking key. It is not valid for the corpus path's separate coverage score (issue #89 J26). Refit whenever the ladder changes.",
         ece_cal - ece_raw,
         brier_cal - brier_raw,
     )?;
 
-    // Persist the fitted calibrator (Track C / issue #3): the site's novel-word
-    // pipeline reads every proposal's calibrated P(matches an official
-    // decision) from this committed file, so the static build stays
-    // self-contained. Regenerated (refitted) by every `evaluate` run.
+    // Persist the fitted calibrator (Track C / issue #3) with a machine-checked
+    // score domain. Consumers of another ranking function (notably the corpus
+    // coverage score) must reject it rather than publish cross-model
+    // probabilities. Regenerated (refitted) by every `evaluate` run.
     let pr_at = |t: f64| -> (f64, f64) {
         let sel: Vec<&&EntryResult> = held.iter().filter(|r| calibrate(r.score) >= t).collect();
         let hits = sel.iter().filter(|r| r.normalized).count();
@@ -3359,6 +3359,7 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
         )
     };
     let cal = crate::calibrate::Calibration {
+        score_domain: crate::calibrate::PIPELINE_SCORE_DOMAIN.to_string(),
         fitted_on: format!(
             "evaluate dev split ({} entries), production rung '{}'",
             dev.len(),
@@ -3371,15 +3372,15 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
     };
     std::fs::write(crate::calibrate::PATH, serde_json::to_string_pretty(&cal)?)?;
 
-    // ---- 6. Proposal-filter operating points (Track C / issue #3) ----
-    // The novel-word pipeline buckets proposals by calibrated probability. This
-    // table is the evidence for the thresholds: at each cutoff t, `precision` =
+    // ---- 6. Pipeline operating points (Track C / issue #3) ----
+    // These thresholds describe the official-row pipeline score domain only.
+    // They are evidence for compatible consumers: at each cutoff t, `precision` =
     // P(normalized match | p ≥ t) on the benchmark, `recall` = share of all
     // matches captured. Computed on the HOLDOUT split so the operating points
     // are honest out-of-sample numbers.
     writeln!(
         s,
-        "\n### Proposal-filter operating points (calibrated p, holdout split)\n\n| threshold | n ≥ t | precision | recall |\n|---:|---:|---:|---:|"
+        "\n### Official-row pipeline operating points (calibrated p, holdout split)\n\n| threshold | n ≥ t | precision | recall |\n|---:|---:|---:|---:|"
     )?;
     let total_hits = held.iter().filter(|r| r.normalized).count().max(1);
     for t10 in [3usize, 4, 5, 6, 7] {
@@ -3397,7 +3398,7 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
     }
     writeln!(
         s,
-        "\nThe site's novel-word buckets (`export`) read these operating points: **propose** = calibrated p at the high-precision cutoff, **review** = the middle band, below = not shown. The committed calibrator is `{}`.",
+        "\nThese operating points apply only to consumers of the official-row pipeline score. Corpus novel-word buckets remain disabled until that separate coverage score has its own holdout-validated calibrator. The committed pipeline calibrator is `{}`.",
         crate::calibrate::PATH
     )?;
 

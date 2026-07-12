@@ -7,8 +7,8 @@ published to GitHub Pages.
 An **evidence-based Interslavic (Medžuslovjansky) candidate-generation engine** with a
 reproducible accuracy benchmark against the official Interslavic dictionary, plus a
 Wiktionary-style website that shows, for every meaning, the generated candidate,
-its rule trace, the Slavic evidence by branch, a calibrated confidence, and whether it
-matches the official dictionary.
+its rule trace, the Slavic evidence by branch, an evidence-coverage confidence bucket,
+and whether it matches the official dictionary.
 
 No SQLite / database and no server: the website is a **statically generated** set of
 HTML pages + client-side search, hostable on any static host. No hotlinked Wikimedia CSS/JS.
@@ -61,16 +61,12 @@ committed and the site build stays self-contained.
   by a generated word (of ~21.4k), one representative page per lemma (homographs and
   duplicate sets deduped), with no leakage from the dictionary into the generation.
 - `cargo run -- corpus-eval` scores this site path against the dictionary directly:
-  **58.6% exact / 63.1% normalized** on the ~7.4k entries with a known ancestor.
-- `data/novel-words.tsv` — the **novel-vocabulary proposal pipeline** (regenerated
-  by every `export`): every generated word absent from the official dictionary,
-  carrying an **isotonic-calibrated probability** *P(would match an official
-  decision)* (`data/score-calibration.json`, fitted on the benchmark's dev split,
-  holdout-validated at ECE 0.013) and a bucket at measured operating points —
-  **predlog** (p≥0.6: 71.8% precision / 66.3% recall on holdout) or **pregled**
-  (p≥0.3: 61.7% / 88.9%). The site's *Predloženja* page renders the propose
-  bucket with evidence traces and `data/curation-notes.json` annotations; the
-  precision/recall of every threshold is in `target/eval/methodology.md`.
+  **58.31% exact / 62.84% normalized** on 7,398 entries with a known ancestor.
+- `data/novel-words.tsv` — the novel-vocabulary proposal artifact regenerated
+  by every `export`. It currently contains only its header: issue #89 found that
+  the official-row pipeline calibrator had been applied to the corpus path's
+  different coverage score. Probabilities and proposal buckets now fail closed
+  until a corpus-specific calibrator is fitted and holdout-validated.
 
 The **benchmark below** still measures generation accuracy against the official dictionary
 (a separate, leakage-free evaluation of the engine).
@@ -195,9 +191,9 @@ Beyond the three-way badge, `target/eval/methodology.md` now carries a full
 **reliability table** (score decile → empirical match rate), **ECE** and **Brier**
 scores, plus an **isotonic recalibration** fit on the dev split and validated on
 the untouched holdout: holdout ECE drops from 0.195 (raw score, systematically
-overconfident) to **0.013** recalibrated — the recalibrated probability is what a
-downstream consumer (reliability badge, novel-word filter) should read as
-*P(matches the official lemma)*; the raw score remains the ranking key.
+overconfident) to **0.013** recalibrated. This map is valid only for the
+official-row pipeline candidate-score domain; the corpus site's distinct
+coverage score must not use it. The raw score remains the ranking key.
 
 Full metrics, POS-specific accuracy, branch-coverage analysis, regression/improvement
 lists and the remaining-error breakdown are regenerated into `target/eval/` (a committed
@@ -355,8 +351,8 @@ data/
   proto-slavic.cache.json Proto-Slavic reconstructions (built by extract-proto)
   slavic-lemmas.cache.json every inherited + borrowed Slavic lemma (built by extract-lemmas)
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
-  novel-words.tsv         novel-vocabulary proposals with calibrated probability + bucket
-  score-calibration.json  the isotonic calibrator (refit by every `evaluate` run)
+  novel-words.tsv         paused proposal artifact (header-only until corpus calibration)
+  score-calibration.json  official-row pipeline calibrator (domain-checked; refit by evaluate)
   semantic-notes.json     curated false-friend warnings (applied by check-text)
   curation-notes.example.json  format of the optional human curation notes
 ```
@@ -437,8 +433,9 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   site's client-side JS, which verifies itself against
   `api/router-selftest.json` before trusting lookups.
 - `api/lemmas.json` — every headword with status (`official` /
-  `official-only` / `generated`) and calibrated probability for generated
-  lemmas; official verb rows additionally carry grammatical aspect and an
+  `official-only` / `generated`) and an optional model-specific probability
+  (currently null for corpus reconstructions); official verb rows additionally
+  carry grammatical aspect and an
   array of `[entry_id, lemma]` partners. Generated lemmas deliberately have
   **no inflection records**:
   an inflected form of a wrong reconstruction is confidently wrong.
@@ -450,7 +447,7 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   consumers must accept trailing `aspect` and `aspect_partners` (an array,
   empty for unpaired/non-official rows).
 - `api/agent-guide.md` — the lookup protocol, fold table and trust rules
-  (p < 0.6 ⇒ suggestion, never verification).
+  (any non-null generated probability ⇒ suggestion, never verification).
 
 Website twins of the API: **`forms.html`** (reverse lookup of any inflected
 form → analyses + entry links; also linked from every inflection table) and
@@ -482,7 +479,7 @@ verified by hashing two consecutive exports.
 Each entry page shows:
 
 - the **top candidate** headword with a **provenance** pill (proto-derived / consensus /
-  override) and a calibrated **reliability** badge;
+  override) and a coverage-based **reliability** badge (not a probability);
 - the **Proto-Slavic reconstruction** it was derived from, with Balto-Slavic / PIE
   ancestors and the link confidence;
 - **alternative** candidates with scores and branch coverage;
@@ -508,8 +505,8 @@ Site-wide tools beyond the entry pages:
 - **`text-check.html`** — paste Interslavic text; every token is verified
   client-side against the lexicon, with false-friend warnings (the static twin
   of `check-text`);
-- **`proposals.html`** ("Predloženja novyh slov") — the ranked novel-vocabulary
-  proposals with calibrated probabilities and curation notes;
+- **`proposals.html`** ("Predloženja novyh slov") — an explicitly paused
+  proposal worklist until the corpus coverage model has its own calibrator;
 - **`metrics.html`** ("Statistiky točnosti") — every accuracy metric explained,
   with current numbers;
 - **`datasets.html`** — all machine-readable artifacts (`api/`, `entries.json`,

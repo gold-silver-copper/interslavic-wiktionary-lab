@@ -188,9 +188,16 @@ fn key(lang: &str, word: &str) -> String {
 /// that word. Lets an enrichment chip link to an *internal* dictionary page when
 /// the related/synonym term is itself a headword (else it links out to the native
 /// Wiktionary), turning the per-entry enrichment into a site-wide semantic graph.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum XrefMatch {
+    Missing,
+    Unique(usize),
+    Ambiguous,
+}
+
 #[derive(Default)]
 pub struct Xref {
-    by_key: HashMap<String, usize>,
+    by_key: HashMap<String, Vec<usize>>,
 }
 
 impl Xref {
@@ -198,18 +205,44 @@ impl Xref {
         Self::default()
     }
 
-    /// Register that `word` (in `lang`) is a cognate of entry `id`. First writer
-    /// wins, so a word maps to the first entry that claimed it.
+    /// Register that `word` (in `lang`) is a cognate of entry `id`.
+    ///
+    /// A spelling can belong to several homographs/senses. Preserve every
+    /// claimant rather than routing semantic chips according to insertion
+    /// order; [`get`](Self::get) returns an internal target only when identity
+    /// is unambiguous.
     pub fn insert(&mut self, lang: &str, word: &str, id: usize) {
-        self.by_key.entry(key(lang, word)).or_insert(id);
+        let ids = self.by_key.entry(key(lang, word)).or_default();
+        if !ids.contains(&id) {
+            ids.push(id);
+        }
+    }
+
+    pub fn lookup(&self, lang: &str, word: &str) -> XrefMatch {
+        match self.by_key.get(&key(lang, word)).map(Vec::as_slice) {
+            None | Some([]) => XrefMatch::Missing,
+            Some([id]) => XrefMatch::Unique(*id),
+            Some(_) => XrefMatch::Ambiguous,
+        }
     }
 
     pub fn get(&self, lang: &str, word: &str) -> Option<usize> {
-        self.by_key.get(&key(lang, word)).copied()
+        match self.lookup(lang, word) {
+            XrefMatch::Unique(id) => Some(id),
+            XrefMatch::Missing | XrefMatch::Ambiguous => None,
+        }
+    }
+
+    pub fn contains(&self, lang: &str, word: &str) -> bool {
+        !matches!(self.lookup(lang, word), XrefMatch::Missing)
     }
 
     pub fn len(&self) -> usize {
         self.by_key.len()
+    }
+
+    pub fn ambiguous_len(&self) -> usize {
+        self.by_key.values().filter(|ids| ids.len() > 1).count()
     }
 }
 
@@ -599,6 +632,23 @@ mod tests {
             source_url("cs", "za slova"),
             "https://cs.wiktionary.org/wiki/za_slova"
         );
+    }
+
+    #[test]
+    fn xref_abstains_when_a_word_has_multiple_entry_claimants() {
+        let mut xref = Xref::new();
+        xref.insert("ru", "мир", 10);
+        xref.insert("ru", "мир", 10); // duplicate membership is still unique
+        assert_eq!(xref.lookup("ru", "мир"), XrefMatch::Unique(10));
+        assert!(xref.contains("ru", "мир"));
+        assert_eq!(xref.ambiguous_len(), 0);
+
+        xref.insert("ru", "мир", 20); // peace/world homographs
+        assert_eq!(xref.lookup("ru", "мир"), XrefMatch::Ambiguous);
+        assert!(xref.contains("ru", "мир"));
+        assert_eq!(xref.get("ru", "мир"), None);
+        assert_eq!(xref.ambiguous_len(), 1);
+        assert_eq!(xref.len(), 1);
     }
 
     #[test]

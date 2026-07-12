@@ -89,9 +89,9 @@ A monotone score→probability map (decile histogram + pool-adjacent-violators) 
 | ECE | 0.1942 | 0.0107 | -0.1835 |
 | Brier | 0.2334 | 0.1951 | -0.0383 |
 
-The recalibrated probability is what a downstream consumer (site reliability badge, novel-word filter) should read as *P(matches the official lemma)*; the raw score remains the ranking key. Refit whenever the ladder changes.
+The recalibrated probability is valid for downstream consumers of this same official-row pipeline score as *P(matches the official lemma)*; the raw score remains the ranking key. It is not valid for the corpus path's separate coverage score (issue #89 J26). Refit whenever the ladder changes.
 
-### Proposal-filter operating points (calibrated p, holdout split)
+### Official-row pipeline operating points (calibrated p, holdout split)
 
 | threshold | n ≥ t | precision | recall |
 |---:|---:|---:|---:|
@@ -101,4 +101,4 @@ The recalibrated probability is what a downstream consumer (site reliability bad
 | ≥ 0.6 | 1845 | 71.9% | 66.6% |
 | ≥ 0.7 | 1503 | 73.1% | 55.1% |
 
-The site's novel-word buckets (`export`) read these operating points: **propose** = calibrated p at the high-precision cutoff, **review** = the middle band, below = not shown. The committed calibrator is `data/score-calibration.json`.
+These operating points apply only to consumers of the official-row pipeline score. Corpus novel-word buckets remain disabled until that separate coverage score has its own holdout-validated calibrator. The committed pipeline calibrator is `data/score-calibration.json`.

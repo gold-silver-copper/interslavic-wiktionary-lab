@@ -496,6 +496,23 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
         is_intl_meaning: set.borrowed,
         reflexive,
     };
+    // Historical lects such as OCS are etymological hints, not modern
+    // attestations. Consensus already excludes them from voting; keep the same
+    // boundary for candidate support, displayed evidence counts and confidence.
+    let mut modern_langs: Vec<String> = input
+        .forms
+        .iter()
+        .filter(|f| f.modern)
+        .map(|f| f.lang_code.clone())
+        .collect();
+    modern_langs.sort();
+    modern_langs.dedup();
+    let mut modern_branches = Vec::new();
+    for f in input.forms.iter().filter(|f| f.modern) {
+        if !modern_branches.contains(&f.branch) {
+            modern_branches.push(f.branch);
+        }
+    }
 
     // Cross-branch consensus surface + alternatives.
     let mut candidates = consensus::generate(&input, cfg);
@@ -540,13 +557,10 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
             });
             // The reconstruction is authoritative for the form; place it first.
             pc.score = 0.99;
-            // Supported by the whole cognate set (issue #79 razumlivost).
-            pc.langs = {
-                let mut l: Vec<String> = set.members.iter().map(|m| m.lang.clone()).collect();
-                l.sort();
-                l.dedup();
-                l
-            };
+            // Supported by the modern members of the cognate set (issue #79
+            // razumlivost). Historical hints can shape etymology, but do not
+            // claim present-day speaker coverage.
+            pc.langs = modern_langs.clone();
             candidates.insert(0, pc);
         }
     }
@@ -555,19 +569,8 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
     dedupe(&mut candidates);
 
     // Confidence scales with cognate coverage (the core of the design).
-    let n_langs = input
-        .forms
-        .iter()
-        .map(|f| f.lang_code.as_str())
-        .collect::<std::collections::BTreeSet<_>>()
-        .len();
-    let mut branches = Vec::new();
-    for f in &input.forms {
-        if !branches.contains(&f.branch) {
-            branches.push(f.branch);
-        }
-    }
-    let n_branches = branches.len();
+    let n_langs = modern_langs.len();
+    let n_branches = modern_branches.len();
     let (confidence, score) = coverage_confidence(n_langs, n_branches);
     if let Some(top) = candidates.first_mut() {
         top.confidence = confidence;
@@ -663,6 +666,33 @@ mod tests {
         assert!(matches!(coverage_confidence(6, 3).0, Confidence::High));
         assert!(matches!(coverage_confidence(3, 2).0, Confidence::Medium));
         assert!(matches!(coverage_confidence(1, 1).0, Confidence::Low));
+    }
+
+    #[test]
+    fn historical_hints_do_not_inflate_modern_coverage() {
+        let modern_only = CognateSet {
+            proto: "*voda".into(),
+            etymon: "*voda".into(),
+            borrowed: false,
+            pos: Pos::Noun,
+            gloss: "water".into(),
+            members: vec![le("ru", "вода", "noun", "*voda", "")],
+        };
+        let base = generate_set(modern_only.clone(), &ConsensusConfig::production());
+        assert_eq!((base.n_langs, base.n_branches), (1, 1));
+        for hint in ["cu", "orv"] {
+            let mut with_hint = modern_only.clone();
+            with_hint
+                .members
+                .push(le(hint, "вода", "noun", "*voda", ""));
+            let hinted = generate_set(with_hint, &ConsensusConfig::production());
+            assert_eq!(
+                (hinted.n_langs, hinted.n_branches, hinted.score),
+                (base.n_langs, base.n_branches, base.score),
+                "historical hint {hint} inflated coverage"
+            );
+            assert_eq!(hinted.candidates[0].langs, ["ru"]);
+        }
     }
 
     #[test]

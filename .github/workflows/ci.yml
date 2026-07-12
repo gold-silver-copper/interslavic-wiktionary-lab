@@ -42,7 +42,8 @@ jobs:
           rm -rf /tmp/slovowiki-aspect-ci
           cargo run --release -- export --out /tmp/slovowiki-aspect-ci
           python3 tools/validate-aspect-export.py /tmp/slovowiki-aspect-ci
-          git diff --exit-code -- data/novel-words.tsv
+          python3 tools/validate-linguistic-logic.py /tmp/slovowiki-aspect-ci
+          git diff --exit-code -- data/novel-words.tsv data/score-calibration.json
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)
