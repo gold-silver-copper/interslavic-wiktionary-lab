@@ -19,6 +19,9 @@ for entry in entries:
     for partner in partners:
         target = by_id.get(partner["id"])
         assert target is not None, ("missing partner page", entry["id"], partner)
+        assert partner["title"] == target["title"], (
+            "partner title differs from target page", entry["id"], partner, target["title"]
+        )
         assert any(p["id"] == entry["id"] for p in target["aspect_partners"]), (
             "non-reciprocal partner", entry["id"], partner["id"]
         )
@@ -32,12 +35,37 @@ assert pairs["schema_version"] == 3 and len(pairs["pairs"]) == 1440
 for row in lemmas["lemmas"]:
     assert len(row) == 8, ("lemma tuple width", len(row), row[:2])
     assert isinstance(row[7], list), ("aspect_partners is not an array", row[:2])
-    if row[6] is not None:
-        assert row[1] == "verb" and row[2] in ("official", "official-only"), row
+    is_official_verb = row[1] == "verb" and row[2] in ("official", "official-only")
+    if is_official_verb:
+        page = by_id.get(row[4])
+        assert page is not None, ("official verb lemma missing page", row[:6])
+        expected_partners = sorted(
+            [[partner["id"], partner["title"]] for partner in page["aspect_partners"]]
+        )
+        assert row[6] == page["aspect"], ("lemma aspect differs from page", row, page)
+        assert sorted(row[7]) == expected_partners, (
+            "lemma partners differ from page", row, expected_partners
+        )
+    else:
+        assert row[6] is None and row[7] == [], (
+            "aspect metadata outside official verb lemma", row
+        )
+
 for pair in pairs["pairs"]:
+    endpoints = {}
     for side in ("imperfective", "perfective"):
-        entry_id = pair[side]["entry_id"]
-        assert entry_id in by_id, ("pair endpoint missing page", side, pair[side])
+        endpoint = pair[side]
+        entry_id = endpoint["entry_id"]
+        assert entry_id in by_id, ("pair endpoint missing page", side, endpoint)
+        endpoints[side] = by_id[entry_id]
+    imperfective = endpoints["imperfective"]
+    perfective = endpoints["perfective"]
+    assert any(p["id"] == perfective["id"] for p in imperfective["aspect_partners"]), (
+        "pair missing imperfective-to-perfective link", pair
+    )
+    assert any(p["id"] == imperfective["id"] for p in perfective["aspect_partners"]), (
+        "pair missing perfective-to-imperfective link", pair
+    )
 
 # `total_bytes` is payload bytes and intentionally excludes meta.json itself.
 counted = [api / "lemmas.json", api / "agent-guide.md", api / "router-selftest.json",

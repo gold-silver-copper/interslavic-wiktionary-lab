@@ -997,12 +997,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             continue;
         }
         let (im, pm) = (meta_pos[&ii], meta_pos[&pi]);
-        metas[im]
-            .aspect_partners
-            .push((pi, pf.isv.trim().to_string()));
-        metas[pm]
-            .aspect_partners
-            .push((ii, ipf.isv.trim().to_string()));
+        // The tuple's label is the canonical title of the target page, not an
+        // arbitrary folded-equivalent spelling from one official sense row.
+        let ipf_title = metas[im].title.clone();
+        let pf_title = metas[pm].title.clone();
+        metas[im].aspect_partners.push((pi, pf_title));
+        metas[pm].aspect_partners.push((ii, ipf_title));
     }
     for m in &mut metas {
         m.aspect_partners.sort();

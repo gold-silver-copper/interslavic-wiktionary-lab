@@ -162,15 +162,6 @@ fn suppletive_pair(imperfective: &str, perfective: &str) -> Option<(&'static str
     })
 }
 
-/// True for the closed lexical exceptions. `aspect-eval` excludes these rows
-/// from accuracy scoring: production may use documented lexical grammar, but a
-/// held-out benchmark must not receive its partner answer from that list.
-pub fn is_closed_suppletive_pair(imperfective: &str, perfective: &str) -> bool {
-    SUPPLETIVE.iter().any(|(i, p)| {
-        ortho::normalized_match(imperfective, i) && ortho::normalized_match(perfective, p)
-    })
-}
-
 #[derive(Debug, Clone)]
 pub struct PairPrediction {
     pub imperfective: String,
@@ -334,6 +325,9 @@ pub fn derive_imperfectives(perfective: &str, cfg: AspectConfig) -> Vec<(String,
 
 pub fn derive_perfectives(imperfective: &str, cfg: AspectConfig) -> Vec<(String, &'static str)> {
     let mut out = Vec::new();
+    let has_secondary_suffix = ["yvati", "ivati", "avati", "ovati"]
+        .iter()
+        .any(|suffix| imperfective.ends_with(suffix));
     for (from, to, rule, secondary) in [
         ("jati", "iti", "ipf-jati-to-pf-iti", false),
         ("ati", "nųti", "ipf-ati-to-pf-nuti", false),
@@ -343,6 +337,13 @@ pub fn derive_perfectives(imperfective: &str, cfg: AspectConfig) -> Vec<(String,
         ("avati", "ati", "secondary-ipf-avati-reverse", true),
     ] {
         if secondary && !cfg.secondary_imperfectives {
+            continue;
+        }
+        // Expanded imperfective suffixes all end in `-ati`; allowing the
+        // generic productive rule to see them would bypass the secondary-rule
+        // flag (or the separate `-ovati/-uje` class) and emit forms such as
+        // `sprašivnųti` or `organizovnųti` in production.
+        if from == "ati" && !secondary && has_secondary_suffix {
             continue;
         }
         if let Some(v) = replace_suffix(imperfective, from, to) {
@@ -392,11 +393,10 @@ mod tests {
         assert!(ipf.iter().any(|(f, _)| f == "dobavjati"));
         let ipf = derive_imperfectives("bryzgnųti", AspectConfig::with_secondary_imperfectives());
         assert!(ipf.iter().any(|(f, _)| f == "bryzgati"));
-        assert!(
-            derive_perfectives("pokazyvati", AspectConfig::with_secondary_imperfectives())
-                .iter()
-                .any(|(f, _)| f == "pokazati")
-        );
+        let secondary =
+            derive_perfectives("pokazyvati", AspectConfig::with_secondary_imperfectives());
+        assert!(secondary.iter().any(|(f, _)| f == "pokazati"));
+        assert!(!secondary.iter().any(|(f, _)| f == "pokazyvnųti"));
         assert!(
             derive_imperfectives("organizovati", AspectConfig::with_secondary_imperfectives())
                 .iter()
@@ -404,5 +404,24 @@ mod tests {
         );
         assert_eq!(ovati_present_stem("kupovati").as_deref(), Some("kupuje"));
         assert_eq!(suppletive_pair("idti", "hoditi"), Some(("idti", "pojdti")));
+    }
+
+    #[test]
+    fn production_does_not_bypass_disabled_secondary_imperfectives() {
+        for word in [
+            "pokazyvati",
+            "sprašivati",
+            "prědavati",
+            "organizovati",
+            "organizovyvati",
+        ] {
+            assert!(
+                derive_perfectives(word, AspectConfig::production()).is_empty(),
+                "production derived a perfective from secondary-family {word}"
+            );
+        }
+        assert!(derive_perfectives("pisati", AspectConfig::production())
+            .iter()
+            .any(|(form, rule)| form == "pisnųti" && *rule == "ipf-ati-to-pf-nuti"));
     }
 }

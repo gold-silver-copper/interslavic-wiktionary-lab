@@ -1964,10 +1964,6 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     for pair in &pairs {
         let ipf = &entries[pair.imperfective];
         let pf = &entries[pair.perfective];
-        if crate::aspect::is_closed_suppletive_pair(ipf.isv.trim(), pf.isv.trim()) {
-            lexical_exceptions += 1;
-            continue;
-        }
         let (ipf_input, pf_input) = (build_input(ipf), build_input(pf));
         let generate = |aspect_cfg| {
             crate::aspect::generate_pair(&ipf_input, &pf_input, proto.as_ref(), &cfg, aspect_cfg)
@@ -1985,6 +1981,15 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         });
         let core_repaired = generate(crate::aspect::AspectConfig::production());
         let repaired = generate(crate::aspect::AspectConfig::with_secondary_imperfectives());
+        // Exclude a lexical exception only when the production path actually
+        // consumed the closed list. Gold membership alone is insufficient:
+        // when neither generated candidate identifies the lexical pair, the
+        // production export still emits an ordinary (and potentially wrong)
+        // prediction, so the benchmark must score it.
+        if core_repaired.rule == "closed-suppletive-pair" {
+            lexical_exceptions += 1;
+            continue;
+        }
         let (ipf_base, pf_base) = (
             independent.imperfective.as_str(),
             independent.perfective.as_str(),
@@ -2088,10 +2093,10 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     std::fs::write(out_dir.join("aspect-pairs.tsv"), &manifest)?;
     let mut report = String::new();
     writeln!(report, "# Aspect-pair benchmark (aspect-eval)\n")?;
-    writeln!(report, "**Frozen reproducible inventory:** {} deterministic 1:1 same-gloss, morphologically-related official ipf↔pf pairs (ordered manifest `aspect-pairs.tsv`, FNV-1a-64 `{pair_hash:016x}`). **Scored denominator:** {} regular pairs; {} closed suppletive pairs are production grammar but excluded from accuracy scoring so their held-out partner answers cannot leak. **Keep metrics:** both-correct (primary), either-correct, and consonant-root fingerprint consistency. **Leakage:** official aspect/gloss/root spelling selects the evaluation slice only; both baseline forms are independently generated from cognate cells, and pair repair sees only those generated forms plus their scores. The shared seeded hash holds out {} scored pairs.\n", pairs.len(), baseline.n, lexical_exceptions, holdout.n)?;
+    writeln!(report, "**Frozen reproducible inventory:** {} deterministic 1:1 same-gloss, morphologically-related official ipf↔pf pairs (ordered manifest `aspect-pairs.tsv`, FNV-1a-64 `{pair_hash:016x}`). **Scored denominator:** {} regular pairs; {} closed suppletive predictions are excluded only when production actually fires the lexical rule, so unrecognized lexical pairs remain honest scored misses. **Keep metrics:** normalized both-correct (primary), normalized either-correct, and consonant-root fingerprint consistency. **Leakage:** official aspect/gloss/root spelling selects the evaluation slice only; both baseline forms are independently generated from cognate cells, and pair repair sees only those generated forms plus their scores. The shared seeded hash holds out {} scored pairs.\n", pairs.len(), baseline.n, lexical_exceptions, holdout.n)?;
     writeln!(
         report,
-        "| model | n | both correct | either correct | fingerprint consistency |"
+        "| model | n | normalized both correct | normalized either correct | fingerprint consistency |"
     )?;
     writeln!(report, "|---|---:|---:|---:|---:|")?;
     writeln!(
@@ -2127,9 +2132,9 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         pct(model.paired, model.n)
     )?;
     let unrepaired = rules.get("unrepaired").copied().unwrap_or(0);
-    writeln!(report, "\nThe secondary `-yva-/-iva-/-ava-` and `-ovati→-ovyvati` families are controlled by `AspectConfig.secondary_imperfectives`. They remain implemented but disabled in production because the rung is flat on holdout both-correct. The production prefix repair improves the declared primary **both-correct** metric with no breaks and improves consonant-root fingerprint consistency ({unrepaired} pairs remain unrepaired), but it lowers the secondary either-correct metric. The `-ovati→-uje` present stem is exported and unit-tested grammar metadata, not part of this infinitive-pair accuracy metric; the paired table below discloses that tradeoff rather than relabeling it as a universal accuracy gain.\n")?;
-    writeln!(report, "\n## Dev / holdout\n\n| model / split | n | both correct | either correct | fingerprint consistency |\n|---|---:|---:|---:|---:|\n| baseline dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| baseline holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| suffix rung dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| suffix rung holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| prefix rung dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| prefix rung holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| secondary experimental dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| secondary experimental holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| production dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| production holdout | {} | {:.2}% | {:.2}% | {:.2}% |", baseline_dev.n, pct(baseline_dev.both, baseline_dev.n), pct(baseline_dev.either, baseline_dev.n), pct(baseline_dev.paired, baseline_dev.n), baseline_holdout.n, pct(baseline_holdout.both, baseline_holdout.n), pct(baseline_holdout.either, baseline_holdout.n), pct(baseline_holdout.paired, baseline_holdout.n), suffix_dev.n, pct(suffix_dev.both, suffix_dev.n), pct(suffix_dev.either, suffix_dev.n), pct(suffix_dev.paired, suffix_dev.n), suffix_holdout.n, pct(suffix_holdout.both, suffix_holdout.n), pct(suffix_holdout.either, suffix_holdout.n), pct(suffix_holdout.paired, suffix_holdout.n), prefix_dev.n, pct(prefix_dev.both, prefix_dev.n), pct(prefix_dev.either, prefix_dev.n), pct(prefix_dev.paired, prefix_dev.n), prefix_holdout.n, pct(prefix_holdout.both, prefix_holdout.n), pct(prefix_holdout.either, prefix_holdout.n), pct(prefix_holdout.paired, prefix_holdout.n), secondary_dev.n, pct(secondary_dev.both, secondary_dev.n), pct(secondary_dev.either, secondary_dev.n), pct(secondary_dev.paired, secondary_dev.n), secondary_holdout.n, pct(secondary_holdout.both, secondary_holdout.n), pct(secondary_holdout.either, secondary_holdout.n), pct(secondary_holdout.paired, secondary_holdout.n), dev.n, pct(dev.both, dev.n), pct(dev.either, dev.n), pct(dev.paired, dev.n), holdout.n, pct(holdout.both, holdout.n), pct(holdout.either, holdout.n), pct(holdout.paired, holdout.n))?;
-    writeln!(report, "\n## Paired significance vs independent baseline\n\n| metric | fixed | broke | two-sided sign-test p |\n|---|---:|---:|---:|\n| both correct | {fixed_both} | {broke_both} | {:.4} |\n| either correct | {fixed_either} | {broke_either} | {:.4} |", sign_test_p(fixed_both, broke_both), sign_test_p(fixed_either, broke_either))?;
+    writeln!(report, "\nThe secondary `-yva-/-iva-/-ava-` and `-ovati→-ovyvati` families are controlled by `AspectConfig.secondary_imperfectives`. They remain implemented but disabled in production because the rung is flat on holdout normalized both-correct. The production prefix repair improves the declared primary **normalized both-correct** metric with no breaks and improves consonant-root fingerprint consistency ({unrepaired} pairs remain unrepaired), but it lowers the secondary normalized either-correct metric. The `-ovati→-uje` present stem is exported and unit-tested grammar metadata, not part of this infinitive-pair accuracy metric; the paired table below discloses that tradeoff rather than relabeling it as a universal accuracy gain.\n")?;
+    writeln!(report, "\n## Dev / holdout\n\n| model / split | n | normalized both correct | normalized either correct | fingerprint consistency |\n|---|---:|---:|---:|---:|\n| baseline dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| baseline holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| suffix rung dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| suffix rung holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| prefix rung dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| prefix rung holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| secondary experimental dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| secondary experimental holdout | {} | {:.2}% | {:.2}% | {:.2}% |\n| production dev | {} | {:.2}% | {:.2}% | {:.2}% |\n| production holdout | {} | {:.2}% | {:.2}% | {:.2}% |", baseline_dev.n, pct(baseline_dev.both, baseline_dev.n), pct(baseline_dev.either, baseline_dev.n), pct(baseline_dev.paired, baseline_dev.n), baseline_holdout.n, pct(baseline_holdout.both, baseline_holdout.n), pct(baseline_holdout.either, baseline_holdout.n), pct(baseline_holdout.paired, baseline_holdout.n), suffix_dev.n, pct(suffix_dev.both, suffix_dev.n), pct(suffix_dev.either, suffix_dev.n), pct(suffix_dev.paired, suffix_dev.n), suffix_holdout.n, pct(suffix_holdout.both, suffix_holdout.n), pct(suffix_holdout.either, suffix_holdout.n), pct(suffix_holdout.paired, suffix_holdout.n), prefix_dev.n, pct(prefix_dev.both, prefix_dev.n), pct(prefix_dev.either, prefix_dev.n), pct(prefix_dev.paired, prefix_dev.n), prefix_holdout.n, pct(prefix_holdout.both, prefix_holdout.n), pct(prefix_holdout.either, prefix_holdout.n), pct(prefix_holdout.paired, prefix_holdout.n), secondary_dev.n, pct(secondary_dev.both, secondary_dev.n), pct(secondary_dev.either, secondary_dev.n), pct(secondary_dev.paired, secondary_dev.n), secondary_holdout.n, pct(secondary_holdout.both, secondary_holdout.n), pct(secondary_holdout.either, secondary_holdout.n), pct(secondary_holdout.paired, secondary_holdout.n), dev.n, pct(dev.both, dev.n), pct(dev.either, dev.n), pct(dev.paired, dev.n), holdout.n, pct(holdout.both, holdout.n), pct(holdout.either, holdout.n), pct(holdout.paired, holdout.n))?;
+    writeln!(report, "\n## Paired significance vs independent baseline\n\n| metric | fixed | broke | two-sided sign-test p |\n|---|---:|---:|---:|\n| normalized both correct | {fixed_both} | {broke_both} | {:.4} |\n| normalized either correct | {fixed_either} | {broke_either} | {:.4} |", sign_test_p(fixed_both, broke_both), sign_test_p(fixed_either, broke_either))?;
     writeln!(report, "\n## Rule census\n")?;
     for (rule, n) in &rules {
         writeln!(report, "- `{rule}`: {n}")?;
