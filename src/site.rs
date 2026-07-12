@@ -257,6 +257,10 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
 // lemmas in Wiktionary, independent of the official Interslavic dictionary.
 // ===========================================================================
 
+/// Committed compatibility registry for public entry permalinks. The generated
+/// `site/` directory is gitignored and absent in CI/Pages checkouts.
+const ENTRY_ID_REGISTRY: &str = "data/entry-id-registry.json";
+
 /// Stable core-page id allocator backed by the previous export. Public entry
 /// URLs must not be positional: extraction/grouping improvements reorder sets.
 #[derive(Default)]
@@ -270,7 +274,7 @@ impl StableEntryIds {
         if !path.exists() {
             return Ok(Self::default());
         }
-        let value: serde_json::Value = serde_json::from_slice(&std::fs::read(path)?)?;
+        let value: serde_json::Value = serde_json::from_slice(&crate::dump::read_maybe_gz(path)?)?;
         let mut ids: std::collections::HashMap<String, Vec<usize>> =
             std::collections::HashMap::new();
         let mut high_water = 0usize;
@@ -442,14 +446,15 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // Entry URLs are public permalinks. Evidence growth can reorder cognate
     // sets, so positional ids would silently retarget every old URL (issue #86
     // moved aloe from /entry/19717 to /entry/9679). Reuse ids by semantic
-    // identity from the previous export. For an alternate/clean output dir,
-    // the committed `site/entries.json` is the compatibility registry.
+    // identity from the previous export. For a clean CI/Pages checkout, use
+    // the committed compact compatibility registry (the generated `site/`
+    // directory is intentionally gitignored).
     let previous_entries = {
         let local = out_dir.join("entries.json");
         if local.exists() {
             local
         } else {
-            PathBuf::from("site/entries.json")
+            PathBuf::from(ENTRY_ID_REGISTRY)
         }
     };
     let mut entry_ids = StableEntryIds::load(&previous_entries)?;
@@ -9554,7 +9559,7 @@ mod tests {
     /// aloe must remain entry/19717; official identity ignores changing gloss.
     #[test]
     fn stable_entry_ids_preserve_the_aloe_permalink() {
-        let mut ids = StableEntryIds::load(Path::new("site/entries.json")).unwrap();
+        let mut ids = StableEntryIds::load(Path::new(ENTRY_ID_REGISTRY)).unwrap();
         let key = entry_identity(
             true,
             "aloe",
