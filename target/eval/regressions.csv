@@ -19,6 +19,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 24515,bar (tavern),noun,bar,bar,bȯr
 24538,baron,noun,baron,baron,baran
 20334,badger,noun,barsuk,barsuk,jazvec
+1868,"colour, color",noun,barva,barva,květ
 24545,barge,noun,barža,barža,čȯln
 24546,bass (voice),noun,bas,bas,běs
 1846,fairytale,noun,basnj,basnj,basna
@@ -141,10 +142,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 17446,sponge,noun,gųbka,gubka,gųba
 2571,goose,noun,gųś,gus,gųsak
 429,caterpillar,noun,gųsenica,gusenica,vųsěnica
-2574,nail,noun,gvozď,gvozd,gvozdej
 31874,hook,noun,hak,hak,kuka
 4663,chemical,adj,hemičny,hemičny,himičny
-1828,hide,verb,hovati,hovati,havac
 22620,chromium,noun,hrom,hrom,grom
 26018,limp,verb,hromati,hromati,hramati
 1245,brushwood,noun,hrust,hrust,hrasti
@@ -199,6 +198,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 36274,coconut,noun,kokos,kokos,kokoš
 26596,"hen, chicken",noun,kokoška,kokoška,kokoš
 37354,"cola, coke",noun,kola,kola,kolo
+1955,"colour, color",noun,kolor,kolor,květ
 2242,coma,noun,koma,koma,kom
 26627,comfortably,adv,komfortno,komfortno,komfortne
 35965,competence,noun,kompetentnosť,kompetentnost,kompetencija
@@ -223,6 +223,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1899,blood,noun,krȯv,krov,kry
 26929,buckthorn,noun,krušina,krušina,krušyna
 4514,bleed,verb,krvaviti,krvaviti,kryvavic
+17711,rat,noun,krysa,krysa,ščur
 16278,Cuba,noun,Kuba,kuba,kub
 35196,"culinary, gastronomic",adj,kuhaŕsky,kuharsky,kulinarny
 4771,marten,noun,kuna,kuna,kunica
@@ -258,6 +259,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 27423,mother’s,adj,mamin,mamin,maminy
 35589,"route, itinerary",noun,maršrut,maršrut,pųt
 27438,mask,noun,maska,maska,mȯsk
+2703,olive,noun,maslina,maslina,maslo
 2686,ointment,noun,masť,mast,maz
 27447,mate (chess),noun,mat,mat,mati
 27484,she-bear,noun,medvědica,medvedica,mečka
@@ -320,7 +322,6 @@ id,gloss,pos,official,baseline_pred,final_pred
 3863,spend the night,verb,noćevati,nočevati,noćivati
 2060,"number, numeral",noun,nomer,nomer,čislo
 15707,"notary, notary public",noun,notaŕ,notar,notarius
-998,both,num,oba,oba,oba dva
 9772,promise,noun,oběćańje,obećanje,sȯljubo
 17995,#disclose,verb,objaviti,objaviti,råzkryti
 28776,"go round, travel round, make a detour",verb,obježđati,obježdžati,ab'jazdžac
@@ -680,6 +681,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 20803,arise,verb,vȯzniknųti,vozniknuti,vzniknuti
 20804,emerge,verb,vȯzniknųti,vozniknuti,vzniknuti
 20805,raise,verb,vȯznositi,voznositi,vznašati
+3109,door,noun,vråta,vrata,dvero
 31397,vulgarism,noun,vulgarizm,vulgarizm,vulgaryzm
 3678,"introduce, inaugurate",verb,vvesti,vvesti,uvesti
 3677,"introduce, inaugurate",verb,vvoditi,vvoditi,uvoditi
@@ -729,4 +731,5 @@ id,gloss,pos,official,baseline_pred,final_pred
 19402,"incandesce, heat to a glow",verb,žariti,žariti,nakalati
 1047,"wish, desire",verb,želati,želati,žędati
 23279,jelly,noun,žele,žele,zelje
+32985,jovial,adj,žoviaľny,žovialny,vesely
 22962,gluttonous,adj,žravy,žravy,lakomy

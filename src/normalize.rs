@@ -108,6 +108,77 @@ pub fn is_cyrillic_char(c: char) -> bool {
     ('\u{0400}'..='\u{052F}').contains(&c) || ('\u{A640}'..='\u{A69F}').contains(&c)
 }
 
+/// Greek & Coptic plus the polytonic Greek Extended block (Ancient Greek
+/// etymons: ἀλόη, φιλοσοφία).
+pub fn is_greek_char(c: char) -> bool {
+    ('\u{0370}'..='\u{03FF}').contains(&c) || ('\u{1F00}'..='\u{1FFF}').contains(&c)
+}
+
+/// Transliterate a Greek-script word to a Latin approximation for etymon-key
+/// alignment (issue #86): standard-romanization letter values (η→e, ω→o,
+/// υ→y, φ→ph, θ→th, χ→ch, ξ→x, ψ→ps), all polytonic diacritics stripped —
+/// `ἀλόη` → `aloe`, matching the Latin borrowing's own spelling (`la aloē` →
+/// intl_key `aloe`). This is an ALIGNMENT fold, not phonology: it only makes
+/// Greek-script source words comparable with each other and with their
+/// Graeco-Latin spellings. Unmapped characters pass through (a later
+/// Latin-script check rejects anything still non-Latin).
+pub fn translit_greek(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.trim().to_lowercase().chars() {
+        // Combining marks (tonos/psili/dasia written combining) drop.
+        if ('\u{0300}'..='\u{036F}').contains(&c) {
+            continue;
+        }
+        let repl: &str = match c {
+            'α' | 'ά' => "a",
+            'β' => "b",
+            'γ' => "g",
+            'δ' => "d",
+            'ε' | 'έ' => "e",
+            'ζ' => "z",
+            'η' | 'ή' => "e",
+            'θ' => "th",
+            'ι' | 'ί' | 'ϊ' | 'ΐ' => "i",
+            'κ' => "k",
+            'λ' => "l",
+            'μ' => "m",
+            'ν' => "n",
+            'ξ' => "x",
+            'ο' | 'ό' => "o",
+            'π' => "p",
+            'ρ' => "r",
+            'σ' | 'ς' => "s",
+            'τ' => "t",
+            'υ' | 'ύ' | 'ϋ' | 'ΰ' => "y",
+            'φ' => "ph",
+            'χ' => "ch",
+            'ψ' => "ps",
+            'ω' | 'ώ' => "o",
+            // Polytonic (Greek Extended): precomposed vowel + breathing/accent
+            // combinations map by codepoint row to their base letter.
+            other => {
+                let cp = other as u32;
+                match cp {
+                    0x1F00..=0x1F0F | 0x1F70..=0x1F71 | 0x1F80..=0x1F8F | 0x1FB0..=0x1FBC => "a",
+                    0x1F10..=0x1F1F | 0x1F72..=0x1F73 => "e",
+                    0x1F20..=0x1F2F | 0x1F74..=0x1F75 | 0x1F90..=0x1F9F | 0x1FC0..=0x1FCC => "e",
+                    0x1F30..=0x1F3F | 0x1F76..=0x1F77 | 0x1FD0..=0x1FD7 => "i",
+                    0x1F40..=0x1F4F | 0x1F78..=0x1F79 => "o",
+                    0x1F50..=0x1F5F | 0x1F7A..=0x1F7B | 0x1FE0..=0x1FE3 | 0x1FE6..=0x1FE7 => "y",
+                    0x1FE4..=0x1FE5 => "r",
+                    0x1F60..=0x1F6F | 0x1F7C..=0x1F7D | 0x1FA0..=0x1FAF | 0x1FF2..=0x1FFC => "o",
+                    _ => {
+                        out.push(other);
+                        continue;
+                    }
+                }
+            }
+        };
+        out.push_str(repl);
+    }
+    out
+}
+
 /// Fold Cyrillic homoglyph typos inside Proto-Slavic reconstruction notation.
 /// en.wiktionary etymologies occasionally carry look-alike Cyrillic letters
 /// typed into Latin reconstruction names (`*klоръ` for `*klopъ`, `*derьmо`
@@ -226,6 +297,11 @@ fn translit_cyrillic(lang: &str, s: &str) -> String {
             'с' => "s",
             'т' => "t",
             'у' => "u",
+            // Rusyn ӱ (the *o reflex in newly closed syllables, кӱнь<конь):
+            // /ü/, nearest phonemic-Latin vowel "u". Unmapped it leaked
+            // Cyrillic into a generated display headword once the issue-#86
+            // chain lemmas made rue singleton sets visible (script census).
+            'ӱ' => "u",
             'ў' => "v",
             'ф' => "f",
             'х' => "h", // ISV writes *x as h
@@ -467,6 +543,25 @@ mod tests {
         assert_eq!(tr("sh", "међа"), "međa");
         assert_eq!(tr("sh", "trbuh"), "trbuh"); // pure Latin path unchanged
         assert_eq!(tr("sr", "вода"), "voda"); // Cyrillic-registry langs unchanged
+                                              // Rusyn ӱ maps (issue #86 chain lemmas surfaced rue singletons whose
+                                              // displays leaked it as Cyrillic).
+        assert_eq!(tr("rue", "вӱсямнадцять"), "vusamnadcat");
+        assert!(!tr("rue", "вӱсямнадцять")
+            .chars()
+            .any(super::is_cyrillic_char));
+    }
+
+    /// Issue #86: the Greek etymon transliteration used by corpus::etymon_key
+    /// — romanization values, polytonic diacritics stripped, self-consistent
+    /// with Latin spellings of the same roots.
+    #[test]
+    fn greek_translit_aligns_with_latin_spellings() {
+        use super::translit_greek as g;
+        assert_eq!(g("ἀλόη"), "aloe");
+        assert_eq!(g("ᾰ̓λόη"), "aloe"); // vrachy + combining psili
+        assert_eq!(g("φιλοσοφία"), "philosophia");
+        assert_eq!(g("θέατρον"), "theatron");
+        assert_eq!(g("ὥρα"), "ora");
     }
 
     /// Issue #66: homoglyph typos in proto notation fold to their Latin twins;

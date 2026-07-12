@@ -84,12 +84,25 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
     let mut inherited: BTreeMap<(String, &'static str), Vec<LemmaEntry>> = BTreeMap::new();
     let mut borrowed: Vec<(&LemmaEntry, String, &'static str)> = Vec::new(); // (lemma, slav_key, pos_class)
     let mut uf = UnionFind::default();
+    // Fold-identity bridge edges (issue #86 item 5a), staged and applied
+    // AFTER the S:/E: layer so the component delta (= real merges the bridge
+    // adds) is measured and reported.
+    let mut fold_edges: Vec<(String, String)> = Vec::new();
+    // Non-Latin (Greek/Cyrillic) etymons that only key via transliteration
+    // (issue #86 item 5b) — counted for the export report.
+    let mut translit_keyed = 0usize;
 
     for e in &corpus.entries {
         if branch_of(&e.lang).is_none() {
             continue;
         }
-        if e.is_borrowed() {
+        // Chain-attested lemmas (issue #86): an old-stage inheritance chain
+        // that resolved to neither a proto nor a foreign etymon (schema-1
+        // caches only — see dump::LEMMA_CACHE_SCHEMA). They carry a real
+        // attestation, so they join the borrowing skeleton layer via their
+        // S:/F: nodes (no E: edge is possible) instead of vanishing.
+        let chain_attested = e.proto.is_empty() && e.etymon.is_empty();
+        if e.is_borrowed() || chain_attested {
             let latin = normalize::to_phonemic_latin(&e.lang, &e.word);
             let sk = intl_key(&latin);
             let pc = pos_class(&e.pos);
@@ -107,10 +120,32 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
             };
             let snode = format!("S:{node_key}/{pc}");
             uf.touch(&snode);
-            // Merge on the shared Latin etymon only for a substantial skeleton
-            // (≥4), since this edge is transitive and short etymons over-connect.
+            // Merge on the shared etymon only for a substantial skeleton
+            // (≥4), since this edge is transitive and short etymons
+            // over-connect. Greek/Cyrillic source words key via
+            // transliteration (issue #86: `grc ἀλόη` ≡ `la aloē` → E:aloe).
             if let Some(ek) = etymon_key(&e.etymon) {
+                if e.etymon
+                    .chars()
+                    .any(|c| c.is_alphabetic() && (c as u32) >= 0x370)
+                {
+                    translit_keyed += 1;
+                }
                 uf.union(&snode, &format!("E:{ek}/{pc}"));
+            }
+            // Fold-identity bridge (issue #86 item 5a): identical full
+            // phonemic-Latin folds merge across languages regardless of
+            // etymon script, gated at ≥4 chars; every node in this layer is
+            // borrowing-class by construction. The S: key above is
+            // `intl_key(latin)` over the RAW latin — which keeps
+            // non-alphanumeric characters (apostrophes, hyphens) that this
+            // fold filters out, so the bridge merges exactly the pairs
+            // punctuation splits (ru курье́р "kur'jer" ≡ uk кур'єр "kurjer";
+            // measured: 6 component merges on the 2026-07 corpus, reported
+            // by the stats line below).
+            let fold: String = latin.chars().filter(|c| c.is_alphanumeric()).collect();
+            if fold.chars().count() >= 4 {
+                fold_edges.push((snode.clone(), format!("F:{fold}/{pc}")));
             }
             borrowed.push((e, snode, pc));
         } else if !e.proto.is_empty() {
@@ -138,6 +173,30 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
         }
     }
 
+    // Apply the fold-identity bridge and measure what it actually merged:
+    // distinct borrowing-layer components before vs after (issue #86).
+    let component_count = |uf: &mut UnionFind, nodes: &[(&LemmaEntry, String, &'static str)]| {
+        let mut roots = std::collections::BTreeSet::new();
+        for (_, snode, _) in nodes {
+            roots.insert(uf.find(snode));
+        }
+        roots.len()
+    };
+    let comps_before = component_count(&mut uf, &borrowed);
+    // A fold's FIRST edge only attaches the fresh F: node; a real
+    // cross-component merge is an edge to an already-seen F: node that still
+    // returned true — those folds are the bridge's actual work (sampled for
+    // the stats line).
+    let mut seen_f: std::collections::HashSet<&String> = std::collections::HashSet::new();
+    let mut bridge_folds: Vec<&str> = Vec::new();
+    for (a, b) in &fold_edges {
+        let known_f = !seen_f.insert(b);
+        if uf.union(a, b) && known_f && bridge_folds.len() < 10 {
+            bridge_folds.push(b.trim_start_matches("F:"));
+        }
+    }
+    let comps_after = component_count(&mut uf, &borrowed);
+
     let mut sets = Vec::new();
     for ((_key, _), members) in inherited {
         // Display the most common original reconstruction among the merged members.
@@ -152,6 +211,22 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
     for (e, snode, _) in &borrowed {
         comps.entry(uf.find(snode)).or_default().push((*e).clone());
     }
+    let largest = comps.values().map(Vec::len).max().unwrap_or(0);
+    println!(
+        "borrowing layer: {} lemmas → {} components (fold-identity bridge merged {}: {} → {}{}), {} non-Latin etymons keyed via transliteration, largest component {} members (issue #86)",
+        borrowed.len(),
+        comps_after,
+        comps_before - comps_after,
+        comps_before,
+        comps_after,
+        if bridge_folds.is_empty() {
+            String::new()
+        } else {
+            format!("; folds: {}", bridge_folds.join(", "))
+        },
+        translit_keyed,
+        largest,
+    );
     for (root, members) in comps {
         let etymon = most_common_etymon(&members);
         if let Some(set) = finish_set(format!("bor:{root}"), etymon, true, members) {
@@ -161,23 +236,35 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
     sets
 }
 
-/// The etymon's skeleton, usable as a merge key only when the source word is
-/// Latin-script (Greek/Cyrillic/Arabic etymons can't align with Latin ones, so
-/// those borrowings merge on the Slavic-form skeleton alone).
+/// The etymon's skeleton as a merge key. Latin-script source words key
+/// directly; Greek and Cyrillic ones transliterate first (issue #86 item 5b:
+/// `grc ἀλόη` and `la aloē` must produce the same E: key), so a Greek-script
+/// etymon can finally connect the languages that cite it. Other scripts
+/// (Arabic, Georgian, …) still return None and those borrowings merge on the
+/// Slavic-form skeleton alone. The ≥4-char gate stays — the edge is
+/// transitive and short etymons over-connect.
 fn etymon_key(etymon: &str) -> Option<String> {
-    let word = etymon
-        .split_once(' ')
-        .map(|(_, w)| w)
-        .unwrap_or(etymon)
-        .trim();
-    if word.is_empty()
-        || word
-            .chars()
-            .any(|c| c.is_alphabetic() && (c as u32) >= 0x250)
+    let (src, word) = match etymon.split_once(' ') {
+        Some((src, w)) => (src, w.trim()),
+        None => ("", etymon.trim()),
+    };
+    if word.is_empty() {
+        return None;
+    }
+    let word = if word.chars().any(normalize::is_greek_char) {
+        normalize::translit_greek(word)
+    } else if word.chars().any(normalize::is_cyrillic_char) {
+        normalize::to_phonemic_latin(src, word)
+    } else {
+        word.to_string()
+    };
+    if word
+        .chars()
+        .any(|c| c.is_alphabetic() && (c as u32) >= 0x250)
     {
         return None;
     }
-    let key = intl_key(word);
+    let key = intl_key(&word);
     if key.chars().count() < 4 {
         None
     } else {
@@ -212,12 +299,16 @@ impl UnionFind {
             cur = gp;
         }
     }
-    fn union(&mut self, a: &str, b: &str) {
+    /// Union two nodes; true when they were in DIFFERENT components (a real
+    /// merge happened, not a no-op).
+    fn union(&mut self, a: &str, b: &str) -> bool {
         let ra = self.find(a);
         let rb = self.find(b);
         if ra != rb {
             self.parent.insert(ra, rb);
+            return true;
         }
+        false
     }
 }
 
@@ -244,9 +335,14 @@ fn finish_set(
     })
 }
 
-/// The consonant skeleton used to cluster internationalisms across languages.
-/// Drops vowels and the inconsistent glide `j` (kompjuter ≍ komputer) and folds
-/// c→k, so the same Graeco-Latin root clusters regardless of local spelling.
+/// The skeleton used to cluster internationalisms across languages: the
+/// diacritic-folding [`ortho::ascii_skeleton`] (which PRESERVES vowels and
+/// does NOT fold c→k) minus the inconsistent glide `j` (kompjuter ≍
+/// komputer). Cross-shape adaptations that differ in a vowel or ending (aloe
+/// ≠ aloes ≠ aloa) therefore stay separate nodes and only merge through a
+/// shared etymon edge. (The comment here used to claim vowel-dropping and
+/// c→k folding — that describes `ortho::consonant_key`, not this key;
+/// issue #86 item 3.)
 fn intl_key(latin: &str) -> String {
     ortho::ascii_skeleton(latin).replace('j', "")
 }
@@ -647,5 +743,49 @@ mod tests {
     fn intl_key_ignores_the_j_glide() {
         // kompjuter and komputer must share an internationalism key.
         assert_eq!(intl_key("kompjuter"), intl_key("komputer"));
+    }
+
+    /// Issue #86 item 5b: Greek and Cyrillic source words transliterate
+    /// before the Latin-script check, so `grc ἀλόη` and `la aloē` produce
+    /// the SAME E: key; scripts with no Latin alignment still return None,
+    /// and the ≥4-char gate holds after transliteration.
+    #[test]
+    fn greek_and_cyrillic_etymons_key_like_latin() {
+        assert_eq!(etymon_key("grc ἀλόη"), Some("aloe".to_string()));
+        assert_eq!(etymon_key("la aloē"), Some("aloe".to_string()));
+        assert_eq!(etymon_key("grc ᾰ̓λόη"), etymon_key("la aloē")); // polytonic
+        assert_eq!(etymon_key("ru спутник"), Some("sputnik".to_string()));
+        assert_eq!(etymon_key("ota بخشش"), None); // Arabic script: no key
+        assert_eq!(etymon_key("grc ὥρα"), None); // 3 letters after translit: gated
+        assert_eq!(etymon_key("la aloe"), Some("aloe".to_string())); // unchanged
+    }
+
+    /// Issue #86: proto-less etymon-less CHAIN lemmas (old-stage inheritance
+    /// that resolved to nothing; schema-1 caches only) join the borrowing
+    /// skeleton layer and group with fold-identical borrowings across
+    /// languages — instead of silently vanishing from the site.
+    #[test]
+    fn chain_attested_lemmas_group_in_the_borrowing_layer() {
+        let corpus = LemmaCorpus {
+            schema: crate::dump::LEMMA_CACHE_SCHEMA,
+            source: String::new(),
+            entry_count: 3,
+            entries: vec![
+                le("cs", "aloe", "noun", "", ""),           // unresolved chain lemma
+                le("ru", "алоэ", "noun", "", "grc ἀλόη"),   // borrowing, Greek etymon
+                le("pl", "aloes", "noun", "", "frm aloès"), // different fold → own set
+            ],
+        };
+        let sets = build_sets(&corpus);
+        let borrowed: Vec<_> = sets.iter().filter(|s| s.borrowed).collect();
+        assert_eq!(borrowed.len(), 2, "{borrowed:?}");
+        let merged = borrowed
+            .iter()
+            .find(|s| s.members.len() == 2)
+            .expect("cs aloe ≡ ru алоэ should share one set");
+        let langs: Vec<_> = merged.members.iter().map(|m| m.lang.as_str()).collect();
+        assert_eq!(langs, ["cs", "ru"]);
+        // The merged set displays the etymon its borrowing member carries.
+        assert_eq!(merged.etymon, "grc ἀλόη");
     }
 }

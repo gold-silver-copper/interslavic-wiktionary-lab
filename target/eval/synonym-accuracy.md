@@ -4,14 +4,14 @@ The strict benchmark scores agreement with the ONE official headword. But ~49% o
 
 | Metric | top-1 |
 |---|---:|
-| exact | 41.73% |
-| normalized (strict) | 49.65% |
-| **synonym-inclusive** | **55.85%** |
+| exact | 41.71% |
+| normalized (strict) | 49.64% |
+| **synonym-inclusive** | **55.83%** |
 
-## What the 8207 strict misses actually are
+## What the 8209 strict misses actually are
 
 | Class | count | share of misses |
 |---|---:|---:|
 | valid ISV synonym (another official lemma, same concept) | 1010 | 12.3% |
-| another official lemma, different sense | 653 | 8.0% |
-| not any official lemma (novel form or genuine error) | 6544 | 79.7% |
+| another official lemma, different sense | 663 | 8.1% |
+| not any official lemma (novel form or genuine error) | 6536 | 79.6% |

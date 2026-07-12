@@ -209,7 +209,13 @@ impl LemmaEntry {
 
 /// Bump when `extract-lemmas` changes what goes into [`LemmaCorpus`] (fields,
 /// filters, normalization); see the cache-schema-stamp note above.
-pub const LEMMA_CACHE_SCHEMA: u32 = 0;
+/// Schema 1: same-language OLD-STAGE inheritance chains (issue #86) — lemmas
+/// whose only ancestry is `inh|pl|zlw-opl|…` (or the newer `ety`
+/// etymology-tree template) are no longer dropped; they resolve through the
+/// old-stage page's own etymology to a proto/etymon, or stay as
+/// evidence-attested chain lemmas with both fields empty. Existing keeps are
+/// byte-identical — the gate only ADDS entries (appended after the stream).
+pub const LEMMA_CACHE_SCHEMA: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LemmaCorpus {
@@ -380,6 +386,237 @@ impl RawCoverageStats {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Same-language OLD-STAGE inheritance chains (issue #86 item 4)
+//
+// en.wiktionary often records a modern lemma's ancestry only through the
+// language's own historical stage: pl *aloes* says "Inherited from Old Polish
+// aloes" and stops; the foreign etymon (frm aloès) lives on the OLD POLISH
+// page. The old gate (`proto` or non-Slavic `etymon`, else drop) silently
+// deleted this whole evidence class. The extractor now (a) harvests every
+// old-stage page's own proto/etymon/parent while streaming, (b) turns
+// evidence-less modern lemmas whose etymology names a same-language old stage
+// into PENDING chain lemmas, and (c) resolves them after the stream: old-stage
+// chain reaches sla-pro → inherited; reaches a foreign etymon → borrowing;
+// unresolvable → kept with both fields empty (an attested chain lemma the
+// borrowing skeleton layer can still group; see corpus::build_sets).
+// Existing keeps are byte-identical — this only ADDS entries.
+// ---------------------------------------------------------------------------
+
+/// Modern corpus language → the en.wiktionary codes of ITS OWN historical
+/// stages. Measured inventory of the current dump (classic `inh` + `ety`
+/// tree templates): cs←zlw-ocs 6,976; ru←orv 2,986 / zle-mru 121;
+/// pl←zlw-opl 4,654; uk←zle-ort 1,646 / orv 1,500 / zle-muk 203;
+/// be←zle-ort 731 / orv 607 / zle-mbe 186; sk←zlw-osk 387;
+/// szl←zlw-opl 734; rue←orv/zle-ort/zle-muk ~183; bg←cu 945; mk←cu 37.
+/// The brief's assumed map (pl/cs/ru/uk/be, three codes) was extended to
+/// what actually occurs. Order matters: earlier codes are preferred when a
+/// page names several stages.
+const OLD_STAGE_OF: &[(&str, &[&str])] = &[
+    ("pl", &["zlw-opl"]),
+    ("szl", &["zlw-opl"]),
+    ("cs", &["zlw-ocs"]),
+    ("sk", &["zlw-osk"]),
+    ("ru", &["zle-mru", "orv"]),
+    ("uk", &["zle-muk", "zle-ort", "orv"]),
+    ("be", &["zle-mbe", "zle-ort", "orv"]),
+    ("rue", &["zle-muk", "zle-ort", "orv"]),
+    ("bg", &["cu"]),
+    ("mk", &["cu"]),
+];
+
+/// Every old-stage code in [`OLD_STAGE_OF`] — the page languages the
+/// streaming pass harvests ancestry from. `cu` doubles as a corpus language
+/// (SLAVIC_LANGS) and an old stage of bg/mk; both roles apply to its pages.
+/// Old stages chain among themselves (zle-ort pages inherit from orv), so
+/// the resolver walks parents through this same set.
+const OLD_STAGE_LANGS: &[&str] = &[
+    "zlw-opl", "zlw-ocs", "zlw-osk", "orv", "zle-ort", "zle-muk", "zle-mbe", "zle-mru", "cu",
+];
+
+fn old_codes_for(lang: &str) -> &'static [&'static str] {
+    OLD_STAGE_OF
+        .iter()
+        .find(|(l, _)| *l == lang)
+        .map(|(_, codes)| *codes)
+        .unwrap_or(&[])
+}
+
+/// Join key for chain resolution: etymology templates cite old-stage words
+/// with combining accents (orv дѣ́дъ) that page titles lack — strip them and
+/// case-fold so the citation matches the harvested page.
+fn chain_key(word: &str) -> String {
+    word.trim()
+        .chars()
+        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Parse one `ety` template — the newer {{etymon}} "Etymology tree" format
+/// en.wiktionary is migrating to (most Polish chains already use it):
+/// `{"name":"ety","args":{"1":"pl","2":":inh","3":"zlw-opl:aloes<ref:…>"}}`
+/// → `(":inh", "zlw-opl", "aloes")`. Returns None for other templates.
+fn ety_parts(t: &Value) -> Option<(&str, &str, &str)> {
+    if t.get("name").and_then(Value::as_str) != Some("ety") {
+        return None;
+    }
+    let args = t.get("args")?;
+    let op = args.get("2").and_then(Value::as_str)?.trim();
+    let target = args.get("3").and_then(Value::as_str)?.trim();
+    let (src, word) = target.split_once(':')?;
+    let word = word.split('<').next().unwrap_or(word).trim();
+    if src.is_empty() || word.is_empty() || word == "-" {
+        return None;
+    }
+    Some((op, src.trim(), word))
+}
+
+/// The same-language old-stage parent a modern lemma's etymology names —
+/// classic `{{inh|pl|zlw-opl|aloes}}` or `ety` `:inh zlw-opl:aloes`. Only
+/// consulted when the direct proto/etymon parsers found nothing, so the
+/// existing keeps cannot change.
+fn old_stage_parent(value: &Value, lang: &str) -> Option<(String, String)> {
+    let codes = old_codes_for(lang);
+    if codes.is_empty() {
+        return None;
+    }
+    let templates = value.get("etymology_templates").and_then(Value::as_array)?;
+    for t in templates {
+        let name = t.get("name").and_then(Value::as_str).unwrap_or("");
+        if matches!(name, "inh" | "inh+" | "inherited") {
+            let Some(args) = t.get("args") else { continue };
+            let src = args.get("2").and_then(Value::as_str).unwrap_or("").trim();
+            if !codes.contains(&src) {
+                continue;
+            }
+            let word = args.get("3").and_then(Value::as_str).unwrap_or("").trim();
+            let word = word.split('<').next().unwrap_or(word).trim();
+            if word.is_empty() || word == "-" {
+                continue;
+            }
+            return Some((src.to_string(), word.to_string()));
+        }
+        if let Some((op, src, word)) = ety_parts(t) {
+            if op == ":inh" && codes.contains(&src) {
+                return Some((src.to_string(), word.to_string()));
+            }
+        }
+    }
+    None
+}
+
+/// What one old-stage page knows about its own ancestry.
+#[derive(Debug, Clone, Default)]
+struct OldStageInfo {
+    /// Proto-Slavic reconstruction (`*aloe` shape guard as in
+    /// [`proto_ancestor`]) — resolves the chain as INHERITED.
+    proto: String,
+    /// Non-Slavic source (`frm aloès`) — resolves the chain as a BORROWING.
+    etymon: String,
+    /// Another old stage this page inherits from (zle-ort ← orv); the
+    /// resolver keeps walking.
+    parent: Option<(String, String)>,
+}
+
+/// Harvest one old-stage page's ancestry: the classic template parsers plus
+/// the `ety` tree format. A Slavic/old-stage source is never an etymon here
+/// (a `der` from another Slavic stage is not a foreign borrowing source).
+fn old_stage_info(value: &Value) -> OldStageInfo {
+    let mut info = OldStageInfo {
+        proto: proto_ancestor(value).unwrap_or_default(),
+        etymon: borrowed_etymon(value).unwrap_or_default(),
+        parent: None,
+    };
+    // borrowed_etymon treats old-stage codes as foreign (they are not in
+    // SLAVIC_LANGS); on an old-stage page that would misclass an intra-Slavic
+    // link as a borrowing source — drop it.
+    let etymon_src = info.etymon.split_whitespace().next().unwrap_or("");
+    if OLD_STAGE_LANGS.contains(&etymon_src) || is_slavic_src(etymon_src) {
+        info.etymon.clear();
+    }
+    let Some(templates) = value.get("etymology_templates").and_then(Value::as_array) else {
+        return info;
+    };
+    for t in templates {
+        // Classic inheritance from another old stage → parent.
+        let name = t.get("name").and_then(Value::as_str).unwrap_or("");
+        if matches!(name, "inh" | "inh+" | "inherited") && info.parent.is_none() {
+            if let Some(args) = t.get("args") {
+                let src = args.get("2").and_then(Value::as_str).unwrap_or("").trim();
+                if OLD_STAGE_LANGS.contains(&src) {
+                    let word = args.get("3").and_then(Value::as_str).unwrap_or("").trim();
+                    let word = word.split('<').next().unwrap_or(word).trim();
+                    if !word.is_empty() && word != "-" {
+                        info.parent = Some((src.to_string(), word.to_string()));
+                    }
+                }
+            }
+        }
+        let Some((op, src, word)) = ety_parts(t) else {
+            continue;
+        };
+        match op {
+            ":inh" if src == "sla-pro" && info.proto.is_empty() => {
+                // Same shape guard as proto_ancestor: reject placeholders and
+                // bound morphemes.
+                let form = word.strip_prefix('*').unwrap_or(word);
+                if !form.is_empty()
+                    && !form.starts_with('-')
+                    && !form.ends_with('-')
+                    && form.chars().any(|c| c.is_alphabetic())
+                {
+                    info.proto = format!("*{form}");
+                }
+            }
+            ":inh" if OLD_STAGE_LANGS.contains(&src) && info.parent.is_none() => {
+                info.parent = Some((src.to_string(), word.to_string()));
+            }
+            ":bor" | ":lbor" | ":ubor" | ":obor" | ":slbor" | ":der"
+                if info.etymon.is_empty()
+                    && !is_slavic_src(src)
+                    && !OLD_STAGE_LANGS.contains(&src) =>
+            {
+                info.etymon = format!("{src} {word}");
+            }
+            _ => {}
+        }
+    }
+    info
+}
+
+/// Walk a pending lemma's parent chain through the old-stage map (bounded —
+/// zle-ort pages inherit from orv, which inherits from sla-pro). Returns
+/// `(proto, etymon, class)` where class ∈ inherited/borrowing/unresolved.
+fn resolve_chain(
+    map: &HashMap<(String, String), OldStageInfo>,
+    parent: &(String, String),
+) -> (String, String, &'static str) {
+    let mut cur = Some((parent.0.clone(), chain_key(&parent.1)));
+    for _ in 0..4 {
+        let Some(key) = cur.take() else { break };
+        let Some(info) = map.get(&key) else { break };
+        if !info.proto.is_empty() {
+            return (info.proto.clone(), String::new(), "inherited");
+        }
+        if !info.etymon.is_empty() {
+            return (String::new(), info.etymon.clone(), "borrowing");
+        }
+        cur = info.parent.as_ref().map(|(l, w)| (l.clone(), chain_key(w)));
+    }
+    (String::new(), String::new(), "unresolved")
+}
+
+/// How the lemma gate classifies one page (issue #86): kept with direct
+/// evidence, pending on an old-stage chain, or dropped.
+enum LemmaGate {
+    Keep(LemmaEntry),
+    /// Same record shape as a keep but with empty proto/etymon; carries the
+    /// `(old_lang, old_word)` parent to resolve after the stream.
+    Pending(LemmaEntry, (String, String)),
+    Drop,
+}
+
 /// Stream the dump once and collect every inherited Slavic lemma that Wiktionary
 /// links to a Proto-Slavic ancestor. Lemmas grouped by that ancestor become the
 /// cognate sets the generator turns into Interslavic words.
@@ -391,16 +628,36 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
     let reader = BufReader::with_capacity(8 * 1024 * 1024, file);
 
     let mut entries: Vec<LemmaEntry> = Vec::new();
+    // Old-stage chain state (issue #86): pages harvested while streaming and
+    // the pending modern lemmas resolved afterwards, appended AFTER every
+    // directly-kept entry so the previous cache is a byte-identical prefix.
+    let mut old_stage: HashMap<(String, String), OldStageInfo> = HashMap::new();
+    let mut pending: Vec<(LemmaEntry, (String, String))> = Vec::new();
     let mut line_count: u64 = 0;
     for line in reader.lines() {
         let line = line?;
         line_count += 1;
         // Inherited lemmas mention `sla-pro`; borrowings carry a bor/der/lbor
-        // template. Cheap prefilter before the full JSON parse.
+        // template; old-stage chains (issue #86) mention an old-stage code
+        // either quoted (classic template args, page lang_code) or with a
+        // colon (`ety` tree targets like "zlw-opl:aloes"). `orv`/`cu` are too
+        // short to match bare (torva, "cut"), so only their quoted/colon
+        // forms are markers. Cheap prefilter before the full JSON parse.
         if !(line.contains("sla-pro")
             || line.contains("\"bor")
             || line.contains("\"lbor")
-            || line.contains("\"der+"))
+            || line.contains("\"der+")
+            || line.contains("zlw-opl")
+            || line.contains("zlw-ocs")
+            || line.contains("zlw-osk")
+            || line.contains("zle-ort")
+            || line.contains("zle-muk")
+            || line.contains("zle-mbe")
+            || line.contains("zle-mru")
+            || line.contains("\"orv\"")
+            || line.contains("orv:")
+            || line.contains("\"cu\"")
+            || line.contains("cu:"))
         {
             continue;
         }
@@ -408,15 +665,103 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
             Ok(v) => v,
             Err(_) => continue,
         };
-        if let Some(entry) = lemma_from_value(&value) {
-            entries.push(entry);
-            if entries.len() % 5000 == 0 {
-                eprintln!(
-                    "  collected {} Slavic lemmas after {} lines",
-                    entries.len(),
-                    line_count
-                );
+        // Old-stage page: harvest its own ancestry (independent of — and in
+        // cu's case in addition to — the modern-lemma gate below).
+        if let Some(lang) = value.get("lang_code").and_then(Value::as_str) {
+            if OLD_STAGE_LANGS.contains(&lang) {
+                if let Some(word) = value.get("word").and_then(Value::as_str) {
+                    let word = word.trim();
+                    if !word.is_empty() {
+                        let harvested = old_stage_info(&value);
+                        let slot = old_stage
+                            .entry((lang.to_string(), chain_key(word)))
+                            .or_default();
+                        // A page can appear as several POS/etymology sections;
+                        // first non-empty answer per field wins.
+                        if slot.proto.is_empty() {
+                            slot.proto = harvested.proto;
+                        }
+                        if slot.etymon.is_empty() {
+                            slot.etymon = harvested.etymon;
+                        }
+                        if slot.parent.is_none() {
+                            slot.parent = harvested.parent;
+                        }
+                    }
+                }
             }
+        }
+        match classify_lemma(&value) {
+            LemmaGate::Keep(entry) => {
+                entries.push(entry);
+                if entries.len() % 5000 == 0 {
+                    eprintln!(
+                        "  collected {} Slavic lemmas after {} lines",
+                        entries.len(),
+                        line_count
+                    );
+                }
+            }
+            LemmaGate::Pending(entry, parent) => pending.push((entry, parent)),
+            LemmaGate::Drop => {}
+        }
+    }
+
+    // Post-stream chain resolution (issue #86): every pending lemma is kept —
+    // resolved to a proto (inherited) or a foreign etymon (borrowing) through
+    // its old-stage page(s), or appended with both fields empty (attested
+    // chain lemma; the borrowing skeleton layer groups those). Deterministic:
+    // stream order, appended after all direct keeps.
+    let direct_keeps = entries.len();
+    let mut by_class: BTreeMap<(&'static str, String), u64> = BTreeMap::new();
+    let mut samples: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
+    for (mut entry, parent) in pending {
+        let (proto, etymon, class) = resolve_chain(&old_stage, &parent);
+        entry.proto = proto;
+        entry.etymon = etymon;
+        *by_class
+            .entry((class, format!("{}←{}", entry.lang, parent.0)))
+            .or_default() += 1;
+        let bucket = samples.entry(class).or_default();
+        if bucket.len() < 5 {
+            bucket.push(format!(
+                "{} {} ← {} {} → {}",
+                entry.lang,
+                entry.word,
+                parent.0,
+                parent.1,
+                if !entry.proto.is_empty() {
+                    &entry.proto
+                } else if !entry.etymon.is_empty() {
+                    &entry.etymon
+                } else {
+                    "(unresolved)"
+                }
+            ));
+        }
+        entries.push(entry);
+    }
+    let mut per_code: BTreeMap<&String, u64> = BTreeMap::new();
+    for (lang, _) in old_stage.keys() {
+        *per_code.entry(lang).or_default() += 1;
+    }
+    println!(
+        "old-stage chains (issue #86): harvested {} old-stage pages ({}); {} pending lemmas resolved, {} direct keeps unchanged",
+        old_stage.len(),
+        per_code
+            .iter()
+            .map(|(l, n)| format!("{l} {n}"))
+            .collect::<Vec<_>>()
+            .join(", "),
+        entries.len() - direct_keeps,
+        direct_keeps,
+    );
+    for ((class, pair), n) in &by_class {
+        println!("  chain {class}: {pair} × {n}");
+    }
+    for (class, rows) in &samples {
+        for s in rows {
+            println!("  sample {class}: {s}");
         }
     }
 
@@ -437,18 +782,30 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
 }
 
 fn lemma_from_value(value: &Value) -> Option<LemmaEntry> {
-    let lang = value.get("lang_code").and_then(Value::as_str)?;
-    if !SLAVIC_LANGS.contains(&lang) {
-        return None;
+    match classify_lemma(value) {
+        LemmaGate::Keep(entry) => Some(entry),
+        _ => None,
     }
-    let word = value
-        .get("word")
-        .and_then(Value::as_str)?
-        .trim()
-        .to_string();
+}
+
+/// The lemma gate. The Keep branch is unchanged from the pre-#86 extractor
+/// (byte-identical records); the Pending branch fires only where the old gate
+/// returned None — an evidence-less page whose etymology names a
+/// same-language old stage.
+fn classify_lemma(value: &Value) -> LemmaGate {
+    let Some(lang) = value.get("lang_code").and_then(Value::as_str) else {
+        return LemmaGate::Drop;
+    };
+    if !SLAVIC_LANGS.contains(&lang) {
+        return LemmaGate::Drop;
+    }
+    let Some(word) = value.get("word").and_then(Value::as_str) else {
+        return LemmaGate::Drop;
+    };
+    let word = word.trim().to_string();
     // Lemmas only: single token, not a reconstruction, not a phrase.
     if word.is_empty() || word.contains(' ') || word.starts_with('*') || word.starts_with('-') {
-        return None;
+        return LemmaGate::Drop;
     }
     let pos = Pos::parse(value.get("pos").and_then(Value::as_str).unwrap_or("")).code();
     // Prefer the inherited (Proto-Slavic) ancestor; else fall back to a non-Slavic
@@ -459,13 +816,22 @@ fn lemma_from_value(value: &Value) -> Option<LemmaEntry> {
     } else {
         String::new()
     };
-    if proto.is_empty() && etymon.is_empty() {
-        return None;
-    }
-    let gloss = lemma_gloss(value)?;
+    // No direct evidence: a same-language old-stage chain (issue #86) makes
+    // the lemma PENDING (resolved after the stream); otherwise drop, as ever.
+    let parent = if proto.is_empty() && etymon.is_empty() {
+        match old_stage_parent(value, lang) {
+            Some(p) => Some(p),
+            None => return LemmaGate::Drop,
+        }
+    } else {
+        None
+    };
+    let Some(gloss) = lemma_gloss(value) else {
+        return LemmaGate::Drop;
+    };
     let etymology = lemma_etymology(value);
     let (categories, topics, tags) = wiki_metadata(value);
-    Some(LemmaEntry {
+    let entry = LemmaEntry {
         lang: lang.to_string(),
         word,
         pos: pos.to_string(),
@@ -476,7 +842,11 @@ fn lemma_from_value(value: &Value) -> Option<LemmaEntry> {
         categories,
         topics,
         tags,
-    })
+    };
+    match parent {
+        Some(p) => LemmaGate::Pending(entry, p),
+        None => LemmaGate::Keep(entry),
+    }
 }
 
 fn lemma_etymology(value: &Value) -> Vec<String> {
@@ -1300,19 +1670,30 @@ mod tests {
     use super::*;
 
     /// Pins the cache-schema-stamp contract: a pre-stamp cache (no `schema`
-    /// field) deserializes as 0 — the initial expected value, so the caches
-    /// committed when stamps were introduced keep loading — while a cache
-    /// stamped by a different extractor version is refused with the exact
-    /// `make` target to re-run.
+    /// field) deserializes as 0 and — now that the lemma schema moved past 0
+    /// (issue #86 bumped it to 1) — is REFUSED with the exact `make` target to
+    /// re-run, exactly like any other stale stamp. Only the current stamp
+    /// loads.
     #[test]
-    fn cache_schema_guard_accepts_legacy_and_rejects_stale() {
+    fn cache_schema_guard_accepts_current_and_rejects_stale() {
         let legacy: LemmaCorpus =
             serde_json::from_str(r#"{"source":"","entry_count":0,"entries":[]}"#).unwrap();
-        assert_eq!(legacy.schema, LEMMA_CACHE_SCHEMA);
-        check_cache_schema(
+        assert_eq!(legacy.schema, 0);
+        // The unwrap_err below only holds while LEMMA_CACHE_SCHEMA > 0 — it
+        // IS the pin that the issue-#86 bump is in effect.
+        let err = check_cache_schema(
             "lemma",
             Path::new("data/x.json"),
             legacy.schema,
+            LEMMA_CACHE_SCHEMA,
+            "make extract-lemmas",
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("make extract-lemmas"), "{err}");
+        check_cache_schema(
+            "lemma",
+            Path::new("data/x.json"),
+            LEMMA_CACHE_SCHEMA,
             LEMMA_CACHE_SCHEMA,
             "make extract-lemmas",
         )
@@ -1370,6 +1751,170 @@ mod tests {
         assert_eq!(proto_ancestor(&v), None);
         let v2 = json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*voda"}}]});
         assert_eq!(proto_ancestor(&v2).as_deref(), Some("*voda"));
+    }
+
+    /// Issue #86: an evidence-less modern lemma whose etymology names its own
+    /// language's OLD STAGE becomes a PENDING chain lemma — in both the
+    /// classic template format and the newer `ety` tree format — while pages
+    /// with direct evidence stay Keep (byte-identical to the old gate) and
+    /// pages with neither stay dropped.
+    #[test]
+    fn old_stage_chains_classify_pending_keep_and_drop() {
+        use serde_json::json;
+        // pl aloes, real dump shape: only an `ety` :inh zlw-opl link.
+        let ety_chain = json!({
+            "word": "aloes", "lang_code": "pl", "pos": "noun",
+            "etymology_templates": [
+                {"name": "ety", "args": {"1": "pl", "2": ":inh", "3": "zlw-opl:aloes", "text": "+", "tree": "1"}}
+            ],
+            "senses": [{"glosses": ["aloe"]}]
+        });
+        match classify_lemma(&ety_chain) {
+            LemmaGate::Pending(e, parent) => {
+                assert_eq!((e.lang.as_str(), e.word.as_str()), ("pl", "aloes"));
+                assert!(e.proto.is_empty() && e.etymon.is_empty());
+                assert_eq!(parent, ("zlw-opl".to_string(), "aloes".to_string()));
+            }
+            _ => panic!("ety chain lemma should be pending"),
+        }
+        // Classic inh|ru|orv chain.
+        let classic_chain = json!({
+            "word": "дом", "lang_code": "ru", "pos": "noun",
+            "etymology_templates": [
+                {"name": "inh", "args": {"1": "ru", "2": "orv", "3": "домъ"}}
+            ],
+            "senses": [{"glosses": ["house"]}]
+        });
+        assert!(matches!(
+            classify_lemma(&classic_chain),
+            LemmaGate::Pending(_, _)
+        ));
+        // Direct sla-pro evidence wins: stays Keep even with an old-stage
+        // template on the same page (the old gate's records are untouched).
+        let direct = json!({
+            "word": "дом", "lang_code": "ru", "pos": "noun",
+            "etymology_templates": [
+                {"name": "inh", "args": {"1": "ru", "2": "orv", "3": "домъ"}},
+                {"name": "inh", "args": {"1": "ru", "2": "sla-pro", "3": "*domъ"}}
+            ],
+            "senses": [{"glosses": ["house"]}]
+        });
+        match classify_lemma(&direct) {
+            LemmaGate::Keep(e) => assert_eq!(e.proto, "*domъ"),
+            _ => panic!("direct evidence must stay Keep"),
+        }
+        // A foreign old stage is NOT a chain for this language (sl has no
+        // old-stage codes) — still dropped.
+        let foreign = json!({
+            "word": "x", "lang_code": "sl", "pos": "noun",
+            "etymology_templates": [
+                {"name": "inh", "args": {"1": "sl", "2": "orv", "3": "y"}}
+            ],
+            "senses": [{"glosses": ["z"]}]
+        });
+        assert!(matches!(classify_lemma(&foreign), LemmaGate::Drop));
+    }
+
+    /// Issue #86: the old-stage harvest reads classic templates AND the `ety`
+    /// tree format, never takes a Slavic/old-stage source as an etymon, and
+    /// records old→old inheritance as a parent hop.
+    #[test]
+    fn old_stage_info_harvests_proto_etymon_and_parent() {
+        use serde_json::json;
+        // Real zlw-opl aloes shape: ety :bor frm:aloès with a <ref:> tail.
+        let opl = json!({
+            "word": "aloes", "lang_code": "zlw-opl", "pos": "noun",
+            "etymology_templates": [
+                {"name": "ety", "args": {"1": "zlw-opl", "2": ":bor", "3": "frm:aloès<ref:…>"}}
+            ]
+        });
+        let info = old_stage_info(&opl);
+        assert_eq!(info.etymon, "frm aloès");
+        assert!(info.proto.is_empty() && info.parent.is_none());
+        // Classic inh sla-pro on an orv page → proto.
+        let orv = json!({
+            "word": "домъ", "lang_code": "orv",
+            "etymology_templates": [
+                {"name": "inh", "args": {"1": "orv", "2": "sla-pro", "3": "*domъ"}}
+            ]
+        });
+        assert_eq!(old_stage_info(&orv).proto, "*domъ");
+        // ety :inh sla-pro also yields the proto; bound morphemes rejected.
+        let ety_proto = json!({
+            "word": "вода", "lang_code": "orv",
+            "etymology_templates": [
+                {"name": "ety", "args": {"1": "orv", "2": ":inh", "3": "sla-pro:*voda"}}
+            ]
+        });
+        assert_eq!(old_stage_info(&ety_proto).proto, "*voda");
+        // Old→old inheritance (zle-ort ← orv) is a parent hop, NOT an etymon.
+        let ort = json!({
+            "word": "мѣсто", "lang_code": "zle-ort",
+            "etymology_templates": [
+                {"name": "inh", "args": {"1": "zle-ort", "2": "orv", "3": "мѣсто"}}
+            ]
+        });
+        let info = old_stage_info(&ort);
+        assert_eq!(info.parent, Some(("orv".to_string(), "мѣсто".to_string())));
+        assert!(info.etymon.is_empty());
+        // A der from another Slavic language is not a foreign etymon.
+        let slavic_der = json!({
+            "word": "x", "lang_code": "zlw-opl",
+            "etymology_templates": [
+                {"name": "der", "args": {"1": "zlw-opl", "2": "zlw-ocs", "3": "y"}}
+            ]
+        });
+        assert!(old_stage_info(&slavic_der).etymon.is_empty());
+    }
+
+    /// Issue #86: chain resolution walks bounded old→old hops, strips the
+    /// combining accents template citations carry, and classifies inherited /
+    /// borrowing / unresolved.
+    #[test]
+    fn resolve_chain_walks_hops_and_strips_accents() {
+        let mut map: HashMap<(String, String), OldStageInfo> = HashMap::new();
+        map.insert(
+            ("zle-ort".into(), chain_key("мѣсто")),
+            OldStageInfo {
+                proto: String::new(),
+                etymon: String::new(),
+                parent: Some(("orv".into(), "мѣ́сто".into())), // accented citation
+            },
+        );
+        map.insert(
+            ("orv".into(), chain_key("мѣсто")),
+            OldStageInfo {
+                proto: "*město".into(),
+                etymon: String::new(),
+                parent: None,
+            },
+        );
+        map.insert(
+            ("zlw-opl".into(), chain_key("aloes")),
+            OldStageInfo {
+                proto: String::new(),
+                etymon: "frm aloès".into(),
+                parent: None,
+            },
+        );
+        // Two hops, accent-insensitive: uk word ← zle-ort мѣсто ← orv → proto.
+        let (proto, etymon, class) = resolve_chain(&map, &("zle-ort".into(), "мѣ́сто".into()));
+        assert_eq!(
+            (proto.as_str(), etymon.as_str(), class),
+            ("*město", "", "inherited")
+        );
+        // One hop to a foreign etymon → borrowing.
+        let (proto, etymon, class) = resolve_chain(&map, &("zlw-opl".into(), "aloes".into()));
+        assert_eq!(
+            (proto.as_str(), etymon.as_str(), class),
+            ("", "frm aloès", "borrowing")
+        );
+        // Missing old-stage page → unresolved, both fields empty.
+        let (proto, etymon, class) = resolve_chain(&map, &("orv".into(), "нѣтъ".into()));
+        assert_eq!(
+            (proto.as_str(), etymon.as_str(), class),
+            ("", "", "unresolved")
+        );
     }
 
     #[test]
