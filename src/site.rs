@@ -657,6 +657,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         .as_ref()
         .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, id))
         .unwrap_or_default();
+    // Raw-collision display credit census (issue #86 item 6).
+    println!(
+        "raw-credit: {} entries show {} fold-deduped raw attestations (display-only, issue #86).",
+        raw_plan.credit.len(),
+        raw_plan.credit.values().map(Vec::len).sum::<usize>(),
+    );
     // Advance the shared id counter past the reserved raw ids, so any future
     // allocation below cannot collide with them. (Nothing reads `id` after the
     // raw render loop today — the allow documents that this is protective.)
@@ -922,6 +928,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             &wiki_top,
             meta,
             &razum_codes,
+            &raw_credit_line(raw_plan.credit.get(&p.id)),
             &wiki_bottom,
             &proto_link,
         );
@@ -1049,6 +1056,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             &deriv,
             &wiki_top,
             meta,
+            &raw_credit_line(raw_plan.credit.get(oid)),
             &wiki_bottom,
         );
         std::fs::write(entry_dir.join(format!("{oid}.html")), html)?;
@@ -1944,6 +1952,14 @@ struct RawPlan {
     /// chips AFTER the cognate `xref` (which resolves generated membership).
     xref: crate::enrich::Xref,
     deduped: usize,
+    /// Raw-collision display credit (issue #86 item 6): target entry id →
+    /// the raw `(lang, word)` attestations whose display fold deduped onto
+    /// that page (RawFate::DedupedFold — the site knew them but showed them
+    /// nowhere). Sorted lang-then-word, deduped. DISPLAY ONLY: never counted
+    /// in n_langs / Dokaz / razumlivost / the vote — raw evidence stays
+    /// benchmark-forbidden by type. (DedupedXref attestations are already
+    /// visible as cognate members on their page and are NOT repeated here.)
+    credit: std::collections::BTreeMap<usize, Vec<(String, String)>>,
 }
 
 /// Classify every raw lemma once (via [`raw_lemma_fate`] — still the single
@@ -1971,6 +1987,10 @@ fn plan_raw_pages(
             RawFate::DedupedFold { target } => {
                 plan.deduped += 1;
                 plan.xref.insert(&lemma.lang, lemma.word.trim(), target);
+                plan.credit
+                    .entry(target)
+                    .or_default()
+                    .push((lemma.lang.clone(), lemma.word.trim().to_string()));
             }
             RawFate::DedupedRawTwin { efold } => {
                 plan.deduped += 1;
@@ -1980,6 +2000,12 @@ fn plan_raw_pages(
             }
             RawFate::DedupedXref | RawFate::Skipped => plan.deduped += 1,
         }
+    }
+    // Deterministic credit rows: lang then word, duplicates collapsed (a raw
+    // corpus can carry the same (lang, word) under several POS sections).
+    for rows in plan.credit.values_mut() {
+        rows.sort();
+        rows.dedup();
     }
     plan
 }
@@ -2762,6 +2788,8 @@ fn corpus_entry_page(
     // membership with the matched official row's sameInLanguages; equals
     // `meta.languages` for non-matched entries. Display-only.
     razum_codes: &[String],
+    // Prebuilt raw-collision credit line ([`raw_credit_line`]), or empty.
+    raw_credit: &str,
     wiki_bottom: &str,
     // Prebuilt "(rekonstrukcija)" Predok link to the proto-lemma reflex page
     // (issue #73b), empty when no proto page exists for this ancestor.
@@ -2881,7 +2909,7 @@ fn corpus_entry_page(
                <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}<p class='muted'><a href='../forms.html?q={forms_q}'>Vse eksportovane formy togo slova (obratny indeks) →</a></p></section>\
                {official_sections}\
                {synonyms}{word_formation}\
-               <section><h2 id='cognaty'>Srodne slova — {nlangs} językov</h2>{cognates}</section>\
+               <section><h2 id='cognaty'>Srodne slova — {nlangs} językov</h2>{cognates}{raw_credit}</section>\
                <section><h2 id='sled'>Sled pravil</h2>{trace}</section>\
                {wiki_bottom}\
                <p class='foot'>{foot}</p>\
@@ -2909,6 +2937,8 @@ fn official_only_page(
     derivation: &str,
     wiki_top: &str,
     meta: &SiteEntryMeta,
+    // Prebuilt raw-collision credit line ([`raw_credit_line`]), or empty.
+    raw_credit: &str,
     wiki_bottom: &str,
 ) -> String {
     let input = build_input(e);
@@ -2973,7 +3003,7 @@ fn official_only_page(
                <section><h2 id='pregibanje'>Prěgibanje</h2>{inflection}<p class='muted'><a href='../forms.html?q={forms_q}'>Vse eksportovane formy togo slova (obratny indeks) →</a></p></section>\
                {official_sections}\
                {synonyms}{word_formation}\
-               <section><h2 id='cognaty'>Srodne slova</h2>{cog}</section>\
+               <section><h2 id='cognaty'>Srodne slova</h2>{cog}{raw_credit}</section>\
                {wiki_bottom}\
                <p class='foot'>Oficialne slovo: interslavic-dictionary.com. Prěgibanje mašinno generovano.</p>\
              </div>\
@@ -7070,6 +7100,44 @@ const RAZUM_TITLE_OFFICIAL: &str = "dolja govoriteljev slovjanskyh językov, v k
 /// sameInLanguages attestation — either basis alone misreads one tail.
 const RAZUM_TITLE_MATCHED: &str = "dolja govoriteljev slovjanskyh językov s poznatym srodnym slovom — po srodnyh slovah v korpusu i po oficialnom sameInLanguages; ne izměrjena razumlivosť; izvor populacij: voting machine (steen)";
 
+/// The raw-collision display credit line (issue #86 item 6): raw Wiktionary
+/// attestations whose display fold deduped onto this page
+/// ([`RawFate::DedupedFold`]) — the site already knew these words but showed
+/// them nowhere ("uk алое carries NO raw row anywhere and credits no
+/// evidence"). Rendered as a compact muted line in the cognate section, each
+/// item linking to the source-language Wiktionary (same
+/// [`crate::enrich::source_url`] the raw pages use), capped at 12 with a
+/// "+N dalje" tail. DISPLAY ONLY — never counted in n_langs / Dokaz /
+/// razumlivost / the vote: raw evidence stays benchmark-forbidden by type.
+fn raw_credit_line(credits: Option<&Vec<(String, String)>>) -> String {
+    let Some(credits) = credits else {
+        return String::new();
+    };
+    if credits.is_empty() {
+        return String::new();
+    }
+    const CAP: usize = 12;
+    let mut items: Vec<String> = credits
+        .iter()
+        .take(CAP)
+        .map(|(lang, word)| {
+            format!(
+                "<a href='{}'>{} {}</a>",
+                esc(&crate::enrich::source_url(lang, word)),
+                esc(lang),
+                esc(word)
+            )
+        })
+        .collect();
+    if credits.len() > CAP {
+        items.push(format!("+{} dalje", credits.len() - CAP));
+    }
+    format!(
+        "<p class='muted raw-credit'>Takože atestovano <span title='surove atestacije iz Wiktionary, ktoryh pisanje sovpada s tojų stranojų — ne sųt dokaz i ne vlivajųt na razumlivosť'>(surova atestacija)</span>: {}</p>",
+        items.join(" · ")
+    )
+}
+
 /// The razumlivost basis for a MATCHED entry (issue #86): the union of the
 /// corpus cognate membership and the matched official row's sameInLanguages
 /// expansion. Sorted + deduped so the basis is deterministic. Display-only —
@@ -9279,6 +9347,27 @@ mod tests {
         assert_eq!(plan.xref.get("sl", "delo"), Some(42));
         assert_eq!(plan.xref.get("pl", "xyz"), None);
         assert_eq!(plan.xref.get("pl", ""), None);
+        // Raw-collision display credit (issue #86 item 6): ONLY the
+        // fold-deduped attestation is credited to its target page — cognate
+        // members (xref) and raw twins are already visible elsewhere.
+        assert_eq!(
+            plan.credit.get(&42),
+            Some(&vec![("sl".to_string(), "delo".to_string())])
+        );
+        assert_eq!(plan.credit.len(), 1);
+        // The rendered line links to the source-language Wiktionary and
+        // carries the display-only disclaimer.
+        let line = raw_credit_line(plan.credit.get(&42));
+        assert!(line.contains("Takože atestovano"), "{line}");
+        assert!(line.contains("sl delo"), "{line}");
+        assert!(line.contains("surova atestacija"), "{line}");
+        assert_eq!(raw_credit_line(None), "");
+        // Cap: 13 credits render 12 + "+1 dalje".
+        let many: Vec<(String, String)> = (0..13)
+            .map(|i| ("uk".to_string(), format!("слово{i}")))
+            .collect();
+        let line = raw_credit_line(Some(&many));
+        assert!(line.contains("+1 dalje"), "{line}");
     }
 
     /// Test metas for the official-fact-treatment invariants (issue #86).

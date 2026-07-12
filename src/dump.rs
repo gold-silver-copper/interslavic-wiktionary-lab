@@ -1679,7 +1679,8 @@ mod tests {
         let legacy: LemmaCorpus =
             serde_json::from_str(r#"{"source":"","entry_count":0,"entries":[]}"#).unwrap();
         assert_eq!(legacy.schema, 0);
-        assert!(LEMMA_CACHE_SCHEMA > 0, "issue #86 bumped the lemma schema");
+        // The unwrap_err below only holds while LEMMA_CACHE_SCHEMA > 0 — it
+        // IS the pin that the issue-#86 bump is in effect.
         let err = check_cache_schema(
             "lemma",
             Path::new("data/x.json"),
