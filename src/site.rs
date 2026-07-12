@@ -18,7 +18,7 @@ use interslavic::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Counts inflection-table panics swallowed by the quiet hook (see below).
 static INFLECTION_PANICS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
@@ -257,6 +257,107 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
 // lemmas in Wiktionary, independent of the official Interslavic dictionary.
 // ===========================================================================
 
+/// Stable core-page id allocator backed by the previous export. Public entry
+/// URLs must not be positional: extraction/grouping improvements reorder sets.
+#[derive(Default)]
+struct StableEntryIds {
+    by_identity: std::collections::HashMap<String, std::collections::VecDeque<usize>>,
+    high_water: usize,
+}
+
+impl StableEntryIds {
+    fn load(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let value: serde_json::Value = serde_json::from_slice(&std::fs::read(path)?)?;
+        let mut ids: std::collections::HashMap<String, Vec<usize>> =
+            std::collections::HashMap::new();
+        let mut high_water = 0usize;
+        if let Some(rows) = value.as_array() {
+            for row in rows {
+                let Some(id) = row.get("id").and_then(|v| v.as_u64()).map(|v| v as usize) else {
+                    continue;
+                };
+                let Some(title) = row.get("title").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let pos = row.get("pos").and_then(|v| v.as_str()).unwrap_or("");
+                let gloss = row.get("gloss").and_then(|v| v.as_str()).unwrap_or("");
+                let official = row
+                    .get("official")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let ancestor = row.get("ancestor").and_then(|v| v.as_str()).unwrap_or("");
+                let n_langs = row.get("langs").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                let n_branches = row.get("branches").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                ids.entry(entry_identity(
+                    official, title, pos, gloss, ancestor, n_langs, n_branches,
+                ))
+                .or_default()
+                .push(id);
+                high_water = high_water.max(id);
+            }
+        }
+        let by_identity = ids
+            .into_iter()
+            .map(|(key, mut values)| {
+                values.sort_unstable();
+                (key, values.into())
+            })
+            .collect();
+        Ok(Self {
+            by_identity,
+            high_water,
+        })
+    }
+
+    fn alloc(&mut self, identity: &str) -> usize {
+        if let Some(id) = self
+            .by_identity
+            .get_mut(identity)
+            .and_then(std::collections::VecDeque::pop_front)
+        {
+            return id;
+        }
+        self.high_water += 1;
+        self.high_water
+    }
+
+    fn max_id(&self) -> usize {
+        self.high_water
+    }
+}
+
+/// Official identities intentionally omit the gloss: evidence growth may turn
+/// an official-only page into a matched page, but its permalink must survive.
+/// Machine-only homographs include the gloss to avoid stealing one another's
+/// old id.
+fn entry_identity(
+    official: bool,
+    title: &str,
+    pos: &str,
+    gloss: &str,
+    ancestor: &str,
+    n_langs: usize,
+    n_branches: usize,
+) -> String {
+    let title = crate::orthography::to_standard(&title.trim().to_lowercase());
+    if official {
+        format!("O\u{1f}{pos}\u{1f}{title}")
+    } else {
+        // The evidence signature separates otherwise identical generated
+        // homographs (e.g. two didžej/DJ sets). If grouping changes that
+        // signature, it is a genuinely different evidence page and must not
+        // silently inherit the old permalink.
+        format!(
+            "G\u{1f}{pos}\u{1f}{title}\u{1f}{}\u{1f}{}\u{1f}{n_langs}\u{1f}{n_branches}",
+            gloss.trim().to_lowercase(),
+            ancestor.trim().to_lowercase(),
+        )
+    }
+}
+
 /// Generate the static site from the Wiktionary cognate-set corpus. Every set of
 /// etymologically-connected Slavic lemmas becomes one Interslavic word, with
 /// confidence scaling by how many languages/branches attest it.
@@ -338,6 +439,21 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             .or_insert(e);
     }
 
+    // Entry URLs are public permalinks. Evidence growth can reorder cognate
+    // sets, so positional ids would silently retarget every old URL (issue #86
+    // moved aloe from /entry/19717 to /entry/9679). Reuse ids by semantic
+    // identity from the previous export. For an alternate/clean output dir,
+    // the committed `site/entries.json` is the compatibility registry.
+    let previous_entries = {
+        let local = out_dir.join("entries.json");
+        if local.exists() {
+            local
+        } else {
+            PathBuf::from("site/entries.json")
+        }
+    };
+    let mut entry_ids = StableEntryIds::load(&previous_entries)?;
+
     let entry_dir = out_dir.join("entry");
     let _ = std::fs::remove_dir_all(&entry_dir); // clear any stale pages
     std::fs::create_dir_all(&entry_dir)?;
@@ -378,7 +494,6 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         }
     }
     let mut prepared: Vec<Prepared> = Vec::new();
-    let mut id = 0usize;
     for set in sets {
         let members = set.members.len();
         let g = crate::corpus::generate_set(set, &cfg);
@@ -386,7 +501,6 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if form.is_empty() {
             continue;
         }
-        id += 1;
         lemma_total += members;
         if g.set.borrowed {
             borrowed += 1;
@@ -416,7 +530,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             .map(|(_, isv, _)| isv.clone())
             .unwrap_or_else(|| form.clone());
         prepared.push(Prepared {
-            id,
+            // Assigned only after homograph demotion and suppression finalize
+            // this page's rendered identity.
+            id: 0,
             g,
             display,
             status,
@@ -569,6 +685,54 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         println!("Suppressed {suppressed_n} same-concept duplicate pages.");
     }
 
+    // Allocate public ids only after match demotion and suppression have
+    // finalized each rendered page. Allocating in the generation loop would
+    // key losers as official and then render them as generated, retargeting
+    // old URLs despite the compatibility registry.
+    for p in prepared.iter_mut().filter(|p| !p.suppressed) {
+        let ancestor = if p.g.set.borrowed {
+            &p.g.set.etymon
+        } else {
+            &p.g.set.proto
+        };
+        let identity = entry_identity(
+            p.matched.is_some(),
+            &p.display,
+            p.g.set.pos.code(),
+            &p.g.set.gloss,
+            ancestor,
+            p.g.n_langs,
+            p.g.n_branches,
+        );
+        p.id = entry_ids.alloc(&identity);
+    }
+
+    // Track-E issue metric: evidence growth for official internationalisms.
+    // This is measured on surviving matched pages (the reader-visible class),
+    // never fed back into grouping or scoring. The left-hand figures are the
+    // frozen 7a8fc98 baseline reported in issue #86.
+    let mut genesis_i_single = 0usize;
+    let mut all_branch_single = 0usize;
+    for p in prepared
+        .iter()
+        .filter(|p| !p.suppressed && p.matched.is_some())
+    {
+        let fold = crate::orthography::to_standard(&p.display.to_lowercase());
+        let Some(e) = official_by_fold.get(&fold) else {
+            continue;
+        };
+        if e.genesis.trim() == "I" && p.g.n_langs == 1 {
+            genesis_i_single += 1;
+            let markers: BTreeSet<&str> = e.same_in.split_whitespace().collect();
+            if markers == BTreeSet::from(["j", "v", "z"]) {
+                all_branch_single += 1;
+            }
+        }
+    }
+    println!(
+        "issue-86 internationalism evidence: genesis-I matched langs=1: 564 → {genesis_i_single}; sameInLanguages=v z j and langs=1: 176 → {all_branch_single}"
+    );
+
     // Word families: entries whose ancestors share a Proto-Slavic stem
     // (*starъ/*starostь/*starьcь) or the same loan etymon (la magister →
     // majstor/maestro/magistr) cross-link each other.
@@ -629,9 +793,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if !covered.insert(fold) {
             continue; // generated, or an official homograph already emitted
         }
-        id += 1;
+        let entry_id = entry_ids.alloc(&entry_identity(
+            true,
+            isv,
+            e.pos.code(),
+            &e.english,
+            "",
+            0,
+            0,
+        ));
         official_only += 1;
-        official_only_records.push((id, e.clone()));
+        official_only_records.push((entry_id, e.clone()));
     }
     for (oid, e) in &official_only_records {
         isv_to_id
@@ -655,7 +827,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     )?;
     let raw_plan = raw_corpus
         .as_ref()
-        .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, id))
+        .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, entry_ids.max_id()))
         .unwrap_or_default();
     // Raw-collision display credit census (issue #86 item 6).
     println!(
@@ -663,13 +835,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         raw_plan.credit.len(),
         raw_plan.credit.values().map(Vec::len).sum::<usize>(),
     );
-    // Advance the shared id counter past the reserved raw ids, so any future
-    // allocation below cannot collide with them. (Nothing reads `id` after the
-    // raw render loop today — the allow documents that this is protective.)
-    #[allow(unused_assignments)]
-    if let Some(&(_, last_id)) = raw_plan.pages.last() {
-        id = last_id;
-    }
+    // `plan_raw_pages` starts after the largest stable core id, so raw ids
+    // cannot collide even though the core id space may now contain holes.
 
     let mut metas: Vec<SiteEntryMeta> = Vec::new();
     for p in prepared.iter().filter(|p| !p.suppressed) {
@@ -9368,6 +9535,34 @@ mod tests {
             .collect();
         let line = raw_credit_line(Some(&many));
         assert!(line.contains("+1 dalje"), "{line}");
+    }
+
+    /// Issue #86: the committed compatibility registry keeps public official
+    /// URLs stable when evidence growth reorders cognate sets. In particular,
+    /// aloe must remain entry/19717; official identity ignores changing gloss.
+    #[test]
+    fn stable_entry_ids_preserve_the_aloe_permalink() {
+        let mut ids = StableEntryIds::load(Path::new("site/entries.json")).unwrap();
+        let key = entry_identity(
+            true,
+            "aloe",
+            "noun",
+            "a changed gloss is irrelevant",
+            "different evidence is irrelevant too",
+            99,
+            3,
+        );
+        assert_eq!(ids.alloc(&key), 19717);
+        let fresh = ids.alloc(&entry_identity(
+            false,
+            "never-seen",
+            "noun",
+            "test",
+            "en test",
+            1,
+            1,
+        ));
+        assert!(fresh > 35_000, "new ids belong above the registry: {fresh}");
     }
 
     /// Test metas for the official-fact-treatment invariants (issue #86).
