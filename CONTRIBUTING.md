@@ -92,7 +92,8 @@ for one entry).
 | `corpus-eval` | the site's cognate-set generation path |
 | `proto-eval` | the Proto-Slavic rule engine in isolation |
 | `derive-eval` | the word-formation layer vs a naive baseline |
-| `multiword-eval` | reflexive `X sę`, two-token collocations, aspect pairs |
+| `multiword-eval` | reflexive `X sę`, two-token collocations, historical aspect baseline |
+| `aspect-eval` | dedicated ipf↔pf ladder: both/either/pairing correctness, holdout, significance |
 | `evidence-eval` | root-absent recoverability + augmentation A/B |
 | `inflect-eval` | inflection census + RULE_SPEC §3 grammar invariants |
 | `synonym-eval` | synonym-inclusive accuracy (thesaurus-based) |

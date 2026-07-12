@@ -31,7 +31,7 @@ use std::path::Path;
 /// Shard count for the form index. Changing it is a schema break: bump
 /// [`SCHEMA_VERSION`] and regenerate `api/agent-guide.md`.
 pub const SHARDS: u32 = 2048;
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 3;
 pub const LICENSE: &str =
     "CC BY-SA 4.0 (derives from Wiktionary and interslavic-dictionary.com; see /about.html)";
 
@@ -770,6 +770,26 @@ fn record_json(r: &FormRecord) -> String {
     )
 }
 
+pub type AspectMeta = std::collections::HashMap<usize, (String, Option<(usize, String)>)>;
+
+fn lemma_aspect_fields(r: &FormRecord, aspect_meta: &AspectMeta) -> (String, String) {
+    // Generated derivatives reuse their attested base's entry_id. Decorating
+    // by id alone would therefore label derived nouns/adjectives as verbs.
+    if r.pos != "verb" || !matches!(r.status, "official" | "official-only") {
+        return ("null".to_string(), "null".to_string());
+    }
+    aspect_meta
+        .get(&r.entry_id)
+        .map(|(aspect, partner)| {
+            let partner = partner
+                .as_ref()
+                .map(|(id, lemma)| format!("[{id},{}]", json_str(lemma)))
+                .unwrap_or_else(|| "null".to_string());
+            (json_str(aspect), partner)
+        })
+        .unwrap_or_else(|| ("null".to_string(), "null".to_string()))
+}
+
 pub struct ApiCounts {
     pub records: usize,
     pub keys: usize,
@@ -784,6 +804,7 @@ pub fn write_api(
     out_dir: &Path,
     records: &[FormRecord],
     lemmas: &[FormRecord],
+    aspect_meta: &AspectMeta,
     git: &str,
     agent_guide: &str,
 ) -> anyhow::Result<ApiCounts> {
@@ -834,7 +855,9 @@ pub fn write_api(
         std::fs::write(forms_dir.join(format!("{n}.json")), s)?;
     }
 
-    // lemmas.json: compact array [lemma, pos, status, probability, entry_id, gloss].
+    // lemmas.json schema 3: compact array
+    // [lemma, pos, status, probability, entry_id, gloss, aspect,
+    //  aspect_partner_or_null]. Partner is [entry_id, lemma].
     let mut ls = format!(
         "{{\"schema_version\":{SCHEMA_VERSION},\"license\":{},\"lemmas\":[\n",
         json_str(LICENSE)
@@ -847,15 +870,18 @@ pub fn write_api(
             .probability
             .map(|p| format!("{:.3}", p))
             .unwrap_or_else(|| "null".into());
+        let (aspect, partner) = lemma_aspect_fields(r, aspect_meta);
         let _ = write!(
             ls,
-            "[{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{},{}]",
             json_str(&r.form),
             json_str(r.pos),
             json_str(r.status),
             prob,
             r.entry_id,
             json_str(&r.gloss),
+            aspect,
+            partner,
         );
     }
     ls.push_str("\n]}\n");
@@ -942,6 +968,11 @@ License: {LICENSE}.
      reconstruction from cognates, or a regular derivative generated off an
      attested official base; see Trust rules).
 
+`api/lemmas.json` uses
+`[lemma, pos, status, probability, entry_id, gloss, aspect, aspect_partner]`;
+`aspect` is `ipf`, `pf`, `ipf/pf`, or null, and a partner is
+`[partner_entry_id, partner_lemma]` (schema 3, issue #75).
+
 ## Trust rules
 
 - `status: official`/`official-only` records are verification-grade.
@@ -963,7 +994,7 @@ License: {LICENSE}.
   wrong lemma is confidently wrong. A missing key means "unknown to Slovowiki",
   not "wrong".
 
-## Coverage (schema 2)
+## Coverage (schema 3)
 
 The index now includes, beyond noun/adjective/verb paradigms: **declined
 participles** (passive and active-present, adjectival paradigms under the verb
@@ -1047,7 +1078,7 @@ mod tests {
             SHARDS, 2048,
             "SHARDS is wire format: bump SCHEMA_VERSION too"
         );
-        assert_eq!(SCHEMA_VERSION, 2);
+        assert_eq!(SCHEMA_VERSION, 3);
     }
 
     #[test]
@@ -1375,6 +1406,32 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn api_aspect_metadata_does_not_leak_to_generated_derivatives() {
+        let mut meta = std::collections::HashMap::new();
+        meta.insert(7, ("ipf".to_string(), Some((8, "zapisati".to_string()))));
+        let record = |pos, status| FormRecord {
+            form: "zapisovati".to_string(),
+            key: "zapisovati".to_string(),
+            lemma: "zapisovati".to_string(),
+            entry_id: 7,
+            pos,
+            analyses: Vec::new(),
+            source: "lemma",
+            status,
+            probability: None,
+            gloss: "write".to_string(),
+        };
+        assert_eq!(
+            lemma_aspect_fields(&record("verb", "official"), &meta),
+            ("\"ipf\"".to_string(), "[8,\"zapisati\"]".to_string())
+        );
+        assert_eq!(
+            lemma_aspect_fields(&record("noun", "generated"), &meta),
+            ("null".to_string(), "null".to_string())
+        );
     }
 
     #[test]

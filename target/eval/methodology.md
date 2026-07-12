@@ -36,26 +36,26 @@ Each rung vs the previous rung, paired per entry: `fixed` = newly matched, `brok
 | Rung | Δ exact | fixed/broke (exact) | p (exact) | Δ norm | fixed/broke (norm) | p (norm) |
 |---|---:|---:|---:|---:|---:|---:|
 | +branch-consensus | +0.55pp | 1077/988 | 0.0528 | +1.04pp | 1595/1425 | 0.0021 |
-| +six-subgroup | +0.24pp | 138/99 | 0.0136 | +0.27pp | 198/154 | 0.0219 |
+| +six-subgroup | +0.24pp | 138/99 | 0.0134 | +0.27pp | 198/154 | 0.0218 |
 | +lemma-endings | +2.02pp | 335/5 | 0.0000 | +2.46pp | 410/9 | 0.0000 |
 | +internationalism | +1.31pp | 217/4 | 0.0000 | +1.69pp | 279/4 | 0.0000 |
 | +prefixes | +0.82pp | 134/0 | 0.0000 | +0.38pp | 62/0 | 0.0000 |
-| +depleophony | -0.01pp | 0/2 | 0.4795 | +0.18pp | 39/9 | 0.0000 |
-| +nasals | +0.37pp | 62/1 | 0.0000 | +0.09pp | 23/8 | 0.0119 |
+| +depleophony | -0.01pp | 0/2 | 0.5000 | +0.18pp | 39/9 | 0.0000 |
+| +nasals | +0.37pp | 62/1 | 0.0000 | +0.09pp | 23/8 | 0.0107 |
 | +proto-derived | +3.50pp | 697/127 | 0.0000 | +2.21pp | 499/138 | 0.0000 |
-| +intl-preference | +0.09pp | 28/14 | 0.0449 | +0.09pp | 28/14 | 0.0449 |
+| +intl-preference | +0.09pp | 28/14 | 0.0436 | +0.09pp | 28/14 | 0.0436 |
 | +adj-fleeting | +1.16pp | 195/6 | 0.0000 | +1.56pp | 262/7 | 0.0000 |
 | +synonym-alts | +0.00pp | 0/0 | 1.0000 | +0.00pp | 0/0 | 1.0000 |
 | +prefix-strip | +0.55pp | 98/8 | 0.0000 | +0.20pp | 41/8 | 0.0000 |
 | +loan-stem-repair | +1.43pp | 244/11 | 0.0000 | +1.47pp | 253/14 | 0.0000 |
-| +verb-class | +0.04pp | 11/4 | 0.1213 | +0.06pp | 14/4 | 0.0339 |
-| +voicing | +0.07pp | 13/1 | 0.0033 | +0.09pp | 15/1 | 0.0012 |
-| +explicit-etymology | +0.26pp | 205/163 | 0.0326 | +0.07pp | 218/207 | 0.6276 |
+| +verb-class | +0.04pp | 11/4 | 0.1185 | +0.06pp | 14/4 | 0.0309 |
+| +voicing | +0.07pp | 13/1 | 0.0018 | +0.09pp | 15/1 | 0.0005 |
+| +explicit-etymology | +0.26pp | 205/163 | 0.0324 | +0.07pp | 218/207 | 0.6277 |
 | +medoid-rep | +1.09pp | 548/370 | 0.0000 | +1.77pp | 816/527 | 0.0000 |
 | +deriv-suffixes | +0.25pp | 40/0 | 0.0000 | +0.14pp | 23/0 | 0.0000 |
-| +loan-hiatus | +0.06pp | 10/0 | 0.0044 | +0.07pp | 11/0 | 0.0026 |
+| +loan-hiatus | +0.06pp | 10/0 | 0.0020 | +0.07pp | 11/0 | 0.0010 |
 | +spirantization | +0.33pp | 57/3 | 0.0000 | +0.49pp | 83/3 | 0.0000 |
-| +stem-class-endings (production) | +0.07pp | 11/0 | 0.0026 | +0.07pp | 11/0 | 0.0026 |
+| +stem-class-endings (production) | +0.07pp | 11/0 | 0.0010 | +0.07pp | 11/0 | 0.0010 |
 
 ## Headline uncertainty (percentile bootstrap, 1000 seeded resamples)
 

@@ -1,0 +1,311 @@
+//! Slavic perfective ↔ imperfective pairing and conservative pair repair.
+//!
+//! Pair discovery uses official aspect/gloss metadata only to define the
+//! benchmark slice and site links. Pair generation never reads either gold
+//! lemma: it receives the two independently generated candidates and repairs a
+//! root disagreement with documented suffix morphology.
+
+use crate::model::Candidate;
+use crate::official::OfficialEntry;
+use crate::orthography as ortho;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Aspect {
+    Imperfective,
+    Perfective,
+    Biaspectual,
+}
+
+impl Aspect {
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Imperfective => "ipf",
+            Self::Perfective => "pf",
+            Self::Biaspectual => "ipf/pf",
+        }
+    }
+}
+
+pub fn aspect(pos_raw: &str) -> Option<Aspect> {
+    if pos_raw.contains("ipf./pf.") {
+        Some(Aspect::Biaspectual)
+    } else if pos_raw.contains("ipf.") {
+        Some(Aspect::Imperfective)
+    } else if pos_raw.contains("pf.") {
+        Some(Aspect::Perfective)
+    } else {
+        None
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AspectPair {
+    pub imperfective: usize,
+    pub perfective: usize,
+}
+
+/// Deterministic 1:1 pairing used by the benchmark and site. Same-gloss
+/// candidates are greedily matched by the existing consonant-root criterion;
+/// each entry participates at most once, preventing hub lemmas from dominating.
+pub fn detect_pairs(entries: &[OfficialEntry]) -> Vec<AspectPair> {
+    let mut ipf: HashMap<&str, Vec<usize>> = HashMap::new();
+    let mut pf: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (i, e) in entries.iter().enumerate() {
+        let word = e.isv.trim();
+        let gloss = e.english.trim();
+        if word.is_empty() || word.contains(' ') || word.contains('#') || gloss.is_empty() {
+            continue;
+        }
+        match aspect(&e.pos_raw) {
+            // Preserve the pre-registered 1,440-pair slice: its historical
+            // detector admitted the rare `ipf./pf.` row on the imperfective
+            // side because `pos_raw.contains("ipf.")` matched first.
+            Some(Aspect::Imperfective | Aspect::Biaspectual) => {
+                ipf.entry(gloss).or_default().push(i)
+            }
+            Some(Aspect::Perfective) => pf.entry(gloss).or_default().push(i),
+            None => {}
+        }
+    }
+    let mut glosses: Vec<&str> = ipf.keys().copied().collect();
+    glosses.sort_unstable();
+    let mut out = Vec::new();
+    for gloss in glosses {
+        let Some(perfectives) = pf.get(gloss) else {
+            continue;
+        };
+        let mut used = vec![false; perfectives.len()];
+        for &ii in &ipf[gloss] {
+            let ik = consonant_key(&entries[ii].isv);
+            let Some(slot) = perfectives.iter().enumerate().position(|(n, &pi)| {
+                !used[n] && roots_related(&ik, &consonant_key(&entries[pi].isv))
+            }) else {
+                continue;
+            };
+            used[slot] = true;
+            out.push(AspectPair {
+                imperfective: ii,
+                perfective: perfectives[slot],
+            });
+        }
+    }
+    out
+}
+
+fn consonant_key(word: &str) -> String {
+    ortho::consonant_key(&ortho::to_standard(&word.to_lowercase()))
+}
+
+fn roots_related(a: &str, b: &str) -> bool {
+    // Preserve the pre-registered issue-75 denominator exactly: the legacy
+    // slice treated an empty consonant skeleton as suffix-related via
+    // `ends_with("")`. Such rare vowel-only rows remain honest misses.
+    a.ends_with(b) || b.ends_with(a) || ortho::shares_consonant_root(a, b)
+}
+
+pub fn pairing_correct(imperfective: &str, perfective: &str) -> bool {
+    roots_related(&consonant_key(imperfective), &consonant_key(perfective))
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AspectConfig {
+    pub suffix_repair: bool,
+    pub prefix_perfectivization: bool,
+    pub secondary_imperfectives: bool,
+}
+
+impl AspectConfig {
+    pub const fn baseline() -> Self {
+        Self {
+            suffix_repair: false,
+            prefix_perfectivization: false,
+            secondary_imperfectives: false,
+        }
+    }
+
+    pub const fn production() -> Self {
+        Self {
+            suffix_repair: true,
+            prefix_perfectivization: true,
+            // The dedicated ladder found the secondary rung slightly reduced
+            // the primary both-correct metric, so it remains implemented but
+            // disabled in production (house keep-only-if-it-improves rule).
+            secondary_imperfectives: false,
+        }
+    }
+
+    pub const fn with_secondary_imperfectives() -> Self {
+        Self {
+            suffix_repair: true,
+            prefix_perfectivization: true,
+            secondary_imperfectives: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PairPrediction {
+    pub imperfective: String,
+    pub perfective: String,
+    pub rule: &'static str,
+}
+
+/// Pair-aware generation. Independently reconstructed forms are retained when
+/// their roots agree. On disagreement, repair only the lower-scoring member by
+/// deriving it from the stronger member with regular ISV aspect suffixes.
+/// No official form or dictionary answer is accepted by this function.
+pub fn reconcile_pair(ipf: &Candidate, pf: &Candidate, cfg: AspectConfig) -> PairPrediction {
+    if !cfg.suffix_repair {
+        return PairPrediction {
+            imperfective: ipf.form.clone(),
+            perfective: pf.form.clone(),
+            rule: "independent-baseline",
+        };
+    }
+    if pairing_correct(&ipf.form, &pf.form) {
+        return PairPrediction {
+            imperfective: ipf.form.clone(),
+            perfective: pf.form.clone(),
+            rule: "independent-roots-agree",
+        };
+    }
+
+    let mut options: Vec<(f32, PairPrediction)> = Vec::new();
+    for (form, rule) in derive_imperfectives(&pf.form, cfg) {
+        if pairing_correct(&form, &pf.form) {
+            let edit = ortho::normalized_edit_distance(&form, &ipf.form);
+            // Prefer preserving the stronger anchor; edit distance breaks ties.
+            options.push((
+                edit + ipf.score.max(0.0),
+                PairPrediction {
+                    imperfective: form,
+                    perfective: pf.form.clone(),
+                    rule,
+                },
+            ));
+        }
+    }
+    for (form, rule) in derive_perfectives(&ipf.form, cfg) {
+        if pairing_correct(&ipf.form, &form) {
+            let edit = ortho::normalized_edit_distance(&form, &pf.form);
+            options.push((
+                edit + pf.score.max(0.0),
+                PairPrediction {
+                    imperfective: ipf.form.clone(),
+                    perfective: form,
+                    rule,
+                },
+            ));
+        }
+    }
+    // Prefix perfectivization: the independently generated PF candidate tells
+    // us which productive prefix its cognates support; transfer only that
+    // prefix to the shared IPF reconstruction, never an official form.
+    let prefixes: &[&str] = if cfg.prefix_perfectivization {
+        &[
+            "prě", "råz", "pod", "nad", "pri", "pro", "iz", "na", "po", "do", "od", "ob", "za",
+            "vy", "o", "s", "v", "u",
+        ]
+    } else {
+        &[]
+    };
+    for prefix in prefixes {
+        if pf.form.starts_with(prefix) && !ipf.form.starts_with(prefix) {
+            let form = format!("{prefix}{}", ipf.form);
+            let edit = ortho::normalized_edit_distance(&form, &pf.form);
+            options.push((
+                edit + pf.score.max(0.0),
+                PairPrediction {
+                    imperfective: ipf.form.clone(),
+                    perfective: form,
+                    rule: "prefix-perfectivization",
+                },
+            ));
+        }
+    }
+    options.sort_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.rule.cmp(b.1.rule)));
+    options
+        .into_iter()
+        .next()
+        .map(|(_, p)| p)
+        .unwrap_or(PairPrediction {
+            imperfective: ipf.form.clone(),
+            perfective: pf.form.clone(),
+            rule: "unrepaired",
+        })
+}
+
+fn replace_suffix(word: &str, from: &str, to: &str) -> Option<String> {
+    word.strip_suffix(from).map(|stem| format!("{stem}{to}"))
+}
+
+/// Documented secondary-imperfective families plus the productive -nųti/-ati
+/// pair. Multiple forms are candidates; reconciliation chooses without gold by
+/// proximity to the independently reconstructed partner.
+pub fn derive_imperfectives(perfective: &str, cfg: AspectConfig) -> Vec<(String, &'static str)> {
+    let mut out = Vec::new();
+    for (from, to, rule, secondary) in [
+        ("nųti", "ati", "pf-nuti-to-ipf-ati", false),
+        ("iti", "jati", "pf-iti-to-ipf-jati", false),
+        ("ati", "yvati", "secondary-ipf-yvati", true),
+        ("ati", "ivati", "secondary-ipf-ivati", true),
+        ("ati", "avati", "secondary-ipf-avati", true),
+    ] {
+        if secondary && !cfg.secondary_imperfectives {
+            continue;
+        }
+        if let Some(v) = replace_suffix(perfective, from, to) {
+            if v != perfective && !out.iter().any(|(x, _)| x == &v) {
+                out.push((v, rule));
+            }
+        }
+    }
+    out
+}
+
+pub fn derive_perfectives(imperfective: &str, cfg: AspectConfig) -> Vec<(String, &'static str)> {
+    let mut out = Vec::new();
+    for (from, to, rule, secondary) in [
+        ("jati", "iti", "ipf-jati-to-pf-iti", false),
+        ("ati", "nųti", "ipf-ati-to-pf-nuti", false),
+        ("yvati", "ati", "secondary-ipf-yvati-reverse", true),
+        ("ivati", "ati", "secondary-ipf-ivati-reverse", true),
+        ("avati", "ati", "secondary-ipf-avati-reverse", true),
+    ] {
+        if secondary && !cfg.secondary_imperfectives {
+            continue;
+        }
+        if let Some(v) = replace_suffix(imperfective, from, to) {
+            if v != imperfective && !out.iter().any(|(x, _)| x == &v) {
+                out.push((v, rule));
+            }
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn aspect_tags_are_unambiguous() {
+        assert_eq!(aspect("v.tr. ipf."), Some(Aspect::Imperfective));
+        assert_eq!(aspect("v.tr. pf."), Some(Aspect::Perfective));
+        assert_eq!(aspect("v.tr. ipf./pf."), Some(Aspect::Biaspectual));
+    }
+
+    #[test]
+    fn regular_partner_derivations_cover_secondary_imperfectives() {
+        let ipf = derive_imperfectives("dobaviti", AspectConfig::with_secondary_imperfectives());
+        assert!(ipf.iter().any(|(f, _)| f == "dobavjati"));
+        let ipf = derive_imperfectives("bryzgnųti", AspectConfig::with_secondary_imperfectives());
+        assert!(ipf.iter().any(|(f, _)| f == "bryzgati"));
+        assert!(
+            derive_perfectives("pokazyvati", AspectConfig::with_secondary_imperfectives())
+                .iter()
+                .any(|(f, _)| f == "pokazati")
+        );
+    }
+}

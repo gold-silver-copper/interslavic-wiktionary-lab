@@ -17,6 +17,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+mod aspect;
 mod calibrate;
 mod check;
 mod consensus;
@@ -163,6 +164,14 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// Dedicated perfective↔imperfective pair benchmark (issue #75):
+    /// both/either/pairing correctness, dev/holdout, and paired significance.
+    AspectEval {
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
     /// Evidence-growth audit + augmentation A/B vs the root-absent ceiling
     /// (Track E / issue #4).
     EvidenceEval {
@@ -302,6 +311,7 @@ fn main() -> Result<()> {
         Command::CorpusEval { official } => eval::run_corpus_eval(&official),
         Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
+        Command::AspectEval { official, out } => eval::run_aspect_eval(&official, &out),
         Command::EvidenceEval { official, out } => eval::run_evidence_eval(&official, &out),
         Command::InflectEval { official, out } => site::run_inflect_eval(&official, &out),
         Command::CheckText {

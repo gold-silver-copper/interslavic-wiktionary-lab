@@ -387,9 +387,12 @@ cargo run --release -- audit
 # pairs, seam-aware morphology vs naive concatenation:
 cargo run --release -- derive-eval
 
-# Multi-word & aspect-pair benchmark: reflexive `X sę`, two-token collocations,
-# ipf/pf pair accuracy (slices the headline benchmark excludes):
+# Multi-word benchmark plus the historical aspect baseline:
 cargo run --release -- multiword-eval
+
+# Dedicated aspect-pair ladder: both/either/pairing correctness, dev/holdout,
+# paired sign test, core suffixes and secondary imperfectives:
+cargo run --release -- aspect-eval
 
 # Evidence-growth audit: root-absent recoverability + augmentation A/B:
 cargo run --release -- evidence-eval
@@ -426,7 +429,7 @@ Every `export` also writes a **static, deterministic lexical API** under
 `site/api/` (issue #11) — one `FormRecord` pipeline feeds both the website's
 inflection tables and the machine-readable artifacts, so they cannot drift:
 
-- `api/forms/<n>.json` — the **sharded form index** (schema 2, ~517k analysis
+- `api/forms/<n>.json` — the **sharded form index** (schema 3, ~517k analysis
   records: every official lemma + full paradigm, **declined participles,
   comparatives/superlatives with adverbs, pronoun & numeral paradigms** from
   the STEEN-G tables, byform variants split, syncretic cells merged). Shard
@@ -435,7 +438,8 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   `api/router-selftest.json` before trusting lookups.
 - `api/lemmas.json` — every headword with status (`official` /
   `official-only` / `generated`) and, for generated lemmas, the calibrated
-  probability. Generated lemmas deliberately have **no inflection records**:
+  probability, grammatical aspect, and `[entry_id, lemma]` aspect partner when
+  paired. Generated lemmas deliberately have **no inflection records**:
   an inflected form of a wrong reconstruction is confidently wrong.
 - `api/meta.json` — schema version, counts, sizes, license, router spec.
 - `api/agent-guide.md` — the lookup protocol, fold table and trust rules

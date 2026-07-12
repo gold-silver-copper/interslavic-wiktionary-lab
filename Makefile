@@ -5,7 +5,7 @@ SITE ?= site
 OUT ?= target/eval
 
 .PHONY: extract-proto extract-lemmas extract-raw-slavic extract-enrich extract-all \
-	eval proto-eval corpus-eval audit export serve explain coverage check fmt test clean \
+	eval proto-eval corpus-eval aspect-eval audit export serve explain coverage check fmt test clean \
 	search-perf
 
 # One-time: stream the 23GB dump into the Proto-Slavic cache (enables +proto-derived).
@@ -46,6 +46,10 @@ audit:
 # The site path (corpus::generate_set) accuracy vs the official dictionary.
 corpus-eval:
 	cargo run --release -- corpus-eval
+
+# Dedicated perfective↔imperfective pair benchmark (issue #75).
+aspect-eval:
+	cargo run --release -- aspect-eval --official "$(OFFICIAL)" --out "$(OUT)"
 
 # Generate the static website locally (no server; not published anywhere).
 export:
