@@ -437,11 +437,18 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   site's client-side JS, which verifies itself against
   `api/router-selftest.json` before trusting lookups.
 - `api/lemmas.json` — every headword with status (`official` /
-  `official-only` / `generated`) and, for generated lemmas, the calibrated
-  probability, grammatical aspect, and `[entry_id, lemma]` aspect partner when
-  paired. Generated lemmas deliberately have **no inflection records**:
+  `official-only` / `generated`) and calibrated probability for generated
+  lemmas; official verb rows additionally carry grammatical aspect and an
+  array of `[entry_id, lemma]` partners. Generated lemmas deliberately have
+  **no inflection records**:
   an inflected form of a wrong reconstruction is confidently wrong.
+- `api/aspect-pairs.json` — the production pair model's official endpoints,
+  linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
+  present stems where applicable.
 - `api/meta.json` — schema version, counts, sizes, license, router spec.
+  **Schema 3 migration:** v2's six-field lemma tuple is now eight fields;
+  consumers must accept trailing `aspect` and `aspect_partners` (an array,
+  empty for unpaired/non-official rows).
 - `api/agent-guide.md` — the lookup protocol, fold table and trust rules
   (p < 0.6 ⇒ suggestion, never verification).
 

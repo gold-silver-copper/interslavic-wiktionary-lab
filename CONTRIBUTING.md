@@ -113,7 +113,7 @@ Contributor-relevant invariants, all CI-tested or verified:
 - **Single source**: HTML inflection tables and `api/forms/<n>.json` records
   are generated from the same cell getters in `src/forms.rs` — never bypass
   them (round-trip tests will catch drift).
-- **Wire format is frozen**: the fold table, the FNV-1a/1024 shard router and
+- **Wire format is frozen**: the fold table, the FNV-1a/2048 shard router and
   the record array layout are mirrored in client JS and documented in the
   agent guide. Changing any of them is a schema break: bump
   `forms::SCHEMA_VERSION`.

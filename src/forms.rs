@@ -770,7 +770,7 @@ fn record_json(r: &FormRecord) -> String {
     )
 }
 
-pub type AspectMeta = std::collections::HashMap<usize, (String, Option<(usize, String)>)>;
+pub type AspectMeta = std::collections::HashMap<usize, (String, Vec<(usize, String)>)>;
 
 fn lemma_aspect_fields(r: &FormRecord, aspect_meta: &AspectMeta) -> (String, String) {
     // Generated derivatives reuse their attested base's entry_id. Decorating
@@ -780,12 +780,16 @@ fn lemma_aspect_fields(r: &FormRecord, aspect_meta: &AspectMeta) -> (String, Str
     }
     aspect_meta
         .get(&r.entry_id)
-        .map(|(aspect, partner)| {
-            let partner = partner
-                .as_ref()
-                .map(|(id, lemma)| format!("[{id},{}]", json_str(lemma)))
-                .unwrap_or_else(|| "null".to_string());
-            (json_str(aspect), partner)
+        .map(|(aspect, partners)| {
+            let partners = format!(
+                "[{}]",
+                partners
+                    .iter()
+                    .map(|(id, lemma)| format!("[{id},{}]", json_str(lemma)))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            );
+            (json_str(aspect), partners)
         })
         .unwrap_or_else(|| ("null".to_string(), "null".to_string()))
 }
@@ -857,7 +861,7 @@ pub fn write_api(
 
     // lemmas.json schema 3: compact array
     // [lemma, pos, status, probability, entry_id, gloss, aspect,
-    //  aspect_partner_or_null]. Partner is [entry_id, lemma].
+    //  aspect_partners]. Each partner is [entry_id, lemma].
     let mut ls = format!(
         "{{\"schema_version\":{SCHEMA_VERSION},\"license\":{},\"lemmas\":[\n",
         json_str(LICENSE)
@@ -914,7 +918,7 @@ pub fn write_api(
     std::fs::write(api.join("router-selftest.json"), st)?;
 
     let meta = format!(
-        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
+        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"aspect_pairs\": \"api/aspect-pairs.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
         json_str(git),
         json_str(LICENSE),
         records.len(),
@@ -969,9 +973,12 @@ License: {LICENSE}.
      attested official base; see Trust rules).
 
 `api/lemmas.json` uses
-`[lemma, pos, status, probability, entry_id, gloss, aspect, aspect_partner]`;
-`aspect` is `ipf`, `pf`, `ipf/pf`, or null, and a partner is
-`[partner_entry_id, partner_lemma]` (schema 3, issue #75).
+`[lemma, pos, status, probability, entry_id, gloss, aspect, aspect_partners]`;
+`aspect` is `ipf`, `pf`, `ipf/pf`, or null; `aspect_partners` is an array of
+`[partner_entry_id, partner_lemma]` rows (schema 3, issue #75).
+`api/aspect-pairs.json` contains the production pair model output: both official
+endpoints/page IDs, shared-anchor generated forms, the fired rule, and
+`-ovati/-uje` present stems where applicable.
 
 ## Trust rules
 
@@ -1411,7 +1418,7 @@ mod tests {
     #[test]
     fn api_aspect_metadata_does_not_leak_to_generated_derivatives() {
         let mut meta = std::collections::HashMap::new();
-        meta.insert(7, ("ipf".to_string(), Some((8, "zapisati".to_string()))));
+        meta.insert(7, ("ipf".to_string(), vec![(8, "zapisati".to_string())]));
         let record = |pos, status| FormRecord {
             form: "zapisovati".to_string(),
             key: "zapisovati".to_string(),
@@ -1426,7 +1433,7 @@ mod tests {
         };
         assert_eq!(
             lemma_aspect_fields(&record("verb", "official"), &meta),
-            ("\"ipf\"".to_string(), "[8,\"zapisati\"]".to_string())
+            ("\"ipf\"".to_string(), "[[8,\"zapisati\"]]".to_string())
         );
         assert_eq!(
             lemma_aspect_fields(&record("noun", "generated"), &meta),

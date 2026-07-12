@@ -33,6 +33,10 @@ jobs:
       # Full-corpus inflection guard: the command exits nonzero if the paradigm
       # struct path (which the site tables and the forms API render from)
       # diverges from the panic-guarded cell getters on any official lemma.
+      - name: Aspect-pair benchmark and frozen-manifest guard
+        run: |
+          cargo run --release -- aspect-eval
+          git diff --exit-code -- target/eval/aspect-pairs.md target/eval/aspect-pairs.tsv
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)

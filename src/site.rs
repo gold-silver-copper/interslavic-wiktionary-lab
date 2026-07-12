@@ -784,8 +784,16 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         xref.len()
     );
 
-    // Official lemmas no candidate generates: reserve their ids before rendering
-    // so all wiki indexes (categories, backlinks, nearby nav, all-pages) can see
+    // Official lemmas with no SURVIVING matched page get their own page. The
+    // earlier candidate-coverage set includes top-5 alternatives and suppressed
+    // pages, which can otherwise make an official verb disappear entirely.
+    covered.clear();
+    for p in prepared.iter().filter(|p| !p.suppressed) {
+        if let Some((_, isv, _)) = &p.matched {
+            covered.insert(crate::orthography::to_standard(&isv.to_lowercase()));
+        }
+    }
+    // Reserve official-only ids before rendering so all wiki indexes can see
     // the complete static site graph.
     let mut official_only = 0usize;
     let mut official_only_records: Vec<(usize, OfficialEntry)> = Vec::new();
@@ -867,7 +875,20 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 Some((_, _, en)) => en,
                 None => &p.g.set.gloss,
             },
-            p.g.set.pos.code(),
+            p.matched
+                .as_ref()
+                .and_then(|(_, isv, _)| {
+                    official_by_fold
+                        .get(&crate::orthography::to_standard(&isv.trim().to_lowercase()))
+                })
+                .map(|e| {
+                    if crate::aspect::aspect(&e.pos_raw).is_some() {
+                        "verb"
+                    } else {
+                        e.pos.code()
+                    }
+                })
+                .unwrap_or_else(|| p.g.set.pos.code()),
             p.status,
             p.g.confidence,
             p.g.score,
@@ -905,7 +926,11 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             *oid,
             e.isv.trim(),
             &e.english,
-            e.pos.code(),
+            if crate::aspect::aspect(&e.pos_raw).is_some() {
+                "verb"
+            } else {
+                e.pos.code()
+            },
             MatchStatus::OfficialMatch,
             Confidence::High,
             1.0,
@@ -925,36 +950,38 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // candidate generation or the leakage-free benchmark path.
     let meta_pos: std::collections::HashMap<usize, usize> =
         metas.iter().enumerate().map(|(i, m)| (m.id, i)).collect();
-    // Map each represented official ROW to its actual page. The generic
-    // folded-headword index also contains generated homographs, so using it
-    // here incorrectly put verb aspect on unrelated nouns/adverbs.
+    // Resolve every official ROW through its folded official verb page. Several
+    // dictionary senses can share one headword; preserving all row ids here
+    // prevents first-row-wins lookup from dropping their distinct partners.
+    let verb_page_by_fold: std::collections::HashMap<String, usize> = metas
+        .iter()
+        .filter(|m| m.official_lemma.is_some() && m.pos == "verb")
+        .map(|m| {
+            (
+                crate::orthography::to_standard(&m.title.to_lowercase()),
+                m.id,
+            )
+        })
+        .collect();
     let mut official_page_ids: std::collections::HashMap<&str, usize> =
         std::collections::HashMap::new();
-    for p in prepared
-        .iter()
-        .filter(|p| !p.suppressed && p.matched.is_some())
-    {
-        let fold = crate::orthography::to_standard(&p.display.to_lowercase());
-        if let Some(e) = official_by_fold.get(&fold) {
-            official_page_ids.insert(e.id.as_str(), p.id);
-        }
-    }
-    for (id, e) in &official_only_records {
-        official_page_ids.insert(e.id.as_str(), *id);
-    }
     for e in &official_entries {
         let Some(aspect) = crate::aspect::aspect(&e.pos_raw) else {
             continue;
         };
-        let Some(&id) = official_page_ids.get(e.id.as_str()) else {
+        let fold = crate::orthography::to_standard(&e.isv.trim().to_lowercase());
+        let Some(&id) = verb_page_by_fold.get(&fold) else {
             continue;
         };
-        if let Some(&i) = meta_pos.get(&id) {
-            if metas[i].pos == "verb" {
-                metas[i]
-                    .aspect
-                    .get_or_insert_with(|| aspect.code().to_string());
-            }
+        official_page_ids.insert(e.id.as_str(), id);
+        let i = meta_pos[&id];
+        let current = metas[i].aspect.as_deref();
+        if current.is_some_and(|a| a != aspect.code()) {
+            metas[i].aspect = Some("ipf/pf".to_string());
+        } else {
+            metas[i]
+                .aspect
+                .get_or_insert_with(|| aspect.code().to_string());
         }
     }
     for pair in crate::aspect::detect_pairs(&official_entries) {
@@ -969,27 +996,24 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if ii == pi {
             continue;
         }
-        let (Some(&im), Some(&pm)) = (meta_pos.get(&ii), meta_pos.get(&pi)) else {
-            continue;
-        };
-        // A cross-POS folded match can resolve an official verb row onto a
-        // non-verb page. Such a page is not an aspect endpoint.
-        if metas[im].aspect.is_none() || metas[pm].aspect.is_none() {
-            continue;
-        }
+        let (im, pm) = (meta_pos[&ii], meta_pos[&pi]);
         metas[im]
-            .aspect_partner
-            .get_or_insert((pi, pf.isv.trim().to_string()));
+            .aspect_partners
+            .push((pi, pf.isv.trim().to_string()));
         metas[pm]
-            .aspect_partner
-            .get_or_insert((ii, ipf.isv.trim().to_string()));
+            .aspect_partners
+            .push((ii, ipf.isv.trim().to_string()));
+    }
+    for m in &mut metas {
+        m.aspect_partners.sort();
+        m.aspect_partners.dedup();
     }
     // Export-level invariant: aspect belongs only to official verb pages and
     // every emitted partner edge is reciprocal. Fail the build rather than
     // publish a fold-collision or one-way grammatical link.
     for m in metas
         .iter()
-        .filter(|m| m.aspect.is_some() || m.aspect_partner.is_some())
+        .filter(|m| m.aspect.is_some() || !m.aspect_partners.is_empty())
     {
         anyhow::ensure!(
             m.aspect.is_some() && m.official_lemma.is_some() && m.pos == "verb",
@@ -997,12 +1021,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             m.id,
             m.title
         );
-        if let Some((partner_id, _)) = &m.aspect_partner {
+        for (partner_id, _) in &m.aspect_partners {
             let Some(&p) = meta_pos.get(partner_id) else {
                 anyhow::bail!("aspect partner {} for {} has no entry", partner_id, m.id);
             };
             anyhow::ensure!(
-                metas[p].aspect_partner.as_ref().map(|x| x.0) == Some(m.id),
+                metas[p].aspect_partners.iter().any(|x| x.0 == m.id),
                 "aspect partner link is not reciprocal: {} -> {}",
                 m.id,
                 partner_id
@@ -1069,6 +1093,38 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         proto_reflex.pages.len(),
         proto_reflex.linked,
         proto_reflex.misses,
+    );
+
+    // Run the SAME pair-generation path benchmarked by `aspect-eval` in the
+    // production export. This machine-readable artifact makes pair repair an
+    // actual shipped model, not benchmark-only analysis; official forms remain
+    // the authoritative page titles.
+    let mut aspect_pair_exports = Vec::new();
+    for pair in crate::aspect::detect_pairs(&official_entries) {
+        let ipf = &official_entries[pair.imperfective];
+        let pf = &official_entries[pair.perfective];
+        let Some(prediction) = crate::aspect::generate_pair(
+            &build_input(ipf),
+            &build_input(pf),
+            proto_index.as_ref(),
+            &cfg,
+            crate::aspect::AspectConfig::production(),
+        ) else {
+            continue;
+        };
+        aspect_pair_exports.push((
+            ipf.id.clone(),
+            pf.id.clone(),
+            official_page_ids.get(ipf.id.as_str()).copied(),
+            official_page_ids.get(pf.id.as_str()).copied(),
+            ipf.isv.trim().to_string(),
+            pf.isv.trim().to_string(),
+            prediction,
+        ));
+    }
+    println!(
+        "aspect model: generated {} ipf↔pf pairs through the production pair path (issue #75).",
+        aspect_pair_exports.len()
     );
 
     write_wiki_indexes(
@@ -1688,10 +1744,20 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         // the form-only official match can cross POS, and a wrong-POS paradigm
         // exported as verification-grade would be confidently wrong.
         let (pos, gender) = match &p.matched {
-            Some((_, isv, _)) => official_map
-                .get(&crate::orthography::to_standard(&isv.to_lowercase()))
-                .map(|(_, _, pos, gender, _)| (*pos, *gender))
-                .unwrap_or((p.g.set.pos, None)),
+            Some((_, isv, _)) => {
+                let fold = crate::orthography::to_standard(&isv.to_lowercase());
+                if official_by_fold
+                    .get(&fold)
+                    .is_some_and(|e| crate::aspect::aspect(&e.pos_raw).is_some())
+                {
+                    (crate::model::Pos::Verb, None)
+                } else {
+                    official_map
+                        .get(&fold)
+                        .map(|(_, _, pos, gender, _)| (*pos, *gender))
+                        .unwrap_or((p.g.set.pos, None))
+                }
+            }
             None => (p.g.set.pos, None),
         };
         lemma_sink.add(
@@ -1743,6 +1809,11 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         }
     }
     for (oid, e) in &official_only_records {
+        let api_pos = if crate::aspect::aspect(&e.pos_raw).is_some() {
+            crate::model::Pos::Verb
+        } else {
+            e.pos
+        };
         // ~230 rows list byform variants in one cell ("iměti, imati"): each
         // variant is its own lemma (and gets its own paradigm).
         for isv in e.isv.split(',').map(str::trim) {
@@ -1758,7 +1829,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 "",
                 isv,
                 *oid,
-                e.pos.code(),
+                api_pos.code(),
                 "lemma",
                 "official-only",
                 None,
@@ -1769,17 +1840,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 "",
                 isv,
                 *oid,
-                e.pos.code(),
+                api_pos.code(),
                 "lemma",
                 "official-only",
                 None,
                 &e.english,
             );
-            if seen_paradigm.insert(format!("{isv}|{}", e.pos.code())) {
+            if seen_paradigm.insert(format!("{isv}|{}", api_pos.code())) {
                 crate::forms::paradigm_records(
                     &mut form_sink,
                     isv,
-                    e.pos,
+                    api_pos,
                     e.noun_traits.gender,
                     *oid,
                     "official-only",
@@ -1789,13 +1860,13 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 crate::forms::pronoun_numeral_records(
                     &mut form_sink,
                     isv,
-                    e.pos,
+                    api_pos,
                     *oid,
                     "official-only",
                     &e.english,
                 );
             }
-            attested_bases.push((isv.to_string(), e.pos, *oid, e.english.clone()));
+            attested_bases.push((isv.to_string(), api_pos, *oid, e.english.clone()));
         }
     }
     // ---- Generated derivatives off attested bases (issue #37) ----
@@ -1851,7 +1922,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         .filter_map(|m| {
             m.aspect
                 .as_ref()
-                .map(|a| (m.id, (a.clone(), m.aspect_partner.clone())))
+                .map(|a| (m.id, (a.clone(), m.aspect_partners.clone())))
         })
         .collect();
     let api_counts = crate::forms::write_api(
@@ -1862,6 +1933,39 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &build_meta.git,
         &crate::forms::agent_guide(),
     )?;
+    let mut pair_json = String::from("{\"schema_version\":3,\"pairs\":[\n");
+    for (n, (ipf_oid, pf_oid, ipf_page, pf_page, ipf, pf, prediction)) in
+        aspect_pair_exports.iter().enumerate()
+    {
+        if n > 0 {
+            pair_json.push_str(",\n");
+        }
+        let ipf_page = ipf_page.map_or_else(|| "null".to_string(), |id| id.to_string());
+        let pf_page = pf_page.map_or_else(|| "null".to_string(), |id| id.to_string());
+        let ipf_present = crate::aspect::ovati_present_stem(&prediction.imperfective)
+            .map(|s| json_str(&s))
+            .unwrap_or_else(|| "null".to_string());
+        let pf_present = crate::aspect::ovati_present_stem(&prediction.perfective)
+            .map(|s| json_str(&s))
+            .unwrap_or_else(|| "null".to_string());
+        let _ = write!(
+            pair_json,
+            "{{\"imperfective\":{{\"official_id\":{},\"entry_id\":{},\"lemma\":{},\"generated\":{},\"generated_present_stem\":{}}},\"perfective\":{{\"official_id\":{},\"entry_id\":{},\"lemma\":{},\"generated\":{},\"generated_present_stem\":{}}},\"rule\":{}}}",
+            json_str(ipf_oid),
+            ipf_page,
+            json_str(ipf),
+            json_str(&prediction.imperfective),
+            ipf_present,
+            json_str(pf_oid),
+            pf_page,
+            json_str(pf),
+            json_str(&prediction.perfective),
+            pf_present,
+            json_str(prediction.rule),
+        );
+    }
+    pair_json.push_str("\n]}\n");
+    std::fs::write(out_dir.join("api/aspect-pairs.json"), pair_json)?;
     println!(
         "api: {} form records / {} distinct keys / {} lemmas across {} shards ({} KB total, largest shard {} KB)",
         api_counts.records,
@@ -5765,7 +5869,7 @@ struct SiteEntryMeta {
     /// Grammatical aspect for official verbs plus the bidirectional partner
     /// selected by the issue-75 deterministic 1:1 pairing model.
     aspect: Option<String>,
-    aspect_partner: Option<(usize, String)>,
+    aspect_partners: Vec<(usize, String)>,
     ancestor: String,
     languages: Vec<String>,
     first: String,
@@ -5851,7 +5955,7 @@ fn entry_meta(
         raw: false,
         official_lemma,
         aspect: None,
-        aspect_partner: None,
+        aspect_partners: Vec::new(),
         ancestor,
         languages,
         first,
@@ -7528,16 +7632,17 @@ fn entry_infobox(m: &SiteEntryMeta, razum: &str, extra_rows: &str, proto_link: &
         .aspect
         .as_ref()
         .map(|aspect| {
-            let partner = m
-                .aspect_partner
-                .as_ref()
-                .map(|(id, title)| {
-                    format!(
-                        "<tr><th>Vidovy partner</th><td><a href='{id}.html'>{}</a></td></tr>",
-                        esc(title)
-                    )
-                })
-                .unwrap_or_default();
+            let partner = if m.aspect_partners.is_empty() {
+                String::new()
+            } else {
+                let links = m
+                    .aspect_partners
+                    .iter()
+                    .map(|(id, title)| format!("<a href='{id}.html'>{}</a>", esc(title)))
+                    .collect::<Vec<_>>()
+                    .join(" · ");
+                format!("<tr><th>Vidovy partneri</th><td>{links}</td></tr>")
+            };
             format!(
                 "<tr><th>Glagolsky vid</th><td>{}</td></tr>{partner}",
                 esc(aspect)
@@ -7814,7 +7919,7 @@ fn contribute_page() -> String {
 /// attesting language-code SET, issue #73c), branches (branch count),
 /// `branch_pattern` (the exact branch combination "V"/"Z"/"J"/"V+Z"/…/
 /// "V+Z+J", null when no code resolves — issue #73c), borrowed, official,
-/// ancestor, aspect, and aspect_partner (`{id,title}` or null; issue #75).
+/// ancestor, aspect, and aspect_partners (`[{id,title},…]`; issue #75).
 /// `langs_list` + `branch_pattern` make any attestation-pattern
 /// query a jq one-liner (e.g. `.[] | select(.branch_pattern == "V+J")`).
 fn entries_json(metas: &[SiteEntryMeta]) -> String {
@@ -7844,13 +7949,14 @@ fn entries_json(metas: &[SiteEntryMeta]) -> String {
             .as_ref()
             .map(|a| json_str(a))
             .unwrap_or_else(|| "null".to_string());
-        let partner = m
-            .aspect_partner
-            .as_ref()
+        let partners = m
+            .aspect_partners
+            .iter()
             .map(|(id, title)| format!("{{\"id\":{id},\"title\":{}}}", json_str(title)))
-            .unwrap_or_else(|| "null".to_string());
-        let _ = write!(s, "{{\"id\":{},\"title\":{},\"gloss\":{},\"pos\":{},\"quality\":{},\"confidence\":{},\"prob\":{},\"langs\":{},\"langs_list\":[{}],\"branches\":{},\"branch_pattern\":{},\"borrowed\":{},\"official\":{},\"ancestor\":{},\"aspect\":{},\"aspect_partner\":{}}}",
-            m.id, json_str(&m.title), json_str(&m.gloss), json_str(&m.pos), json_str(quality_label(m)), json_str(m.conf.label()), prob, m.n_langs, langs_list, m.n_branches, pattern, m.borrowed, m.official_lemma.is_some(), json_str(&m.ancestor), aspect, partner);
+            .collect::<Vec<_>>()
+            .join(",");
+        let _ = write!(s, "{{\"id\":{},\"title\":{},\"gloss\":{},\"pos\":{},\"quality\":{},\"confidence\":{},\"prob\":{},\"langs\":{},\"langs_list\":[{}],\"branches\":{},\"branch_pattern\":{},\"borrowed\":{},\"official\":{},\"ancestor\":{},\"aspect\":{},\"aspect_partners\":[{}]}}",
+            m.id, json_str(&m.title), json_str(&m.gloss), json_str(&m.pos), json_str(quality_label(m)), json_str(m.conf.label()), prob, m.n_langs, langs_list, m.n_branches, pattern, m.borrowed, m.official_lemma.is_some(), json_str(&m.ancestor), aspect, partners);
     }
     s.push_str("\n]\n");
     s
@@ -8756,7 +8862,7 @@ function render(tok,recs,nts,key){{\
 }
 
 fn datasets_page(coverage: &str) -> String {
-    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = kalibrovana věrojętnosť generovanyh zapisov (null za oficialne/surove), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partner</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, kalibrovanoju věrojetnostju i vidovym partnerom glagolov (schema 3).</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table>{coverage}</article>");
+    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = kalibrovana věrojętnosť generovanyh zapisov (null za oficialne/surove), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partners</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojetnostju i kȯšikom (predlog/pregled).</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, kalibrovanoju věrojetnostju i vidovymi partnerami glagolov (schema 3).</td></tr><tr><td><a href='api/aspect-pairs.json'>api/aspect-pairs.json</a></td><td>Produkcijny model glagolskyh par: oficialne i generovane ipf↔pf formy, stranice i pravilo.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table>{coverage}</article>");
     page("Fajly za dostavanje", &body, 0)
 }
 
@@ -9824,7 +9930,7 @@ mod tests {
     /// Issue #75: aspect metadata is bidirectional machine-readable data and
     /// a direct partner link in the entry infobox.
     #[test]
-    fn aspect_partner_is_exported_and_linked() {
+    fn aspect_partners_are_exported_and_linked() {
         let mut m = meta_for(
             Confidence::High,
             None,
@@ -9834,16 +9940,20 @@ mod tests {
             &["ru", "pl"],
         );
         m.aspect = Some("pf".to_string());
-        m.aspect_partner = Some((24712, "dobavjati".to_string()));
+        m.aspect_partners = vec![
+            (24712, "dobavjati".to_string()),
+            (24713, "pridobaviti".to_string()),
+        ];
         let json = entries_json(&[m.clone()]);
         assert!(json.contains(r#""aspect":"pf""#), "{json}");
         assert!(
-            json.contains(r#""aspect_partner":{"id":24712,"title":"dobavjati"}"#),
+            json.contains(r#""aspect_partners":[{"id":24712,"title":"dobavjati"},{"id":24713,"title":"pridobaviti"}]"#),
             "{json}"
         );
         let html = entry_infobox(&m, "", "", "");
         assert!(html.contains("Glagolsky vid</th><td>pf"), "{html}");
         assert!(html.contains("href='24712.html'>dobavjati</a>"), "{html}");
+        assert!(html.contains("href='24713.html'>pridobaviti</a>"), "{html}");
     }
 
     /// Issue #86 defect 2: the razumlivost basis for a matched entry is the

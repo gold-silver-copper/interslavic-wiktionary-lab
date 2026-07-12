@@ -5,6 +5,7 @@
 //! lemma: it receives the two independently generated candidates and repairs a
 //! root disagreement with documented suffix morphology.
 
+use crate::consensus::{ConsensusConfig, MeaningInput};
 use crate::model::Candidate;
 use crate::official::OfficialEntry;
 use crate::orthography as ortho;
@@ -128,10 +129,10 @@ impl AspectConfig {
         Self {
             suffix_repair: true,
             prefix_perfectivization: true,
-            // The dedicated ladder found the secondary rung slightly reduced
-            // the primary both-correct metric, so it remains implemented but
-            // disabled in production (house keep-only-if-it-improves rule).
-            secondary_imperfectives: false,
+            // Kept by the dedicated ladder: with -ovati/-uje and the closed
+            // exceptions included, this rung improves the primary both-correct
+            // metric on dev and holdout.
+            secondary_imperfectives: true,
         }
     }
 
@@ -144,11 +145,47 @@ impl AspectConfig {
     }
 }
 
+const SUPPLETIVE: &[(&str, &str)] = &[
+    ("idti", "pojdti"),
+    ("jęti", "vzęti"),
+    ("tykati", "tknųti"),
+    ("pinati", "pnųti"),
+    ("jesti", "sjesti"),
+];
+
+fn suppletive_pair(imperfective: &str, perfective: &str) -> Option<(&'static str, &'static str)> {
+    SUPPLETIVE.iter().copied().find(|(i, p)| {
+        ortho::normalized_match(imperfective, i) || ortho::normalized_match(perfective, p)
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct PairPrediction {
     pub imperfective: String,
     pub perfective: String,
     pub rule: &'static str,
+}
+
+/// Production pair-generation entry point shared by the site export and the
+/// dedicated benchmark. Both inputs contain only cognate evidence and grammar
+/// metadata; neither official answer is accepted. The stronger reconstructed
+/// member supplies the shared root for regular partner derivation.
+pub fn generate_pair(
+    imperfective: &MeaningInput,
+    perfective: &MeaningInput,
+    proto: Option<&crate::dump::ProtoIndex>,
+    consensus_cfg: &ConsensusConfig,
+    aspect_cfg: AspectConfig,
+) -> Option<PairPrediction> {
+    let ipf = crate::pipeline::generate(imperfective, proto, consensus_cfg)
+        .0
+        .into_iter()
+        .next()?;
+    let pf = crate::pipeline::generate(perfective, proto, consensus_cfg)
+        .0
+        .into_iter()
+        .next()?;
+    Some(reconcile_pair(&ipf, &pf, aspect_cfg))
 }
 
 /// Pair-aware generation. Independently reconstructed forms are retained when
@@ -163,6 +200,15 @@ pub fn reconcile_pair(ipf: &Candidate, pf: &Candidate, cfg: AspectConfig) -> Pai
             rule: "independent-baseline",
         };
     }
+    // Closed lexical exceptions are declared as grammar data, not discovered
+    // from benchmark outcomes. They are intentionally tiny and auditable.
+    if let Some((i, p)) = suppletive_pair(&ipf.form, &pf.form) {
+        return PairPrediction {
+            imperfective: i.to_string(),
+            perfective: p.to_string(),
+            rule: "closed-suppletive-pair",
+        };
+    }
     if pairing_correct(&ipf.form, &pf.form) {
         return PairPrediction {
             imperfective: ipf.form.clone(),
@@ -172,8 +218,9 @@ pub fn reconcile_pair(ipf: &Candidate, pf: &Candidate, cfg: AspectConfig) -> Pai
     }
 
     let mut options: Vec<(f32, PairPrediction)> = Vec::new();
+    let anchor_is_ipf = ipf.score >= pf.score;
     for (form, rule) in derive_imperfectives(&pf.form, cfg) {
-        if pairing_correct(&form, &pf.form) {
+        if !anchor_is_ipf && pairing_correct(&form, &pf.form) {
             let edit = ortho::normalized_edit_distance(&form, &ipf.form);
             // Prefer preserving the stronger anchor; edit distance breaks ties.
             options.push((
@@ -187,7 +234,7 @@ pub fn reconcile_pair(ipf: &Candidate, pf: &Candidate, cfg: AspectConfig) -> Pai
         }
     }
     for (form, rule) in derive_perfectives(&ipf.form, cfg) {
-        if pairing_correct(&ipf.form, &form) {
+        if anchor_is_ipf && pairing_correct(&ipf.form, &form) {
             let edit = ortho::normalized_edit_distance(&form, &pf.form);
             options.push((
                 edit + pf.score.max(0.0),
@@ -211,7 +258,7 @@ pub fn reconcile_pair(ipf: &Candidate, pf: &Candidate, cfg: AspectConfig) -> Pai
         &[]
     };
     for prefix in prefixes {
-        if pf.form.starts_with(prefix) && !ipf.form.starts_with(prefix) {
+        if anchor_is_ipf && pf.form.starts_with(prefix) && !ipf.form.starts_with(prefix) {
             let form = format!("{prefix}{}", ipf.form);
             let edit = ortho::normalized_edit_distance(&form, &pf.form);
             options.push((
@@ -248,6 +295,7 @@ pub fn derive_imperfectives(perfective: &str, cfg: AspectConfig) -> Vec<(String,
     for (from, to, rule, secondary) in [
         ("nųti", "ati", "pf-nuti-to-ipf-ati", false),
         ("iti", "jati", "pf-iti-to-ipf-jati", false),
+        ("ovati", "ovyvati", "ovati-to-secondary-ovyvati", true),
         ("ati", "yvati", "secondary-ipf-yvati", true),
         ("ati", "ivati", "secondary-ipf-ivati", true),
         ("ati", "avati", "secondary-ipf-avati", true),
@@ -269,6 +317,7 @@ pub fn derive_perfectives(imperfective: &str, cfg: AspectConfig) -> Vec<(String,
     for (from, to, rule, secondary) in [
         ("jati", "iti", "ipf-jati-to-pf-iti", false),
         ("ati", "nųti", "ipf-ati-to-pf-nuti", false),
+        ("ovyvati", "ovati", "secondary-ovyvati-to-ovati", true),
         ("yvati", "ati", "secondary-ipf-yvati-reverse", true),
         ("ivati", "ati", "secondary-ipf-ivati-reverse", true),
         ("avati", "ati", "secondary-ipf-avati-reverse", true),
@@ -283,6 +332,13 @@ pub fn derive_perfectives(imperfective: &str, cfg: AspectConfig) -> Vec<(String,
         }
     }
     out
+}
+
+/// Present-tense stem allomorph for `-ovati` verbs (`kupovati` → `kupuje`).
+/// Pair artifacts export infinitives; this helper pins the requested
+/// `-ovati/-ujE-` morphology for downstream conjugation.
+pub fn ovati_present_stem(lemma: &str) -> Option<String> {
+    lemma.strip_suffix("ovati").map(|stem| format!("{stem}uje"))
 }
 
 #[cfg(test)]
@@ -307,5 +363,12 @@ mod tests {
                 .iter()
                 .any(|(f, _)| f == "pokazati")
         );
+        assert!(
+            derive_imperfectives("organizovati", AspectConfig::with_secondary_imperfectives())
+                .iter()
+                .any(|(f, _)| f == "organizovyvati")
+        );
+        assert_eq!(ovati_present_stem("kupovati").as_deref(), Some("kupuje"));
+        assert_eq!(suppletive_pair("idti", "hoditi"), Some(("idti", "pojdti")));
     }
 }
