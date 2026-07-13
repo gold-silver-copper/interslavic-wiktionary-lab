@@ -780,6 +780,7 @@ mod tests {
         assert!(normalized_match(&gen("*bergъ", Pos::Noun), "breg"));
         assert_eq!(gen("*orbota", Pos::Noun), "råbota");
         assert_eq!(gen("*orzumъ", Pos::Noun), "råzum");
+        assert_eq!(gen("*olkati", Pos::Verb), "låkati");
     }
 
     #[test]

@@ -54,8 +54,8 @@ Full extra set: **`Ę Ų Å Ė Ȯ   Ć Đ   Ĺ Ń Ŕ T́ D́ Ś Ź`** `[ORTH][ST
 | `ĺ` | soft *l (l + weak ь), only before a consonant | `l` | ʎ~l |
 | `ń` | soft *n (n + weak ь), only before a consonant | `n` | n~ɲ |
 | `ŕ` | soft *r (rь/rj) | `r` | rʲ~r̝ |
-| `t́` | soft *t (tь) | `t` | tʲ~c |
-| `d́` | soft *d (dь) | `d` | dʲ~ɟ |
+| `t́` (stored as `ť`) | soft *t (tь) | `t` | tʲ~c |
+| `d́` (stored as `ď`) | soft *d (dь) | `d` | dʲ~ɟ |
 | `ś` | soft *s (sь) | `s` | sʲ~ɕ |
 | `ź` | soft *z (zь) | `z` | zʲ~ʑ |
 | `ć` | *tj / *kt(ь) reflex (OCS щ /št/) | `č` | t͡ɕ |
@@ -77,7 +77,7 @@ Rule (verbatim): *"there is never any need to represent them in some other way t
 
 **Implementation notes:**
 - Letters come in obligatory pairs: `ę/ų`, `ė/ȯ`, `t́/d́`, `ś/ź`. If one is emitted, emit its partner consistently. `[ORTH]`
-- Glyph fallbacks when the acute glyph is unavailable: `t́→ť`, `d́→ď`, `ĺ→ľ`, `ė→è`, `ȯ→ò`. `[ORTH][STEEN-G]`
+- The prose notation `t́/d́` denotes soft *t/*d. Repository wire/storage form follows the official dictionary and uses the precomposed glyphs `ť/ď`; `orthography::to_standard` and exported APIs likewise treat `ť/ď` as canonical flavored input. Other display fallbacks when a glyph is unavailable include `ĺ→ľ`, `ė→è`, `ȯ→ò`. `[ORTH][STEEN-G]`
 - The etymological alphabet has **no Cyrillic form** and **no letters for non-Slavic borrowings** (no OCS ѳ/ѵ, no ü) and **no length/tone marks.** `[ORTH]`
 - Standard hard-to-type fallbacks (NOT etymological): `č š ž → cz sz ż` (or `cx sx zx`); `ě→e`; `y→i`; Cyrillic `ј→й`, `љ→ль`, `њ→нь`. `[ORTH]`
 - **Conflict — `dž` ambiguity:** etymological `đ` (from *dj) reduces to `dž`, but native/loan `dž` (e.g. `budžet`, `džaz`, `menedžer`) is also written `dž`. **Resolution:** in the *etymological* representation, *dj* reflexes must be spelled `đ` and loan/native `dž` spelled `dž`; both collapse to standard `dž`. The engine must track provenance on the etymological layer, not the standard layer. `[PHON][STEEN-G]`
