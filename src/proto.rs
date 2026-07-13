@@ -47,7 +47,7 @@ pub fn generate_with_reflexes(
     // The Interslavic adjective lemma continues the *definite* form (*-ъjь), not
     // the short nominative the cache cites: append the definite ending BEFORE yer
     // resolution, because it flips the Havlík parity of the stem yers
-    // (*bědьnъ → strong ь → *bědeny, but *bědьnъjь → weak ь → bědny; *kortъkъjь
+    // (*bědьnъ → strong ь → *bědėny, but *bědьnъjь → weak ь → bědny; *kortъkъjь
     // → kråtky). Possessives (-inъ/-ovъ) keep the short form. The modern South
     // citations are short forms whose vocalized yer says nothing about the long
     // form, so the reflex-retention vote is suppressed for the definite stem.
@@ -193,8 +193,9 @@ fn liquid_metathesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
     let mut out = String::new();
     let mut i = 0;
     while i < n {
-        // Word-initial *orC/*olC (no leading consonant) metathesizes to raC/laC
-        // (rising accent → a): *orbota→rabota, *orzumъ→razumъ, *olkъtь→lakȯtь.
+        // Word-initial *orC/*olC (no leading consonant) follows the same
+        // etymological rå-/lå- outcome as medial liquid metathesis:
+        // *orbota→råbota, *orzumъ→råzumъ, *olkъtь→låkȯtь.
         if i == 0
             && n >= 3
             && matches!(chars[0], 'o' | 'e')
@@ -202,7 +203,7 @@ fn liquid_metathesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
             && is_cons(chars[2])
         {
             out.push(chars[1]);
-            out.push(if chars[0] == 'o' { 'a' } else { 'ě' });
+            out.push(if chars[0] == 'o' { 'å' } else { 'ě' });
             i += 2;
             continue;
         }
@@ -375,7 +376,8 @@ fn syllabic_liquid(input: &str, trace: &mut Vec<RuleStep>) -> String {
             && (i + 2 >= n || is_cons(chars[i + 2]))
         {
             if chars[i + 1] == 'r' {
-                out.push('ŕ'); // syllabic r stays: *sьrpъ→sŕp, *vьrxъ→vŕh
+                // Front *ь keeps the soft syllabic ŕ; back *ъ yields hard r.
+                out.push(if c == 'ь' { 'ŕ' } else { 'r' });
             } else {
                 // *ъl/*ьl vocalizes to ȯl, it does NOT become a syllabic ĺ:
                 // *vьlkъ→vȯlk, *dъlgъ→dȯlg, *pьlnъ→pȯlny (RULE_SPEC §2 liquids).
@@ -393,7 +395,7 @@ fn syllabic_liquid(input: &str, trace: &mut Vec<RuleStep>) -> String {
         "syllabic-liquid",
         input,
         &out,
-        "Slogotvorne plavne: *ьr/*ъr→ŕ (sŕp), a *ьl/*ъl→ȯl (vȯlk, dȯlg).",
+        "Slogotvorne plavne: *ьr→ŕ (sŕp), *ъr→r (trg), a *ьl/*ъl→ȯl (vȯlk, dȯlg).",
         STEEN,
     );
     out
@@ -426,7 +428,7 @@ fn collective_je(input: &str, trace: &mut Vec<RuleStep>) -> String {
 ///   * **tense** (a yer before *j) always vocalizes: *ь→i, *ъ→y (novъjь→novy,
 ///     pьjǫ→pij-);
 ///   * **strong** (Havlík: alternating from the right, odd positions) vocalizes:
-///     *ъ→ȯ, *ь→e (sъnъ→sȯn, pьsъ→pes);
+///     *ъ→ȯ, *ь→ė (sъnъ→sȯn, pьsъ→pės);
 ///   * **weak** normally drops, unless the modern reflexes vote to keep a vowel
 ///     at that position — a lexicalized retention the reflexes alone can resolve
 ///     (pьsati→pisati vs bьrati→brati).
@@ -471,21 +473,26 @@ fn yers(input: &str, reflexes: &[String], trace: &mut Vec<RuleStep>) -> String {
             if tense[idx] {
                 out.push(if back { 'y' } else { 'i' });
             } else if strong[idx] {
-                out.push(if back { 'ȯ' } else { 'e' });
+                out.push(if back { 'ȯ' } else { 'ė' });
             } else if idx + 1 == n {
                 // Word-final weak yer: drops. If it is a soft (front) yer after l
                 // or n it palatalizes them: *solь->solj, *dьnь->denj. A final soft
                 // *ŕ, however, reduces to plain r (*carь->car, *zvěrь->zvěr), so r
                 // is excluded here. (Final yers are not reflex-retained.)
-                if !back && matches!(out.chars().last(), Some('l' | 'n')) {
-                    out.push('j');
+                if !back {
+                    match out.chars().last() {
+                        Some('l' | 'n') => out.push('j'),
+                        Some('t' | 'd' | 's' | 'z') => soften_last_obstruent(&mut out),
+                        _ => {}
+                    }
                 }
             } else if let Some(v) = reflex_vowel_vote(reflexes, cons_before) {
                 // Internal weak yer retained: adopt the reflexes' vowel (o -> ȯ for
                 // a back yer: *dъska -> dȯska; *pьsati keeps i).
                 out.push(map_retained_vowel(v, back));
             }
-            // otherwise the weak yer drops with no trace
+            // otherwise the internal weak yer drops with no trace; unlike a
+            // final ь, it does not license blind softness recovery (bědьnъ→bědny).
         } else {
             out.push(c);
             if is_cons(c) {
@@ -498,7 +505,7 @@ fn yers(input: &str, reflexes: &[String], trace: &mut Vec<RuleStep>) -> String {
         "yers",
         input,
         &out,
-        "Jery: napręžene (prěd j) *ь→i/*ъ→y; silne *ъ→ȯ/*ь→e; slabe padajų (ale ostajų, ako naslědniky drže glasnik).",
+        "Jery: napręžene (prěd j) *ь→i/*ъ→y; silne *ъ→ȯ/*ь→ė; slabe padajų (ale ostajų, ako naslědniky drže glasnik).",
         STEEN,
     );
     out
@@ -662,6 +669,19 @@ fn reflex_vowel_at(r: &str, cons_before: usize) -> Option<Option<char>> {
     None
 }
 
+fn soften_last_obstruent(out: &mut String) {
+    let Some(last) = out.pop() else {
+        return;
+    };
+    out.push(match last {
+        't' => 'ť',
+        'd' => 'ď',
+        's' => 'ś',
+        'z' => 'ź',
+        other => other,
+    });
+}
+
 /// Map a reflex vowel onto the retained-yer spelling: a back yer whose reflex is
 /// `o` takes the strong-back letter `ȯ` (dъska→dȯska); otherwise keep the vowel.
 fn map_retained_vowel(v: char, back_yer: bool) -> char {
@@ -748,16 +768,18 @@ mod tests {
     #[test]
     fn strong_yer_vocalizes() {
         // *sъnъ: final ъ weak (drops), first ъ strong → ȯ (→o standard).
-        assert!(normalized_match(&gen("*sъnъ", Pos::Noun), "son"));
-        // *pьsъ: strong front yer → e.
-        assert!(normalized_match(&gen("*pьsъ", Pos::Noun), "pes"));
+        assert_eq!(gen("*sъnъ", Pos::Noun), "sȯn");
+        // *pьsъ: strong front yer → ė (→e standard).
+        assert_eq!(gen("*pьsъ", Pos::Noun), "pės");
     }
 
     #[test]
     fn liquid_metathesis() {
-        assert!(normalized_match(&gen("*gordъ", Pos::Noun), "grad"));
+        assert_eq!(gen("*gordъ", Pos::Noun), "gråd");
         assert!(normalized_match(&gen("*melko", Pos::Noun), "mleko"));
         assert!(normalized_match(&gen("*bergъ", Pos::Noun), "breg"));
+        assert_eq!(gen("*orbota", Pos::Noun), "råbota");
+        assert_eq!(gen("*orzumъ", Pos::Noun), "råzum");
     }
 
     #[test]
@@ -800,6 +822,20 @@ mod tests {
         assert!(!gen("*materinъ", Pos::Adjective).ends_with('y'));
         // A reconstruction already cited in the long form is not doubled.
         assert_eq!(gen("*kortъkъjь", Pos::Adjective), "kråtky");
+    }
+
+    #[test]
+    fn hard_and_soft_syllabic_r_stay_distinct() {
+        assert_eq!(gen("*tъrgъ", Pos::Noun), "trg");
+        assert_eq!(gen("*sьrpъ", Pos::Noun), "sŕp");
+    }
+
+    #[test]
+    fn weak_front_yer_marks_the_preceding_consonant() {
+        assert_eq!(gen("*kostь", Pos::Noun), "kosť");
+        assert_eq!(gen("*medvědь", Pos::Noun), "medvěď");
+        assert_eq!(gen("*losь", Pos::Noun), "loś");
+        assert_eq!(gen("*knęzь", Pos::Noun), "knęź");
     }
 
     #[test]
@@ -861,7 +897,7 @@ mod tests {
 
     #[test]
     fn word_initial_liquid_metathesis() {
-        // Word-initial *orC → raC: *orbota→rabota, *orzumъ→razum.
+        // Word-initial *orC → råC: *orbota→råbota, *orzumъ→råzum.
         assert!(
             normalized_match(&gen("*orbota", Pos::Noun), "rabota"),
             "{}",
