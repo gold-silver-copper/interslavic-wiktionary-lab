@@ -3,6 +3,7 @@
 
 import csv
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -11,8 +12,14 @@ root = Path(sys.argv[1] if len(sys.argv) > 1 else "site")
 official_path = Path(sys.argv[2] if len(sys.argv) > 2 else "data/official-isv.csv")
 entries = json.loads((root / "entries.json").read_text())
 by_title = defaultdict(list)
+url_escape = re.compile(r"%[0-9A-Fa-f]{2}")
 for entry in entries:
     by_title[entry["title"].strip().lower()].append(entry)
+    for field in ("title", "ancestor"):
+        assert not url_escape.search(entry.get(field, "")), (
+            "URL-escaped transport bytes leaked into linguistic text",
+            entry["id"], field, entry.get(field)
+        )
     historical = {"cu", "orv"}.intersection(entry.get("langs_list", []))
     assert not historical, ("historical hint published as modern evidence", entry["id"], historical)
     if not entry["official"]:
@@ -144,6 +151,6 @@ assert proposal_lines == [proposal_header], (
 print(
     f"linguistic logic valid: {len(expected_senses)} official senses across "
     f"{len(official_spellings)} spellings, {len(expected_aspects)} aspect senses, "
-    "no historical confidence leaks, "
+    "no historical confidence leaks or encoded reconstruction residue, "
     "no cross-domain probabilities/proposals"
 )

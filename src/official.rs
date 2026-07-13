@@ -107,26 +107,19 @@ impl OfficialEntry {
         out
     }
 
-    /// Branch markers parsed from the `same_in` column. `v`=East, `z`=West,
-    /// `j`=South; specific language codes also count toward their branch.
+    /// Branches represented by the expanded `same_in` language membership.
+    /// Deriving this from [`same_in_langs`](Self::same_in_langs) keeps committee
+    /// aliases and punctuation normalization identical across both views.
     pub fn native_branches(&self) -> Vec<Branch> {
-        let mut b = Vec::new();
-        for tok in self.same_in.split_whitespace() {
-            let branch = match tok {
-                "v" => Some(Branch::East),
-                "z" => Some(Branch::West),
-                "j" => Some(Branch::South),
-                other => {
-                    crate::lang::branch_of(other.trim_end_matches(|c: char| !c.is_alphabetic()))
-                }
-            };
-            if let Some(br) = branch {
-                if !b.contains(&br) {
-                    b.push(br);
-                }
-            }
-        }
-        b
+        let langs = self.same_in_langs();
+        [Branch::East, Branch::West, Branch::South]
+            .into_iter()
+            .filter(|branch| {
+                langs
+                    .iter()
+                    .any(|code| crate::lang::branch_of(code) == Some(*branch))
+            })
+            .collect()
     }
 }
 
@@ -294,5 +287,18 @@ mod tests {
         assert_eq!(langs("ps"), Vec::<&str>::new());
         assert_eq!(langs("j yu mk"), vec!["bg", "bs", "hr", "mk", "sl", "sr"]);
         assert_eq!(langs(""), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn native_branches_share_the_normalized_language_expansion() {
+        let branches = |s: &str| entry_with_same_in(s).native_branches();
+        assert_eq!(branches("(sh)"), vec![Branch::South]);
+        assert_eq!(
+            branches("ru (cz sh)"),
+            vec![Branch::East, Branch::West, Branch::South]
+        );
+        assert_eq!(branches("yu"), vec![Branch::South]);
+        assert_eq!(branches("#ru~"), vec![Branch::East]);
+        assert!(branches("ps").is_empty());
     }
 }

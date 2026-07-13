@@ -247,13 +247,14 @@ impl LemmaCorpus {
             corpus.entry_count,
             corpus.entries.len()
         );
-        // Load-time hygiene (issue #66): a couple dozen cached protos carry
-        // Cyrillic homoglyph typos from en.wiktionary etymologies (*klоръ for
-        // *klopъ). Fold them here — the single choke point every consumer
-        // (corpus sets, proto linking, eval etymology attach) reads through —
-        // so the on-disk cache stays verbatim and needs no regen/schema bump.
+        // Load-time hygiene (issues #66/#89): cached protos can carry Cyrillic
+        // lookalikes or URL-escaped UTF-8 copied from a Wiktionary template.
+        // Clean them at this single ingress so every downstream consumer sees
+        // linguistic text rather than transport encoding. The cache stays
+        // verbatim, so this correction needs no regeneration/schema bump.
         for e in &mut corpus.entries {
             if !e.proto.is_empty() {
+                e.proto = decode_percent_utf8(&e.proto);
                 e.proto = crate::normalize::fold_proto_homoglyphs(&e.proto);
             }
         }
@@ -979,6 +980,40 @@ fn borrowed_etymon(value: &Value) -> Option<String> {
     best.map(|(_, s)| s)
 }
 
+/// Decode URL-escaped UTF-8 that occasionally leaks from Wiktionary template
+/// arguments. Invalid/incomplete encoding is preserved rather than guessed.
+fn decode_percent_utf8(value: &str) -> String {
+    fn hex(byte: u8) -> Option<u8> {
+        match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            b'A'..=b'F' => Some(byte - b'A' + 10),
+            _ => None,
+        }
+    }
+
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut changed = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(hi), Some(lo)) = (hex(bytes[i + 1]), hex(bytes[i + 2])) {
+                out.push((hi << 4) | lo);
+                i += 3;
+                changed = true;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    if !changed {
+        return value.to_string();
+    }
+    String::from_utf8(out).unwrap_or_else(|_| value.to_string())
+}
+
 /// The Proto-Slavic ancestor from an `inh`/`der` etymology template, normalized
 /// to a bare reconstruction (`*orvьnъ`).
 fn proto_ancestor(value: &Value) -> Option<String> {
@@ -998,10 +1033,11 @@ fn proto_ancestor(value: &Value) -> Option<String> {
         let form = args.get("3").and_then(Value::as_str)?.trim();
         // Wiktextract sometimes carries `<id:...>` qualifiers; drop them.
         let form = form.split('<').next().unwrap_or(form).trim();
+        let form = decode_percent_utf8(form);
         if form.is_empty() || form == "*" {
             continue;
         }
-        let form = form.strip_prefix('*').unwrap_or(form);
+        let form = form.strip_prefix('*').unwrap_or(&form);
         // Reject placeholders ("-") and BOUND morphemes (prefixes/suffixes like
         // *per-, *orz-, *-ъkъ): they are not standalone roots, so clustering by
         // them fuses dozens of unrelated lemmas (B9). Require a real word form.
@@ -1745,12 +1781,17 @@ mod tests {
     }
 
     #[test]
-    fn proto_ancestor_rejects_bound_morphemes() {
+    fn proto_ancestor_rejects_bound_morphemes_and_decodes_transport_escapes() {
         use serde_json::json;
         let v = json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*orz-"}}]});
         assert_eq!(proto_ancestor(&v), None);
         let v2 = json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*voda"}}]});
         assert_eq!(proto_ancestor(&v2).as_deref(), Some("*voda"));
+        let escaped =
+            json!({"etymology_templates":[{"name":"inh","args":{"2":"sla-pro","3":"*%C4%BEuby"}}]});
+        assert_eq!(proto_ancestor(&escaped).as_deref(), Some("*ľuby"));
+        assert_eq!(decode_percent_utf8("*%ZZuby"), "*%ZZuby");
+        assert_eq!(decode_percent_utf8("*%FFuby"), "*%FFuby");
     }
 
     /// Issue #86: an evidence-less modern lemma whose etymology names its own
