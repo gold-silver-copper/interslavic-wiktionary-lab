@@ -12,9 +12,13 @@ const client = scripts.find((s) => s.includes("function isvLookupBroad"));
 if (!client) throw new Error("forms client script not found");
 
 const fetched = [];
+const responseOverrides = new Map();
 const localFetch = async (url) => {
   const pathname = new URL(url, "https://slovowiki.invalid/").pathname.replace(/^\//, "");
   fetched.push(pathname);
+  if (responseOverrides.has(pathname)) {
+    return { ok: true, json: async () => responseOverrides.get(pathname) };
+  }
   const file = path.join(root, pathname);
   if (!fs.existsSync(file)) return { ok: false, json: async () => ({}) };
   return { ok: true, json: async () => JSON.parse(fs.readFileSync(file, "utf8")) };
@@ -54,6 +58,16 @@ if (suggestion.selftestFailed || JSON.stringify(suggestion.values) !== JSON.stri
 const suggestionShardFetches = fetched.filter((file) => /^api\/suggest\/\d+\.json$/.test(file));
 if (suggestionShardFetches.length !== 1) {
   throw new Error(`one unknown token fetched unrelated suggestion shards: ${suggestionShardFetches}`);
+}
+const malformedShard = await run("fnv1a32('x') % 64");
+responseOverrides.set(`api/suggest/${malformedShard}.json`, { rows: { invalid: true } });
+const malformedSuggestion = await run("webSuggest('', 'xyzq')");
+if (malformedSuggestion.selftestFailed || malformedSuggestion.values.length !== 0) {
+  throw new Error(`malformed suggestion data did not fail closed: ${JSON.stringify(malformedSuggestion)}`);
+}
+const unavailableSuggestion = await run("webSuggest('missing/', 'yyyy')");
+if (unavailableSuggestion.selftestFailed || unavailableSuggestion.values.length !== 0) {
+  throw new Error(`unavailable suggestion data did not fail closed: ${JSON.stringify(unavailableSuggestion)}`);
 }
 
 const checkerHtml = fs.readFileSync(path.join(root, "text-check.html"), "utf8");
