@@ -18,20 +18,20 @@ Each rung adds exactly one rule to the previous, so its accuracy delta is attrib
 | +prefixes | 32.45% | 41.07% | +0.38 pp | 50.22% | 0.235 |
 | +depleophony | 32.44% | 41.26% | +0.18 pp | 50.42% | 0.235 |
 | +nasals | 32.82% | 41.35% | +0.09 pp | 50.52% | 0.235 |
-| +proto-derived | 36.31% | 43.56% | +2.21 pp | 53.69% | 0.230 |
-| +intl-preference | 36.40% | 43.65% | +0.09 pp | 53.72% | 0.229 |
-| +adj-fleeting | 37.56% | 45.21% | +1.56 pp | 55.48% | 0.227 |
-| +synonym-alts | 37.56% | 45.21% | +0.00 pp | 55.64% | 0.227 |
-| +prefix-strip | 38.11% | 45.42% | +0.20 pp | 55.96% | 0.227 |
-| +loan-stem-repair | 39.54% | 46.88% | +1.47 pp | 57.42% | 0.224 |
-| +verb-class | 39.58% | 46.94% | +0.06 pp | 57.48% | 0.224 |
-| +voicing | 39.66% | 47.03% | +0.09 pp | 57.59% | 0.224 |
-| +explicit-etymology | 39.91% | 47.10% | +0.07 pp | 57.93% | 0.226 |
-| +medoid-rep | 41.01% | 48.87% | +1.77 pp | 59.61% | 0.226 |
-| +deriv-suffixes | 41.25% | 49.01% | +0.14 pp | 59.90% | 0.226 |
-| +loan-hiatus | 41.31% | 49.08% | +0.07 pp | 59.98% | 0.226 |
-| +spirantization | 41.64% | 49.57% | +0.49 pp | 60.52% | 0.225 |
-| +stem-class-endings (production) | 41.71% | 49.64% | +0.07 pp | 60.59% | 0.224 |
+| +proto-derived | 36.52% | 43.56% | +2.21 pp | 53.69% | 0.230 |
+| +intl-preference | 36.60% | 43.65% | +0.09 pp | 53.73% | 0.229 |
+| +adj-fleeting | 37.77% | 45.21% | +1.56 pp | 55.48% | 0.227 |
+| +synonym-alts | 37.77% | 45.21% | +0.00 pp | 55.64% | 0.227 |
+| +prefix-strip | 38.33% | 45.42% | +0.20 pp | 55.96% | 0.227 |
+| +loan-stem-repair | 39.75% | 46.88% | +1.47 pp | 57.43% | 0.224 |
+| +verb-class | 39.80% | 46.94% | +0.06 pp | 57.48% | 0.224 |
+| +voicing | 39.87% | 47.03% | +0.09 pp | 57.60% | 0.224 |
+| +explicit-etymology | 40.23% | 47.10% | +0.07 pp | 57.94% | 0.226 |
+| +medoid-rep | 41.32% | 48.87% | +1.77 pp | 59.61% | 0.226 |
+| +deriv-suffixes | 41.56% | 49.01% | +0.14 pp | 59.91% | 0.226 |
+| +loan-hiatus | 41.63% | 49.08% | +0.07 pp | 59.98% | 0.226 |
+| +spirantization | 41.96% | 49.57% | +0.49 pp | 60.53% | 0.225 |
+| +stem-class-endings (production) | 42.02% | 49.64% | +0.07 pp | 60.60% | 0.224 |
 
 - **baseline** — Transliterate the first available form; no branch balancing, no repairs (the original prototype behavior).
 - **+branch-consensus** — Branch-balanced skeleton vote + South-Slavic representative.
@@ -62,11 +62,11 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | Experiment | exact top-1 | Δ exact | norm top-1 | Δ norm |
 |---|---:|---:|---:|---:|
-| prod+palatals | 41.37% | -0.34 pp | 49.18% | -0.45 pp |
-| prod+jat | 41.01% | -0.71 pp | 49.63% | -0.01 pp |
-| prod+adj-longform | 41.71% | +0.00 pp | 49.64% | +0.00 pp |
-| prod+y-recovery | 38.97% | -2.74 pp | 46.01% | -3.63 pp |
-| prod+link-corroboration | 41.71% | +0.00 pp | 49.64% | +0.00 pp |
+| prod+palatals | 41.68% | -0.34 pp | 49.18% | -0.45 pp |
+| prod+jat | 41.32% | -0.71 pp | 49.63% | -0.01 pp |
+| prod+adj-longform | 42.02% | +0.00 pp | 49.64% | +0.00 pp |
+| prod+y-recovery | 39.28% | -2.74 pp | 46.01% | -3.63 pp |
+| prod+link-corroboration | 42.02% | +0.00 pp | 49.64% | +0.00 pp |
 
 - **prod+palatals** — Recover ć/đ (*tj/*dj) from South Slavic — modern reflexes are too noisy; derive from Proto-Slavic instead.
 - **prod+jat** — Reconstruct jat ě from the cross-branch reflex — unreliable from modern reflexes.
@@ -78,20 +78,20 @@ Each is the production config plus one experimental rule. All regress accuracy o
 
 | POS | n | exact | normalized |
 |---|---:|---:|---:|
-| adj | 2896 | 37.26% | 48.90% |
-| adv | 657 | 21.00% | 33.33% |
-| noun | 8362 | 50.80% | 57.57% |
-| num | 112 | 16.07% | 26.79% |
-| pron | 99 | 39.39% | 42.42% |
-| verb | 4174 | 30.59% | 37.61% |
+| adj | 2896 | 36.91% | 48.90% |
+| adv | 657 | 21.16% | 33.33% |
+| noun | 8362 | 51.34% | 57.57% |
+| num | 112 | 19.64% | 26.79% |
+| pron | 99 | 38.38% | 42.42% |
+| verb | 4174 | 30.88% | 37.61% |
 
 ## Branch coverage vs accuracy (final config)
 
 | branches with the consensus form | n | normalized |
 |---:|---:|---:|
-| 0 | 13 | 23.08% |
+| 0 | 14 | 21.43% |
 | 1 | 3511 | 16.95% |
-| 2 | 5533 | 41.73% |
+| 2 | 5532 | 41.74% |
 | 3 | 7243 | 71.57% |
 
 ## Confidence calibration (final config)
@@ -100,8 +100,8 @@ High-confidence candidates should match the official dictionary more often than 
 
 | confidence | n | normalized match |
 |---|---:|---:|
-| high | 7029 | 72.07% |
-| medium | 7059 | 39.08% |
+| high | 7030 | 72.06% |
+| medium | 7058 | 39.09% |
 | low | 2212 | 12.03% |
 
 ## Before / after
@@ -109,7 +109,7 @@ High-confidence candidates should match the official dictionary more often than 
 - Baseline normalized top-1: **35.23%**
 - Final normalized top-1: **49.64%** (+14.40 pp)
 - Baseline exact top-1: **27.52%**
-- Final exact top-1: **41.71%** (+14.20 pp)
+- Final exact top-1: **42.02%** (+14.51 pp)
 
 ## Remaining systematic errors (final config)
 
@@ -117,8 +117,8 @@ Of **8209** misses, **1820** (22%) are near-misses (normalized edit < 0.20 — a
 
 | Error class | count | share of misses |
 |---|---:|---:|
-| different root / derivation | 4472 | 54.5% |
-| missing letter (fleeting vowel / cluster) | 1265 | 15.4% |
+| different root / derivation | 4470 | 54.5% |
+| missing letter (fleeting vowel / cluster) | 1267 | 15.4% |
 | extra letter (epenthesis / ending) | 1025 | 12.5% |
 | single-letter substitution | 1010 | 12.3% |
 | y / i distinction | 394 | 4.8% |

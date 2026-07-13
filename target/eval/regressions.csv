@@ -18,7 +18,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 36391,bankrupt (insolvent person),noun,bankrot,bankrot,bankrut
 24515,bar (tavern),noun,bar,bar,bȯr
 24538,baron,noun,baron,baron,baran
-20334,badger,noun,barsuk,barsuk,jazvec
+20334,badger,noun,barsuk,barsuk,jazvėc
 1868,"colour, color",noun,barva,barva,květ
 24545,barge,noun,barža,barža,čȯln
 24546,bass (voice),noun,bas,bas,běs
@@ -35,7 +35,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 2460,flea,noun,blȯha,bloha,blha
 2011,"be ill, be sick",verb,bolěti,boleti,blati
 24759,pine,noun,bor,bor,sosna
-1852,borscht,noun,bȯršč,boršč,bŕšč
+1852,borscht,noun,bȯršč,boršč,bršč
 35871,Bosnia,noun,Bosnija,bosnija,bosna
 24787,"flaw, defect",noun,brak,brak,vada
 219,brother,noun,brat,brat,bratr
@@ -74,7 +74,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 296,thank,verb,dękovati,dekovati,dakovati
 16413,girl,noun,děvčę,devče,dievča
 3351,"wonder, marvel",noun,divo,divo,čudo
-5288,"today, nowadays",adv,dneś,dnes,danes
+5288,"today, nowadays",adv,dneś,dnes,danėś
 19481,"welfare, prosperity",noun,dobrobyt,dobrobyt,dobrobit
 36195,"additionally, in addition",adv,dodatno,dodatno,dodatkovo
 31826,burn down,verb,dogorěti,dogoreti,dograti
@@ -171,7 +171,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 36848,yak,noun,jak,jak,jako
 37089,Yangtze,noun,Jangcy,jangcy,jangce
 2106,January,noun,januaŕ,januar,januari
-4147,clarity,noun,jasnosť,jasnost,jesnost
+4147,clarity,noun,jasnosť,jasnost,jesnosť
 36480,Java,noun,Java,java,jav
 26331,ide,noun,jaź,jaz,jez
 22630,iodine,noun,jod,jod,jed
@@ -192,9 +192,9 @@ id,gloss,pos,official,baseline_pred,final_pred
 8484,cliche,noun,kliše,kliše,kljusę
 19780,clone,noun,klon,klon,klen
 26576,"water closet, toilet, restroom, lavatory",noun,klozet,klozet,tualet
-26588,red-footed falcon,noun,kobčik,kobčik,kobec
+26588,red-footed falcon,noun,kobčik,kobčik,kobėc
 26592,"poker, rabble, fire iron, fireplace poker",noun,kočerga,kočerga,kočerha
-16951,code,noun,kod,kod,kad
+16951,code,noun,kod,kod,kaď
 36274,coconut,noun,kokos,kokos,kokoš
 26596,"hen, chicken",noun,kokoška,kokoška,kokoš
 37354,"cola, coke",noun,kola,kola,kolo
@@ -248,8 +248,8 @@ id,gloss,pos,official,baseline_pred,final_pred
 6203,literary,adj,literarny,literarny,literaturniji
 14683,meadow,noun,livada,livada,lųka
 2886,boat,noun,lodka,lodka,čȯln
-386,"elk, moose",noun,loś,los,las
-27308,salmon (meat),noun,lososina,lososina,losos
+386,"elk, moose",noun,loś,los,låś
+27308,salmon (meat),noun,lososina,lososina,losoś
 8941,badly,adv,loše,loše,lošo
 353,spoon,noun,lȯžka,ložka,lyžica
 32196,#falsity,noun,lȯžnosť,ložnost,lažnosť
@@ -257,10 +257,10 @@ id,gloss,pos,official,baseline_pred,final_pred
 27374,liar,noun,lžec,lžec,lȯžec
 1535,"few, little, a bit, a little",adv,malo,malo,mal
 27423,mother’s,adj,mamin,mamin,maminy
-35589,"route, itinerary",noun,maršrut,maršrut,pųt
+35589,"route, itinerary",noun,maršrut,maršrut,pųť
 27438,mask,noun,maska,maska,mȯsk
 2703,olive,noun,maslina,maslina,maslo
-2686,ointment,noun,masť,mast,maz
+2686,ointment,noun,masť,mast,maź
 27447,mate (chess),noun,mat,mat,mati
 27484,she-bear,noun,medvědica,medvedica,mečka
 33809,manager,noun,menedžer,menedžer,menadžer
@@ -278,7 +278,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 27683,"carbamide, urea",noun,močevina,močevina,močovina
 34073,"monastery, cloister",noun,monastyr,monastyr,manastyr
 37070,Morava,noun,Morava,morava,murava
-23704,muzzle,noun,morda,morda,mŕda
+23704,muzzle,noun,morda,morda,mrda
 36085,mulberry (fruit),noun,morva,morva,murva
 27770,motto,noun,motto,motto,moto
 926,"possibly, perhaps, it is possible",adv,možno,možno,možna
@@ -318,7 +318,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 22310,"misery, distress",noun,nevolja,nevolja,nevola
 17957,independence,noun,nezavisnosť,nezavisnost,nezavisimosť
 23711,tenderness,noun,něžnosť,nežnost,něga
-17966,thread,noun,nitka,nitka,nit
+17966,thread,noun,nitka,nitka,niť
 3863,spend the night,verb,noćevati,nočevati,noćivati
 2060,"number, numeral",noun,nomer,nomer,čislo
 15707,"notary, notary public",noun,notaŕ,notar,notarius
@@ -369,7 +369,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 16805,cruel,adj,okrutny,okrutny,žestoky
 2111,occupy,verb,okupovati,okupovati,akupavac
 73,they (masculine or mixed),pron,oni,oni,on
-4682,"danger, peril",noun,opasnosť,opasnost,obpasnost
+4682,"danger, peril",noun,opasnosť,opasnost,obpasnosť
 3302,care,noun,opeka,opeka,obpeka
 686,describe,verb,opisyvati,opisyvati,opisivati
 20947,"support, rest",noun,opora,opora,obpora
@@ -392,11 +392,11 @@ id,gloss,pos,official,baseline_pred,final_pred
 29754,"poisonous, venomous",adj,otravny,otravny,otrovny
 29774,winnow,verb,ovějati,ovejati,oviati
 10391,"attest, authenticate",verb,ověriti,overiti,podtverditi
-2830,palace,noun,palac,palac,palec
+2830,palace,noun,palac,palac,palėc
 31750,pancake,noun,palačinka,palačinka,mlin
 35434,inch,noun,palec,palec,dujm
 350,"gentleman, lord, mister, sir",noun,pan,pan,gpan
-35460,paprika,noun,paprika,paprika,paper
+35460,paprika,noun,paprika,paprika,papėr
 29863,steam,adj,parny,parny,parovy
 20980,#pastor,noun,pastyŕ,pastyr,pastyrj
 23097,baboon,noun,pavian,pavian,pavijan
@@ -423,7 +423,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 35409,"scold, rebuke, reprimand, reproach",verb,pokarati,pokarati,upreknuti
 1108,show,verb,pokazyvati,pokazyvati,pokazivati
 10857,polish,verb,polirati,polirati,polirovati
-14875,backlash,noun,pomsta,pomsta,mest
+14875,backlash,noun,pomsta,pomsta,mėsť
 18309,doughnut,noun,pončik,pončik,pončyk
 18311,"crawl, creep",verb,popȯlzati,popolzati,popolezati
 18313,"crawl, creep",verb,popȯlzti,popolzti,popolezti
@@ -442,7 +442,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 18376,"learn about, come to know, become familiar with",verb,poznati,poznati,paznac
 18377,"learn about, come to know, become familiar with",verb,poznavati,poznavati,paznavac
 11138,"work, labour, labor",noun,praca,praca,pråća
-11140,"worker, employee",noun,pracovnik,pracovnik,rabotnik
+11140,"worker, employee",noun,pracovnik,pracovnik,råbotnik
 35152,ancient,adj,pradavny,pradavny,drevny
 5397,rebuild,verb,prěbudovati,prebudovati,perabudavac
 36370,predicate (logic),noun,predikat,predikat,predikt
@@ -498,7 +498,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1519,repair,verb,remontovati,remontovati,ramantavac
 18639,eyelash,noun,ręsa,ręsa,věđa
 11954,solve,verb,rěšati,rešati,rěšiti
-3948,robot,noun,robot,robot,rabota
+3948,robot,noun,robot,robot,råbota
 37395,yearbook,noun,ročnik,ročnik,ročenka
 4690,family,noun,rodina,rodina,sěmijstvo
 36378,"lineage, pedigree",noun,rodoslovje,rodoslovje,rodovod
@@ -514,13 +514,13 @@ id,gloss,pos,official,baseline_pred,final_pred
 2304,pond,noun,rybnik,rybnik,stav
 27310,fishing,noun,rybolov,rybolov,ribolov
 32132,rhyme,verb,rymovati,rymovati,rimovati
-3821,rice,noun,ryž,ryž,rys
+3821,rice,noun,ryž,ryž,ryś
 20170,"just, merely, only",adv,samo,samo,liš
 16356,self-service,noun,samoobsluga,samoobsluga,samoobsluha
 30657,autodidact,noun,samouk,samouk,samuk
 37076,Sava,noun,Sava,sava,sova
 20726,"scene, stage",noun,scena,scena,ščenę
-1288,week,noun,sedmica,sedmica,tyjedenj
+1288,week,noun,sedmica,sedmica,tyjedėnj
 16403,one seventh,num,sedmina,sedmina,edna sedma
 5334,sow,verb,sějati,sejati,sěti
 3879,secret,noun,sekret,sekret,tajna
@@ -592,7 +592,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 1438,pig,noun,svinja,svinja,svinija
 33575,twist,verb,sviti,sviti,saviti
 30829,"scroll, roll (of paper)",noun,svitȯk,svitok,svitak
-22017,brother-in-law,noun,svojak,svojak,zęt
+22017,brother-in-law,noun,svojak,svojak,zęť
 22557,bolt,noun,svorenj,svorenj,švoran
 1054,chess,noun,šahy,šahy,šah
 22814,lose one’s senses,verb,šalěti,šaleti,šalec
@@ -612,7 +612,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 36837,third (musical interval),noun,tercija,tercija,terca
 4759,testament (will),noun,testament,testament,zavět
 22034,difficultly,adv,tęžko,težko,trudno
-22039,heaviness,noun,tęžkosť,težkost,tęžest
+22039,heaviness,noun,tęžkosť,težkost,tęžesť
 21597,polecat,noun,thoŕ,thor,dhorj
 18971,"cloth, fabric",noun,tkanina,tkanina,tkanj
 1126,darkness,noun,ťma,tma,tema
@@ -660,7 +660,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 31103,vein,noun,vena,vena,žila
 35334,believer,noun,věrnik,vernik,verųci
 31143,verst,noun,versta,versta,vŕsta
-13588,"enjoyment, joy",noun,veselosť,veselost,radost
+13588,"enjoyment, joy",noun,veselosť,veselost,radosť
 31201,pitchfork,noun,vily,vily,vila
 16140,violin,noun,violina,violina,skripka
 33002,make-up artist,noun,vizažist,vizažist,vizažyst
@@ -681,7 +681,7 @@ id,gloss,pos,official,baseline_pred,final_pred
 20803,arise,verb,vȯzniknųti,vozniknuti,vzniknuti
 20804,emerge,verb,vȯzniknųti,vozniknuti,vzniknuti
 20805,raise,verb,vȯznositi,voznositi,vznašati
-3109,door,noun,vråta,vrata,dvero
+3109,door,noun,vråta,vrata,dvėro
 31397,vulgarism,noun,vulgarizm,vulgarizm,vulgaryzm
 3678,"introduce, inaugurate",verb,vvesti,vvesti,uvesti
 3677,"introduce, inaugurate",verb,vvoditi,vvoditi,uvoditi
@@ -732,4 +732,4 @@ id,gloss,pos,official,baseline_pred,final_pred
 1047,"wish, desire",verb,želati,želati,žędati
 23279,jelly,noun,žele,žele,zelje
 32985,jovial,adj,žoviaľny,žovialny,vesely
-22962,gluttonous,adj,žravy,žravy,lakomy
+22962,gluttonous,adj,žravy,žravy,låkomy

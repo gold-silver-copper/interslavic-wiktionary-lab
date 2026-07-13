@@ -585,7 +585,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24513,0,Baptist (Protestant),noun,baptist,baptist,1,1,0.970,high,3,11,0.000
 24514,0,Baptism,noun,baptizm,baptizm,1,1,0.857,high,3,11,0.000
 24515,1,bar (tavern),noun,bar,bȯr,0,0,0.980,high,3,11,0.333
-24516,0,drum,noun,baraban,bųben,0,0,0.960,high,3,14,0.571
+24516,0,drum,noun,baraban,bųbėn,0,0,0.960,high,3,14,0.571
 14453,1,hut,noun,barak,baraka,0,0,0.545,medium,1,24,0.167
 32414,0,barrack,noun,barak,barak,1,1,0.748,high,3,19,0.000
 2436,0,ram,noun,baran,baran,1,1,0.960,high,3,11,0.000
@@ -604,7 +604,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24536,0,"barometer, weatherglass",noun,barometr,barometr,1,1,0.970,high,3,12,0.000
 24538,0,baron,noun,baron,baran,0,0,0.980,high,3,11,0.200
 24539,0,baroness,noun,baronesa,baronesa,1,1,0.650,medium,2,11,0.000
-20334,0,badger,noun,barsuk,jazvec,0,0,0.940,high,3,12,0.833
+20334,0,badger,noun,barsuk,jazvėc,0,0,0.940,high,3,12,0.833
 1868,0,"colour, color",noun,barva,květ,0,0,0.920,high,3,14,1.000
 24541,0,vinca,noun,barvinȯk,barvinȯk,1,1,0.702,medium,2,14,0.000
 5873,0,"paint, colour, color",verb,barviti,malovati,0,0,0.412,low,1,15,0.500
@@ -683,7 +683,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24609,1,"demon, devil",noun,běs,běs,1,1,0.940,high,3,33,0.000
 1811,0,"conversation, chat",noun,besěda,besěda,1,1,0.920,high,3,24,0.000
 2880,0,"converse, chat",verb,besědovati,besědovati,1,1,0.758,high,1,19,0.000
-31757,0,"rage, fury",noun,běsnosť,jarost,0,0,0.920,high,3,27,0.571
+31757,0,"rage, fury",noun,běsnosť,jarosť,0,0,0.920,high,3,27,0.571
 24613,0,furious,adj,běsny,besny,0,1,0.608,medium,2,21,0.000
 1721,1,concrete,noun,beton,beton,1,1,0.970,high,3,11,0.000
 3972,1,concrete,adj,betonny,betonnyji,0,0,0.523,medium,1,11,0.222
@@ -701,7 +701,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24620,0,"dishonorable, dishonourable, infamous",adj,bezčestny,hanebny,0,0,0.586,medium,2,20,0.667
 31742,1,dishonest,adj,bezčestny,nečestny,0,0,0.632,medium,3,19,0.222
 4837,0,childless,adj,bezdětny,bezdětny,1,1,0.940,high,3,12,0.000
-2335,0,abyss,noun,bezdna,propast,0,0,0.940,high,3,20,1.000
+2335,0,abyss,noun,bezdna,propasť,0,0,0.940,high,3,20,1.000
 24626,0,homeless,adj,bezdomny,bezdomny,1,1,0.857,high,3,14,0.000
 24627,1,bottomless,adj,bezdȯnny,bezdenny,0,0,0.857,high,3,13,0.125
 24628,0,dry spell,noun,bezdȯžďje,suša,0,0,0.960,high,3,22,1.000
@@ -789,7 +789,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4214,0,effortlessness,noun,bezusiľje,lehkosť,0,0,0.586,medium,2,23,0.889
 4213,0,effortlessly,adv,bezusiľno,legȯk,0,0,0.920,high,3,33,0.889
 4215,0,effortlessness,noun,bezusiľnosť,lehkosť,0,0,0.586,medium,2,23,0.636
-4212,1,effortless,adj,bezusiľny,legky,0,0,0.960,high,3,26,0.778
+4212,1,effortless,adj,bezusiľny,lėgky,0,0,0.960,high,3,26,0.778
 21263,0,"unconditional, absolute",adj,bezuslovny,bezuslovny,1,1,0.569,medium,2,16,0.000
 33156,0,unsuccessful,adj,bezuspěšny,neuspěšny,0,0,0.856,high,1,18,0.200
 33157,0,inconsolable,adj,bezutěšny,bezutešnyji,0,0,0.523,medium,2,15,0.182
@@ -888,7 +888,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24689,1,behave like a fool,verb,blaznovati,blaznavac,0,0,0.464,medium,2,20,0.300
 36998,0,blissful,adj,blåženy,blaženy,0,1,0.851,high,3,14,0.000
 24690,0,turn pale,verb,blědněti,blednuti,0,0,0.596,medium,2,10,0.125
-24692,1,paleness,noun,blědosť,blědost,0,1,0.940,high,3,13,0.000
+24692,1,paleness,noun,blědosť,blědosť,1,1,0.940,high,3,13,0.000
 2453,0,pale,adj,blědy,blědy,1,1,0.960,high,3,14,0.000
 24693,0,bleat,verb,blejati,blějati,0,1,0.804,high,1,15,0.000
 33405,0,blackjack,noun,blekdžek,blekdžek,1,1,0.586,medium,2,17,0.000
@@ -905,7 +905,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3746,0,"near, close",adv,blizko,bliz,0,0,0.920,high,3,18,0.333
 3980,0,"closeness, proximity",noun,blizkosť,blizkosť,1,1,0.470,medium,2,15,0.000
 3287,0,"near, close",adj,blizky,blizky,1,1,0.960,high,3,11,0.000
-192,0,twin,noun,bliznec,bliznec,1,1,0.878,high,2,14,0.000
+192,0,twin,noun,bliznec,bliznėc,0,1,0.878,high,2,14,0.000
 7406,1,twin brothers,noun,blizneci,blizanci,0,0,0.551,medium,2,17,0.250
 24701,0,Gemini,noun,Blizneci,blizanci,0,0,0.741,high,3,11,0.250
 7404,0,twin sisters,noun,bliznečky,bliznački,0,0,0.523,medium,3,13,0.222
@@ -983,7 +983,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4769,0,"fear, anxiety",noun,bojaznj,strah,0,0,0.960,high,3,29,0.857
 6644,0,fearfully,adv,bojazno,bojazno,1,1,0.615,medium,2,21,0.000
 6645,0,"fearful, fearing",adj,bojazny,bojazlivy,0,0,0.512,medium,2,23,0.333
-24746,0,"fighter, warrior, soldier",noun,bojec,bojec,1,1,0.920,high,3,32,0.000
+24746,0,"fighter, warrior, soldier",noun,bojec,bojėc,0,1,0.920,high,3,32,0.000
 2466,0,fight,verb,bojevati,vojevati,0,0,0.940,high,3,19,0.125
 6169,0,"warrior, fighter, militant",noun,bojevnik,vojin,0,0,0.940,high,3,29,0.625
 6651,0,militant,adj,bojevy,bojevy,1,1,0.920,high,3,20,0.000
@@ -1018,9 +1018,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23988,0,brothel,noun,bordelj,bordel,0,0,0.938,high,3,16,0.143
 24763,0,Bordeaux,noun,Bordo,bordo,1,1,0.741,high,2,11,0.000
 24764,0,burgundy,adj,bordovy,bordovy,1,1,0.702,medium,3,14,0.000
-17165,0,"wrestler, fighter",noun,borec,borec,1,1,0.940,high,3,23,0.000
+17165,0,"wrestler, fighter",noun,borec,borėc,0,1,0.940,high,3,23,0.000
 24766,1,boletus,noun,borovik,borovik,1,1,0.639,medium,2,17,0.000
-1852,0,borscht,noun,bȯršč,bŕšč,0,0,0.980,high,3,11,0.200
+1852,0,borscht,noun,bȯršč,bršč,0,0,0.980,high,3,11,0.200
 24769,0,heracleum,noun,bȯrščevnik,barščevnik,0,0,0.407,low,1,12,0.100
 35871,0,Bosnia,noun,Bosnija,bosna,0,0,0.970,high,3,11,0.286
 606,0,Bosnian,adj,bosnijsky,bosansky,0,0,0.787,high,3,13,0.333
@@ -1103,7 +1103,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37047,1,brooch,noun,broška,broša,0,0,0.730,high,3,14,0.167
 35183,0,brochure,noun,brošura,brošura,1,1,0.903,high,3,13,0.000
 2308,0,eyebrow,noun,brȯv,bry,0,0,0.960,high,3,11,0.500
-24837,0,wild beehive,noun,brť,bŕt,0,1,0.940,high,3,19,0.000
+24837,0,wild beehive,noun,brť,brť,1,1,0.940,high,3,19,0.000
 24838,0,beekeeper (in the forest),noun,brtnik,bortnik,0,0,0.829,high,3,19,0.143
 37375,1,pavement (road surface),noun,bruk,mostovaja,0,0,0.523,medium,1,21,1.000
 17176,0,rutabaga,noun,brukva,brukva,1,1,0.575,medium,2,15,0.000
@@ -1114,14 +1114,14 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 162,1,brutality,noun,brutaľnosť,brutaľnosť,1,1,0.724,high,2,15,0.000
 2483,0,brutal,adj,brutaľny,brutalny,0,1,0.970,high,3,13,0.000
 24845,0,brutto,adv,bruto,bruto,1,1,0.970,high,3,11,0.000
-24847,1,"log, beam",noun,bŕvno,brevno,0,0,0.829,high,1,19,0.167
+24847,1,"log, beam",noun,bŕvno,brėvno,0,0,0.829,high,1,19,0.167
 24849,0,"splash, gush",verb,bryzgati,brizgati,0,0,0.447,low,2,23,0.125
 24850,1,"splash, gush",verb,bryzgnųti,briznuti,0,0,0.447,low,2,21,0.222
 23651,0,"speed, velocity",noun,brzina,brzina,1,1,0.499,medium,1,17,0.000
 5584,0,"quickly, fast",adv,brzo,brzo,1,1,0.499,medium,1,19,0.000
 5583,0,"quick, fast",adj,brzy,ryhly,0,0,0.920,high,3,19,0.800
 17177,0,bug,noun,buba,žuk,0,0,0.940,high,3,15,0.750
-1802,0,drum,noun,bųben,bųben,1,1,0.960,high,3,16,0.000
+1802,0,drum,noun,bųben,bųbėn,0,1,0.960,high,3,16,0.000
 33328,0,bubble,noun,bųblina,bublina,0,1,0.407,low,1,15,0.000
 2484,0,#wail,verb,bučati,vyti,0,0,0.398,low,1,21,0.667
 223,0,shed,noun,buda,šupa,0,0,0.505,medium,2,18,0.500
@@ -1209,7 +1209,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34996,0,"cell (prison, convent)",noun,ćelja,cela,0,0,0.632,medium,2,15,0.400
 4391,0,"completely, entirely, wholly, altogether",adv,cělkom,celkom,0,1,0.765,high,2,30,0.000
 3009,0,"entirely, wholly, completely, totally",adv,cělkovito,calkam,0,0,0.407,low,2,26,0.667
-4143,0,"entire, whole, complete, total, comprehensive, overall",adj,cělkovity,obeći,0,0,0.920,high,3,25,0.889
+4143,0,"entire, whole, complete, total, comprehensive, overall",adj,cělkovity,obėći,0,0,0.920,high,3,25,0.889
 32747,1,in total,adv,cělo,ahulam,0,0,0.459,medium,2,20,0.833
 34925,1,all-day,adj,cělodenny,celodnevny,0,0,0.660,medium,2,16,0.200
 34924,0,all-day,adj,cělodnevny,celodnevny,0,1,0.660,medium,2,16,0.000
@@ -1351,7 +1351,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17197,1,steel,adj,čeličny,stalovy,0,0,0.523,medium,2,12,0.857
 17198,0,steel,noun,čelik,stal,0,0,0.639,medium,2,11,1.000
 24967,0,household servants,noun,čeljaď,prysluha,0,0,0.459,medium,1,19,0.875
-6820,0,jaw,noun,čeljusť,čeljust,0,1,0.960,high,3,15,0.000
+6820,0,jaw,noun,čeljusť,čeljusť,1,1,0.960,high,3,15,0.000
 36026,1,"fringe, bang, forelock",noun,čelka,čub,0,0,0.920,high,3,19,0.800
 24969,0,frontal,adj,čeľny,čelny,0,1,0.671,medium,2,18,0.000
 6821,0,forehead,noun,čelo,čelo,1,1,0.960,high,3,11,0.000
@@ -1369,8 +1369,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 24985,0,currycomb,noun,česalo,skrabnica,0,0,0.459,medium,1,18,0.889
 2227,0,"comb, brush",verb,česati,česati,1,1,0.940,high,3,14,0.000
 510,0,garlic,noun,česnȯk,česnȯk,1,1,0.940,high,3,12,0.000
-1731,0,part,noun,čęsť,čęst,0,1,0.940,high,3,17,0.000
-3033,1,"honour, honor",noun,česť,čest,0,1,0.960,high,3,13,0.000
+1731,0,part,noun,čęsť,čęsť,1,1,0.940,high,3,17,0.000
+3033,1,"honour, honor",noun,česť,čėsť,0,1,0.960,high,3,13,0.000
 19669,0,more often,adv,čęstěje,čęšće,0,0,0.667,medium,3,11,0.571
 6839,0,#particle,noun,čęstica,častica,0,0,0.678,medium,3,18,0.143
 6840,0,"partly, partially",adv,čęstično,častično,0,0,0.586,medium,3,18,0.125
@@ -1381,7 +1381,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5944,0,"honour, honor, pay honour to",verb,čestiti,ctiti,0,0,0.412,low,1,20,0.429
 4664,0,particle,noun,čęstka,častica,0,0,0.741,high,3,19,0.429
 22981,0,"virtue, integrity",noun,čestnosť,čestnosť,1,1,0.459,medium,2,23,0.000
-1551,0,"honest, fair, honourable, honorable",adj,čestny,čestny,1,1,0.940,high,3,32,0.000
+1551,0,"honest, fair, honourable, honorable",adj,čestny,čėstny,0,1,0.940,high,3,32,0.000
 137,0,"often, frequently",adv,čęsto,čęsto,1,1,0.970,high,3,12,0.000
 17208,0,frequency,noun,čęstota,častota,0,0,0.650,medium,2,16,0.143
 2273,0,frequent,adj,čęsty,čęsty,1,1,0.980,high,3,16,0.000
@@ -1610,7 +1610,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 25151,0,debutante,noun,debjutant,debutant,0,0,0.970,high,3,11,0.111
 25152,1,make one’s debut,verb,debjutovati,debutovati,0,0,0.478,medium,2,10,0.091
 25153,0,unblock,verb,deblokovati,deblokirati,0,0,0.425,low,1,9,0.182
-25155,0,december,noun,decembr,grudenj,0,0,0.920,high,3,12,1.000
+25155,0,december,noun,decembr,grudėnj,0,0,0.920,high,3,12,1.000
 1436,0,"grandfather, grandpa",noun,děd,děd,1,1,0.960,high,3,17,0.000
 7068,1,grandfather,noun,dědȯk,děd,0,0,0.960,high,3,11,0.400
 25161,0,grandfather’s,adj,dědov,dedovy,0,0,0.632,medium,2,18,0.167
@@ -1631,7 +1631,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 25167,1,degenerate,noun,degenerat,degenerat,1,1,0.702,medium,3,14,0.000
 25168,0,degenerate,adj,degenerativny,degenerativny,1,1,0.695,medium,2,15,0.000
 25169,0,degenerate,verb,degenerovati,degenerovati,1,1,0.412,low,1,12,0.000
-25170,1,tar,noun,degeť,degȯt,0,0,0.940,high,3,18,0.200
+25170,1,tar,noun,degeť,degȯť,0,0,0.940,high,3,18,0.200
 25171,0,degradation,noun,degradacija,degradacija,1,1,0.970,high,3,11,0.000
 25172,0,"degrade, demote",verb,degradovati,degradovati,1,1,0.478,medium,2,10,0.000
 25173,0,gustation,noun,degustacija,degustacija,1,1,0.970,high,3,13,0.000
@@ -1644,7 +1644,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 33034,0,decadent,noun,dekadent,dekadent,1,1,0.967,high,3,15,0.000
 33035,0,decadent,adj,dekadentsky,dekadentny,0,0,0.608,medium,2,14,0.182
 33036,1,decadence,noun,dekadentstvo,dekadencija,0,0,0.724,high,2,14,0.417
-751,1,December,noun,dekembr,grudenj,0,0,0.920,high,3,12,1.000
+751,1,December,noun,dekembr,grudėnj,0,0,0.920,high,3,12,1.000
 35941,0,"declaim, recite",verb,deklamovati,deklamovati,1,1,0.526,medium,3,18,0.000
 216,0,declaration,noun,deklaracija,deklaracija,1,1,0.967,high,3,17,0.000
 35906,0,"decolonisation, decolonization",noun,dekolonizacija,dekolonizacija,1,1,0.970,high,3,11,0.000
@@ -1668,7 +1668,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19673,0,deliric,adj,deliričny,deliričny,1,1,0.741,high,3,12,0.000
 1754,1,"share, divide, part, separate",verb,děliti,děliti,1,1,0.960,high,3,17,0.000
 3545,0,division,noun,děljeńje,dlenje,0,0,0.678,medium,3,18,0.250
-2616,0,work,noun,dělo,rabota,0,0,0.940,high,3,17,0.833
+2616,0,work,noun,dělo,råbota,0,0,0.940,high,3,17,0.833
 17246,0,"act, deed",noun,dělo,čino,0,0,0.920,high,3,20,0.750
 35514,0,"affair (matter), issue",noun,dělo,dělo,1,1,0.920,high,3,18,0.000
 37018,1,hang-glider,noun,deltaplan,deltaplan,1,1,0.741,high,3,23,0.000
@@ -1683,7 +1683,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 772,0,demonstration,noun,demonstracija,demonstracija,1,1,0.970,high,3,12,0.000
 623,0,demonstrative,adj,demonstrativny,demonstrativny,1,1,0.914,high,3,11,0.000
 6266,0,demonstrate,verb,demonstrovati,demonstrovati,1,1,0.478,medium,2,9,0.000
-1845,0,day,noun,denj,denj,1,1,0.960,high,3,11,0.000
+1845,0,day,noun,denj,dėnj,0,1,0.960,high,3,11,0.000
 25194,0,daily,adj,denny,dnevny,0,0,0.660,medium,2,14,0.333
 17264,0,"twenty-four hours, day and night, nychthemeron, (formal) day",noun,denonočje,sutki,0,0,0.459,medium,1,21,1.000
 25195,0,dentist,noun,dentist,dantist,0,0,0.765,high,2,22,0.143
@@ -1697,7 +1697,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36182,0,depress,verb,deprimovati,deprimovati,1,1,0.412,low,1,12,0.000
 36441,0,depressing,adj,deprimujųći,deprimųjici,0,0,0.523,medium,1,18,0.182
 35469,0,dessert,noun,desert,desert,1,1,0.741,high,2,11,0.000
-1517,0,ten,num,desęť,desęt,0,1,0.960,high,3,11,0.000
+1517,0,ten,num,desęť,desęť,1,1,0.960,high,3,11,0.000
 16437,1,tensome,num,desętero,desatero,0,0,0.724,high,3,11,0.125
 2851,0,decade,noun,desętilěťje,desetiletie,0,0,0.632,medium,3,18,0.091
 7024,1,one tenth,num,desętina,desetina,0,1,0.608,medium,2,12,0.000
@@ -1737,7 +1737,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36972,0,little girl,noun,děvčinka,dzavčynka,0,0,0.514,medium,2,11,0.333
 5959,0,virgin (sexually inexperienced male),noun,děvėc,devstvenik,0,0,0.523,medium,2,13,0.600
 299,0,brother-in-law,noun,děveŕ,děver,0,1,0.960,high,3,13,0.000
-2620,0,nine,num,devęť,devęt,0,1,0.960,high,3,11,0.000
+2620,0,nine,num,devęť,devęť,1,1,0.960,high,3,11,0.000
 2181,0,ninety,num,devęťdesęt,devedeset,0,0,0.499,medium,2,11,0.100
 23689,0,ninetieth,num,devęťdesęty,devedeseti,0,0,0.499,medium,2,11,0.182
 16436,0,ninesome,num,devętero,devetero,0,1,0.724,high,3,11,0.000
@@ -1842,7 +1842,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 25259,1,chisel,noun,dlåto,dlåto,1,1,0.980,high,3,11,0.000
 21271,0,during the day,adv,dnem,denem,0,0,0.575,medium,3,19,0.200
 36885,0,Dnieper,noun,Dněpr,Dněpr,1,1,0.980,high,3,11,0.000
-5288,0,"today, nowadays",adv,dneś,danes,0,0,0.960,high,3,13,0.200
+5288,0,"today, nowadays",adv,dneś,danėś,0,0,0.960,high,3,13,0.200
 36886,0,Dniester,noun,Dněstr,Dněstr,1,1,0.980,high,1,11,0.000
 17256,0,currently,adv,dnešnje,nyně,0,0,0.920,high,3,20,0.571
 7077,1,sitting-room,noun,dnevnica,dnevna soba,0,0,0.435,low,1,16,0.455
@@ -2013,7 +2013,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 7208,1,"allow, permit",verb,dopušćati,dopuštati,0,0,0.460,medium,2,21,0.111
 20859,0,"admit, grant admittance",verb,dopušćati,udelovati,0,0,0.412,low,1,21,0.667
 7211,0,"grow up, become an adult",verb,dorastati,dorastati,1,1,0.693,medium,3,19,0.000
-16416,0,"grow up, become an adult",verb,doråsti,dorasti,0,1,0.928,high,3,20,0.000
+16416,0,"grow up, become an adult",verb,doråsti,doråsti,1,1,0.928,high,3,20,0.000
 23050,0,grown-up,noun,doråstla,odrasla,0,0,0.660,medium,3,13,0.375
 7212,0,adulthood,noun,doråstlosť,zrelosť,0,0,0.523,medium,2,14,0.500
 15304,1,adult,adj,doråstly,dorosly,0,0,0.569,medium,3,17,0.250
@@ -2125,7 +2125,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3719,0,lifelong,adj,dožitny,doživotny,0,0,0.615,medium,2,11,0.222
 17335,0,live out,verb,doživati,doživati,1,1,0.596,medium,2,9,0.000
 17339,0,ladder,noun,drabina,lěstva,0,0,0.834,high,1,19,0.857
-419,0,"way, road",noun,dråga,pųt,0,0,0.920,high,3,15,1.000
+419,0,"way, road",noun,dråga,pųť,0,0,0.920,high,3,15,1.000
 35839,0,preciousness,noun,drågocěnnosť,dragocenosť,0,0,0.488,medium,2,17,0.083
 23995,0,precious,adj,drågocěnny,dragocenny,0,1,0.730,high,3,17,0.000
 35042,0,signpost,noun,drågoukazatelj,ukazatelj,0,0,0.459,medium,2,16,0.357
@@ -2192,7 +2192,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35027,1,"dare, venture",verb,dŕzati,derzati sę,0,0,0.447,low,2,21,0.400
 25395,0,"bold, daring, audacious",adj,dŕzky,směly,0,0,0.960,high,3,30,0.800
 25396,0,"dare, venture",verb,dŕznųti,drznuti sę,0,0,0.495,medium,2,24,0.300
-25397,0,"boldness, audacity",noun,dŕzosť,smělost,0,0,0.960,high,3,24,0.571
+25397,0,"boldness, audacity",noun,dŕzosť,smělosť,0,0,0.960,high,3,24,0.571
 5231,0,handle,noun,dŕžak,držak,0,1,0.516,medium,2,26,0.000
 25398,1,handhold,noun,držalo,ručka,0,0,0.442,low,2,27,0.833
 2617,0,"hold, keep",verb,dŕžati,dŕžati,1,1,0.940,high,3,10,0.000
@@ -2228,7 +2228,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 25424,0,fool,noun,durenj,glupak,0,0,0.523,medium,2,25,1.000
 34192,0,grow stupid,verb,durěti,glupjati,0,0,0.495,medium,2,19,0.625
 14546,0,stupidly,adv,durno,glupo,0,0,0.730,high,3,22,0.800
-14547,0,stupidity,noun,durnosť,glupost,0,0,0.960,high,3,19,0.571
+14547,0,stupidity,noun,durnosť,gluposť,0,0,0.960,high,3,19,0.571
 2521,0,"stupid, silly, foolish",adj,durny,glupy,0,0,0.920,high,3,21,0.800
 37327,0,major (scale),adj,durovy,mažorny,0,0,0.586,medium,2,11,0.714
 34087,0,"shower, douche",noun,duš,duš,1,1,0.586,medium,2,13,0.000
@@ -2248,7 +2248,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2515,0,twelve,num,dvanadsęť,dvanaest,0,0,0.545,medium,2,11,0.222
 23680,1,twelfth,num,dvanadsęty,dvanaesti,0,0,0.660,medium,2,11,0.300
 2964,0,two hundred,num,dvasto,dvesto,0,0,0.787,high,3,12,0.167
-2929,0,door,noun,dvėri,dver,0,0,0.940,high,3,19,0.200
+2929,0,door,noun,dvėri,dvėr,0,0,0.940,high,3,19,0.200
 7393,0,doorman,noun,dvėŕnik,švejcar,0,0,0.523,medium,1,18,0.714
 23678,0,two hundred,num,dvěstě,dvesto,0,0,0.787,high,3,12,0.167
 468,0,move,verb,dvigati,pohibovati,0,0,0.412,low,1,16,0.600
@@ -2258,7 +2258,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36092,0,duel,noun,dvoboj,dvoboj,1,1,0.608,medium,2,18,0.000
 16452,0,"dual, twofold, two kinds of",num,dvojaky,dvojaky,1,1,0.678,medium,3,24,0.000
 16426,0,binary,adj,dvojčany,binarny,0,0,0.562,medium,2,24,0.750
-15306,0,twin,noun,dvojčę,blizneco,0,0,0.834,high,1,16,0.875
+15306,0,twin,noun,dvojčę,bliznėco,0,0,0.834,high,1,16,0.875
 7402,1,twins,noun,dvojčęta,bliznaci,0,0,0.499,medium,1,17,1.000
 472,0,"pair, twosome",num,dvoje,dvoj,0,0,0.980,high,3,11,0.200
 19682,0,dual,noun,dvojina,dvojina,1,1,0.545,medium,2,12,0.000
@@ -2673,7 +2673,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 7499,1,pound [lb],noun,funt,funt,1,1,0.840,high,3,11,0.000
 25518,0,van,noun,furgon,furgon,1,1,0.695,medium,2,14,0.000
 2585,0,"football, soccer",noun,futbol,futbol,1,1,0.713,medium,3,11,0.000
-17386,1,fur,noun,futro,kŕzno,0,0,0.920,high,3,18,0.800
+17386,1,fur,noun,futro,krzno,0,0,0.920,high,3,18,0.800
 35830,1,fusion,noun,fuzija,fuzija,1,1,0.741,high,2,17,0.000
 25520,0,gabardine,noun,gabardin,gabardin,1,1,0.903,high,3,16,0.000
 36178,1,"underpants, panties, briefs, knickers, drawers",noun,gaće,trusy,0,0,0.459,medium,1,27,1.000
@@ -2860,7 +2860,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 991,0,"fool, stupid person, dimwit, fuckwit",noun,glupec,glupak,0,0,0.580,medium,2,29,0.333
 25661,0,become stupid,verb,glupěti,glupeti,0,1,0.495,medium,2,10,0.000
 7579,0,stupidly,adv,glupo,glupo,1,1,0.730,high,3,14,0.000
-7580,0,"nonsense, stupidity",noun,gluposť,glupost,0,1,0.960,high,3,18,0.000
+7580,0,"nonsense, stupidity",noun,gluposť,gluposť,1,1,0.960,high,3,18,0.000
 1751,0,"stupid, dumb, silly, foolish, fuckwitted",adj,glupy,glupy,1,1,0.920,high,3,20,0.000
 25666,0,muffle,verb,glušiti,glušiti,1,1,0.464,medium,1,12,0.000
 1815,0,"drive, chase",verb,gnati,gnati,1,1,0.960,high,3,20,0.000
@@ -2927,7 +2927,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17425,0,mustard,noun,gorčica,gorčica,1,1,0.960,high,3,15,0.000
 25732,1,taste bitter,verb,gorčiti,gorčiti,1,1,0.464,medium,1,9,0.000
 5666,0,"pride, dignity",noun,gȯrdosť,gordosť,0,1,0.759,high,3,23,0.000
-2673,0,proud,adj,gȯrdy,gŕdy,0,0,0.960,high,3,13,0.200
+2673,0,proud,adj,gȯrdy,grdy,0,0,0.960,high,3,13,0.200
 3665,0,hot,adv,goręće,gorųčo,0,0,0.639,medium,2,19,0.333
 3666,1,hot,adj,goręći,goręći,1,1,0.960,high,3,15,0.000
 3659,0,heat,noun,goręćnja,teplo,0,0,0.459,medium,1,25,0.875
@@ -2959,11 +2959,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3290,0,"gentleman, lord, mister, master, sir",noun,gospodin,gpan,0,0,0.940,high,3,21,0.625
 5258,0,"mistress (e.g. of a household), landlady",noun,gospodynja,pani,0,0,0.459,medium,2,17,0.800
 25749,0,"lady, madam",noun,gospođa,gospođa,1,1,0.940,high,3,21,0.000
-1854,0,guest,noun,gosť,gost,0,1,0.960,high,3,11,0.000
+1854,0,guest,noun,gosť,gosť,1,1,0.960,high,3,11,0.000
 35029,0,"hospitable, welcoming, guestfriendly",adj,gosteprijemny,gostopriemny,0,0,0.459,medium,2,13,0.154
 35028,0,hospitality,noun,gosteprijemstvo,gostoprimstvo,0,0,0.615,medium,2,13,0.200
 7627,0,sitting-room,noun,gostiljnja,gostinaja,0,0,0.396,low,1,17,0.300
-25752,0,inn,noun,gostinec,kŕčma,0,0,0.920,high,3,23,1.000
+25752,0,inn,noun,gostinec,krčma,0,0,0.920,high,3,23,1.000
 5234,0,hotel,noun,gostinica,hotel,0,0,0.851,high,3,14,0.778
 35031,0,hospitality,noun,gostinnosť,gostoprimstvo,0,0,0.569,medium,2,14,0.538
 35030,1,"hospitable, welcoming, guestfriendly",adj,gostinny,gostopriemny,0,0,0.459,medium,2,15,0.417
@@ -3018,9 +3018,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35793,0,grant,noun,grant,grant,1,1,0.938,high,3,16,0.000
 2668,0,engrave,verb,gravirovati,gravirovati,1,1,0.464,medium,1,12,0.000
 23572,1,gravitation,noun,gravitacija,gravitacija,1,1,0.857,high,3,12,0.000
-2347,0,hump,noun,grb,gŕb,0,1,0.980,high,3,12,0.000
+2347,0,hump,noun,grb,grb,1,1,0.980,high,3,12,0.000
 23891,1,hunchback,noun,grbač,garbun,0,0,0.523,medium,1,13,0.500
-16407,0,humpy,adj,grbaty,gŕbaty,0,1,0.940,high,3,11,0.000
+16407,0,humpy,adj,grbaty,grbaty,1,1,0.940,high,3,11,0.000
 5665,0,disparage,verb,grditi,znevažovati,0,0,0.412,low,1,25,0.818
 1920,0,comb,noun,grebenj,grebenj,1,1,0.960,high,3,15,0.000
 738,0,dig,verb,grebti,kopati,0,0,0.940,high,3,10,0.667
@@ -3028,10 +3028,10 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 33926,0,scrape,verb,grebti,skreti,0,0,0.920,high,3,11,0.500
 2675,0,Greece,noun,Grėcija,grecija,0,1,0.811,high,3,11,0.000
 3474,0,buckwheat,noun,greča,heljda,0,0,0.435,low,1,13,0.833
-3183,1,Greek,adj,grėčsky,grečsky,0,1,0.960,high,3,12,0.000
+3183,1,Greek,adj,grėčsky,grėčsky,1,1,0.960,high,3,12,0.000
 1750,1,sin,noun,grěh,grěh,1,1,0.960,high,3,11,0.000
 36068,0,grapefruit,noun,grejpfrut,grejpfrut,1,1,0.970,high,3,14,0.000
-20378,0,Greek,noun,Grėk,grek,0,1,0.980,high,3,11,0.000
+20378,0,Greek,noun,Grėk,grėk,1,1,0.980,high,3,11,0.000
 782,1,thunder,verb,greměti,grměti,0,0,0.920,high,3,13,0.143
 36482,0,Greenland,noun,Grenlandija,grenlandija,1,1,0.903,high,3,11,0.000
 36483,0,"Greenlandish, Greenlandic",adj,grenlandsky,grenlandsky,1,1,0.787,high,2,11,0.000
@@ -3053,9 +3053,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 674,0,mane,noun,griva,griva,1,1,0.980,high,3,11,0.000
 722,0,fine,noun,grivna,štraf,0,0,0.523,medium,1,15,1.000
 25821,0,hryvnia [₴],noun,grivna,grivna,1,1,0.980,high,3,11,0.000
-25822,1,turtledove,noun,grlica,gŕlica,0,1,0.960,high,3,13,0.000
-492,1,throat,noun,grlo,gŕlo,0,1,0.960,high,3,13,0.000
-5272,0,pot,noun,grn,gŕn,0,1,0.920,high,3,20,0.000
+25822,1,turtledove,noun,grlica,grlica,1,1,0.960,high,3,13,0.000
+492,1,throat,noun,grlo,grlo,1,1,0.960,high,3,13,0.000
+5272,0,pot,noun,grn,grn,1,1,0.920,high,3,20,0.000
 25826,1,potter,noun,grnčaŕ,grnčar,0,1,0.741,high,2,12,0.000
 35192,0,pottery (trade),noun,grnčaŕstvo,grnčarstvo,0,1,0.632,medium,2,16,0.000
 2282,0,pan,noun,grnec,grnec,1,1,0.470,medium,2,26,0.000
@@ -3073,7 +3073,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 676,1,ermine,noun,gronostaj,grånostaj,0,0,0.960,high,3,12,0.111
 17444,0,coin,noun,groš,moneta,0,0,0.702,medium,3,25,1.000
 19710,0,grotesque,adj,groteskovy,groteskny,0,0,0.787,high,3,11,0.200
-690,1,danger,noun,groza,obpasnost,0,0,0.940,high,3,12,0.889
+690,1,danger,noun,groza,obpasnosť,0,0,0.940,high,3,12,0.889
 1885,0,threat,noun,groźba,groza,0,0,0.920,high,3,12,0.167
 25849,0,"bunch, cluster (e.g. grapes)",noun,grozď,grozd,0,1,0.920,high,3,25,0.000
 36079,1,raisin,noun,grozdinka,rodzynka,0,0,0.459,medium,2,16,0.444
@@ -3081,11 +3081,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2568,0,threaten,verb,groziti,groziti,1,1,0.827,high,1,14,0.000
 691,0,dangerous,adj,grozny,obpasny,0,0,0.940,high,3,15,0.714
 7701,1,"fearsome, dreadful, frightful",adj,grozny,grozny,1,1,0.960,high,3,24,0.000
-1930,1,fist,noun,grsť,pęst,0,0,0.904,high,2,25,0.500
-1927,1,larynx,noun,grtanj,gŕtanj,0,1,0.940,high,3,13,0.000
+1930,1,fist,noun,grsť,pęsť,0,0,0.904,high,2,25,0.500
+1927,1,larynx,noun,grtanj,grtanj,1,1,0.940,high,3,13,0.000
 25855,0,roughness,noun,grubosť,grubosť,1,1,0.741,high,3,20,0.000
 1736,1,rough,adj,gruby,grųby,0,1,0.960,high,3,22,0.000
-17445,1,"chest, breasts",noun,grųď,grųd,0,1,0.960,high,3,16,0.000
+17445,1,"chest, breasts",noun,grųď,grųď,1,1,0.960,high,3,16,0.000
 2611,0,"clod, lump",noun,gruda,gruda,1,1,0.920,high,3,16,0.000
 25860,0,pectoral,adj,grųdny,grudny,0,1,0.741,high,2,16,0.000
 1787,1,group,noun,grupa,grupa,1,1,0.857,high,3,17,0.000
@@ -3112,7 +3112,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36100,0,gander,noun,gųsak,gųsak,1,1,0.960,high,3,16,0.000
 25882,0,gosling,noun,gųsę,gouse,0,0,0.470,medium,2,12,0.200
 429,0,caterpillar,noun,gųsenica,vųsěnica,0,0,0.960,high,3,11,0.125
-25883,0,goose,adj,gųśji,gųsy,0,0,0.801,high,1,13,0.400
+25883,0,goose,adj,gųśji,gųśi,0,0,0.837,high,1,13,0.200
 14591,0,psaltery player,noun,gųslaŕ,gųslar,0,1,0.921,high,3,12,0.000
 7715,0,psaltery,noun,gųsli,gųsli,1,1,0.920,high,3,15,0.000
 16469,0,violinist,noun,gųsljaŕ,skrypač,0,0,0.459,medium,1,14,0.857
@@ -3128,7 +3128,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22384,0,Guatemala,noun,Gvatemala,gvatemala,1,1,0.857,high,3,11,0.000
 22385,0,Guatemalan,adj,gvatemaľsky,gvatemalsky,0,1,0.903,high,3,12,0.000
 16782,0,Guinea,noun,Gvineja,gvineja,1,1,0.903,high,3,11,0.000
-2574,0,nail,noun,gvozď,gvozd,0,1,0.920,high,3,21,0.000
+2574,0,nail,noun,gvozď,gvozď,1,1,0.920,high,3,21,0.000
 2912,0,sway,verb,gybati,kyvati,0,0,0.412,low,1,23,0.333
 35205,0,flexibility,noun,gybkosť,flexibilita,0,0,0.407,low,1,23,0.818
 17397,0,flexible,adj,gybky,gybky,1,1,0.771,high,1,25,0.000
@@ -3231,7 +3231,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2579,1,"cold, chilly",adj,hlådny,hlådny,1,1,0.940,high,3,19,0.000
 17453,0,refrigeration,noun,hlåđeńje,hlađenje,0,1,0.551,medium,3,12,0.000
 1109,1,little boy,noun,hlåpčik,hlopčyk,0,0,0.650,medium,2,21,0.286
-3335,0,boy,noun,hlåpec,hlåpec,1,1,0.920,high,3,23,0.000
+3335,0,boy,noun,hlåpec,hlåpėc,0,1,0.920,high,3,23,0.000
 37423,0,"fellow, dude, guy, chap, bloke, lad",noun,hlåpėc,hlåp,0,0,0.940,high,3,40,0.333
 4338,0,boyhood,noun,hlåpstvo,hlapectvi,0,0,0.459,medium,1,11,0.333
 89,0,bread,noun,hlěb,hlěb,1,1,0.960,high,3,12,0.000
@@ -3289,19 +3289,19 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2971,1,want,verb,hotěti,hotěti,1,1,0.940,high,3,9,0.000
 1828,0,hide,verb,hovati,hovati,1,1,0.920,high,3,16,0.000
 25999,0,brave person,noun,hråbrec,hrabrec,0,1,0.459,medium,1,23,0.000
-4611,0,bravery,noun,hråbrosť,hråbrost,0,1,0.940,high,3,22,0.000
+4611,0,bravery,noun,hråbrosť,hråbrosť,1,1,0.940,high,3,22,0.000
 2607,1,"valiant, brave",adj,hråbry,hråbry,1,1,0.960,high,3,26,0.000
 4890,1,temple,noun,hram,hråm,0,1,0.960,high,3,15,0.000
 26006,0,custodian,noun,hrånitelj,hranitelj,0,1,0.407,low,2,30,0.000
 19721,0,protect,verb,hråniti,hråniti,1,1,0.847,high,1,16,0.000
 17464,0,"protégé, ward",noun,hrånjenec,podopečnyj,0,0,0.639,medium,2,18,0.800
-17466,0,snore,verb,hrapati,hŕkati,0,0,0.849,high,1,11,0.286
+17466,0,snore,verb,hrapati,hrkati,0,0,0.849,high,1,11,0.286
 1639,0,coarse,adj,hråpavy,grųby,0,0,0.960,high,3,20,0.714
 17467,1,snore,verb,hrapnųti,hrapnuti,0,1,0.662,medium,2,11,0.000
 26013,0,rattle,verb,hrčati,hrastiti,0,0,0.412,low,1,18,0.500
 20385,0,hamster,noun,hrček,homak,0,0,0.639,medium,2,11,0.600
 841,1,"spine, spinal column",noun,hrebet,pazvanočnik,0,0,0.459,medium,1,17,1.000
-1928,0,"back, backside",noun,hrebet,gŕb,0,0,0.920,high,3,17,0.667
+1928,0,"back, backside",noun,hrebet,grb,0,0,0.920,high,3,17,0.667
 26012,1,spinal,adj,hrebetny,spinny,0,0,0.523,medium,1,17,0.750
 3114,1,horseradish,noun,hrěn,hrěn,1,1,0.960,high,3,12,0.000
 26015,0,horseradish,adj,hrěnovy,hrenovy,0,1,0.765,high,3,12,0.000
@@ -3318,20 +3318,20 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26018,0,limp,verb,hromati,hramati,0,0,0.849,high,1,18,0.143
 36830,0,chromatic,adj,hromatičny,hromatičny,1,1,0.650,medium,3,12,0.000
 34408,0,go lame,verb,hroměti,hrometi,0,1,0.464,medium,2,19,0.000
-26019,0,lameness,noun,hromosť,hromost,0,1,0.873,high,1,20,0.000
+26019,0,lameness,noun,hromosť,hromosť,1,1,0.873,high,1,20,0.000
 26021,0,lame,adj,hromy,hromy,1,1,0.920,high,3,19,0.000
 37062,0,Hron,noun,Hron,hron,1,1,0.970,high,3,11,0.000
 35718,0,chronicle,noun,hronika,hronika,1,1,0.695,medium,2,14,0.000
 35774,0,chronicler,noun,hronikaŕ,hronikor,0,0,0.403,low,1,16,0.125
 35398,0,chronological,adj,hronologičny,hronologičny,1,1,0.586,medium,3,11,0.000
 35397,0,"chronology, timeline",noun,hronologija,hronologija,1,1,0.938,high,3,12,0.000
-2577,0,greyhound,noun,hrt,hŕt,0,1,0.960,high,3,13,0.000
+2577,0,greyhound,noun,hrt,hrt,1,1,0.960,high,3,13,0.000
 26024,0,crunch,verb,hrupati,hrskati,0,0,0.443,low,2,12,0.286
 31916,0,"crunchy, crispy",adj,hrupkavy,hrskavy,0,0,0.435,low,1,15,0.250
 1245,0,brushwood,noun,hrust,hrasti,0,0,0.459,medium,1,13,0.333
 26026,0,crunch,verb,hrustati,hrusteti,0,0,0.530,medium,2,14,0.125
 26028,0,cockchafer,noun,hrųšč,hrųšč,1,1,0.940,high,3,15,0.000
-4727,0,Croat,noun,Hrvat,hŕvat,0,1,0.980,high,3,12,0.000
+4727,0,Croat,noun,Hrvat,hrvat,1,1,0.980,high,3,12,0.000
 2580,1,Croatia,noun,Hrvatija,hȯrvatska,0,0,0.625,medium,2,11,0.333
 4728,0,Croatian,adj,hrvatsky,hȯrvatsky,0,0,0.805,high,3,12,0.111
 7739,0,want,verb,htěti,hotěti,0,0,0.940,high,3,9,0.167
@@ -3375,10 +3375,10 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26052,1,"fault, error, mistake, flaw",noun,hyba,hyba,1,1,0.920,high,3,26,0.000
 26053,0,"err, blunder, fail",verb,hybiti,pohybiti,0,0,0.412,low,1,21,0.250
 10362,0,wrong,adj,hybny,pogrěšny,0,0,0.858,high,2,12,0.750
-7751,0,"cunning person, sly dog, slyboots, artful dodger",noun,hytrec,hytrec,1,1,0.920,high,3,31,0.000
+7751,0,"cunning person, sly dog, slyboots, artful dodger",noun,hytrec,hytrėc,0,1,0.920,high,3,31,0.000
 15329,0,"cunning woman, sly woman",noun,hytrica,mrha,0,0,0.407,low,1,28,0.714
 7752,1,"slyly, cunningly, artfully",adv,hytro,hitro,0,0,0.713,medium,3,32,0.200
-7753,0,"slyness, cunning, artfulness",noun,hytrosť,hytrost,0,1,0.960,high,3,29,0.000
+7753,0,"slyness, cunning, artfulness",noun,hytrosť,hytrosť,1,1,0.960,high,3,29,0.000
 17452,1,"sly, cunning, artful, shrewd",adj,hytry,hytry,1,1,0.960,high,3,28,0.000
 26056,1,ibis,noun,ibis,ibis,1,1,0.970,high,3,11,0.000
 206,0,ideal,noun,ideal,ideal,1,1,0.970,high,3,12,0.000
@@ -3448,7 +3448,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36953,0,name day,noun,imeniny,imeniny,1,1,0.702,medium,2,12,0.000
 874,1,"property, possession",noun,iměńje,valodanne,0,0,0.459,medium,1,28,0.778
 786,1,noun,noun,imennik,imenka,0,0,0.407,low,2,11,0.429
-3745,1,namesake,noun,imennik,tez,0,0,0.920,high,3,12,0.857
+3745,1,namesake,noun,imennik,tėz,0,0,0.920,high,3,12,0.857
 17486,0,namely,adv,imenno,imenno,1,1,0.575,medium,3,14,0.000
 3486,1,"call, name",verb,imenovati,nazyvati,0,0,0.644,medium,3,18,0.556
 4958,0,immigration,noun,imigracija,imigracija,1,1,0.921,high,3,15,0.000
@@ -3739,7 +3739,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 32745,0,outcome,noun,izhod,vynik,0,0,0.459,medium,2,17,1.000
 5355,0,"exit, quit",verb,izhoditi,vyhoditi,0,0,0.753,high,2,12,0.250
 14606,1,winning,noun,izigrańje,poběda,0,0,0.920,high,3,20,0.889
-3936,1,winner,noun,izigratelj,vitędz,0,0,0.920,high,3,12,0.700
+3936,1,winner,noun,izigratelj,vitędź,0,0,0.920,high,3,12,0.700
 1674,0,win,verb,izigrati,vygrati,0,0,0.596,medium,2,16,0.375
 1703,1,win,verb,izigryvati,vygryvati,0,0,0.596,medium,2,9,0.300
 5515,0,take out,verb,izimati,vynimati,0,0,0.464,medium,2,16,0.375
@@ -4111,7 +4111,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1478,0,egg,noun,jajce,jajce,1,1,0.919,high,2,15,0.000
 8209,1,"eggwhite, egg-white",noun,jajcebělȯk,jaečny balok,0,0,0.523,medium,1,12,0.500
 8214,0,testicle,noun,jaječko,jaečka,0,0,0.523,medium,1,22,0.286
-26291,0,egg,adj,jaječny,jaječny,1,1,0.914,high,2,12,0.000
+26291,0,egg,adj,jaječny,jajėčny,0,1,0.914,high,2,12,0.000
 36848,1,yak,noun,jak,jako,0,0,0.980,high,3,11,0.250
 17602,0,juniper tree,noun,jalovec,jalovec,1,1,0.586,medium,2,17,0.000
 26293,0,become sterile,verb,jalověti,jaloveti,0,1,0.693,medium,3,20,0.000
@@ -4133,7 +4133,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26303,0,young sheep,noun,jarka,jarka,1,1,0.586,medium,2,17,0.000
 26304,0,radiant,adj,jarky,jarky,1,1,0.940,high,3,28,0.000
 3042,1,yoke,noun,jaŕmo,jarmo,0,1,0.980,high,3,15,0.000
-26306,1,fury,noun,jarosť,jarost,0,1,0.940,high,3,25,0.000
+26306,1,fury,noun,jarosť,jarosť,1,1,0.940,high,3,25,0.000
 26307,0,spring,adj,jarovy,viosenny,0,0,0.512,medium,2,17,0.875
 26308,0,gas plant,noun,jasenėc,jasenec,0,1,0.586,medium,2,15,0.000
 17603,1,ash tree,noun,jasenj,jesn,0,0,0.980,high,3,11,0.500
@@ -4141,8 +4141,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26311,1,crib,noun,jasli,jasli,1,1,0.940,high,3,22,0.000
 26312,0,brighten up,verb,jasněti,råzjasnjovat se,0,0,0.412,low,1,23,0.667
 17607,1,"clearly, distinctly",adv,jasno,jasno,1,1,0.967,high,3,16,0.000
-4147,0,clarity,noun,jasnosť,jesnost,0,0,0.960,high,3,16,0.143
-26317,0,clarity,noun,jasnota,jesnost,0,0,0.920,high,3,19,0.429
+4147,0,clarity,noun,jasnosť,jesnosť,0,0,0.960,high,3,16,0.143
+26317,0,clarity,noun,jasnota,jesnosť,0,0,0.920,high,3,19,0.429
 13615,0,"clairvoyant, seer",noun,jasnovidec,jasnovidec,1,1,0.689,medium,3,25,0.000
 13614,1,"clairvoyant, seeress",noun,jasnovidka,jasnovidka,1,1,0.470,medium,2,24,0.000
 17608,0,clairvoyance,noun,jasnovidnosť,jasnovidenje,0,0,0.459,medium,1,17,0.333
@@ -4163,7 +4163,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26330,0,sycamore,adj,javorovy,javorovy,1,1,0.970,high,3,13,0.000
 26331,0,ide,noun,jaź,jez,0,0,0.920,high,3,11,0.333
 26332,0,dam,noun,jaz,jez,0,0,0.920,high,3,22,0.333
-20403,1,badger,noun,jazvec,jazvec,1,1,0.960,high,3,12,0.000
+20403,1,badger,noun,jazvec,jazvėc,0,1,0.960,high,3,12,0.000
 4461,1,"fuck, fucking",noun,jebańje,jebanje,0,1,0.868,high,3,26,0.000
 35993,1,"damn, fucking",adv,jebano,proklato,0,0,0.695,medium,3,26,0.750
 8248,0,fucked,adj,jebany,jebany,1,1,0.840,high,3,25,0.000
@@ -4248,7 +4248,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 6257,0,"her, hers",pron,jejin,jeji,0,0,0.702,medium,2,14,0.200
 26364,1,"spruce, fir",noun,jela,jela,1,1,0.488,medium,2,28,0.000
 26365,0,dace,noun,jelec,klen,0,0,0.940,high,3,11,0.600
-26366,0,fawn,noun,jelenę,lanę,0,0,0.843,high,1,16,0.500
+26366,0,fawn,noun,jelenę,lånę,0,0,0.843,high,1,16,0.500
 26368,1,venison,noun,jelenina,olenina,0,0,0.639,medium,2,13,0.250
 2202,0,deer,noun,jelenj,jelenj,1,1,0.980,high,3,11,0.000
 26367,0,deer’s,adj,jeleńji,jelenji,0,1,0.837,high,1,13,0.000
@@ -4346,7 +4346,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26420,0,kabbalah,noun,kabala,kabala,1,1,0.970,high,3,11,0.000
 26421,0,cabbalistic,adj,kabalističny,kabalističny,1,1,0.569,medium,3,13,0.000
 26424,0,musk deer,noun,kabarga,kabarga,1,1,0.586,medium,2,15,0.000
-4409,0,cable,noun,kabelj,kabel,0,0,0.980,high,3,15,0.167
+4409,0,cable,noun,kabelj,kabėl,0,0,0.980,high,3,15,0.167
 36002,0,"cabin, cab (truck, lorry)",noun,kabina,kabina,1,1,0.970,high,3,11,0.000
 36715,0,"cabinet, parlour",noun,kabinet,kabinet,1,1,0.914,high,3,14,0.000
 17635,0,drake,noun,kačer,kačer,1,1,0.650,medium,2,11,0.000
@@ -4460,7 +4460,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19773,0,Caribbean,adj,karaibsky,karibsky,0,0,0.829,high,3,15,0.111
 35441,1,caramel,noun,karamel,karamel,1,1,0.970,high,3,12,0.000
 2683,1,quarantine,noun,karantina,karantina,1,1,0.851,high,3,12,0.000
-2564,0,crucian (carp),noun,karaś,karas,0,1,0.960,high,3,11,0.000
+2564,0,crucian (carp),noun,karaś,karaś,1,1,0.960,high,3,11,0.000
 23584,0,karate,noun,karate,karate,1,1,0.970,high,3,11,0.000
 2565,0,punish,verb,karati,karati,1,1,0.940,high,3,13,0.000
 35408,0,"scold, rebuke, reprimand, reproach",verb,karati,karati,1,1,0.759,high,1,27,0.000
@@ -4663,7 +4663,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17660,0,godfather,noun,kmotr,kum,0,0,0.858,high,1,12,0.800
 17661,1,godmother,noun,kmotra,kuma,0,0,0.435,low,1,13,0.667
 8501,0,princess (prince’s wife),noun,knęgynja,knęgyni,0,0,0.940,high,3,14,0.250
-8502,1,prince,noun,knęź,knędz,0,0,0.960,high,3,15,0.200
+8502,1,prince,noun,knęź,knędź,0,0,0.960,high,3,15,0.200
 17662,0,prince,noun,knęžić,knęžić,1,1,0.837,high,1,15,0.000
 26585,0,princess (daughter),noun,knęžna,knažna,0,0,0.523,medium,2,13,0.167
 16801,0,princely,adj,knęžny,knažyji,0,0,0.523,medium,1,14,0.571
@@ -4680,11 +4680,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20409,0,koala,noun,koala,koala,1,1,0.970,high,3,11,0.000
 550,0,coalition,noun,koalicija,koalicija,1,1,0.967,high,3,13,0.000
 22622,0,cobalt,noun,kobalt,kobalt,1,1,0.970,high,3,11,0.000
-26588,1,red-footed falcon,noun,kobčik,kobec,0,0,0.920,high,3,14,0.500
+26588,1,red-footed falcon,noun,kobčik,kobėc,0,0,0.920,high,3,14,0.500
 20410,1,cobra,noun,kobra,kobra,1,1,0.970,high,3,11,0.000
 20411,0,mare,noun,kobyla,kobyla,1,1,0.960,high,3,11,0.000
 26592,0,"poker, rabble, fire iron, fireplace poker",noun,kočerga,kočerha,0,0,0.523,medium,1,13,0.143
-16951,0,code,noun,kod,kad,0,0,0.980,high,3,13,0.333
+16951,0,code,noun,kod,kaď,0,0,0.980,high,3,13,0.333
 37151,1,codex,noun,kodeks,kodeks,1,1,0.857,high,3,13,0.000
 16950,1,codification,noun,kodifikacija,kodifikacija,1,1,0.970,high,3,12,0.000
 35695,0,codify,verb,kodifikovati,kodifikovati,1,1,0.526,medium,3,10,0.000
@@ -4705,7 +4705,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36274,0,coconut,noun,kokos,kokoš,0,0,0.980,high,3,11,0.200
 37110,0,coconut,adj,kokosovy,kokosovy,1,1,0.970,high,3,11,0.000
 26596,0,"hen, chicken",noun,kokoška,kokoš,0,0,0.847,high,1,19,0.286
-2253,0,rooster,noun,kokot,pětel,0,0,0.920,high,3,14,1.000
+2253,0,rooster,noun,kokot,pětėl,0,0,0.920,high,3,14,1.000
 33643,0,cocktail,noun,koktejl,koktejl,1,1,0.970,high,3,11,0.000
 1949,1,stake,noun,kol,kol,1,1,0.960,high,3,13,0.000
 26599,0,"fang, tusk, canine tooth",noun,kȯl,kȯl,1,1,0.920,high,3,20,0.000
@@ -4835,11 +4835,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 16959,0,conditional,noun,kondicional,kondicional,1,1,0.625,medium,2,17,0.000
 35876,0,air-conditioner,noun,kondicioner,kondycioner,0,0,0.523,medium,1,14,0.091
 15683,0,conductor (train),noun,konduktor,kondukter,0,0,0.615,medium,2,13,0.111
-536,0,end,noun,konec,konec,1,1,0.960,high,3,15,0.000
+536,0,end,noun,konec,konėc,0,1,0.960,high,3,15,0.000
 14659,1,anus,noun,konečnik,anus,0,0,0.695,medium,2,23,0.875
 17674,0,"finally, at last",adv,konečno,konečno,1,1,0.608,medium,2,29,0.000
 17676,1,"finiteness, finality",noun,konečnosť,konečnosť,1,1,0.724,high,3,22,0.000
-8557,0,"final, end, ultimate",adj,konečny,konečny,1,1,0.940,high,3,29,0.000
+8557,0,"final, end, ultimate",adj,konečny,konėčny,0,1,0.940,high,3,29,0.000
 35912,0,confederation,noun,konfederacija,konfederacija,1,1,0.970,high,3,12,0.000
 799,1,conference,noun,konferencija,konferencija,1,1,0.970,high,3,12,0.000
 844,0,confiscate,verb,konfiskovati,konfiskovati,1,1,0.578,medium,3,14,0.000
@@ -4973,7 +4973,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1435,1,brown,adj,koričnevy,gnědy,0,0,0.920,high,3,14,0.667
 26709,0,corridor,noun,koridor,koridor,1,1,0.805,high,3,15,0.000
 19799,0,correct,verb,korigovati,korigovati,1,1,0.526,medium,3,15,0.000
-1509,1,"profit, benefit",noun,korisť,korist,0,1,0.920,high,3,28,0.000
+1509,1,"profit, benefit",noun,korisť,korisť,1,1,0.920,high,3,28,0.000
 5189,1,"use, benefit",verb,koristati,použivati,0,0,0.412,low,1,22,0.556
 35260,0,"use, benefit",verb,koristiti,použivati,0,0,0.412,low,1,23,0.667
 16961,1,user,noun,koristnik,polzvatelj,0,0,0.459,medium,2,11,0.800
@@ -5014,7 +5014,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26743,0,cross-eyed,adj,kosooky,kosooky,1,1,0.481,medium,2,14,0.000
 1508,0,Kosovo,noun,Kosovo,kosovo,1,1,0.970,high,3,11,0.000
 868,0,Kosovar,adj,kosovsky,kosovsky,1,1,0.970,high,3,12,0.000
-871,0,bone,noun,kosť,kost,0,1,0.960,high,3,11,0.000
+871,0,bone,noun,kosť,kosť,1,1,0.960,high,3,11,0.000
 22459,0,Costa Rica,noun,Kostarika,kostarika,1,1,0.615,medium,2,11,0.000
 22460,0,Costa Rican,adj,kostarikansky,kostarikansky,1,1,0.840,high,3,12,0.000
 8623,1,church building,noun,kostel,cŕky,0,0,0.920,high,3,18,1.000
@@ -5033,7 +5033,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4794,0,shirt,noun,košulja,košulja,1,1,0.960,high,3,16,0.000
 1093,1,"cat, tom-cat",noun,kot,kot,1,1,0.940,high,3,16,0.000
 26759,1,kitten,noun,kotę,mače,0,0,0.435,low,1,14,0.750
-23185,0,"kettle, cauldron, caldron",noun,kotel,kotel,1,1,0.960,high,3,21,0.000
+23185,0,"kettle, cauldron, caldron",noun,kotel,kotėl,0,1,0.960,high,3,21,0.000
 26763,0,she-cat,noun,kotka,mačka,0,0,0.940,high,3,13,0.600
 26764,1,"brazier, coppersmith, boilermaker",noun,kotlaŕ,kotlar,0,1,0.741,high,3,18,0.000
 35880,0,cutlet,noun,kotlet,kotlet,1,1,0.970,high,3,13,0.000
@@ -5053,9 +5053,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 74,0,goat,noun,koza,koza,1,1,0.980,high,3,11,0.000
 8637,0,cossack,adj,kozačsky,kozacky,0,0,0.805,high,3,12,0.250
 8638,1,cossack,noun,kozak,kozak,1,1,0.970,high,3,12,0.000
-26784,0,billy goat,noun,kozel,kozel,1,1,0.960,high,3,12,0.000
+26784,0,billy goat,noun,kozel,kozėl,0,1,0.960,high,3,12,0.000
 26785,0,goat meat,noun,kozina,koze meso,0,0,0.534,medium,2,13,0.667
-26787,0,goat’s,adj,koźji,kozy,0,0,0.877,high,2,11,0.400
+26787,0,goat’s,adj,koźji,koźi,0,0,0.890,high,2,11,0.200
 26791,1,Capricorn,noun,Kozorog,kozorog,1,1,0.695,medium,3,14,0.000
 36064,0,trump,noun,kozyŕ,kozyr,0,1,0.523,medium,1,11,0.000
 1473,0,"hide, skin, leather",noun,koža,koža,1,1,0.960,high,3,14,0.000
@@ -5119,9 +5119,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1600,0,cow,noun,kråva,kråva,1,1,0.980,high,3,11,0.000
 17698,1,"tie, necktie",noun,kravata,kravata,1,1,0.724,high,2,12,0.000
 26840,0,cow’s,adj,kråvji,kråvy,0,0,0.847,high,1,11,0.333
-849,1,cramp,noun,krč,gŕč,0,0,0.858,high,1,16,0.333
-850,0,contract,verb,krčiti,kŕčiti,0,1,0.920,high,3,24,0.000
-847,0,tavern,noun,krčma,kŕčma,0,1,0.960,high,3,22,0.000
+849,1,cramp,noun,krč,grč,0,0,0.858,high,1,16,0.333
+850,0,contract,verb,krčiti,krčiti,1,1,0.920,high,3,24,0.000
+847,0,tavern,noun,krčma,krčma,1,1,0.960,high,3,22,0.000
 37020,0,innkeeper,noun,krčmaŕ,karčmar,0,0,0.569,medium,3,22,0.143
 26848,0,creativity,noun,kreativnosť,kreativnosť,1,1,0.615,medium,2,16,0.000
 32029,0,creative,adj,kreativny,kreativny,1,1,0.921,high,3,15,0.000
@@ -5143,11 +5143,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26860,0,"strengthen, make stronger",verb,krěpiti,ukreplati,0,0,0.398,low,1,19,0.333
 26862,0,"#vigour, vigor",noun,krěpkosť,krepkosť,0,1,0.499,medium,1,31,0.000
 4047,1,"#firm, solid, strong, vigorous",adj,krěpky,krěpky,1,1,0.940,high,3,35,0.000
-3022,0,"fortress, stronghold",noun,krěposť,krěpost,0,1,0.960,high,3,32,0.000
+3022,0,"fortress, stronghold",noun,krěposť,krěposť,1,1,0.960,high,3,32,0.000
 26864,0,tinderbox,noun,kresalo,kresalo,1,1,0.920,high,3,19,0.000
 26865,0,produce sparks,verb,kresati,kresati,1,1,0.920,high,3,14,0.000
 2700,0,"armchair, seat",noun,krěslo,krěslo,1,1,0.940,high,3,18,0.000
-2428,0,"baptisement, baptism, christening",noun,krest,krest,1,1,0.920,high,3,18,0.000
+2428,0,"baptisement, baptism, christening",noun,krest,krėst,0,1,0.920,high,3,18,0.000
 35720,1,baptist (person who baptizes),noun,krestitelj,krstitelj,0,0,0.678,medium,3,11,0.100
 2699,0,"baptise, baptize, christen",verb,krestiti,krstiti,0,0,0.940,high,3,10,0.125
 6182,0,"baptisement, baptism, christening",noun,krešćeńje,krštenje,0,0,0.499,medium,2,16,0.222
@@ -5188,13 +5188,13 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4765,0,false,adj,krivy,lȯžny,0,0,0.920,high,3,23,0.800
 26893,0,guilty,adj,krivy,krivy,1,1,0.844,high,1,15,0.000
 138,0,crisis,noun,kriza,kriza,1,1,0.735,high,3,11,0.000
-6181,0,cross,noun,križ,krest,0,0,0.960,high,3,11,0.600
+6181,0,cross,noun,križ,krėst,0,0,0.960,high,3,11,0.600
 35934,0,"cross-bearer, crucifer",noun,križenosec,krstonosec,0,0,0.569,medium,2,14,0.300
 33748,1,crossword puzzle,noun,križevka,križovka,0,0,0.523,medium,1,14,0.125
 17708,0,intersection,noun,križišče,skryžavanne,0,0,0.459,medium,2,17,0.636
 26850,0,quack,verb,krjakati,kvakati,0,0,0.557,medium,2,9,0.250
-758,0,fodder,noun,krma,kŕm,0,0,0.920,high,3,27,0.250
-859,0,feed,verb,krmiti,kŕmiti,0,1,0.940,high,3,16,0.000
+758,0,fodder,noun,krma,krm,0,0,0.920,high,3,27,0.250
+859,0,feed,verb,krmiti,krmiti,1,1,0.940,high,3,16,0.000
 3735,0,"meal, feeding",noun,krmjeńje,krmenje,0,0,0.523,medium,1,25,0.125
 14666,0,feeding,adj,krmny,pažyvny,0,0,0.459,medium,2,18,0.714
 8722,1,"perineum, taint",noun,kroček,perineum,0,0,0.470,medium,2,15,0.750
@@ -5215,7 +5215,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 508,1,mole,noun,krȯt,krȯt,1,1,0.960,high,3,12,0.000
 26910,0,tame,verb,krotiti,krotiti,1,1,0.887,high,1,17,0.000
 26911,0,"tame, gentle, meek",adj,krotky,krotky,1,1,0.940,high,3,30,0.000
-26912,0,meekness,noun,krotosť,krotost,0,1,0.858,high,1,17,0.000
+26912,0,meekness,noun,krotosť,krotosť,1,1,0.858,high,1,17,0.000
 1899,0,blood,noun,krȯv,kry,0,0,0.980,high,3,11,0.500
 17709,0,blood,adj,krȯvny,krȯvny,1,1,0.920,high,3,16,0.000
 26920,0,molehill,noun,krtovina,kratovaja nara,0,0,0.459,medium,1,13,0.500
@@ -5241,7 +5241,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35234,0,Crimean,adj,krymsky,krymsky,1,1,0.970,high,3,12,0.000
 17711,1,rat,noun,krysa,ščur,0,0,0.920,high,3,16,1.000
 2638,0,"hide, conceal, cover",verb,kryti,kryti,1,1,0.920,high,3,23,0.000
-17713,0,fur,noun,krzno,kŕzno,0,1,0.920,high,3,19,0.000
+17713,0,fur,noun,krzno,krzno,1,1,0.920,high,3,19,0.000
 32027,0,xenophobe,noun,ksenofob,ksenofob,1,1,0.857,high,3,11,0.000
 37373,0,xenophobic,adj,ksenofobičny,ksenofobičny,1,1,0.505,medium,2,12,0.000
 32026,1,xenophobia,noun,ksenofobija,ksenofobija,1,1,0.903,high,3,11,0.000
@@ -5303,7 +5303,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3452,0,bathroom,noun,kųpaljnja,banja,0,0,0.920,high,3,12,0.556
 3454,0,bathing,noun,kųpańje,kųpanje,0,1,0.970,high,3,11,0.000
 3453,0,bathe,verb,kųpati,kųpati,1,1,0.960,high,3,9,0.000
-26979,1,buyer,noun,kupec,kupec,1,1,0.796,high,1,12,0.000
+26979,1,buyer,noun,kupec,kupėc,0,1,0.796,high,1,12,0.000
 26980,1,"merchant, trader",noun,kupec,trgovec,0,0,0.724,high,2,18,0.714
 3451,1,bath (act of bathing),noun,kųpělj,kųpělj,1,1,0.920,high,3,12,0.000
 26982,0,"bramble, blackberry",noun,kųpina,kųpina,1,1,0.920,high,3,12,0.000
@@ -5312,9 +5312,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 26987,0,"cupola, dome",noun,kupola,kupola,1,1,0.970,high,3,14,0.000
 35016,1,coupon,noun,kupon,kupon,1,1,0.970,high,3,11,0.000
 17717,0,purchase agreement,noun,kupoprodaž,kupla-prodaža,0,0,0.459,medium,1,13,0.308
-2648,0,buyer,noun,kupovatelj,kupec,0,0,0.781,high,1,11,0.600
+2648,0,buyer,noun,kupovatelj,kupėc,0,0,0.781,high,1,11,0.600
 2884,0,buy,verb,kupovati,kupovati,1,1,0.574,medium,3,11,0.000
-26989,0,rooster,noun,kur,pětel,0,0,0.920,high,3,16,1.000
+26989,0,rooster,noun,kur,pětėl,0,0,0.920,high,3,16,1.000
 1231,0,"hen, chicken",noun,kura,kokoš,0,0,0.832,high,1,21,0.800
 37381,0,Kurd,noun,Kurd,kurd,1,1,0.970,high,3,11,0.000
 37380,1,Kurdistan,noun,Kurdistan,kurdistan,1,1,0.970,high,3,11,0.000
@@ -5397,7 +5397,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17652,0,nod,verb,kyvati,kyvati,1,1,0.940,high,3,9,0.000
 17653,0,nod,verb,kyvnųti,kivnuti,0,0,0.464,medium,1,11,0.143
 36888,1,Elbe,noun,Laba,laba,1,1,0.970,high,3,17,0.000
-1303,1,swan,noun,labęď,labųd,0,0,0.960,high,3,11,0.200
+1303,1,swan,noun,labęď,låbųď,0,0,0.960,high,3,11,0.200
 27028,1,swan’s,adj,labęďji,labųđi,0,0,0.488,medium,2,12,0.286
 35560,0,"laboratory, lab",noun,laboratorija,laboratorija,1,1,0.851,high,3,11,0.000
 27030,0,camp,noun,lageŕ,lager,0,1,0.569,medium,2,21,0.000
@@ -5411,9 +5411,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36849,0,#lacquer,noun,lak,lak,1,1,0.868,high,3,11,0.000
 27037,1,"scrooge, miser",noun,lakomec,lakomec,1,1,0.516,medium,2,31,0.000
 27039,0,"greed, avarice",noun,lakomstvo,lakomstvo,1,1,0.470,medium,2,28,0.000
-27040,0,"greedy, avaracious, covetous",adj,lakomy,lakomy,1,1,0.920,high,3,27,0.000
+27040,0,"greedy, avaracious, covetous",adj,lakomy,låkomy,0,1,0.920,high,3,27,0.000
 32146,0,"laconic, laconical",adj,lakoničny,lakoničny,1,1,0.639,medium,2,18,0.000
-385,0,elbow,noun,låkȯť,lakȯt,0,1,0.960,high,3,11,0.000
+385,0,elbow,noun,låkȯť,låkȯť,1,1,0.960,high,3,11,0.000
 36850,0,"lacquer, varnish",verb,lakovati,lakovati,1,1,0.478,medium,2,10,0.000
 33581,0,llama,noun,lama,lama,1,1,0.970,high,3,12,0.000
 27041,0,breaking,noun,lamańje,lamanje,0,1,0.650,medium,2,21,0.000
@@ -5423,9 +5423,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17723,0,chain,noun,lancuh,lancuh,1,1,0.523,medium,2,18,0.000
 17724,1,chain,noun,lanec,lancuh,0,0,0.523,medium,2,18,0.500
 27044,0,fallow deer,noun,lanjėc,lan,0,0,0.523,medium,1,15,0.500
-5951,0,"yesteryear, last year",adv,lanji,lani,0,0,0.960,high,3,20,0.200
-32142,0,"hind, doe",noun,lanjka,lani,0,0,0.920,high,3,13,0.500
-5953,0,last year’s,adj,lansky,lani,0,0,0.764,high,0,16,0.500
+5951,0,"yesteryear, last year",adv,lanji,låni,0,0,0.960,high,3,20,0.200
+32142,0,"hind, doe",noun,lanjka,låni,0,0,0.920,high,3,13,0.500
+5953,0,last year’s,adj,lansky,låni,0,0,0.764,high,0,16,0.500
 502,0,paw,noun,lapa,lapa,1,1,0.960,high,3,11,0.000
 4701,0,paw,verb,lapati,lapati,1,1,0.464,medium,1,22,0.000
 35499,0,quotation mark,noun,lapka,kavički,0,0,0.459,medium,2,12,0.714
@@ -5435,7 +5435,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 27052,0,tenderness,noun,laska,něga,0,0,0.920,high,3,25,0.800
 32147,0,kindness,noun,laska,lasica,0,0,0.920,high,3,24,0.333
 32148,0,"favour, favor, grace",noun,laska,lasica,0,0,0.920,high,3,27,0.333
-32150,0,"flattery, blarney",noun,laska,lest,0,0,0.920,high,3,19,0.600
+32150,0,"flattery, blarney",noun,laska,lėsť,0,0,0.920,high,3,19,0.600
 267,0,flatter,verb,laskati,lastiti,0,0,0.920,high,3,16,0.286
 27053,0,"caress, fondle, pet",verb,laskati,gladiti,0,0,0.920,high,3,19,0.571
 3226,1,kind,adj,laskavy,dobry,0,0,0.940,high,3,27,0.857
@@ -5492,7 +5492,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19829,1,frivolous,adj,legkomysljny,lekomislny,0,0,0.615,medium,2,12,0.250
 3286,0,lightness,noun,legkosť,lehkosť,0,0,0.586,medium,2,13,0.143
 16482,1,"credulous, gullible",adj,legkověrny,lehkoverny,0,0,0.516,medium,3,24,0.100
-884,0,"easy, light, slight",adj,legky,legky,1,1,0.960,high,3,22,0.000
+884,0,"easy, light, slight",adj,legky,lėgky,0,1,0.960,high,3,22,0.000
 27273,0,"den, lair",noun,legovišče,logava,0,0,0.523,medium,1,26,0.667
 19830,0,easier,adv,legše,lahčej,0,0,0.523,medium,2,14,0.667
 17726,0,easier,adj,legši,lehči,0,0,0.523,medium,2,16,0.400
@@ -5513,7 +5513,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35210,1,lecturer,noun,lektor,lektor,1,1,0.776,high,3,18,0.000
 27110,1,nightjar,noun,lelek,lelek,1,1,0.586,medium,2,17,0.000
 2653,0,ploughshare,noun,lemeš,lemeš,1,1,0.940,high,3,21,0.000
-306,1,linen,noun,len,len,1,1,0.980,high,3,12,0.000
+306,1,linen,noun,len,lėn,0,1,0.980,high,3,12,0.000
 37068,0,Lena,noun,Lena,lena,1,1,0.970,high,3,11,0.000
 27114,1,linen field,noun,lenišče,lnanoe pole,0,0,0.569,medium,3,15,0.727
 15374,0,lazy person,noun,lěnivec,lentaj,0,0,0.459,medium,2,23,0.571
@@ -5563,8 +5563,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20882,0,"chronicler, annalist",noun,lětopisec,letopisec,0,1,0.741,high,2,22,0.000
 27161,1,spend the summer,verb,lětovati,letovati,0,1,0.491,medium,2,10,0.000
 27162,0,summer residence,noun,lětovišče,dača,0,0,0.523,medium,1,17,0.889
-2656,0,lion,noun,lev,lev,1,1,0.980,high,3,11,0.000
-27163,0,Leo,noun,Lev,lev,1,1,0.980,high,3,11,0.000
+2656,0,lion,noun,lev,lėv,0,1,0.980,high,3,11,0.000
+27163,0,Leo,noun,Lev,lėv,0,1,0.980,high,3,11,0.000
 27165,1,left-handed person,noun,lěvak,lěvak,1,1,0.920,high,3,16,0.000
 2696,0,"left (pol.), left wing",noun,lěvica,levica,0,1,0.787,high,2,18,0.000
 27167,0,left hand,noun,lěvica,levaja rųka,0,0,0.685,medium,3,16,0.636
@@ -5702,7 +5702,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 32248,0,Ljubljana,noun,Ljubljana,ljubljana,1,1,0.970,high,3,11,0.000
 20433,0,curiosity,noun,ljubopytnosť,lubopitstvo,0,0,0.459,medium,2,22,0.500
 20434,0,"curious, inquisitive",adj,ljubopytny,lubopitny,0,0,0.569,medium,2,25,0.200
-32202,1,"delight, pleasure",noun,ljubosť,radost,0,0,0.920,high,3,30,0.571
+32202,1,"delight, pleasure",noun,ljubosť,radosť,0,0,0.920,high,3,30,0.571
 5247,0,"love, affection",noun,ljubȯv,ljuby,0,0,0.960,high,3,17,0.333
 8916,0,"lover, mistress (in an extramarital relationship)",noun,ljubȯvnica,ljubovnica,0,1,0.615,medium,2,12,0.000
 5248,0,lover,noun,ljubȯvnik,ljubovnik,0,1,0.615,medium,2,15,0.000
@@ -5771,21 +5771,21 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 27298,0,"shoulder blade, scapula",noun,lopatka,lopatka,1,1,0.892,high,3,12,0.000
 27302,0,burdock,noun,lopuh,lopuh,1,1,0.940,high,3,11,0.000
 35455,0,lory,noun,lori,lori,1,1,0.903,high,3,13,0.000
-386,1,"elk, moose",noun,loś,las,0,0,0.980,high,3,11,0.333
+386,1,"elk, moose",noun,loś,låś,0,0,0.980,high,3,11,0.333
 32264,1,lotion,noun,losion,losion,1,1,0.787,high,2,13,0.000
 36036,0,tickle,verb,loskotati,laskatac,0,0,0.464,medium,2,17,0.444
-27309,1,salmon,noun,losoś,losos,0,1,0.980,high,3,11,0.000
-27308,0,salmon (meat),noun,lososina,losos,0,0,0.920,high,3,16,0.375
+27309,1,salmon,noun,losoś,losoś,1,1,0.980,high,3,11,0.000
+27308,0,salmon (meat),noun,lososina,losoś,0,0,0.920,high,3,16,0.375
 8941,0,badly,adv,loše,lošo,0,0,0.499,medium,1,18,0.250
 3446,1,bad,adj,loši,loši,1,1,0.920,high,3,15,0.000
 35229,1,lottery,noun,loterija,lotarija,0,0,0.970,high,3,11,0.125
 37353,1,lotus,noun,lotos,lotos,1,1,0.970,high,3,13,0.000
 352,0,hunt,noun,lov,lov,1,1,0.960,high,3,15,0.000
 17745,0,bishop (chess),noun,lovec,slon,0,0,0.940,high,3,14,0.800
-32197,0,hunter,noun,lovec,lovec,1,1,0.940,high,3,13,0.000
+32197,0,hunter,noun,lovec,lovėc,0,1,0.940,high,3,13,0.000
 27314,0,hunter’s,adj,lovečsky,lovečky,0,0,0.678,medium,2,14,0.125
 27315,0,hunting ground,noun,lovišče,lovišče,1,1,0.920,high,3,13,0.000
-8945,0,hunter,noun,lovitelj,lovec,0,0,0.940,high,3,12,0.500
+8945,0,hunter,noun,lovitelj,lovėc,0,0,0.940,high,3,12,0.500
 1564,0,"hunt, fish for",verb,loviti,loviti,1,1,0.920,high,3,16,0.000
 27318,0,catch,verb,loviti,loviti,1,1,0.940,high,3,15,0.000
 27319,0,hunt,noun,lovitva,lov,0,0,0.920,high,3,14,0.571
@@ -5948,7 +5948,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19504,0,march,noun,marš,marš,1,1,0.857,high,3,12,0.000
 35369,0,marshal,noun,maršal,maršal,1,1,0.914,high,3,11,0.000
 2869,0,march,verb,marširovati,marširovati,1,1,0.464,medium,1,12,0.000
-35589,0,"route, itinerary",noun,maršrut,pųt,0,0,0.920,high,3,15,0.714
+35589,0,"route, itinerary",noun,maršrut,pųť,0,0,0.920,high,3,15,0.714
 27436,0,fixed-route taxi,noun,maršrutka,maršrutka,1,1,0.702,medium,3,11,0.000
 36891,0,apricot,noun,marulja,abrykos,0,0,0.523,medium,1,11,0.857
 34420,1,margin (profit),noun,marža,marža,1,1,0.868,high,3,11,0.000
@@ -5965,7 +5965,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 27440,0,slippery jack,noun,masljak,maslak,0,0,0.586,medium,2,14,0.143
 2704,0,butter,noun,maslo,maslo,1,1,0.960,high,3,15,0.000
 5804,1,"mass, massive",adj,masovy,masovy,1,1,0.765,high,2,15,0.000
-2686,0,ointment,noun,masť,maz,0,0,0.920,high,3,11,0.500
+2686,0,ointment,noun,masť,maź,0,0,0.920,high,3,11,0.500
 27441,0,apply ointment,verb,mastiti,mastiti,1,1,0.574,medium,3,14,0.000
 4974,0,masturbation,noun,masturbacija,masturbacija,1,1,0.970,high,3,21,0.000
 15995,1,masturbating,noun,masturbovańje,masturbacija,0,0,0.523,medium,1,19,0.385
@@ -5996,10 +5996,10 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35975,1,matrix,noun,matrica,matrica,1,1,0.868,high,3,13,0.000
 27459,1,priest’s wife,noun,matuška,popadija,0,0,0.660,medium,2,16,0.875
 4891,0,mausoleum,noun,mavzolej,mavzolej,1,1,0.695,medium,2,11,0.000
-2705,0,"#smear, cream",noun,maź,maz,0,1,0.940,high,3,20,0.000
+2705,0,"#smear, cream",noun,maź,maź,1,1,0.940,high,3,20,0.000
 1934,1,"smear, besmear, stain, soil",verb,mazati,mazati,1,1,0.871,high,3,19,0.000
 36262,0,"stain, dirty",verb,mazati,špiniti,0,0,0.412,low,1,24,0.714
-20453,0,"ointment, unguent",noun,mazilo,mazo,0,0,0.920,high,3,21,0.333
+20453,0,"ointment, unguent",noun,mazilo,maźo,0,0,0.920,high,3,21,0.333
 20455,0,"smear, lubricant",noun,mazivo,mazivo,1,1,0.920,high,3,17,0.000
 1935,0,me,pron,mę,mę,1,1,0.846,high,2,15,0.000
 163,0,furniture,noun,mebelj,mebel,0,0,0.765,high,3,13,0.167
@@ -6009,12 +6009,12 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 909,0,ball,noun,męč,męč,1,1,0.960,high,3,11,0.000
 37149,0,mosque,noun,mečeta,mečet,0,0,0.575,medium,2,13,0.167
 911,0,"mash, crumple",verb,męčkati,męti,0,0,0.920,high,3,28,0.429
-35443,0,"dream (wish), daydream",noun,mečta,mečta,1,1,0.940,high,3,14,0.000
+35443,0,"dream (wish), daydream",noun,mečta,mėčta,0,1,0.940,high,3,14,0.000
 35445,1,dreamer,noun,mečtatelj,mečtatelj,1,1,0.523,medium,2,18,0.000
 35446,0,dreamy,adj,mečtateljny,mečtateljny,1,1,0.523,medium,2,21,0.000
 35444,0,"dream (wish), daydream",verb,mečtati,maryc,0,0,0.464,medium,2,12,0.857
-639,0,honey,noun,med,měd,0,1,0.980,high,3,11,0.000
-2715,1,copper,noun,měď,měd,0,1,0.960,high,3,14,0.000
+639,0,honey,noun,med,měď,0,1,0.980,high,3,11,0.000
+2715,1,copper,noun,měď,měď,1,1,0.960,high,3,14,0.000
 27471,0,medallist,noun,medalist,medalist,1,1,0.892,high,3,14,0.000
 27472,0,medallist,noun,medalistka,medalistka,1,1,0.829,high,3,13,0.000
 5805,0,medal,noun,medalj,medal,0,0,0.970,high,3,12,0.167
@@ -6035,7 +6035,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 396,0,nurse,noun,medsestra,sestra,0,0,0.920,high,3,11,0.333
 27482,1,lungwort (pulmonaria),noun,medunka,medunka,1,1,0.586,medium,3,16,0.000
 20458,1,jellyfish,noun,meduza,meduza,1,1,0.970,high,3,11,0.000
-2394,0,bear,noun,medvěď,medvěd,0,1,0.960,high,3,11,0.000
+2394,0,bear,noun,medvěď,medvěď,1,1,0.960,high,3,11,0.000
 27484,0,she-bear,noun,medvědica,mečka,0,0,0.920,high,3,14,0.667
 32508,0,teddy-bear,noun,medvědik,medvidȯk,0,0,0.407,low,1,15,0.250
 27488,0,ursine,adj,medvěďji,medvedy,0,0,0.407,low,1,13,0.250
@@ -6057,7 +6057,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 27494,0,land between rivers,noun,međurěčje,međurečje,0,1,0.597,medium,2,12,0.000
 31842,0,interregional,adj,međuregionaľny,međuregionalny,0,1,0.615,medium,2,11,0.000
 4442,0,Interslavic,adj,međuslovjansky,mežslavanskiji,0,0,0.650,medium,3,14,0.467
-17772,0,"interchangeable, mutual",adj,međusobny,vzajemny,0,0,0.940,high,3,17,0.800
+17772,0,"interchangeable, mutual",adj,međusobny,vzajėmny,0,0,0.940,high,3,17,0.800
 1789,0,however,adv,međutym,adnak,0,0,0.459,medium,1,23,0.875
 22483,0,interregnum,noun,međuvlasťje,bezvladi,0,0,0.407,low,1,17,0.667
 22575,1,"meantime, intervening time",noun,međuvrěmę,peryjad,0,0,0.459,medium,1,19,0.900
@@ -6214,7 +6214,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36967,1,"nicely, prettily, pleasantly",adv,milo,milo,1,1,0.854,high,3,20,0.000
 16485,0,"mercy, charity",noun,milosŕďje,miloserdie,0,0,0.586,medium,2,14,0.200
 16486,1,merciful,adj,milosŕdny,milosŕdny,1,1,0.960,high,3,12,0.000
-23333,0,"grace, favour, favor",noun,milosť,milost,0,1,0.960,high,3,24,0.000
+23333,0,"grace, favour, favor",noun,milosť,milosť,1,1,0.960,high,3,24,0.000
 27599,0,gracious,adj,milostivy,milostivy,1,1,0.960,high,3,21,0.000
 34780,0,alms,noun,milostynja,milostina,0,0,0.678,medium,2,14,0.200
 9110,0,beloved,adj,milovany,milovany,1,1,0.470,medium,2,19,0.000
@@ -6283,9 +6283,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 27639,1,youth (collective),noun,mlådež,mlådež,1,1,0.960,high,3,13,0.000
 35305,0,"youth, youngsters’",adj,mlådežny,mladožnyji,0,0,0.459,medium,1,13,0.300
 9131,0,youngster,noun,mlådica,devojka,0,0,0.499,medium,1,13,0.857
-9133,0,youth (young years),noun,mlådosť,mlådost,0,1,0.940,high,3,15,0.000
+9133,0,youth (young years),noun,mlådosť,mlådosť,1,1,0.940,high,3,15,0.000
 9134,1,youthfully,adv,mlådostno,mlado,0,0,0.523,medium,1,15,0.444
-15387,0,youthfulness,noun,mlådostnosť,mlådost,0,0,0.940,high,3,22,0.364
+15387,0,youthfulness,noun,mlådostnosť,mlådosť,0,0,0.940,high,3,22,0.364
 9135,0,youthful,adj,mlådostny,mlådy,0,0,0.920,high,3,17,0.444
 9136,0,bridegroom,noun,mlådoženih,ženih,0,0,0.920,high,3,16,0.500
 27632,0,bride,noun,mlådoženka,nevěsta,0,0,0.920,high,3,21,0.800
@@ -6444,7 +6444,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37070,0,Morava,noun,Morava,murava,0,0,0.980,high,3,11,0.167
 2753,0,Moravia,noun,Moravija,moravija,1,1,0.892,high,3,11,0.000
 35840,0,Moravian,adj,moravsky,moravsky,1,1,0.970,high,3,11,0.000
-23704,0,muzzle,noun,morda,mŕda,0,0,0.920,high,3,22,0.200
+23704,0,muzzle,noun,morda,mrda,0,0,0.920,high,3,22,0.200
 19860,0,morpheme,noun,morfem,morfem,1,1,0.970,high,3,11,0.000
 23202,0,morphine,noun,morfin,morfin,1,1,0.829,high,3,11,0.000
 37430,0,morphological,adj,morfologičny,morfologičny,1,1,0.586,medium,3,11,0.000
@@ -6511,11 +6511,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34497,0,"stir, budge, move, wiggle",verb,mrdnųti,hnout se,0,0,0.412,low,1,23,0.875
 286,0,"net, network",noun,mrěža,mrěža,1,1,0.960,high,3,15,0.000
 27806,1,grow dark,verb,mŕknųti,tamněti,0,0,0.561,medium,2,13,0.571
-928,0,carrot,noun,mrkva,mŕky,0,0,0.960,high,3,12,0.400
+928,0,carrot,noun,mrkva,mrky,0,0,0.960,high,3,12,0.400
 23899,1,"mutter, grumble, mumble",verb,mrmjati,mrmljati,0,0,0.443,low,2,18,0.125
 22954,0,carrion,noun,mŕša,padal,0,0,0.523,medium,1,22,0.800
 27807,0,wrinkle,noun,mŕščina,marščyna,0,0,0.459,medium,1,12,0.250
-27808,0,wrinkle,verb,mrščiti,mŕščiti,0,1,0.920,high,3,13,0.000
+27808,0,wrinkle,verb,mrščiti,mrščiti,1,1,0.920,high,3,13,0.000
 22955,0,scavenger,noun,mŕšejed,padalščik,0,0,0.396,low,1,18,1.000
 27810,0,"dead person, corpse, cadaver",noun,mŕtvec,mrtvec,0,1,0.615,medium,2,23,0.000
 27811,1,carrion,noun,mŕtvečina,zdehlina,0,0,0.407,low,1,21,0.667
@@ -6529,7 +6529,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34459,1,"abomination, vileness, baseness, disgusting thing",noun,mŕzkosť,merzostta,0,0,0.459,medium,2,35,0.444
 3561,1,"disgusting, filthy, nasty, abominable, despicable, detestable, abhorrent, loathsome, foul, vile, odious, heinous, nefarious, vicious, sleazy",adj,mŕzky,mŕzky,1,1,0.812,high,1,40,0.000
 2746,1,freeze (intransitive),verb,mrznųti,mŕznųti,0,1,0.960,high,3,11,0.000
-5599,0,revenge,noun,msta,mest,0,0,0.920,high,3,15,0.500
+5599,0,revenge,noun,msta,mėsť,0,0,0.920,high,3,15,0.500
 27820,1,avenger,noun,mstitelj,mstitelj,1,1,0.459,medium,2,13,0.000
 5597,0,"avenge, revenge",verb,mstiti,mstiti,1,1,0.920,high,3,9,0.000
 5600,0,"revengeful, vindicative",adj,mstivy,mstivy,1,1,0.407,low,2,15,0.000
@@ -6547,9 +6547,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1173,0,torture,verb,mųčiti,mųčiti,1,1,0.881,high,2,12,0.000
 9279,0,asshole,noun,mudak,mudak,1,1,0.523,medium,1,25,0.000
 27833,1,testicle,noun,mųdo,mųdo,1,1,0.920,high,3,25,0.000
-23760,0,sage,noun,mųdrec,mųdrec,1,1,0.980,high,3,11,0.000
+23760,0,sage,noun,mųdrec,mųdrėc,0,1,0.980,high,3,11,0.000
 27835,0,"grow wise, become wiser",verb,mųdrěti,mudreti,0,1,0.627,medium,3,10,0.000
-9280,0,wisdom,noun,mųdrosť,mųdrost,0,1,0.960,high,3,11,0.000
+9280,0,wisdom,noun,mųdrosť,mųdrosť,1,1,0.960,high,3,11,0.000
 2751,1,wise,adj,mųdry,mųdry,1,1,0.980,high,3,13,0.000
 2760,1,fly,noun,muha,muha,1,1,0.965,high,3,12,0.000
 27843,0,flycatcher,noun,muholovka,muholovka,1,1,0.702,medium,3,14,0.000
@@ -6893,7 +6893,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 33047,1,"make, commit, render",verb,napraviti,zrabic,0,0,0.464,medium,2,21,0.667
 5549,1,direct,verb,napravjati,smerovati,0,0,0.412,low,1,18,0.500
 33051,0,"correct, repair, set right, make good",verb,napravjati,napravlati,0,0,0.398,low,1,21,0.100
-33053,0,"make, commit, render",verb,napravjati,rabiti,0,0,0.920,high,3,21,0.600
+33053,0,"make, commit, render",verb,napravjati,råbiti,0,0,0.920,high,3,21,0.600
 28121,0,to the right,adv,napravo,naprava,0,0,0.459,medium,1,15,0.143
 28122,0,"idly, in vain",adv,napråzdno,marna,0,0,0.407,low,1,29,0.667
 28123,0,"idle, vain",adj,napråzdny,uzaludany,0,0,0.435,low,1,19,0.778
@@ -6909,7 +6909,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20913,0,let in (water/smoke),verb,napustiti,napustiti,1,1,0.882,high,3,10,0.000
 20912,0,let in (water/smoke),verb,napušćati,napuskati,0,0,0.464,medium,1,10,0.222
 33056,0,"increase, rise, grow, accrue",verb,narastati,narastati,1,1,0.693,medium,3,17,0.000
-28139,0,"increase, rise, grow, accrue",verb,naråsti,narasti,0,1,0.874,high,3,18,0.000
+28139,0,"increase, rise, grow, accrue",verb,naråsti,naråsti,1,1,0.874,high,3,18,0.000
 36238,0,daffodil,noun,narcis,narcis,1,1,0.914,high,3,14,0.000
 36240,0,narcissistic,adj,narcističny,narcističny,1,1,0.523,medium,3,16,0.000
 36239,0,narcissism,noun,narcizm,narcisizm,0,0,0.586,medium,2,13,0.222
@@ -7118,7 +7118,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34429,0,Neanderthal man,noun,neandertalec,neandertalec,1,1,0.914,high,3,11,0.000
 972,0,blue,adj,nebesky,plåvy,0,0,0.814,high,1,17,0.857
 9530,1,"celestial, heavenly",adj,nebesny,nebessky,0,0,0.852,high,1,14,0.250
-3547,1,danger,noun,nebezpečnosť,obpasnost,0,0,0.920,high,3,16,0.500
+3547,1,danger,noun,nebezpečnosť,obpasnosť,0,0,0.920,high,3,16,0.500
 3549,0,dangerous,adj,nebezpečny,obpasny,0,0,0.940,high,3,14,0.600
 4904,0,ungrateful,adj,neblågodarny,neblagodarny,0,1,0.569,medium,2,13,0.000
 2792,0,"sky, heaven",noun,nebo,nebo,1,1,0.980,high,3,12,0.000
@@ -7220,7 +7220,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19888,0,incompetence,noun,nekompetencija,nekompetencija,1,1,0.678,medium,2,17,0.000
 19889,0,incomplete,adj,nekompletny,nekompletny,1,1,0.632,medium,2,17,0.000
 19890,1,inconsistency,noun,nekonsistencija,nesumisnisť,0,0,0.343,low,1,23,0.600
-17913,1,ugly,adj,nekrasny,gŕdy,0,0,0.920,high,3,22,0.750
+17913,1,ugly,adj,nekrasny,grdy,0,0,0.920,high,3,22,0.750
 37261,0,necromancy,noun,nekromantija,nekromancija,0,0,0.615,medium,2,11,0.083
 4082,0,"someone, somebody",pron,někto,nekto,0,1,0.459,medium,2,20,0.000
 5692,0,some,adj,něktory,nekatory,0,0,0.586,medium,2,14,0.125
@@ -7231,8 +7231,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2793,0,almost,adv,nemalo,skoro,0,0,0.481,medium,2,23,0.833
 28417,0,sizable,adj,nemaly,nemaly,1,1,0.857,high,3,24,0.000
 2774,0,Germany,noun,Němcija,germanija,0,0,0.523,medium,2,12,0.444
-2780,0,German,noun,Němec,němec,1,1,0.960,high,3,12,0.000
-984,1,German,adj,němečsky,němečsky,1,1,0.960,high,3,12,0.000
+2780,0,German,noun,Němec,němėc,0,1,0.960,high,3,12,0.000
+984,1,German,adj,němečsky,němėčsky,0,1,0.960,high,3,12,0.000
 37073,0,"Neman, Niemen",noun,Němėn,neman,0,0,0.970,high,3,11,0.200
 28421,1,"fall silent, become speechless, grow dumb, be struck dumb",verb,něměti,něměti,1,1,0.920,high,3,18,0.000
 23764,0,"mercilessly, relentlessly",adv,nemilosŕdno,nemilosrdno,0,1,0.615,medium,3,25,0.000
@@ -7267,7 +7267,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 28441,0,insatiable,adj,nenasytny,nenasytny,1,1,0.868,high,3,17,0.000
 16977,0,unscientific,adj,nenaučny,nenaučny,1,1,0.569,medium,2,11,0.000
 968,0,"hate, loathe",verb,nenaviděti,nenaviděti,1,1,0.960,high,3,11,0.000
-5293,0,hatred,noun,nenavisť,nenavist,0,1,0.960,high,3,13,0.000
+5293,0,hatred,noun,nenavisť,nenavisť,1,1,0.960,high,3,13,0.000
 28446,0,"hateful, odious",adj,nenavistny,nenavistny,1,1,0.639,medium,2,20,0.000
 33261,0,indestructible,adj,neniščimy,nezniščalny,0,0,0.459,medium,2,14,0.364
 4105,0,abnormally,adv,nenormaľno,nenormalno,0,1,0.970,high,3,17,0.000
@@ -7524,7 +7524,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22308,0,"captivity, slavery",noun,nevolja,nevolja,1,1,0.920,high,3,26,0.000
 22310,0,"misery, distress",noun,nevolja,nevola,0,0,0.499,medium,1,21,0.143
 28575,0,slave,noun,nevoljnica,robina,0,0,0.551,medium,2,14,0.700
-22311,1,slave,noun,nevoljnik,rab,0,0,0.940,high,3,15,1.000
+22311,1,slave,noun,nevoljnik,råb,0,0,0.940,high,3,15,1.000
 28577,1,unfree,adj,nevoljny,navolny,0,0,0.586,medium,3,18,0.250
 28578,0,involuntary,adj,nevoljny,mimovolny,0,0,0.523,medium,2,26,0.556
 4533,1,neurologist,noun,nevrolog,nevrolog,1,1,0.695,medium,2,11,0.000
@@ -7597,8 +7597,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 8078,0,destructiveness,noun,niščivosť,destruktivnosť,0,0,0.615,medium,2,20,0.643
 8077,0,destructive,adj,niščivy,ničivy,0,0,0.407,low,1,26,0.143
 14762,0,niche,adj,niševy,niševyji,0,0,0.639,medium,2,13,0.250
-1738,0,thread,noun,niť,nit,0,1,0.960,high,3,16,0.000
-17966,1,thread,noun,nitka,nit,0,0,0.920,high,3,15,0.400
+1738,0,thread,noun,niť,niť,1,1,0.960,high,3,16,0.000
+17966,1,thread,noun,nitka,niť,0,0,0.920,high,3,15,0.400
 37072,1,Nitra,noun,Nitra,nitra,1,1,0.970,high,3,11,0.000
 956,0,field,noun,niva,niva,1,1,0.960,high,3,20,0.000
 9712,0,lowering,noun,nizańje,snižavanje,0,0,0.435,low,2,17,0.400
@@ -7607,7 +7607,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 28619,0,lowland,adj,nizinny,nizinny,1,1,0.702,medium,2,16,0.000
 9716,0,low,adv,nizko,nizko,1,1,0.695,medium,3,12,0.000
 28622,0,lowness,noun,nizkosť,nizkosť,1,1,0.470,medium,2,22,0.000
-33267,1,"meanness, baseness",noun,nizkosť,podlost,0,0,0.831,high,2,24,0.571
+33267,1,"meanness, baseness",noun,nizkosť,podlosť,0,0,0.831,high,2,24,0.571
 402,0,"mean, base",adj,nizky,podly,0,0,0.940,high,3,30,0.800
 28620,0,low,adj,nizky,nizky,1,1,0.960,high,3,11,0.000
 9719,0,lower,adj,nizši,nižiji,0,0,0.920,high,3,13,0.500
@@ -7621,7 +7621,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 195,0,night,noun,noć,noć,1,1,0.980,high,3,11,0.000
 21371,0,at night,adv,noćejų,noćų,0,0,0.776,high,3,18,0.333
 3863,0,spend the night,verb,noćevati,noćivati,0,0,0.693,medium,3,15,0.125
-17967,0,"tonight, this night",adv,noćiś,noćes,0,0,0.920,high,3,19,0.200
+17967,0,"tonight, this night",adv,noćiś,noćėś,0,0,0.920,high,3,19,0.200
 28637,0,"night’s lodging, accommodation for the night",noun,noćleg,noćlěg,0,1,0.960,high,3,16,0.000
 4343,0,nocturnal,adj,noćny,nočny,0,1,0.921,high,3,11,0.000
 28638,1,night person,noun,nočnik,pavnočnik,0,0,0.407,low,1,19,0.333
@@ -7630,7 +7630,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23120,0,"trousers, pants",noun,nogavice,nohavice,0,0,0.470,medium,3,19,0.125
 23125,1,"trouser leg, pant leg",noun,nogavka,nogavica,0,0,0.562,medium,2,13,0.250
 23121,1,"trousers, pants",noun,nogavky,štany,0,0,0.459,medium,1,19,0.714
-1229,0,"nail, fingernail",noun,nogȯť,nogȯt,0,1,0.960,high,3,13,0.000
+1229,0,"nail, fingernail",noun,nogȯť,nogȯť,1,1,0.960,high,3,13,0.000
 2060,0,"number, numeral",noun,nomer,čislo,0,0,0.920,high,3,16,1.000
 2812,1,nomination,noun,nominacija,nominacija,1,1,0.970,high,3,11,0.000
 16984,0,nominative,noun,nominativ,nominativ,1,1,0.442,low,2,14,0.000
@@ -7724,7 +7724,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 16842,1,paint in red,verb,obagriti,obagriti,1,1,0.513,medium,2,15,0.000
 16988,0,common Slavic,adj,obćeslovjansky,ahulnaslavanskaji,0,0,0.459,medium,2,13,0.647
 35783,0,"community, communal life",noun,obćežiťje,obćina,0,0,0.940,high,3,26,0.556
-1000,1,common,adj,obći,obeći,0,0,0.920,high,3,19,0.200
+1000,1,common,adj,obći,obėći,0,0,0.920,high,3,19,0.200
 23085,0,admiration,noun,občudovańje,obdiv,0,0,0.407,low,1,20,0.636
 23713,0,admirer,noun,občudovatelj,obdivovatelj,0,0,0.407,low,1,22,0.250
 23084,0,admire,verb,občudovati,obdivovati,0,0,0.412,low,1,16,0.300
@@ -7810,15 +7810,15 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 28784,1,cloudlet,noun,oblaček,oblačak,0,0,0.621,medium,3,19,0.143
 28782,0,"attire, vestments",noun,oblåčeńje,oblečenje,0,0,0.470,medium,2,21,0.111
 22528,0,"clothe, dress, don, put on",verb,oblåčiti,oblecti,0,0,0.530,medium,2,26,0.375
-28783,0,cloudy,adj,oblåčny,oblačny,0,1,0.828,high,2,22,0.000
+28783,0,cloudy,adj,oblåčny,oblåčny,1,1,0.828,high,2,22,0.000
 20557,0,"surround, circle, put round",verb,oblagati,oblehati,0,0,0.530,medium,2,24,0.250
 20559,1,cover,verb,oblagati,pokryvati,0,0,0.464,medium,1,21,0.556
 28786,0,bark at,verb,oblajati,oblajati,1,1,0.543,medium,2,14,0.000
 34077,1,bark at,verb,oblajivati,oblajavati,0,0,0.543,medium,2,12,0.100
 1125,0,cloud,noun,oblåk,oblåk,1,1,0.960,high,3,14,0.000
 28788,1,break off,verb,oblamyvati,oblamyvati,1,1,0.464,medium,1,14,0.000
-1570,1,"field (of knowledge etc.), domain",noun,oblasť,oblåst,0,1,0.960,high,3,24,0.000
-9820,0,"region, area, oblast",noun,oblasť,oblåst,0,1,0.960,high,3,24,0.000
+1570,1,"field (of knowledge etc.), domain",noun,oblasť,oblåsť,0,1,0.960,high,3,24,0.000
+9820,0,"region, area, oblast",noun,oblasť,oblåsť,0,1,0.960,high,3,24,0.000
 9822,1,regional,adj,oblastny,oblastny,1,1,0.586,medium,3,18,0.000
 23530,0,clothing,noun,oblěčeńje,oblečeni,0,0,0.407,low,1,19,0.222
 23740,0,"dressed, clad",adj,oblěčeny,oblečeny,0,1,0.580,medium,2,23,0.000
@@ -7967,7 +7967,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2796,0,hoop,noun,obrųč,obrųč,1,1,0.980,high,3,12,0.000
 9885,0,wedding ring,noun,obrųčka,obrųčka,1,1,0.459,medium,2,17,0.000
 28919,1,"pick, pluck, tear off",verb,obrvati,oborvati,0,0,0.464,medium,1,22,0.125
-5263,0,outline,noun,obrys,obrys,1,1,0.873,high,3,32,0.000
+5263,0,outline,noun,obrys,obryś,0,1,0.873,high,3,32,0.000
 9887,0,outline,verb,obrysovati,abrysavac,0,0,0.464,medium,2,20,0.400
 28923,0,"pick, pluck, tear off",verb,obryvati,obryvati,1,1,0.464,medium,1,24,0.000
 28925,0,scrap (of paper),noun,obryvȯk,abryvak,0,0,0.459,medium,1,21,0.286
@@ -8029,7 +8029,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19936,0,from both sides,adj,obustrånny,obostrany,0,0,0.678,medium,2,13,0.200
 22760,1,footwear,noun,obuv,obuv,1,1,0.940,high,3,12,0.000
 22761,0,shoe,noun,obuvka,bota,0,0,0.459,medium,1,20,0.667
-32087,0,shoemaker,noun,obuvnik,švec,0,0,0.920,high,3,23,0.857
+32087,0,shoemaker,noun,obuvnik,švėc,0,0,0.920,high,3,23,0.857
 28974,0,bridle,verb,obuzdati,obuzdati,1,1,0.447,low,2,18,0.000
 33815,0,bridle,verb,obuzdyvati,obuzdyvati,1,1,0.495,medium,2,19,0.000
 4488,0,"irrigate, water",verb,obvadnjati,zavlažovati,0,0,0.412,low,1,18,0.545
@@ -8071,7 +8071,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 14,1,"appreciate, rate, value, assess, estimate, evaluate",verb,ocěniti,oceniti,0,1,0.741,high,3,13,0.000
 5147,0,"assessment, evaluation",noun,ocěnjeńje,ocenka,0,0,0.586,medium,2,22,0.556
 29019,0,"mark, rating, score, valuation, estimation, assessment, appraisal, evaluation",noun,ocěnka,ocenka,0,1,0.586,medium,2,25,0.000
-1035,1,vinegar,noun,ocet,ocet,1,1,0.960,high,3,13,0.000
+1035,1,vinegar,noun,ocet,ocėt,0,1,0.960,high,3,13,0.000
 9920,0,enchant,verb,očariti,očarovati,0,0,0.464,medium,2,17,0.333
 9921,0,"enchanted, bewitched",adj,očarovany,začarovany,0,0,0.523,medium,2,26,0.200
 21395,0,charming,adj,očarovateljny,čarovny,0,0,0.920,high,3,21,0.462
@@ -8657,7 +8657,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 29486,0,scald,verb,opariti,opariti,1,1,0.508,medium,2,15,0.000
 34177,0,scald,verb,oparjati,oparovati,0,0,0.508,medium,2,16,0.222
 10217,0,"dangeriously, perilously",adv,opasno,opasno,1,1,0.615,medium,2,12,0.000
-4682,0,"danger, peril",noun,opasnosť,obpasnost,0,0,0.940,high,3,15,0.111
+4682,0,"danger, peril",noun,opasnosť,obpasnosť,0,0,0.940,high,3,15,0.111
 4681,1,"dangerous, perilous",adj,opasny,obpasny,0,0,0.920,high,3,12,0.143
 29482,0,"drop off, fall off, go down, subside, abate, ebb away",verb,opasti,opasti,1,1,0.495,medium,2,22,0.000
 34076,0,abbot,noun,opat,opat,1,1,0.678,medium,2,14,0.000
@@ -8679,7 +8679,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37239,0,operational,adj,operativny,operativny,1,1,0.787,high,2,13,0.000
 32736,1,operetta,noun,opereta,opereta,1,1,0.851,high,3,11,0.000
 29497,1,"plumage, fledge, feathering",noun,operjeńje,oprenje,0,0,0.765,high,2,12,0.222
-685,0,again,adv,opęť,opęt,0,1,0.920,high,3,25,0.000
+685,0,again,adv,opęť,opęť,1,1,0.920,high,3,25,0.000
 36055,0,"monkey, ape",noun,opica,opica,1,1,0.920,high,3,13,0.000
 23200,1,opium,noun,opij,opium,0,0,0.970,high,3,15,0.400
 20000,0,description,noun,opis,opis,1,1,0.660,medium,3,11,0.000
@@ -8785,7 +8785,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1086,0,nut,noun,orěh,orěh,1,1,0.960,high,3,14,0.000
 29566,0,nutcracker (bird),noun,orěhovka,orehovka,0,1,0.575,medium,2,15,0.000
 29567,1,nut,adj,orěhovy,orehovy,0,1,0.794,high,3,12,0.000
-2398,0,eagle,noun,orel,orel,1,1,0.960,high,3,11,0.000
+2398,0,eagle,noun,orel,orėl,0,1,0.960,high,3,11,0.000
 36768,0,"aureola, aureole",noun,oreol,areol,0,0,0.970,high,3,20,0.200
 34788,0,nutcracker,noun,orěšarka,louskačȯk,0,0,0.407,low,1,11,0.778
 20005,0,organ (anatomy),noun,organ,organ,1,1,0.851,high,3,13,0.000
@@ -8829,7 +8829,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2816,1,"weapon, arms",noun,orųžje,orųžje,1,1,0.940,high,3,13,0.000
 10269,0,"squire, weapons-bearer",noun,orųžjenosec,oruženosec,0,0,0.615,medium,2,15,0.091
 29582,0,armed,adj,orųžny,ozbrojeny,0,0,0.650,medium,2,15,0.556
-2815,0,axis,noun,oś,os,0,1,0.960,high,3,13,0.000
+2815,0,axis,noun,oś,oś,1,1,0.960,high,3,13,0.000
 2369,0,wasp,noun,osa,osa,1,1,0.980,high,3,11,0.000
 29588,0,rein in (horse),verb,osaditi,pritahnout uzdu,0,0,0.412,low,1,18,0.867
 21420,0,"deposit, sediment",noun,osadȯk,asadak,0,0,0.459,medium,1,30,0.333
@@ -8838,8 +8838,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 29591,0,"subside, settle down, precipicate",verb,osědati,sedati,0,0,0.596,medium,2,24,0.143
 29592,1,saddle,verb,osedlati,osedlati,1,1,0.693,medium,3,10,0.000
 29594,0,"sedentary, settled",adj,osědly,usedly,0,0,0.575,medium,2,26,0.167
-1112,1,"donkey, ass",noun,osėl,osel,0,1,0.960,high,3,15,0.000
-29599,0,jackass,noun,osėl,osel,0,1,0.960,high,3,24,0.000
+1112,1,"donkey, ass",noun,osėl,osėl,1,1,0.960,high,3,15,0.000
+29599,0,jackass,noun,osėl,osėl,1,1,0.960,high,3,24,0.000
 36495,0,settler,noun,oseljenėc,osadnik,0,0,0.586,medium,2,20,0.667
 29601,0,settlement,noun,oseljeńje,poslenje,0,0,0.459,medium,1,16,0.333
 6178,0,Ossetia,noun,Osetija,osetija,1,1,0.903,high,3,11,0.000
@@ -8929,7 +8929,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 32547,0,disgrace,verb,osråmiti,zhanbic,0,0,0.464,medium,2,18,0.875
 32548,0,"shame, put to shame, bring shame on",verb,osråmiti,zahanbiti,0,0,0.412,low,2,19,0.556
 29675,0,"centre, center",noun,osrědȯk,centr,0,0,0.523,medium,2,25,0.857
-29686,1,awn,noun,osť,ost,0,1,0.920,high,3,14,0.000
+29686,1,awn,noun,osť,osť,1,1,0.920,high,3,14,0.000
 16993,0,remaining,adj,ostaly,ostaly,1,1,0.435,low,2,20,0.000
 29676,0,"remains, remnants, relics",noun,ostanky,ostatki,0,0,0.396,low,1,28,0.286
 29677,1,grow old,verb,ostarěti,postareti,0,0,0.464,medium,1,11,0.111
@@ -8990,8 +8990,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 16856,0,"go crazy, go mad, lose one’s senses, run amuck",verb,ošalěti,ašalec,0,0,0.464,medium,2,24,0.429
 6024,0,fatherly,adj,otcevsky,otcovsky,0,0,0.523,medium,2,13,0.125
 29737,0,stepfather,noun,otčim,otčim,1,1,0.940,high,3,14,0.000
-4268,0,fatherland,noun,otčina,vlåst,0,0,0.755,high,1,19,1.000
-2048,0,father,noun,otec,otec,1,1,0.940,high,3,14,0.000
+4268,0,fatherland,noun,otčina,vlåsť,0,0,0.755,high,1,19,1.000
+2048,0,father,noun,otec,otėc,0,1,0.940,high,3,14,0.000
 2046,0,homeland,noun,otečstvo,domovina,0,0,0.418,low,1,17,1.000
 6137,0,complicate,verb,otęgčati,komplikovati,0,0,0.412,low,1,18,0.667
 6138,0,"hamper, impede",verb,otęgčati,peraškadžac,0,0,0.464,medium,2,18,0.909
@@ -9042,14 +9042,14 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 29773,0,"be widowed, become a widow, become a widower",verb,ovdověti,ovdoveti,0,1,0.596,medium,2,11,0.000
 29774,0,winnow,verb,ovějati,oviati,0,0,0.596,medium,2,18,0.286
 28986,1,winnow,verb,ovějivati,ovivati,0,0,0.596,medium,2,14,0.222
-29775,0,Aries,noun,Oven,oven,1,1,0.960,high,3,11,0.000
+29775,0,Aries,noun,Oven,ovėn,0,1,0.960,high,3,11,0.000
 29776,1,ram,noun,oven,baran,0,0,0.960,high,3,12,0.800
 18183,0,"wreathe, garland",verb,ověnčati,ovenčavati,0,0,0.741,high,3,11,0.200
 18184,0,"wreathe, garland",verb,ověnčiti,ovenčati,0,0,0.741,high,3,11,0.125
 10391,0,"attest, authenticate",verb,ověriti,podtverditi,0,0,0.464,medium,1,23,0.364
 10392,0,"attest, authenticate",verb,ověrjati,overovati,0,0,0.460,medium,2,22,0.222
 10390,1,attested,adj,ověrjeny,overeny,0,0,0.562,medium,2,26,0.125
-912,0,oats,noun,oves,oves,1,1,0.980,high,3,15,0.000
+912,0,oats,noun,oves,ovės,0,1,0.980,high,3,15,0.000
 20012,0,"enfold, wrap",verb,ovinųti,ovinouti,0,0,0.412,low,1,25,0.125
 20010,1,"enfold, wrap",verb,ovivati,ovijati,0,0,0.460,medium,2,26,0.143
 22493,0,"seize, take possession of",verb,ovladnųti,zahvatiti,0,0,0.447,low,2,27,0.778
@@ -9120,7 +9120,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22766,0,Pakistani,adj,pakistansky,pakistansky,1,1,0.970,high,3,12,0.000
 5471,1,pack,verb,pakovati,pakovati,1,1,0.561,medium,2,12,0.000
 1058,0,stick,noun,pala,palica,0,0,0.920,high,3,29,0.333
-2830,1,palace,noun,palac,palec,0,0,0.772,high,1,14,0.200
+2830,1,palace,noun,palac,palėc,0,0,0.772,high,1,14,0.200
 31750,0,pancake,noun,palačinka,mlin,0,0,0.920,high,3,12,0.667
 1841,0,palatalisation,noun,palatalizacija,palatalizacija,1,1,0.857,high,3,11,0.000
 23305,1,tent,noun,palatka,stan,0,0,0.920,high,3,18,0.857
@@ -9135,7 +9135,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 29827,0,"stick, club (weapon)",noun,palka,palka,1,1,0.940,high,3,28,0.000
 16040,0,palm,noun,palma,palma,1,1,0.967,high,3,11,0.000
 36159,0,palmette,noun,palmeta,palmeta,1,1,0.970,high,3,11,0.000
-1961,0,memory,noun,pamęť,pamęt,0,1,0.960,high,3,16,0.000
+1961,0,memory,noun,pamęť,pamęť,1,1,0.960,high,3,16,0.000
 1960,0,remember,verb,pamętati,pamętati,1,1,0.920,high,3,15,0.000
 4117,0,"monument, memorial",noun,pamętnik,monument,0,0,0.575,medium,2,22,0.875
 10438,0,"memorable, memorial, commemorative",adj,pamętny,pamętny,1,1,0.920,high,3,27,0.000
@@ -9162,8 +9162,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35315,1,paper,adj,papirny,papirovy,0,0,0.650,medium,2,15,0.250
 32614,0,papyrus,noun,papirus,papirus,1,1,0.970,high,3,11,0.000
 29838,0,"file, folder, portfolio",noun,papka,papka,1,1,0.523,medium,2,24,0.000
-1075,1,fern,noun,papråť,papråt,0,1,0.960,high,3,14,0.000
-35460,0,paprika,noun,paprika,paper,0,0,0.980,high,3,12,0.571
+1075,1,fern,noun,papråť,papråť,1,1,0.960,high,3,14,0.000
+35460,0,paprika,noun,paprika,papėr,0,0,0.980,high,3,12,0.571
 23144,0,slippers,noun,papuče,papuče,1,1,0.562,medium,2,25,0.000
 4570,0,parrot,noun,papugaj,papagaj,0,0,0.776,high,3,13,0.143
 2257,0,"couple, pair, twosome",noun,para,para,1,1,0.980,high,3,23,0.000
@@ -9277,7 +9277,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 10488,1,money,adj,pěnęžny,penežny,0,1,0.523,medium,1,12,0.000
 16046,1,penis,noun,penis,penis,1,1,0.970,high,3,16,0.000
 16047,0,penis,adj,penisovy,penisovy,1,1,0.650,medium,2,13,0.000
-1717,0,"tree stump, trunk, stub",noun,penj,penj,1,1,0.839,high,2,16,0.000
+1717,0,"tree stump, trunk, stub",noun,penj,pėnj,0,1,0.839,high,2,16,0.000
 4847,1,pension,noun,pensija,pensija,1,1,0.586,medium,2,14,0.000
 16049,0,pension,adj,pensijny,pensijniji,0,0,0.403,low,1,14,0.300
 2833,0,pensioner,noun,pensioner,pensioner,1,1,0.586,medium,2,14,0.000
@@ -9287,7 +9287,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 10490,0,"ash-coloured, ash-colored, ashy",adj,pepelavy,pepelavy,1,1,0.671,medium,3,13,0.000
 34855,1,"ash-coloured, ash-colored, ashy",adj,pepelisty,pepeljasty,0,0,0.499,medium,2,14,0.200
 36745,0,ashtray,noun,pepeľnik,pepelnik,0,1,0.580,medium,2,14,0.000
-3136,1,pepper,noun,peprec,piper,0,0,0.960,high,3,17,0.500
+3136,1,pepper,noun,peprec,pipėr,0,0,0.960,high,3,17,0.500
 29879,1,perception,noun,percepcija,percepcija,1,1,0.678,medium,2,21,0.000
 17001,1,perfect tense,noun,perfekt,perfekt,1,1,0.615,medium,2,13,0.000
 36033,0,"hole punch, perforator",noun,perforator,perforator,1,1,0.741,high,2,14,0.000
@@ -9327,13 +9327,13 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2344,0,song,noun,pěsnja,pěsnj,0,0,0.960,high,3,12,0.167
 29886,0,sandy,adj,pěsȯčny,pasčany,0,0,0.868,high,3,15,0.429
 426,0,sand,noun,pěsȯk,pěsȯk,1,1,0.980,high,3,11,0.000
-1962,0,fist,noun,pęsť,pęst,0,1,0.919,high,2,16,0.000
+1962,0,fist,noun,pęsť,pęsť,1,1,0.919,high,2,16,0.000
 36248,0,pesticide,noun,pesticid,pesticid,1,1,0.970,high,3,11,0.000
 615,0,"#diverse, motley",adj,pestry,pstry,0,0,0.960,high,3,23,0.167
 18208,0,pawn (chess),noun,pěšak,pěšaka,0,0,0.920,high,3,13,0.167
 659,0,on foot,adv,pěše,pěš,0,0,0.858,high,1,18,0.250
 1079,1,"pedestrian, on foot",adj,pěši,pěši,1,1,0.940,high,3,14,0.000
-908,1,five,num,pęť,pęt,0,1,0.960,high,3,11,0.000
+908,1,five,num,pęť,pęť,1,1,0.960,high,3,11,0.000
 44,0,heel,noun,pęta,pęta,1,1,0.960,high,3,12,0.000
 2176,0,fifty,num,pęťdesęt,petdeset,0,1,0.632,medium,3,11,0.000
 32329,1,Pentecostal,adj,pęťdesętničsky,patidesatničny,0,0,0.396,low,1,14,0.357
@@ -9355,7 +9355,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1876,0,fifth,num,pęty,pęt,0,0,0.980,high,3,11,0.250
 10537,0,singing,noun,pěvańje,peene,0,0,0.523,medium,2,14,0.429
 237,0,sing,verb,pěvati,pěvati,1,1,0.940,high,3,12,0.000
-1469,0,singer (m.),noun,pěvėc,pěvec,0,1,0.920,high,3,13,0.000
+1469,0,singer (m.),noun,pěvėc,pěvėc,1,1,0.920,high,3,13,0.000
 37202,0,singer (f.),noun,pěvica,spevačka,0,0,0.586,medium,2,12,0.500
 32905,1,"push, shove",verb,phati,phati,1,1,0.895,high,2,18,0.000
 32907,0,"push, shove",verb,phnųti,pihnuti,0,0,0.464,medium,1,19,0.143
@@ -9500,7 +9500,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 18226,0,pneumonia,noun,pnevmonija,pnevmonija,1,1,0.650,medium,2,15,0.000
 21009,0,"stretch, pull tight",verb,pnųti,napnuti,0,0,0.478,medium,2,26,0.286
 10655,1,victory,noun,poběda,poběda,1,1,0.940,high,3,11,0.000
-34982,0,"victor, winner",noun,poběditelj,vitędz,0,0,0.920,high,3,13,0.700
+34982,0,"victor, winner",noun,poběditelj,vitędź,0,0,0.920,high,3,13,0.700
 18232,0,"conquer, triumph",verb,poběditi,pobediti,0,1,0.495,medium,2,14,0.000
 18229,0,"conquer, triumph",verb,poběđati,viteziti,0,0,0.412,low,1,15,0.667
 35862,0,run,verb,poběgti,pobežati,0,0,0.530,medium,2,9,0.250
@@ -9592,7 +9592,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 10723,0,bribe,verb,podkupovati,podkupati,0,0,0.398,low,1,20,0.182
 10725,1,bribery,noun,podkupstvo,habarnictva,0,0,0.407,low,1,20,0.818
 32683,0,put under,verb,podlagati,podkladati,0,0,0.478,medium,2,11,0.200
-15446,0,"mean fellow, rascal, scoundrel, miscreant",noun,podlec,podlec,1,1,0.940,high,3,26,0.000
+15446,0,"mean fellow, rascal, scoundrel, miscreant",noun,podlec,podlėc,0,1,0.940,high,3,26,0.000
 20596,0,"be subject to, be liable to",verb,podležati,podlěgati,0,0,0.787,high,2,11,0.111
 4493,0,"water, irrigate",verb,podliti,politi,0,0,0.464,medium,1,12,0.143
 4492,0,"water, irrigate",verb,podlivati,podlivati,1,1,0.508,medium,2,12,0.000
@@ -9736,7 +9736,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23894,0,"walk, stroll",noun,pohodka,špacyr,0,0,0.459,medium,2,16,1.000
 18286,1,"origin, genesis, source",noun,pohođeńje,pahodžanne,0,0,0.407,low,1,34,0.300
 32335,0,ancestry,noun,pohođeńje,pohodženna,0,0,0.523,medium,2,22,0.200
-36318,1,lust,noun,pohota,pohot,0,0,0.940,high,3,25,0.167
+36318,1,lust,noun,pohota,pohoť,0,0,0.940,high,3,25,0.167
 23102,0,"christianise, christianize",verb,pohristijaniti,hristianizirovati,0,0,0.398,low,1,15,0.529
 23101,0,"christianise, christianize",verb,pohristijanjati,hristianizirovati,0,0,0.398,low,1,15,0.529
 29921,0,"sheath, vagina",noun,pohva,pogva,0,0,0.586,medium,2,22,0.200
@@ -9759,12 +9759,12 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4027,0,go,verb,pojdti,pojiti,0,0,0.530,medium,2,15,0.167
 20034,0,duel,noun,pojedinȯk,pojedynok,0,0,0.575,medium,2,20,0.111
 3274,0,"go (by transport), ride",verb,pojehati,pojehati,1,1,0.530,medium,2,11,0.000
-18291,1,"understand, conceive, comprehend, perceive, grasp",verb,pojęti,razuměti,0,0,0.815,high,1,23,0.625
+18291,1,"understand, conceive, comprehend, perceive, grasp",verb,pojęti,råzuměti,0,0,0.815,high,1,23,0.625
 5005,0,"idea, notion, conception",noun,pojęťje,ponatie,0,0,0.459,medium,1,35,0.429
 1917,0,train,noun,pojezd,vlåk,0,0,0.800,high,1,13,1.000
 32703,1,"water, give to drink",verb,pojiti,pojiti,1,1,0.920,high,3,15,0.000
 17006,0,"perception, comprehension",noun,pojmańje,ponimanje,0,0,0.459,medium,2,27,0.222
-18292,0,"understand, conceive, comprehend, perceive, grasp",verb,pojmati,razuměti,0,0,0.920,high,3,26,0.625
+18292,0,"understand, conceive, comprehend, perceive, grasp",verb,pojmati,råzuměti,0,0,0.920,high,3,26,0.625
 31968,0,"penitence, repentance",noun,pokajańje,pokajanje,0,1,0.805,high,3,13,0.000
 1916,1,punish,verb,pokarati,potrestati,0,0,0.412,low,1,13,0.500
 35409,1,"scold, rebuke, reprimand, reproach",verb,pokarati,upreknuti,0,0,0.398,low,1,25,0.667
@@ -9901,7 +9901,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2229,1,"help, assist, aid",verb,pomogti,pomoć,0,0,0.920,high,3,18,0.429
 585,0,Pomeranian,adj,pomoŕsky,pomorsky,0,1,0.763,high,1,16,0.000
 6089,1,"pomp, pump",noun,pompa,pompa,1,1,0.741,high,3,18,0.000
-14875,1,backlash,noun,pomsta,mest,0,0,0.920,high,3,15,0.667
+14875,1,backlash,noun,pomsta,mėsť,0,0,0.920,high,3,15,0.667
 29460,0,"mislead, deceive, confuse",verb,pomyliti,pomyliti,1,1,0.412,low,1,28,0.000
 34475,0,"confused, mistaken, misled",adj,pomyljeny,zmateny,0,0,0.407,low,1,33,0.556
 29458,0,mistake,noun,pomylka,pomylka,1,1,0.523,medium,2,14,0.000
@@ -10051,7 +10051,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5914,0,"haste, hurry, rush",noun,pospěh,pospieh,0,0,0.523,medium,2,27,0.143
 3272,0,"hasten, hurry, rush",verb,pospěšiti,pospešiti,0,1,0.530,medium,2,14,0.000
 23814,0,"hastily, hurriedly, in a hurry",adv,pospěšno,pospešno,0,1,0.702,medium,2,28,0.000
-37412,0,"hasty, hurried, rash, rushed",adj,pospěšny,bŕzy,0,0,0.920,high,3,20,0.875
+37412,0,"hasty, hurried, rash, rushed",adj,pospěšny,brzy,0,0,0.920,high,3,20,0.875
 23056,0,"shitty, lousy, crappy",adj,posrany,posrany,1,1,0.678,medium,2,21,0.000
 29674,0,silver-plate,verb,posrěbriti,posrebriti,0,1,0.495,medium,2,10,0.000
 33384,1,silver-plate,verb,posrěbrjati,posrebrivati,0,0,0.425,low,1,13,0.167
@@ -10073,7 +10073,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 11013,0,"bedding, bed-clothes",noun,postelina,postelnye prinadležnosti,0,0,0.396,low,1,17,0.625
 33443,1,"spread, lay, make the bed",verb,posteliti,posteliti,1,1,0.464,medium,1,21,0.000
 11012,0,bed,noun,postelj,postelj,1,1,0.940,high,3,18,0.000
-21862,1,"#comprehend, grasp",verb,postigati,razuměti,0,0,0.940,high,3,25,0.778
+21862,1,"#comprehend, grasp",verb,postigati,råzuměti,0,0,0.940,high,3,25,0.778
 21864,0,"comprehend, grasp",verb,postignųti,postignųti,1,1,0.920,high,3,25,0.000
 33446,0,"spread, lay, make the bed",verb,postlati,posteliti,0,0,0.464,medium,1,22,0.222
 21741,0,"continuously, steadily, constantly, permanently",adv,postojanno,postojano,0,0,0.615,medium,2,28,0.100
@@ -10162,7 +10162,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22335,0,"agent, trustee, commissioner",noun,pověrjennik,poverenik,0,0,0.608,medium,2,33,0.182
 22336,0,confidant,noun,pověrjennik,poverenik,0,0,0.678,medium,3,19,0.182
 34190,1,hang (tr.),verb,pověsiti,povesiti,0,1,0.596,medium,2,13,0.000
-22226,0,story,noun,pověsť,pověst,0,1,0.755,high,1,31,0.000
+22226,0,story,noun,pověsť,pověsť,1,1,0.755,high,1,31,0.000
 20053,0,involvement,noun,povęzanosť,zapojeni,0,0,0.407,low,1,24,0.800
 22194,0,bandage,noun,povęzka,povazka,0,0,0.523,medium,1,18,0.143
 5999,0,"ought to, should, obliged to, bound to, due",adj,povinen,povineny,0,0,0.650,medium,2,24,0.125
@@ -10260,7 +10260,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 11141,0,diligently,adv,pracovito,pracovite,0,0,0.470,medium,2,23,0.111
 11142,1,diligence,noun,pracovitosť,pracovitosť,1,1,0.470,medium,2,20,0.000
 11143,0,diligent,adj,pracovity,pracovity,1,1,0.650,medium,2,29,0.000
-11140,0,"worker, employee",noun,pracovnik,rabotnik,0,0,0.920,high,3,25,0.333
+11140,0,"worker, employee",noun,pracovnik,råbotnik,0,0,0.920,high,3,25,0.333
 35152,0,ancient,adj,pradavny,drevny,0,0,0.771,high,1,21,0.500
 11145,0,great-grandfather,noun,pradědȯk,praded,0,0,0.787,high,3,11,0.250
 2073,0,"doorstep, threshold",noun,pråg,pråg,1,1,0.980,high,3,11,0.000
@@ -10293,7 +10293,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 11159,1,"probably, likely",adv,pravdopodobno,pravdepodobne,0,0,0.586,medium,2,22,0.154
 11161,0,"probability, feasibility, likeliness, likelihood",noun,pravdopodobnosť,verojatnosť,0,0,0.551,medium,2,20,0.600
 11162,0,"probable, likely, feasible, plausible",adj,pravdopodobny,pravdopodobny,1,1,0.713,medium,3,21,0.000
-18383,1,righteous,adj,pravedny,pravedny,1,1,0.960,high,3,15,0.000
+18383,1,righteous,adj,pravedny,pravėdny,0,1,0.960,high,3,15,0.000
 1870,0,"right (pol.), right wing, right hand",noun,pravica,pravica,1,1,0.650,medium,2,23,0.000
 37360,0,"rightist, right-winger",noun,pravičaŕ,prav,0,0,0.940,high,3,10,0.500
 37362,1,"rightist, right-wing",adj,pravičaŕsky,pravy,0,0,0.940,high,3,13,0.545
@@ -10578,7 +10578,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3528,0,cross,verb,prěpravjati,prepravlati,0,0,0.464,medium,1,13,0.091
 11337,0,"re-program, program anew",verb,prěprogramovati,preprogramovati,0,1,0.478,medium,2,10,0.000
 33068,0,outgrow,verb,prěrastati,prerastati,0,1,0.693,medium,3,9,0.000
-11338,0,outgrow,verb,prěråsti,prěrasti,0,1,0.847,high,3,9,0.000
+11338,0,outgrow,verb,prěråsti,prěråsti,1,1,0.847,high,3,9,0.000
 16832,0,paraphrase,noun,prěråzkazańje,parafraza,0,0,0.534,medium,2,15,0.538
 16833,1,paraphrase,verb,prěråzkazati,preskazati,0,0,0.398,low,1,11,0.250
 16834,0,paraphrase,verb,prěråzkazyvati,preskazyvati,0,0,0.398,low,1,13,0.214
@@ -11110,8 +11110,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5329,1,propaganda,noun,propaganda,propaganda,1,1,0.970,high,3,11,0.000
 5330,0,"propagate, advocate",verb,propagovati,propagovati,1,1,0.394,low,2,13,0.000
 11592,0,"decline, downfall",noun,propasť,upadȯk,0,0,0.512,medium,2,19,0.857
-11594,0,ruin,noun,propasť,propast,0,1,0.770,high,1,28,0.000
-21088,1,"abyss, precipice",noun,propasť,propast,0,1,0.920,high,3,26,0.000
+11594,0,ruin,noun,propasť,propasť,1,1,0.770,high,1,28,0.000
+21088,1,"abyss, precipice",noun,propasť,propasť,1,1,0.920,high,3,26,0.000
 4311,0,"perish, fall through, fail",verb,propasti,propasti,1,1,0.862,high,2,22,0.000
 21089,0,"disappear, get lost",verb,propasti,propasti,1,1,0.513,medium,2,26,0.000
 21090,0,"decay, crumble",verb,propasti,råzrušitsa,0,0,0.398,low,1,24,0.900
@@ -11122,7 +11122,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23784,0,proportion,noun,proporcija,proporcija,1,1,0.875,high,3,18,0.000
 23783,0,proportionally,adv,proporcionaľno,proporcionalno,0,1,0.794,high,3,12,0.000
 23782,0,proportional,adj,proporcionaľny,proporcionalny,0,1,0.748,high,3,14,0.000
-22233,0,"sermon, homily, preaching",noun,propověď,propověd,0,1,0.940,high,3,18,0.000
+22233,0,"sermon, homily, preaching",noun,propověď,propověď,1,1,0.940,high,3,18,0.000
 5124,0,proposal,noun,propozicija,propozicija,1,1,0.569,medium,3,20,0.000
 21092,0,culvert,noun,propust,propust,1,1,0.678,medium,2,25,0.000
 21093,1,"admission, admittance",noun,propust,propustka,0,0,0.586,medium,2,26,0.222
@@ -11179,7 +11179,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5419,0,flow through,verb,protěkati,protekati,0,1,0.596,medium,2,15,0.000
 5418,0,flow through,verb,protekti,pracačy,0,0,0.464,medium,2,12,0.750
 36491,0,protectorate,noun,protektorat,protektorat,1,1,0.970,high,3,11,0.000
-46,0,protest,noun,protest,protest,1,1,0.980,high,3,17,0.000
+46,0,protest,noun,protest,protėsť,0,1,0.980,high,3,17,0.000
 361,0,protestant,noun,protestant,protestant,1,1,0.970,high,3,14,0.000
 4609,1,protester,noun,protestant,demonstrant,0,0,0.586,medium,2,20,0.545
 33729,0,protestant,adj,protestantsky,protestantsky,1,1,0.741,high,3,11,0.000
@@ -11238,7 +11238,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 6214,1,transparency,noun,prozråčnosť,prozračnosť,0,1,0.632,medium,3,20,0.000
 6213,0,transparent,adj,prozråčny,prozračny,0,1,0.569,medium,2,16,0.000
 18551,0,spend life,verb,proživati,proživati,1,1,0.596,medium,2,13,0.000
-1450,0,breast,noun,pŕś,grųd,0,0,0.960,high,3,17,0.750
+1450,0,breast,noun,pŕś,grųď,0,0,0.960,high,3,17,0.750
 21486,0,burst,verb,prskati,praskati,0,0,0.508,medium,2,21,0.125
 21686,1,burst,verb,prsknųti,lopnuti,0,0,0.464,medium,1,19,0.500
 1723,0,"finger, toe, digit",noun,pŕst,pŕst,1,1,0.960,high,3,14,0.000
@@ -11320,8 +11320,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36975,0,fluffy,adj,pušisty,pušysty,0,0,0.512,medium,2,21,0.143
 14954,0,smoke,verb,pušiti,kuriti,0,0,0.920,high,3,12,0.333
 16814,0,gun,noun,puška,puška,1,1,0.562,medium,2,17,0.000
-2155,0,journey,noun,pųť,pųt,0,1,0.920,high,3,25,0.000
-18571,0,"path, pathway, footpath, track, trail, route",noun,pųť,pųt,0,1,0.940,high,3,32,0.000
+2155,0,journey,noun,pųť,pųť,1,1,0.920,high,3,25,0.000
+18571,0,"path, pathway, footpath, track, trail, route",noun,pųť,pųť,1,1,0.940,high,3,32,0.000
 4357,1,"traveller, wanderer, voyager",noun,pųtnik,pųtnik,1,1,0.920,high,3,20,0.000
 11681,1,"journey, trip, voyage, travelling, wandering",noun,pųtovańje,cěsta,0,0,0.920,high,3,23,0.889
 5937,0,"traveller, wanderer, voyager",noun,pųtovatelj,padarožnik,0,0,0.459,medium,2,19,0.900
@@ -11331,31 +11331,31 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2246,0,dust,noun,pyl,pyl,1,1,0.940,high,3,12,0.000
 10553,0,dust,verb,pyliti,pråšiti,0,0,0.784,high,1,13,0.429
 23362,0,pollen,noun,pylȯk,pylok,0,1,0.407,low,1,15,0.000
-6090,0,pomp,noun,pyšnosť,razkoš,0,0,0.920,high,3,32,0.857
+6090,0,pomp,noun,pyšnosť,råzkoš,0,0,0.920,high,3,32,0.857
 6091,0,pompous,adj,pyšny,pyšny,1,1,0.650,medium,2,24,0.000
 32559,0,question mark,noun,pytaľnik,vȯprositelen znak,0,0,0.459,medium,2,13,0.706
 5768,0,question,noun,pytańje,pytanne,0,0,0.615,medium,3,15,0.143
 5938,1,ask,verb,pytati,pytati,1,1,0.920,high,3,16,0.000
 10592,1,curious,adj,pytlivy,lubopitny,0,0,0.569,medium,2,20,0.778
 21122,0,inquisitive,adj,pytlivy,dapytlivy,0,0,0.407,low,1,16,0.222
-5331,0,slave,noun,råb,rab,0,1,0.960,high,3,19,0.000
+5331,0,slave,noun,råb,råb,1,1,0.960,high,3,19,0.000
 30047,0,rhubarb,noun,rabarbara,rabarbara,1,1,0.724,high,3,17,0.000
 30048,0,"discount, rebate",noun,rabat,popust,0,0,0.481,medium,1,17,0.833
 11987,0,doable,adj,råbimy,vikanalny,0,0,0.459,medium,2,18,0.778
 30050,0,rabbi,noun,rabin,rabin,1,1,0.851,high,3,12,0.000
-2955,0,"do, make",verb,råbiti,rabiti,0,1,0.920,high,3,15,0.000
+2955,0,"do, make",verb,råbiti,råbiti,1,1,0.920,high,3,15,0.000
 20101,0,"labour, labor",adj,råboči,robočyji,0,0,0.575,medium,2,16,0.375
-3701,1,"job, work, employment",noun,råbota,rabota,0,1,0.940,high,3,24,0.000
+3701,1,"job, work, employment",noun,råbota,råbota,1,1,0.940,high,3,24,0.000
 1250,0,work,verb,råbotati,pracovati,0,0,0.478,medium,2,11,0.333
 30621,0,"worker, employee, labourer, laborer",noun,råbotnica,rabotnica,0,1,0.459,medium,1,22,0.000
 19507,0,"labour, labor",adj,råbotničsky,pracovny,0,0,0.407,low,1,18,0.636
 11992,0,workforce,noun,råbotničstvo,rabočaja sila,0,0,0.459,medium,1,16,0.615
-5332,1,"worker, employee, labourer, laborer",noun,råbotnik,rabotnik,0,1,0.940,high,3,28,0.000
+5332,1,"worker, employee, labourer, laborer",noun,råbotnik,råbotnik,1,1,0.940,high,3,28,0.000
 30623,0,"work, working",adj,råbotny,pracovny,0,0,0.470,medium,2,20,0.375
 18579,0,employer,noun,råbotodatelj,pracadavca,0,0,0.523,medium,2,14,0.750
 30051,1,slavish,adj,råbsky,rabskiji,0,0,0.586,medium,2,18,0.375
-1080,1,"serfdom, slavery",noun,råbstvo,rabstvo,0,1,0.960,high,3,19,0.000
-30053,0,slave,noun,råbynja,rabyni,0,0,0.864,high,1,20,0.286
+1080,1,"serfdom, slavery",noun,råbstvo,råbstvo,1,1,0.960,high,3,19,0.000
+30053,0,slave,noun,råbynja,råbyni,0,0,0.864,high,1,20,0.286
 55,0,rationalisation,noun,racionalizacija,racionalizacija,1,1,0.967,high,3,12,0.000
 36351,0,streamlined,adj,racionalizovany,racionalizovany,1,1,0.580,medium,3,17,0.000
 34862,0,"rationalize, rationalise",verb,racionalizovati,racionalizovati,1,1,0.526,medium,3,11,0.000
@@ -11380,7 +11380,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17022,0,radio,adj,radiovy,radio-y,0,0,0.523,medium,1,13,0.143
 4109,0,advise,verb,raditi,savetovati,0,0,0.495,medium,2,13,0.700
 11702,0,advising,noun,radničstvo,savetništvo,0,0,0.418,low,1,14,0.545
-3316,1,"pleasure, joy, gladness",noun,radosť,radost,0,1,0.960,high,3,14,0.000
+3316,1,"pleasure, joy, gladness",noun,radosť,radosť,1,1,0.960,high,3,14,0.000
 11706,0,gladly,adv,radostno,radosno,0,0,0.615,medium,3,15,0.125
 803,0,glad,adj,radostny,radostny,1,1,0.960,high,3,16,0.000
 30061,0,"please, gladden, make happy",verb,radovati,radovati,1,1,0.513,medium,2,17,0.000
@@ -11414,9 +11414,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23624,0,racist,adj,rasističny,rasističny,1,1,0.442,low,2,11,0.000
 23622,1,racism,noun,rasizm,rasizm,1,1,0.903,high,3,11,0.000
 11729,0,racial,adj,rasovy,rasovy,1,1,0.765,high,2,11,0.000
-3684,1,"increase, growth",noun,råst,rast,0,1,0.920,high,3,21,0.000
-21491,0,"height, stature",noun,råst,rast,0,1,0.940,high,3,25,0.000
-3037,1,"grow, increase",verb,råsti,rasti,0,1,0.960,high,3,17,0.000
+3684,1,"increase, growth",noun,råst,råst,1,1,0.920,high,3,21,0.000
+21491,0,"height, stature",noun,råst,råst,1,1,0.940,high,3,25,0.000
+3037,1,"grow, increase",verb,råsti,råsti,1,1,0.960,high,3,17,0.000
 6245,0,plant,noun,råstlina,råztenje,0,0,0.523,medium,2,11,0.625
 36951,0,vegetal,adj,råstlinny,råztiteljny,0,0,0.523,medium,2,11,0.545
 35508,1,breeder (of plants),noun,råstlinovod,råztenievod,0,0,0.396,low,1,13,0.455
@@ -11432,7 +11432,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 30086,1,coeval,noun,råvěsnik,rovesnik,0,0,0.575,medium,2,16,0.125
 12023,0,equally,adv,råvnako,odnakovo,0,0,0.523,medium,2,21,0.625
 21494,0,alignment (troops),noun,råvnańje,ravnanje,0,1,0.660,medium,2,11,0.000
-2248,0,plain,noun,råvnina,ravnina,0,1,0.960,high,3,14,0.000
+2248,0,plain,noun,råvnina,råvnina,1,1,0.960,high,3,14,0.000
 15511,1,even,verb,råvniti,rovnati,0,0,0.644,medium,3,14,0.286
 3592,0,"equally, exactly",adv,råvno,ravno,0,1,0.569,medium,2,25,0.000
 23205,0,parallel,adj,råvnoběžny,paralelny,0,0,0.741,high,2,16,0.600
@@ -11452,15 +11452,15 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21499,0,"balance, equilibrium",noun,råvnověśje,rovnovaha,0,0,0.650,medium,2,19,0.500
 12030,0,synonym,noun,råvnoznačnik,sinonim,0,0,0.811,high,3,14,0.667
 36134,1,"equivalent, tantamount",adj,råvnoznačny,ekvivalentny,0,0,0.470,medium,2,22,0.750
-1242,1,equal,adj,råvny,ravny,0,1,0.960,high,3,18,0.000
-2239,0,"even, flat, level, smooth",adj,råvny,ravny,0,1,0.960,high,3,29,0.000
-3877,1,straight,adj,råvny,ravny,0,1,0.960,high,3,19,0.000
+1242,1,equal,adj,råvny,råvny,1,1,0.960,high,3,18,0.000
+2239,0,"even, flat, level, smooth",adj,råvny,råvny,1,1,0.960,high,3,29,0.000
+3877,1,straight,adj,råvny,råvny,1,1,0.960,high,3,19,0.000
 489,1,time,noun,raz,raz,1,1,0.940,high,3,14,0.000
 11745,0,"once, one time",adv,raz,raz,1,1,0.920,high,3,26,0.000
 35356,0,"enrage, infuriate",verb,råzběsniti,råzbjesniti,0,0,0.443,low,2,25,0.091
 35355,1,"enrage, infuriate",verb,råzběsnjati,råzbešnjavati,0,0,0.491,medium,2,18,0.231
 11748,1,"take apart, disassemble, take into pieces",verb,råzbirati,rozebirati,0,0,0.596,medium,2,14,0.200
-16472,0,understand,verb,råzbirati,razuměti,0,0,0.940,high,3,17,0.444
+16472,0,understand,verb,råzbirati,råzuměti,0,0,0.940,high,3,17,0.444
 11750,0,"shatter, break into pieces, crash, smash up",verb,råzbiti,råzbiti,1,1,0.839,high,3,15,0.000
 3473,1,broken,adj,råzbity,råzbity,1,1,0.765,high,2,14,0.000
 30104,0,"shatter, break into pieces, crash, smash up",verb,råzbivati,råzbijati,0,0,0.508,medium,2,15,0.111
@@ -11470,7 +11470,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34929,1,"robber’s, brigandish",adj,råzbojny,råzbojnyji,0,0,0.523,medium,1,20,0.200
 11753,1,"analysis, review, critique",noun,råzbor,råzbor,1,1,0.873,high,3,23,0.000
 11749,0,"take apart, disassemble, take into pieces",verb,råzbrati,rozobrati,0,0,0.596,medium,2,13,0.222
-16473,1,understand,verb,råzbrati,razuměti,0,0,0.920,high,3,20,0.375
+16473,1,understand,verb,råzbrati,råzuměti,0,0,0.920,high,3,20,0.375
 3878,0,"wake, awaken",verb,råzbuditi,råzbuditi,1,1,0.915,high,3,19,0.000
 2295,0,flourish,verb,råzcvěsti,råzkvitnuti,0,0,0.412,low,2,13,0.455
 15372,0,flowering,noun,råzcvět,råzkvět,0,0,0.922,high,3,18,0.143
@@ -11491,7 +11491,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20104,0,"tear apart, rip apart, rend asunder, tear up, lacerate",verb,råzdirati,råzdirati,1,1,0.693,medium,3,17,0.000
 33787,0,enlarge by hollowing,verb,råzdȯlbati,vydlabavati,0,0,0.412,low,1,15,0.636
 30151,0,enlarge by hollowing,verb,råzdȯlbti,vydlabati,0,0,0.412,low,1,15,0.667
-30152,0,"discord, dissension",noun,råzdor,razdor,0,1,0.920,high,3,31,0.000
+30152,0,"discord, dissension",noun,råzdor,råzdor,1,1,0.920,high,3,31,0.000
 23221,0,irritability,noun,råzdražlivosť,råzdražlivosť,1,1,0.481,medium,1,16,0.000
 759,1,"fractious, irritable, quarrelsome",adj,råzdražlivy,råzdražlivy,1,1,0.481,medium,1,20,0.000
 11771,1,"exasperate, irritate, annoy",verb,råzdražniti,råzdražiti,0,0,0.495,medium,2,18,0.091
@@ -11578,8 +11578,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 30237,0,"rift, schism",noun,råzkol,råzkol,1,1,0.856,high,3,29,0.000
 30238,0,dig up (a street),verb,råzkopati,råzkopati,1,1,0.892,high,3,11,0.000
 33829,1,dig up (a street),verb,råzkopyvati,råzkopyvati,1,1,0.543,medium,2,12,0.000
-30239,1,"bliss, delight, pleasure",noun,råzkoš,razkoš,0,1,0.940,high,3,34,0.000
-30240,1,"luxury, magnificence, splendour, sumptuousness",noun,råzkoš,razkoš,0,1,0.960,high,3,32,0.000
+30239,1,"bliss, delight, pleasure",noun,råzkoš,råzkoš,1,1,0.940,high,3,34,0.000
+30240,1,"luxury, magnificence, splendour, sumptuousness",noun,råzkoš,råzkoš,1,1,0.960,high,3,32,0.000
 30242,0,"luxurious, magnificent, splendid, sumptuous",adj,råzkošny,råzkȯsny,0,0,0.751,high,2,34,0.125
 30243,0,"sensual, blisful, delightful",adj,råzkošny,råzkošny,1,1,0.523,medium,1,34,0.000
 30244,1,"unchain, unshoe (a horse)",verb,råzkovati,råzkovati,1,1,0.760,high,3,15,0.000
@@ -11608,7 +11608,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 30276,0,differentiate,verb,råzličiti,råzlikovati,0,0,0.425,low,1,14,0.364
 27,0,difference,noun,råzličje,råzlika,0,0,0.481,medium,1,18,0.375
 11802,0,"difference, variety",noun,råzličnosť,råzličnosť,1,1,0.505,medium,2,26,0.000
-2211,0,"different, varied, various, diverse",adj,råzličny,razny,0,0,0.920,high,3,25,0.375
+2211,0,"different, varied, various, diverse",adj,råzličny,råzny,0,0,0.920,high,3,25,0.375
 14963,1,difference,noun,råzlika,råzlika,1,1,0.481,medium,1,20,0.000
 30278,0,spill,verb,råzliti,råzliti,1,1,0.820,high,3,10,0.000
 30279,1,spillage,noun,råzliťje,råzlitie,0,0,0.523,medium,2,21,0.125
@@ -11632,7 +11632,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3596,0,exchange,noun,råzměna,råzmena,0,1,0.678,medium,2,20,0.000
 17,0,exchange,verb,råzměniti,råzměniti,1,1,0.874,high,2,16,0.000
 324,1,exchange,verb,råzměnjati,råzmenjivati,0,0,0.627,medium,3,15,0.167
-36,1,"size, dimension",noun,råzměr,razměr,0,1,0.960,high,3,23,0.000
+36,1,"size, dimension",noun,råzměr,råzměr,1,1,0.960,high,3,23,0.000
 30308,0,measure off,verb,råzměriti,råzměriti,1,1,0.829,high,2,13,0.000
 30309,1,measure off,verb,råzměrjati,råzmerati,0,0,0.464,medium,1,15,0.100
 30317,0,#sweep clear,verb,råzmesti,råzmesti,1,1,0.829,high,2,17,0.000
@@ -11673,7 +11673,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21509,1,"heterogeneous, diverse",adj,råznorodny,råznorodny,1,1,0.794,high,3,26,0.000
 30349,1,delivery (e.g. newspapers),noun,råznos,råznoska,0,0,0.523,medium,1,24,0.250
 5499,0,"carry around, disseminate",verb,råznositi,råznositi,1,1,0.878,high,3,21,0.000
-2034,1,"different, various",adj,råzny,razny,0,1,0.960,high,3,22,0.000
+2034,1,"different, various",adj,råzny,råzny,1,1,0.960,high,3,22,0.000
 41,0,"disappointment, disenchantment, frustration",noun,råzočarovańje,råzčarovanje,0,0,0.829,high,3,19,0.077
 5900,0,"disappointed, disenchanted, frustrated",adj,råzočarovany,råzčarovany,0,0,0.765,high,3,18,0.083
 5898,0,"disappoint, disenchant, frustrate",verb,råzočarovati,razočarovati,0,1,0.464,medium,1,14,0.000
@@ -11681,7 +11681,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 14960,0,together,adv,razom,razam,0,0,0.523,medium,2,22,0.200
 21510,0,"at once, simultaneously, at one stroke",adv,razom,razem,0,0,0.407,low,1,37,0.200
 30357,0,"plough up, plow up",verb,råzorati,råzorati,1,1,0.865,high,3,12,0.000
-30359,0,"destroy, ravage, demolish, bring to ruin",verb,råzoriti,razoriti,0,1,0.920,high,3,20,0.000
+30359,0,"destroy, ravage, demolish, bring to ruin",verb,råzoriti,råzoriti,1,1,0.920,high,3,20,0.000
 33803,1,"destroy, ravage, demolish, bring to ruin",verb,råzorjati,razarati,0,0,0.561,medium,2,20,0.222
 30358,0,"destruction, devastation, demolition, ruination",noun,råzorjeńje,razorenje,0,0,0.551,medium,2,30,0.100
 23010,0,disarm,verb,råzorųžati,odzbrojovati,0,0,0.412,low,1,12,0.583
@@ -11746,7 +11746,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5144,0,"work out, draw up, elaborate",verb,råzråbotati,råzrobiti,0,0,0.412,low,2,12,0.364
 5543,0,"work out, draw up, elaborate",verb,råzråbotyvati,råzrabatyvati,0,0,0.398,low,1,14,0.077
 11855,0,liven up,verb,råzradovati,råzveseliti,0,0,0.464,medium,2,17,0.545
-30426,0,overgrowth,noun,råzrastańje,rasto,0,0,0.920,high,3,26,0.636
+30426,0,overgrowth,noun,råzrastańje,råsto,0,0,0.920,high,3,26,0.636
 18618,0,distinguish,verb,råzråzniti,råzlišiti,0,0,0.412,low,1,18,0.400
 18617,0,distinguish,verb,råzraznjati,råzlišovati,0,0,0.412,low,1,17,0.455
 22362,0,"category, class",noun,råzręd,råzrad,0,0,0.615,medium,2,30,0.167
@@ -11805,7 +11805,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23933,0,"pass judgment, reason",verb,råzsųditi,råzsųditi,1,1,0.851,high,3,26,0.000
 3311,0,"clever, reasonable, sensible",adj,råzsųdny,razumny,0,0,0.632,medium,2,29,0.250
 3312,1,"cleverness, sensibility",noun,råzsųdȯk,razumnosť,0,0,0.459,medium,1,23,0.556
-22011,0,reason (intelligence),noun,råzsųdȯk,razum,0,0,0.940,high,3,23,0.500
+22011,0,reason (intelligence),noun,råzsųdȯk,råzum,0,0,0.940,high,3,23,0.500
 34021,0,"pass judgment, reason",verb,råzsųđati,råzsuždati,0,0,0.398,low,1,26,0.200
 11868,0,"sentence, decision",noun,råzsųđeńje,sudženne,0,0,0.407,low,1,27,0.364
 22016,1,dawn,noun,råzsvět,zorja,0,0,0.829,high,1,23,0.857
@@ -11848,14 +11848,14 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 17026,0,split in three,verb,råztrojiti,råztrojiti,1,1,0.478,medium,2,17,0.000
 23426,0,trumpet,verb,råztrųbiti,råztrubiti,0,1,0.495,medium,2,15,0.000
 22153,1,dissolve (in a liquid),verb,råztvarjati,råztvarati,0,0,0.495,medium,2,15,0.091
-22155,0,solution (liquid),noun,råztvor,raztvor,0,1,0.920,high,3,15,0.000
+22155,0,solution (liquid),noun,råztvor,råztvor,1,1,0.920,high,3,15,0.000
 22154,0,dissolve (in a liquid),verb,råztvoriti,råztvoriti,1,1,0.786,high,1,14,0.000
-657,0,"reason, mind, intelligence",noun,råzum,razum,0,1,0.960,high,3,29,0.000
+657,0,"reason, mind, intelligence",noun,råzum,råzum,1,1,0.960,high,3,29,0.000
 4347,0,understandably,adv,råzumějemo,zrozumilo,0,0,0.523,medium,2,18,0.600
 4348,1,understandability,noun,råzumějemosť,zrazumelasc,0,0,0.459,medium,2,17,0.500
 4346,0,understandable,adj,råzumějemy,zrozumialy,0,0,0.523,medium,2,22,0.600
 23071,0,"comprehension, understanding",noun,råzuměńje,razumevanje,0,0,0.418,low,1,17,0.182
-2102,0,understand,verb,råzuměti,razuměti,0,1,0.960,high,3,12,0.000
+2102,0,understand,verb,råzuměti,råzuměti,1,1,0.960,high,3,12,0.000
 11894,1,understandably,adv,råzumlivo,zrozumilo,0,0,0.523,medium,2,19,0.444
 11895,0,"understandability, intelligibility, comprehensibility",noun,råzumlivosť,zrazumelasc,0,0,0.459,medium,2,17,0.545
 11896,0,"understandable, intelligible, comprehensible",adj,råzumlivy,zrozumialy,0,0,0.523,medium,2,25,0.500
@@ -11905,7 +11905,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22709,0,"debauchee, satyr, pervert",noun,råzvråtnik,råzvratnik,0,1,0.615,medium,2,27,0.000
 22712,0,lecherousness,noun,råzvråtnosť,råzvratnosť,0,1,0.505,medium,2,24,0.000
 14832,0,"perverse, lecherous, lewd",adj,råzvråtny,råzvratnyji,0,0,0.442,low,2,32,0.182
-30590,1,"spit, skewer",noun,råžen,ražen,0,1,0.940,high,3,23,0.000
+30590,1,"spit, skewer",noun,råžen,råžėn,0,1,0.940,high,3,23,0.000
 30593,0,"incite, kindle",verb,råzžegti,råzžeč,0,0,0.398,low,1,22,0.375
 22966,1,"eat away, corrode, erode",verb,råzžerati,vyedati,0,0,0.398,low,1,26,0.556
 32646,1,"incite, kindle",verb,råzžigati,råzžihati,0,0,0.530,medium,2,22,0.111
@@ -12039,7 +12039,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23768,0,rheumatic,adj,revmatičny,revmatičny,1,1,0.516,medium,2,12,0.000
 23767,1,rheumatism,noun,revmatizm,revmatizm,1,1,0.695,medium,2,13,0.000
 1945,1,jealousy,noun,revnivosť,revnosť,0,0,0.459,medium,2,25,0.222
-1668,1,jealous,adj,revnivy,revnivy,1,1,0.960,high,3,20,0.000
+1668,1,jealous,adj,revnivy,rėvnivy,0,1,0.960,high,3,20,0.000
 2860,0,revolution,noun,revolucija,revolucija,1,1,0.970,high,3,11,0.000
 14975,0,revolutionism,noun,revolucijnizm,revolucionnosť,0,0,0.459,medium,1,13,0.357
 11969,0,revolutionism,noun,revolucijnosť,revolucionnosť,0,0,0.459,medium,1,12,0.143
@@ -12062,7 +12062,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23525,1,Rome,noun,Rim,Rim,1,1,0.980,high,3,11,0.000
 18640,0,Roman Catholic,adj,rimskokatoličsky,rimskokatolicky,0,0,0.523,medium,1,12,0.125
 838,1,Roman,adj,rimsky,rimsky,1,1,0.921,high,3,11,0.000
-11979,0,ass,noun,riť,rit,0,1,0.920,high,3,30,0.000
+11979,0,ass,noun,riť,riť,1,1,0.920,high,3,30,0.000
 20133,1,rhythm,noun,ritm,ritm,1,1,0.903,high,3,11,0.000
 32240,0,"rhythmic, rhythmical",adj,ritmičny,ritmičny,1,1,0.840,high,3,15,0.000
 36127,1,ritual,noun,ritual,ritual,1,1,0.970,high,3,15,0.000
@@ -12071,7 +12071,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1253,0,"risky, perilous",adj,rizičny,rizikovny,0,0,0.523,medium,2,21,0.333
 1254,0,"risk, peril",noun,rizik,riziko,0,0,0.759,high,3,19,0.167
 1366,0,risk,verb,rizikovati,riskovati,0,0,0.410,low,2,10,0.200
-3948,0,robot,noun,robot,rabota,0,0,0.980,high,3,11,0.333
+3948,0,robot,noun,robot,råbota,0,0,0.980,high,3,11,0.333
 18641,0,anniversary,noun,ročnica,ročnica,1,1,0.459,medium,2,14,0.000
 37395,0,yearbook,noun,ročnik,ročenka,0,0,0.523,medium,1,12,0.429
 11995,1,"annually, yearly, once a year, per year",adv,ročno,ročne,0,0,0.586,medium,2,18,0.200
@@ -12105,7 +12105,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 31863,1,rock’n’roll,noun,rokenrol,rok-n-rol,0,0,0.586,medium,2,12,0.222
 18648,0,castle (chess),verb,rokirovati,rokirovatsa,0,0,0.464,medium,1,16,0.182
 23628,0,rock music,noun,rok-muzika,rok-muzika,1,1,0.523,medium,1,13,0.000
-2063,1,role,noun,rolja,ralija,0,0,0.980,high,3,17,0.333
+2063,1,role,noun,rolja,rålija,0,0,0.980,high,3,17,0.333
 23601,0,novel,noun,roman,roman,1,1,0.914,high,3,14,0.000
 4735,1,Romance,adj,romansky,romansky,1,1,0.921,high,3,12,0.000
 1240,0,Romansh,noun,romanš,romanš,1,1,0.442,low,2,15,0.000
@@ -12126,13 +12126,13 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5268,1,pink,adj,rozovy,rožovy,0,0,0.892,high,3,15,0.167
 37166,0,rosary,noun,rozvěnec,ruženec,0,0,0.523,medium,1,12,0.375
 12035,0,rose,adj,roževy,rožovy,0,0,0.829,high,3,15,0.167
-22633,0,mercury,noun,rtųť,rtųt,0,1,0.960,high,3,13,0.000
+22633,0,mercury,noun,rtųť,rtųť,1,1,0.960,high,3,13,0.000
 18657,0,"chop, fell",verb,rųbati,rubati,0,1,0.596,medium,2,19,0.000
 23467,0,ruby,noun,rubin,rubin,1,1,0.970,high,3,12,0.000
 32081,0,ruble [₽],noun,rublj,rubl,0,0,0.970,high,3,12,0.200
 21528,0,haft,noun,rųčka,ručka,0,1,0.678,medium,2,22,0.000
 21529,0,little hand,noun,rųčka,rųčka,1,1,0.765,high,2,12,0.000
-18660,1,towel,noun,rųčnik,kŕpa,0,0,0.920,high,3,16,1.000
+18660,1,towel,noun,rųčnik,krpa,0,0,0.920,high,3,16,1.000
 18661,0,"manually, by hand",adv,rųčno,rųčno,1,1,0.851,high,3,21,0.000
 18662,0,"hand, manual",adj,rųčny,rųčny,1,1,0.970,high,3,15,0.000
 5640,0,ore,noun,ruda,ruda,1,1,0.980,high,3,12,0.000
@@ -12148,7 +12148,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21532,0,sleeve,noun,rųkav,rųkav,1,1,0.980,high,3,12,0.000
 18664,1,"glove, mitten",noun,rųkavica,rųkavica,1,1,0.960,high,3,20,0.000
 21533,0,handicraft,noun,rųkoděľstvo,rukodelie,0,0,0.459,medium,1,19,0.364
-18667,0,"handle, haft",noun,rųkojęť,rųkojęt,0,1,0.920,high,3,22,0.000
+18667,0,"handle, haft",noun,rųkojęť,rųkojęť,1,1,0.920,high,3,22,0.000
 16412,0,manuscript,noun,rųkopis,rųkopis,1,1,0.970,high,3,15,0.000
 18669,0,applause,noun,rųkopleskańje,aplodismenti,0,0,0.459,medium,2,18,0.769
 18670,0,"applaud, clap",verb,rųkopleskati,tleskati,0,0,0.412,low,1,22,0.417
@@ -12197,11 +12197,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 34360,0,snout,noun,rylo,rylo,1,1,0.940,high,3,20,0.000
 32131,0,rhyme,noun,ryma,rima,0,0,0.851,high,3,12,0.250
 32132,0,rhyme,verb,rymovati,rimovati,0,0,0.574,medium,3,10,0.125
-1252,0,lynx,noun,ryś,rys,0,1,0.980,high,3,11,0.000
+1252,0,lynx,noun,ryś,ryś,1,1,0.980,high,3,11,0.000
 21542,0,drawing,noun,rysovanka,čŕtež,0,0,0.858,high,1,18,1.000
 3568,0,draw,verb,rysovati,kresliti,0,0,0.412,low,1,11,0.625
 33969,0,"dig, burrow, root",verb,ryti,ryti,1,1,0.940,high,3,20,0.000
-3821,0,rice,noun,ryž,rys,0,0,0.920,high,3,12,0.333
+3821,0,rice,noun,ryž,ryś,0,0,0.920,high,3,12,0.333
 35960,0,"sabre, saber",noun,sablja,sabja,0,0,0.940,high,3,12,0.167
 35961,0,fencing,noun,sabljevańje,fehtavanne,0,0,0.523,medium,1,14,0.636
 37310,0,sabotage,noun,sabotaž,sabotaž,1,1,0.970,high,3,11,0.000
@@ -12228,7 +12228,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22466,0,El Salvador,noun,Salvador,salvador,1,1,0.875,high,3,11,0.000
 22467,1,Salvadoran,adj,salvadorsky,salvadorsky,1,1,0.970,high,3,13,0.000
 2219,0,"self, alone, only",pron,sam,sam,1,1,0.980,high,3,14,0.000
-5253,0,male,noun,samec,samec,1,1,0.960,high,3,13,0.000
+5253,0,male,noun,samec,samėc,0,1,0.960,high,3,13,0.000
 5222,0,female,noun,samica,samica,1,1,0.534,medium,3,13,0.000
 169,0,summit,noun,samit,samit,1,1,0.759,high,3,16,0.000
 20170,0,"just, merely, only",adv,samo,liš,0,0,0.459,medium,1,21,1.000
@@ -12237,7 +12237,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35149,0,self-sufficiency,noun,samodostatȯčnosť,samodovoljnosť,0,0,0.435,low,1,13,0.375
 35150,0,self-sufficient,adj,samodostatȯčny,samodovoljany,0,0,0.435,low,1,11,0.429
 18771,0,autocrat,noun,samodŕžec,samodržec,0,1,0.678,medium,2,22,0.000
-16490,0,vowel,noun,samoglåska,glåsen,0,0,0.920,high,3,14,0.600
+16490,0,vowel,noun,samoglåska,glåsėn,0,0,0.920,high,3,14,0.600
 18772,1,"home-brewed liquor, wildcat whiskey, moonshine",noun,samogon,samogon,1,1,0.639,medium,2,26,0.000
 33788,1,"boasting, boastfulness, swagger",noun,samohvaľstvo,samohvalstvo,0,1,0.639,medium,2,20,0.000
 35041,1,kick scooter,noun,samokat,samokat,1,1,0.523,medium,1,15,0.000
@@ -12337,7 +12337,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 12116,0,seventieth,num,sedmdesęty,sedamdeseti,0,0,0.545,medium,2,11,0.182
 34562,0,group of seven,num,sedmerka,samorka,0,0,0.459,medium,1,16,0.375
 16434,0,sevensome,num,sedmero,sedmero,1,1,0.615,medium,2,11,0.000
-1288,0,week,noun,sedmica,tyjedenj,0,0,0.920,high,3,13,0.875
+1288,0,week,noun,sedmica,tyjedėnj,0,0,0.920,high,3,13,0.875
 18794,1,weekly,adv,sedmično,sedmično,1,1,0.407,low,1,17,0.000
 18795,0,weekly,adj,sedmičny,sedmičny,1,1,0.453,medium,1,17,0.000
 16403,0,one seventh,num,sedmina,edna sedma,0,0,0.575,medium,3,11,0.700
@@ -12351,11 +12351,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21568,0,"reach, reach out for",verb,sęgati,sahac,0,0,0.464,medium,2,15,0.667
 35625,1,segment,noun,segment,segment,1,1,0.970,high,3,14,0.000
 21570,1,"reach, reach out for",verb,sęgnųti,sagnouti,0,0,0.460,medium,2,15,0.250
-1536,0,today’s,adj,segodenny,današnji,0,0,0.608,medium,2,12,0.889
+1536,0,today’s,adj,segodenny,danėśi,0,0,0.755,high,0,12,0.889
 35805,1,segregation,noun,segregacija,segregacija,1,1,0.921,high,3,12,0.000
 1347,1,this,pron,sej,t,0,0,0.920,high,3,18,1.000
 5334,0,sow,verb,sějati,sěti,0,0,0.920,high,3,9,0.333
-1604,0,now,adv,sejčas,segada,0,0,0.940,high,3,15,0.667
+1604,0,now,adv,sejčas,sėgada,0,0,0.940,high,3,15,0.667
 3789,1,"presently, currently",adv,sejčasno,topŕvo,0,0,0.920,high,3,26,0.875
 5117,0,"immediately, at once, right now",adv,sejčasno,trenutno,0,0,0.418,low,1,24,0.750
 12135,0,immediacy,noun,sejčasnosť,bezodkladnosť,0,0,0.407,low,1,18,0.538
@@ -12604,7 +12604,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 953,1,"shortening, abbreviation",noun,skråćeńje,skaračenne,0,0,0.407,low,1,25,0.200
 17039,0,shortened,adj,skråćeny,skraćeny,0,1,0.615,medium,3,15,0.000
 647,1,"shorten, abbreviate",verb,skråtiti,skratiti,0,1,0.627,medium,3,16,0.000
-18820,0,"grief, sorrow",noun,skrb,skŕb,0,1,0.920,high,3,30,0.000
+18820,0,"grief, sorrow",noun,skrb,skrb,1,1,0.920,high,3,30,0.000
 18821,0,grieve,verb,skrběti,žaliti,0,0,0.849,high,1,21,0.714
 18822,1,chest,noun,skrinja,skrini,0,0,0.920,high,3,28,0.286
 37390,0,crate (f.ex. beer),noun,skrinja,jaščik,0,0,0.459,medium,1,18,1.000
@@ -12647,7 +12647,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 12281,0,wimp,noun,slabec,slabak,0,0,0.650,medium,2,15,0.333
 34616,0,"weaken, become weak, slacken, grow feeble",verb,slaběti,slabjati,0,0,0.495,medium,2,14,0.250
 12282,0,weakly,adv,slabo,slabo,1,1,0.970,high,3,13,0.000
-12283,0,"weakness, disadvantage, drawback",noun,slabosť,slabost,0,1,0.940,high,3,24,0.000
+12283,0,"weakness, disadvantage, drawback",noun,slabosť,slabosť,1,1,0.940,high,3,24,0.000
 23204,1,feeble-minded,adj,slaboumny,slabumny,0,0,0.597,medium,2,14,0.111
 1341,0,"weak, feeble",adj,slaby,slaby,1,1,0.940,high,3,20,0.000
 35725,0,malt,noun,slåd,slåd,1,1,0.980,high,3,11,0.000
@@ -12703,7 +12703,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20698,0,amalgamation,noun,slivańje,slijanje,0,0,0.396,low,1,20,0.125
 36394,1,"merge, mix, fuse",verb,slivati,slivati,1,1,0.513,medium,3,23,0.000
 30713,0,"slivovitz, plum brandy",noun,slivovica,slivovica,1,1,0.794,high,3,14,0.000
-31883,0,"slime, mucus",noun,sliź,sliz,0,1,0.980,high,3,12,0.000
+31883,0,"slime, mucus",noun,sliź,sliź,1,1,0.980,high,3,12,0.000
 12246,0,slide,noun,slizgalka,horka,0,0,0.459,medium,1,17,0.778
 12249,0,"slide, slip",verb,slizgati,kȯlzati,0,0,0.920,high,3,12,0.500
 16358,0,"slide, slip",verb,slizgnųti,sklznuti,0,0,0.578,medium,3,15,0.333
@@ -12771,7 +12771,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 425,0,"laugh, laughter",noun,směh,směh,1,1,0.980,high,3,15,0.000
 18720,0,soften,verb,smękčati,zmakčac,0,0,0.464,medium,2,13,0.500
 18721,1,soften,verb,smękčiti,zmakčyc,0,0,0.464,medium,2,12,0.625
-4058,1,courage,noun,smělosť,smělost,0,1,0.940,high,3,26,0.000
+4058,1,courage,noun,smělosť,smělosť,1,1,0.940,high,3,26,0.000
 4056,0,"bold, daring",adj,směly,hråbry,0,0,0.920,high,3,26,0.833
 20703,0,shift (factory),noun,směna,smena,0,1,0.678,medium,3,13,0.000
 2062,0,reduce,verb,smenšati,zmanšac,0,0,0.464,medium,2,19,0.500
@@ -12811,7 +12811,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 33656,1,sniffle,verb,smrkati,šmygati,0,0,0.464,medium,1,14,0.429
 32888,1,wrinkled,adj,smrščeny,zmorščany,0,0,0.459,medium,2,22,0.333
 32889,0,wrinkle,verb,smrščiti,zmorščyc,0,0,0.464,medium,2,18,0.625
-2070,1,death,noun,smŕť,smŕt,0,1,0.960,high,3,11,0.000
+2070,1,death,noun,smŕť,smŕť,1,1,0.960,high,3,11,0.000
 34939,0,"mortal, deadly, lethal, fatal",adj,smŕteljny,smŕtny,0,0,0.756,high,1,18,0.333
 15552,0,"deadly, life-threatening, mortally dangerous",adj,smŕteopasny,smiertelnie niebezpiečny,0,0,0.459,medium,2,19,0.667
 12382,0,"mortal, deadly, lethal, fatal, death",adj,smŕtny,smŕtny,1,1,0.920,high,3,21,0.000
@@ -12839,7 +12839,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5439,1,bring down,verb,snesti,snesti,1,1,0.464,medium,2,12,0.000
 15678,1,deform,verb,snetvarjati,znetvorovati,0,0,0.412,low,1,17,0.333
 15677,0,deform,verb,snetvoriti,znetvoriti,0,0,0.412,low,1,16,0.100
-12395,0,December,noun,sněžėnj,grudenj,0,0,0.920,high,3,13,0.571
+12395,0,December,noun,sněžėnj,grudėnj,0,0,0.920,high,3,13,0.571
 30737,0,snowflake,noun,sněžinka,snežinka,0,1,0.748,high,3,13,0.000
 4160,1,snow,verb,sněžiti,snežiti,0,1,0.693,medium,3,12,0.000
 23290,0,snow-white,adj,sněžnoběly,blesnežnyji,0,0,0.523,medium,1,11,0.727
@@ -13098,8 +13098,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 12553,0,"sincerely, cordially, heartily",adv,sŕdečno,srdečne,0,0,0.921,high,3,24,0.143
 18884,1,cardiovascular,adj,sŕdečnosȯsųdny,kardiovaskularny,0,0,0.608,medium,2,12,0.688
 12554,1,"heartiness, cordiality",noun,sŕdečnosť,srdečnosť,0,1,0.741,high,3,16,0.000
-3167,0,"cordial, hearty",adj,sŕdečny,sŕdečny,1,1,0.960,high,3,14,0.000
-21586,0,"cardiac, heart",adj,sŕdečny,sŕdečny,1,1,0.920,high,3,12,0.000
+3167,0,"cordial, hearty",adj,sŕdečny,sŕdėčny,0,1,0.960,high,3,14,0.000
+21586,0,"cardiac, heart",adj,sŕdečny,sŕdėčny,0,1,0.920,high,3,12,0.000
 14993,0,"anger, make angry",verb,sŕditi,sŕditi,1,1,0.920,high,3,22,0.000
 23752,1,angry,adj,sŕdity,sŕdity,1,1,0.920,high,3,28,0.000
 14994,0,anger,noun,sŕdnosť,gněv,0,0,0.940,high,3,29,0.857
@@ -13123,7 +13123,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21543,0,"affinity, kinship, similarity",noun,srodstvo,srodstvo,1,1,0.435,low,1,27,0.000
 1364,0,sickle,noun,sŕp,sŕp,1,1,0.960,high,3,11,0.000
 12165,1,August,noun,sŕpėnj,avgust,0,0,0.615,medium,2,12,1.000
-18891,0,fur,noun,sŕsť,sŕst,0,1,0.940,high,3,15,0.000
+18891,0,fur,noun,sŕsť,sŕsť,1,1,0.940,high,3,15,0.000
 18731,0,"chop apart, chop down",verb,srųbati,srubati,0,1,0.464,medium,2,24,0.000
 18733,0,"chop apart, chop down",verb,srųbyvati,zrubovati,0,0,0.412,low,2,22,0.222
 14305,0,"able, dexterous, skilful, skillful, skilled",adj,srųčny,sposobny,0,0,0.920,high,3,38,0.625
@@ -13163,7 +13163,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23936,1,"carefully, assiduously",adv,staranno,staranna,0,0,0.523,medium,2,32,0.125
 730,0,"careful, painstaking, assiduous",adj,staranny,staranny,1,1,0.586,medium,3,30,0.000
 15566,0,elderly,noun,starci,starci,1,1,0.678,medium,2,23,0.000
-15564,1,elder,noun,starec,starec,1,1,0.960,high,3,14,0.000
+15564,1,elder,noun,starec,starėc,0,1,0.960,high,3,14,0.000
 12587,1,"ageing, aging",noun,starěńje,starenje,0,1,0.903,high,3,11,0.000
 12589,0,"age, grow old",verb,starěti,starěti,1,1,0.561,medium,2,12,0.000
 12591,0,"aged, antique, obsolete",adj,starinny,stariny,0,0,0.407,low,2,36,0.125
@@ -13173,7 +13173,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20755,0,Ancient Hebrew,adj,starohebrejsky,starohebrejsky,1,1,0.569,medium,2,16,0.000
 23049,0,old-fashioned,adj,staromodny,staromodny,1,1,0.970,high,3,13,0.000
 17045,1,Old Slavonic,adj,staroslovjansky,staroslovensky,0,0,0.967,high,3,14,0.133
-12595,0,old age,noun,starosť,starost,0,1,0.960,high,3,14,0.000
+12595,0,old age,noun,starosť,starosť,1,1,0.960,high,3,14,0.000
 22791,1,start,noun,start,start,1,1,0.921,high,3,14,0.000
 22792,0,start,verb,startovati,startovati,1,1,0.644,medium,3,9,0.000
 1399,0,old,adj,stary,stary,1,1,0.980,high,3,11,0.000
@@ -13207,7 +13207,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35847,0,"sterilisation, sterilization",noun,sterilizacija,sterilizacija,1,1,0.967,high,3,11,0.000
 35846,0,"sterilise, sterilize",verb,sterilizovati,sterilizovati,1,1,0.596,medium,2,9,0.000
 35845,1,sterile (germless),adj,steriľny,sterilny,0,1,0.970,high,3,17,0.000
-18901,1,"footpath, path, pathway, track, trail, way",noun,stežka,stežka,1,1,0.940,high,3,28,0.000
+18901,1,"footpath, path, pathway, track, trail, way",noun,stežka,stėžka,0,1,0.940,high,3,28,0.000
 21849,0,befall (misfortune etc.),verb,stigati,stihati,0,0,0.412,low,1,23,0.143
 21852,0,"pursue, prosecute",verb,stigati,presledovati,0,0,0.464,medium,1,23,0.667
 21848,1,befall (misfortune etc.),verb,stignųti,stihnouti sę,0,0,0.412,low,1,26,0.417
@@ -13267,7 +13267,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1098,0,page,noun,strånica,stranica,0,1,0.615,medium,2,13,0.000
 6305,0,"adherent, supporter, partisan",noun,strånnik,stranik,0,0,0.523,medium,2,29,0.125
 21593,0,"strange, weird, odd",adj,strånny,divny,0,0,0.940,high,3,18,0.714
-21895,0,passion,noun,strasť,strast,0,1,0.960,high,3,22,0.000
+21895,0,passion,noun,strasť,strasť,1,1,0.960,high,3,22,0.000
 35454,0,passionate,adj,strastny,strastny,1,1,0.459,medium,2,20,0.000
 12655,0,fearing,adj,strašeny,strahy,0,0,0.920,high,3,22,0.375
 36854,0,scarecrow,noun,strašilo,strašilo,1,1,0.920,high,3,25,0.000
@@ -13281,7 +13281,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20756,0,ostrich,noun,straus,straus,1,1,0.639,medium,2,12,0.000
 18910,0,"watchman, guard",noun,stråž,stråž,1,1,0.940,high,3,24,0.000
 5792,0,"police custody, guard (activity), watch (activity), guard (body of men)",noun,straža,stråža,0,1,0.920,high,3,25,0.000
-938,0,"protrude, stick out",verb,strčiti,stŕčati,0,0,0.940,high,3,17,0.143
+938,0,"protrude, stick out",verb,strčiti,strčati,0,0,0.940,high,3,17,0.143
 1954,0,"meet, encounter",verb,strěćati,srěsti,0,0,0.940,high,3,14,0.375
 21899,0,"guard, protect",verb,strěgti,strěći,0,0,0.920,high,3,26,0.286
 36013,1,roof,noun,strěha,strěha,1,1,0.960,high,3,14,0.000
@@ -13307,7 +13307,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 15044,0,"hold back, inhibit",verb,strimyvati,strimovati,0,0,0.412,low,2,26,0.100
 12675,1,wren,noun,strižik,stryžyk,0,0,0.442,low,2,18,0.286
 20189,0,"strictly, severely",adv,strogo,strogo,1,1,0.787,high,2,23,0.000
-33305,0,"strictness, severity, austerity, rigour, rigor",noun,strogosť,strogost,0,1,0.920,high,3,23,0.000
+33305,0,"strictness, severity, austerity, rigour, rigor",noun,strogosť,strogosť,1,1,0.920,high,3,23,0.000
 12676,0,"strict, severe, tough, austere, rigourous, rigorous",adj,strogy,strogy,1,1,0.960,high,3,31,0.000
 21910,0,"order, arrangement, system",noun,stroj,stroj,1,1,0.940,high,3,31,0.000
 21907,0,"form (troops), draw up (troops)",verb,strojiti,strojiti,1,1,0.920,high,3,16,0.000
@@ -13319,7 +13319,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36307,1,structural,adj,strukturny,strukturny,1,1,0.787,high,2,11,0.000
 1097,1,string,noun,struna,struna,1,1,0.960,high,3,14,0.000
 34288,1,"shavings, chips, filings",noun,stružka,stružka,1,1,0.523,medium,1,24,0.000
-1192,1,uncle,noun,stryjec,stryjec,1,1,0.920,high,3,14,0.000
+1192,1,uncle,noun,stryjec,stryjėc,0,1,0.920,high,3,14,0.000
 15040,0,aunt (father’s sister),noun,stryjenka,teta,0,0,0.940,high,3,12,0.667
 1061,0,student,noun,student,student,1,1,0.967,high,3,11,0.000
 30811,1,"cold, cool, chilly, frigid, frosty",adj,studeny,studeny,1,1,0.940,high,3,25,0.000
@@ -13363,7 +13363,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 33717,1,subtitles,noun,subtitry,subtitry,1,1,0.586,medium,2,12,0.000
 37199,1,"subsidy, subvention",noun,subvencija,subvencija,1,1,0.481,medium,1,25,0.000
 17048,0,"being, present, current",adj,sųći,suščestvujuščiji,0,0,0.396,low,1,35,0.750
-36616,0,"essence, main thing",noun,sųćnosť,sųt,0,0,0.920,high,3,29,0.571
+36616,0,"essence, main thing",noun,sųćnosť,sųť,0,0,0.920,high,3,29,0.571
 20192,0,"essentially, fundamentally",adv,sųćstveno,istotna,0,0,0.407,low,1,30,0.667
 20193,0,"crucial, essential, fundamental, paramount",adj,sųćstveny,istotny,0,0,0.407,low,1,35,0.556
 35116,0,contemporary,noun,sųčasnik,sovremenik,0,0,0.551,medium,2,13,0.600
@@ -13400,7 +13400,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35239,0,superhero,noun,superheroj,superhrej,0,0,0.741,high,2,12,0.200
 1445,0,supermarket,noun,supermarket,supermarket,1,1,0.970,high,3,11,0.000
 35050,0,"rivalry, competition",noun,sųperničstvo,suparništvo,0,0,0.435,low,1,21,0.250
-1431,1,"rival, competitor",noun,sųpernik,sųpernik,1,1,0.920,high,3,23,0.000
+1431,1,"rival, competitor",noun,sųpernik,sųpėrnik,0,1,0.920,high,3,23,0.000
 37009,0,supernova,noun,supernova,supernova,1,1,0.724,high,2,11,0.000
 36869,0,superpower (ability),noun,supersila,supersila,1,1,0.586,medium,2,15,0.000
 35459,0,juxtapose,verb,sųpostaviti,porovnati,0,0,0.412,low,1,15,0.636
@@ -13433,7 +13433,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5731,0,"neighbouring, neighboring, adjacent",adj,sųsědny,sųsedny,0,1,0.921,high,3,25,0.000
 5732,1,"neighbour’s, neighbor’s",adj,sųsědsky,susedsky,0,1,0.805,high,3,15,0.000
 5625,0,"neighbourhood, neighborhood",noun,sųsědstvo,susedstvo,0,1,0.851,high,3,22,0.000
-37039,0,"gopher, pouched marmot, ground squirrel",noun,suslik,susel,0,0,0.920,high,3,14,0.500
+37039,0,"gopher, pouched marmot, ground squirrel",noun,suslik,susėl,0,0,0.920,high,3,14,0.500
 16774,1,concentrate,verb,sųsrědotočati,soustredovati,0,0,0.412,low,1,15,0.385
 36706,0,"concentrated, focused, intent",adj,sųsrědotočeny,sȯsredotočeny,0,0,0.523,medium,2,16,0.077
 16775,0,concentrate,verb,sųsrědotočiti,soustrediti,0,0,0.412,low,1,16,0.462
@@ -13482,7 +13482,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 6219,0,consciously,adv,svědomo,svadoma,0,0,0.459,medium,2,15,0.286
 6217,0,"consciousness, awareness",noun,svědomosť,svesť,0,0,0.435,low,1,24,0.444
 6218,1,conscious,adj,svědomy,sȯznaniy,0,0,0.459,medium,2,22,0.750
-24005,0,father-in-law (husband’s father),noun,svekr,test,0,0,0.941,high,3,13,0.800
+24005,0,father-in-law (husband’s father),noun,svekr,tėsť,0,0,0.941,high,3,13,0.800
 24006,0,mother-in-law (husband’s mother),noun,svekrȯv,svekry,0,0,0.960,high,3,14,0.286
 3137,0,world,noun,svět,svět,1,1,0.960,high,3,14,0.000
 35709,0,"sanctuary (consecrated place), shrine",noun,svętilišče,svatyna,0,0,0.702,medium,2,23,0.700
@@ -13545,7 +13545,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22267,0,code (laws),noun,svod,kodeks,0,0,0.505,medium,2,18,0.833
 22268,0,procurer,noun,svodnik,svodnik,1,1,0.488,medium,2,17,0.000
 1099,0,one’s own,pron,svoj,svoj,1,1,0.980,high,3,11,0.000
-22017,0,brother-in-law,noun,svojak,zęt,0,0,0.920,high,3,22,1.000
+22017,0,brother-in-law,noun,svojak,zęť,0,0,0.920,high,3,22,1.000
 22020,0,wilful,adj,svojevlastny,svevolny,0,0,0.695,medium,3,21,0.500
 22304,0,wilful,adj,svojevoljny,svevolny,0,0,0.805,high,3,22,0.273
 34877,1,"timely, on time",adv,svojevrěmenno,svoevremeno,0,0,0.459,medium,2,20,0.154
@@ -13621,9 +13621,9 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1468,0,"boss, chief",noun,šef,šef,1,1,0.967,high,3,18,0.000
 37077,0,Scheldt,noun,Šeľda,šelda,0,1,0.914,high,3,11,0.000
 33271,0,whisper,noun,šepot,šepȯt,0,1,0.980,high,3,13,0.000
-33270,1,whisper,verb,šeptati,šeptati,1,1,0.960,high,3,11,0.000
+33270,1,whisper,verb,šeptati,šėptati,0,1,0.960,high,3,11,0.000
 18807,0,hornet,noun,šeršenj,sŕhenj,0,0,0.960,high,3,11,0.429
-1739,0,six,num,šesť,šest,0,1,0.960,high,3,11,0.000
+1739,0,six,num,šesť,šesť,1,1,0.960,high,3,11,0.000
 3111,0,sixty,num,šesťdesęt,šestdesat,0,0,0.632,medium,3,11,0.111
 23688,1,sixtieth,num,šesťdesęty,šestdeset,0,0,0.632,medium,3,11,0.100
 16456,0,six kinds of,num,šesteraky,šestividovoj,0,0,0.459,medium,1,11,0.667
@@ -13635,11 +13635,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 16402,1,one sixth,num,šestina,odna šosta,0,0,0.702,medium,3,11,0.800
 18808,1,insect,noun,šestinožka,nasekomoe,0,0,0.523,medium,2,15,0.800
 12831,0,hexagon,noun,šestivųgȯľnik,šestiugolnik,0,0,0.586,medium,3,14,0.077
-16460,1,six,num,šestka,šest,0,0,0.920,high,3,13,0.333
+16460,1,six,num,šestka,šesť,0,0,0.920,high,3,13,0.333
 1583,0,sixteen,num,šestnadsęť,šestnadcat,0,0,0.459,medium,1,11,0.200
 23684,1,sixteenth,num,šestnadsęty,šesnaesti,0,0,0.488,medium,2,11,0.364
 1581,1,sixth,num,šesty,šest,0,0,0.980,high,3,11,0.200
-23260,0,stitch,noun,šev,šev,1,1,0.960,high,3,13,0.000
+23260,0,stitch,noun,šev,šėv,0,1,0.960,high,3,13,0.000
 37301,0,cipher (code),noun,šifr,šifr,1,1,0.970,high,3,10,0.000
 12835,0,encryption,noun,šifrovańje,šifrovanje,0,1,0.765,high,2,15,0.000
 12840,0,encrypted,adj,šifrovany,zašifrovaniji,0,0,0.575,medium,2,14,0.385
@@ -13728,10 +13728,10 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 20203,0,taboo,noun,tabu,tabu,1,1,0.970,high,3,12,0.000
 5996,1,Tajikistan,noun,Tadžikistan,tadžikistan,1,1,0.970,high,3,11,0.000
 34023,0,"melt, thaw, unfreeze",verb,tajati,topiti,0,0,0.839,high,1,23,0.500
-30864,1,mysterious,adj,tajemny,tajenstveny,0,0,0.808,high,1,17,0.455
+30864,1,mysterious,adj,tajemny,tajėnstveny,0,0,0.808,high,1,17,0.455
 4460,0,"concealment, suppression",noun,tajeńje,utajovanje,0,0,0.470,medium,2,25,0.400
-23302,0,mysterious,adj,tajenstveny,tajenstveny,1,1,0.862,high,1,18,0.000
-23303,0,mystery,noun,tajenstvo,tajenstvo,1,1,0.856,high,1,17,0.000
+23302,0,mysterious,adj,tajenstveny,tajėnstveny,0,1,0.862,high,1,18,0.000
+23303,0,mystery,noun,tajenstvo,tajėnstvo,0,1,0.856,high,1,17,0.000
 37167,0,sacrament,noun,tajėństvo,tajnstvo,0,0,0.523,medium,2,13,0.111
 32345,0,typhoon,noun,tajfun,tajfun,1,1,0.970,high,3,12,0.000
 37028,0,taiga,noun,tajga,tajga,1,1,0.970,high,3,11,0.000
@@ -13829,12 +13829,12 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35137,0,"subject area, subject matter",noun,tematika,tematika,1,1,0.794,high,3,17,0.000
 37343,0,timbre,noun,tembr,tembr,1,1,0.970,high,3,19,0.000
 34670,0,"get dark, darken",verb,temněti,temneti,0,1,0.596,medium,2,17,0.000
-30879,0,dungeon,noun,temnica,temnica,1,1,0.940,high,3,28,0.000
+30879,0,dungeon,noun,temnica,tėmnica,0,1,0.940,high,3,28,0.000
 18958,0,purple,adj,temnolavandovy,fioletovyji,0,0,0.523,medium,1,17,0.786
 5116,1,darkness,noun,temnosť,tema,0,0,0.940,high,3,23,0.571
 15075,0,darkness,noun,temnota,tema,0,0,0.940,high,3,21,0.429
 30880,0,ignorance,noun,temnota,neznalosť,0,0,0.407,low,1,24,0.667
-1749,0,dark,adj,temny,temny,1,1,0.960,high,3,19,0.000
+1749,0,dark,adj,temny,tėmny,0,1,0.960,high,3,19,0.000
 1486,0,temperature,noun,temperatura,temperatura,1,1,0.903,high,3,12,0.000
 36824,0,tempo,noun,tempo,tempo,1,1,0.970,high,3,11,0.000
 37087,1,Thames,noun,Temza,temza,1,1,0.970,high,3,11,0.000
@@ -13842,7 +13842,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 1483,0,tennis,noun,tenis,tenis,1,1,0.970,high,3,11,0.000
 2110,0,T-shirt,noun,teniska,futbolka,0,0,0.523,medium,1,17,0.750
 18959,0,"shadow, shade",noun,těnj,těnj,1,1,0.960,high,3,12,0.000
-1577,0,thin,adj,tenky,tenky,1,1,0.960,high,3,12,0.000
+1577,0,thin,adj,tenky,tėnky,0,1,0.960,high,3,12,0.000
 32997,0,tenor,noun,tenor,tenor,1,1,0.970,high,3,11,0.000
 18960,0,"theologist, theologian",noun,teolog,teolog,1,1,0.967,high,3,15,0.000
 37435,0,theological,adj,teologičny,teologičny,1,1,0.586,medium,3,13,0.000
@@ -13878,8 +13878,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22093,0,"ravine, pass (mountain)",noun,těsnina,uščelje,0,0,0.396,low,1,33,1.000
 3894,0,"tightly, narrowly, closely",adv,těsno,tesno,0,1,0.805,high,3,24,0.000
 416,1,"tight, narrow, close",adj,těsny,těsny,1,1,0.960,high,3,24,0.000
-2388,0,test,noun,test,test,1,1,0.980,high,3,13,0.000
-24003,1,father-in-law (wife’s father),noun,tesť,test,0,1,0.960,high,3,14,0.000
+2388,0,test,noun,test,tėsť,0,1,0.980,high,3,13,0.000
+24003,1,father-in-law (wife’s father),noun,tesť,tėsť,0,1,0.960,high,3,14,0.000
 4759,0,testament (will),noun,testament,zavět,0,0,0.920,high,3,20,0.667
 18963,1,dough,noun,těsto,těsto,1,1,0.960,high,3,13,0.000
 1443,0,test,verb,testovati,testovati,1,1,0.478,medium,2,15,0.000
@@ -13896,7 +13896,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22034,1,difficultly,adv,tęžko,trudno,0,0,0.575,medium,3,28,0.667
 22038,1,severely (punishment),adv,tęžko,surovo,0,0,0.575,medium,2,20,0.833
 18966,0,difficulty,noun,tęžkosť,težkosť,0,1,0.407,low,1,23,0.000
-22039,0,heaviness,noun,tęžkosť,tęžest,0,0,0.920,high,3,16,0.286
+22039,0,heaviness,noun,tęžkosť,tęžesť,0,0,0.920,high,3,16,0.286
 5,1,"heavy, weighty",adj,tęžky,tęžky,1,1,0.960,high,3,17,0.000
 1970,1,"difficult, hard (difficult), burdensome",adj,tęžky,tęžky,1,1,0.960,high,3,29,0.000
 3654,0,"grave, serious (illness, crime), hard (work), arduous",adj,tęžky,tęžky,1,1,0.960,high,3,30,0.000
@@ -13989,7 +13989,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 37333,0,"tonality, tone, pitch, key",noun,tonaľnosť,tonaľnosť,1,1,0.523,medium,2,16,0.000
 37334,0,tonal,adj,tonaľny,tonalny,0,1,0.970,high,3,14,0.000
 37330,0,tonic (music),noun,tonika,tonika,1,1,0.970,high,3,10,0.000
-30898,0,thin,adj,tȯnky,tenky,0,0,0.960,high,3,11,0.200
+30898,0,thin,adj,tȯnky,tėnky,0,0,0.960,high,3,11,0.200
 5337,0,drown,verb,tonųti,topnųti,0,0,0.940,high,3,16,0.143
 21598,0,sink,verb,tonųti,topnųti,0,0,0.940,high,3,12,0.143
 30899,1,Jerusalem artichoke,noun,topinambur,topinambur,1,1,0.811,high,3,17,0.000
@@ -14072,19 +14072,19 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3902,0,"shake, quake, jolt",verb,tręsti,tręsti,1,1,0.884,high,2,22,0.000
 13087,0,one third,num,tretina,tretina,1,1,0.534,medium,3,16,0.000
 20213,0,thirdly,adv,treťje,v-tretih,0,0,0.396,low,1,11,0.500
-439,0,third,num,treťji,tret,0,0,0.960,high,3,11,0.333
+439,0,third,num,treťji,treť,0,0,0.960,high,3,11,0.333
 2961,0,"alert, anxiety, disquiet",noun,trevoga,tryvoga,0,0,0.920,high,3,32,0.143
 34829,0,worry,verb,trevožiti,znepokojovati,0,0,0.412,low,1,18,0.692
 32486,0,"anxious, disturbed, troubled",adj,trevožny,trvožny,0,0,0.940,high,3,37,0.125
 34673,0,sober up,verb,trězvěti,trezveti,0,1,0.464,medium,2,9,0.000
 18991,0,sober,adj,trězvy,trězvy,1,1,0.960,high,3,12,0.000
-2348,0,market,noun,trg,tŕg,0,1,0.940,high,3,24,0.000
+2348,0,market,noun,trg,trg,1,1,0.940,high,3,24,0.000
 22130,0,"pull, tear, tug, jerk",verb,trgati,torgac,0,0,0.464,medium,2,25,0.500
 22134,0,"pick, pluck",verb,trgati,zbirac,0,0,0.464,medium,2,17,1.000
 22136,0,"pick, pluck",verb,trgnųti,utrhnouti,0,0,0.412,low,1,21,0.333
 22137,0,"pull, tear, tug, jerk",verb,trgnųti,tarhanųc,0,0,0.464,medium,2,27,0.625
 20216,1,"trading, business, dealings",noun,trgovańje,trgovanje,0,1,0.481,medium,1,28,0.000
-3326,0,"trade, deal, merchandize, do business",verb,trgovati,tŕgovati,0,1,0.843,high,1,18,0.000
+3326,0,"trade, deal, merchandize, do business",verb,trgovati,trgovati,1,1,0.843,high,1,18,0.000
 1413,1,"merchant, trader, monger",noun,trgovec,trgovec,1,1,0.851,high,3,24,0.000
 20221,0,market place,noun,trgovišče,tržnica,0,0,0.499,medium,2,25,0.667
 2300,0,"commerce, marketing",noun,trgovja,torgovla,0,0,0.459,medium,1,19,0.250
@@ -14175,12 +14175,12 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 13110,0,tournament,noun,turnir,turnir,1,1,0.787,high,2,14,0.000
 3694,0,ink,noun,tuš,tuš,1,1,0.794,high,3,22,0.000
 15606,0,here,adv,tut,tu,0,0,0.920,high,3,19,0.333
-15607,0,now,adv,tutčas,segada,0,0,0.940,high,3,16,1.000
+15607,0,now,adv,tutčas,sėgada,0,0,0.940,high,3,16,1.000
 15609,1,"immediately, at once, right now",adv,tutčasno,okamžite,0,0,0.407,low,1,29,1.000
 15610,0,immediacy,adv,tutčasnosť,bezodkladnost,0,0,0.407,low,1,22,0.615
 15611,0,"present, current",adj,tutčasny,nynešniji,0,0,0.396,low,1,27,1.000
 15612,1,immediate,adj,tutčasny,okamžity,0,0,0.407,low,1,25,0.875
-15613,0,today,adv,tutdenj,danes,0,0,0.960,high,3,14,0.857
+15613,0,today,adv,tutdenj,danėś,0,0,0.960,high,3,14,0.857
 15614,0,today’s,adj,tutdenny,dnešny,0,0,0.625,medium,2,12,0.625
 36996,1,this,pron,tuto,to,0,0,0.604,medium,3,17,0.500
 1534,1,"this, these",pron,tutoj,t,0,0,0.920,high,3,18,0.800
@@ -14194,8 +14194,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19010,1,artwork,noun,tvoŕba,proizvedenje,0,0,0.396,low,1,21,0.917
 19011,0,"creative work, creativity",noun,tvorčestvo,tvorčasc,0,0,0.459,medium,2,21,0.400
 1548,0,creative,adj,tvorčji,tvorči,0,0,0.523,medium,2,16,0.143
-35771,0,creator,noun,tvorec,tvorec,1,1,0.920,high,3,20,0.000
-4841,0,creator,noun,tvoritelj,tvorec,0,0,0.920,high,3,21,0.444
+35771,0,creator,noun,tvorec,tvorėc,0,1,0.920,high,3,20,0.000
+4841,0,creator,noun,tvoritelj,tvorėc,0,0,0.920,high,3,21,0.444
 3030,0,"create, form",verb,tvoriti,tvoriti,1,1,0.920,high,3,23,0.000
 22144,1,"material, substance",noun,tvorivo,material,0,0,0.811,high,3,27,0.750
 17051,0,creating,noun,tvorjeńje,stvaranje,0,0,0.597,medium,3,22,0.444
@@ -14241,7 +14241,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2129,0,"kill, assassinate",verb,ubiti,ubiti,1,1,0.543,medium,2,17,0.000
 2130,0,"kill, assassinate",verb,ubivati,zabijati,0,0,0.412,low,1,15,0.375
 19019,0,"miserable, wretched, shabby",adj,ubogy,ubogy,1,1,0.940,high,3,29,0.000
-30934,0,towel,noun,ubrus,kŕpa,0,0,0.920,high,3,18,0.800
+30934,0,towel,noun,ubrus,krpa,0,0,0.920,high,3,18,0.800
 32790,1,"serviette, napkin",noun,ubrus,salfetka,0,0,0.523,medium,2,16,1.000
 32792,0,tablecloth,noun,ubrus,obrus,0,0,0.920,high,3,14,0.200
 16873,1,spellbound,adj,učarovany,očarovany,0,0,0.523,medium,2,22,0.111
@@ -14596,7 +14596,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 13410,0,complicate,verb,utęžati,usložnati,0,0,0.398,low,1,16,0.444
 13411,0,complicate,verb,utęžiti,usložniti,0,0,0.398,low,1,16,0.444
 36461,0,utilitarian,adj,utilitarny,utilitarny,1,1,0.857,high,3,23,0.000
-13412,1,"cloth, wipe",noun,utirak,kŕpa,0,0,0.814,high,1,26,0.833
+13412,1,"cloth, wipe",noun,utirak,krpa,0,0,0.814,high,1,26,0.833
 13414,0,wipe,verb,utirati,brysati,0,0,0.829,high,1,19,0.571
 34180,0,"silence, quiet down, hush",verb,utišati,utišovati,0,0,0.508,medium,2,22,0.222
 34183,1,"silence, quiet down, hush",verb,utišiti,utišiti,1,1,0.508,medium,2,19,0.000
@@ -14780,7 +14780,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23796,1,evening,adj,večerny,večery,0,0,0.920,high,3,13,0.143
 1637,1,in the evening,adv,večerom,večer,0,0,0.920,high,3,17,0.286
 13524,0,"forever, eternally",adv,věčno,večno,0,1,0.921,high,3,22,0.000
-15634,1,perpetuity,noun,věčnosť,věčnost,0,1,0.960,high,3,12,0.000
+15634,1,perpetuity,noun,věčnosť,věčnosť,1,1,0.960,high,3,12,0.000
 1657,0,"perpetual, eternal",adj,věčny,věčny,1,1,0.980,high,3,14,0.000
 37052,0,"after all, indeed, surely",adv,věď,ved,0,1,0.523,medium,2,28,0.000
 15126,0,knowledge,noun,věda,znanje,0,0,0.660,medium,2,19,1.000
@@ -14848,7 +14848,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 4238,1,humid,adj,velžny,vȯlgky,0,0,0.795,high,1,16,0.500
 31103,0,vein,noun,vena,žila,0,0,0.920,high,3,13,0.750
 31105,0,vendetta,noun,vendeta,vendeta,1,1,0.921,high,3,16,0.000
-704,0,"wreath, garland",noun,věnec,věnec,1,1,0.980,high,3,16,0.000
+704,0,"wreath, garland",noun,věnec,věnėc,0,1,0.980,high,3,16,0.000
 19177,1,Venus,noun,Venera,venera,1,1,0.741,high,2,12,0.000
 31107,0,veneric,adj,veneričny,veneričny,1,1,0.678,medium,3,12,0.000
 16792,1,Venezuela,noun,Venezuela,venezuela,1,1,0.615,medium,2,11,0.000
@@ -14896,17 +14896,17 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 31143,0,verst,noun,versta,vŕsta,0,0,0.980,high,3,11,0.167
 31144,1,verse,noun,verš,verš,1,1,0.650,medium,2,17,0.000
 20287,0,vertical,adj,vertikaľny,vertikalny,0,1,0.868,high,3,23,0.000
-1676,0,"all, entire",pron,veś,veś,1,1,0.940,high,3,26,0.000
+1676,0,"all, entire",pron,veś,vėś,0,1,0.940,high,3,26,0.000
 31150,0,village,noun,veś,selo,0,0,0.940,high,3,15,0.750
 22342,1,everywhere,adv,vesde,všude,0,0,0.407,low,1,22,0.400
 13581,0,"liven up, gladden",verb,veseliti,veseliti,1,1,0.561,medium,2,15,0.000
 980,1,entertainment,noun,veseljańje,zabava,0,0,0.920,high,3,25,0.900
 6039,0,"cheering, merriment, fun, gaiety",noun,veseľje,veselje,0,1,0.615,medium,3,17,0.000
-13588,1,"enjoyment, joy",noun,veselosť,radost,0,0,0.940,high,3,25,0.625
+13588,1,"enjoyment, joy",noun,veselosť,radosť,0,0,0.940,high,3,25,0.625
 16383,0,"joyful, cheerful, fun, merry",adj,vesely,vesely,1,1,0.960,high,3,26,0.000
 31151,0,"oar, paddle",noun,veslo,veslo,1,1,0.980,high,3,14,0.000
 328,1,"spring, springtime",noun,vesna,vesna,1,1,0.960,high,3,13,0.000
-3073,1,news,noun,věsť,věst,0,1,0.920,high,3,27,0.000
+3073,1,news,noun,věsť,věsť,1,1,0.920,high,3,27,0.000
 13592,0,news,noun,věsti,vesti,0,1,0.615,medium,2,21,0.000
 13593,1,lead,verb,vesti,vesti,1,1,0.960,high,3,11,0.000
 31155,0,vestibule,noun,vestibulj,vestibul,0,0,0.713,medium,3,22,0.111
@@ -15027,7 +15027,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 16303,0,vitamin,noun,vitamin,vitamin,1,1,0.970,high,3,11,0.000
 15148,0,welcome,noun,vitańje,vitanne,0,0,0.407,low,2,19,0.143
 2981,0,welcome,verb,vitati,vitati,1,1,0.940,high,3,17,0.000
-19222,0,"knight, Slavic warrior, hero",noun,vitęź,vitędz,0,0,0.940,high,3,29,0.167
+19222,0,"knight, Slavic warrior, hero",noun,vitęź,vitędź,0,0,0.940,high,3,29,0.167
 695,0,victory,noun,vitęzstvo,poběda,0,0,0.940,high,3,12,0.889
 31233,0,twist,verb,viti,viti,1,1,0.888,high,2,25,0.000
 33571,0,#twine,verb,viti,viti,1,1,0.460,medium,2,25,0.000
@@ -15064,7 +15064,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 22517,1,drag,verb,vlåčiti,vlačiti,0,1,0.530,medium,2,18,0.000
 22518,0,harrow (field),verb,vlåčiti,braniti,0,0,0.513,medium,2,12,0.429
 2528,0,"#government, reign",noun,vlada,vlada,1,1,0.608,medium,2,23,0.000
-22468,0,"rule, sway",noun,vlada,vlåst,0,0,0.940,high,3,15,0.400
+22468,0,"rule, sway",noun,vlada,vlåsť,0,0,0.940,high,3,15,0.400
 13668,0,ruler,noun,vladaŕ,vladar,0,1,0.545,medium,2,21,0.000
 13669,1,ruler,noun,vladaŕka,vladarka,0,1,0.453,medium,2,20,0.000
 22471,0,"ruler, sovereign",noun,vladec,vladca,0,0,0.523,medium,1,24,0.333
@@ -15079,8 +15079,8 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 23398,0,burglar,noun,vlamyvatelj,provalnik,0,0,0.435,low,1,25,0.818
 2529,0,hair,noun,vlås,vlås,1,1,0.960,high,3,16,0.000
 19225,0,"hairy, hirsute",adj,vlåsaty,vlasaty,0,1,0.586,medium,2,26,0.000
-6320,1,"power, rule, sway",noun,vlasť,vlåst,0,1,0.940,high,3,32,0.000
-13677,0,authority,noun,vlasť,vlåst,0,1,0.940,high,3,16,0.000
+6320,1,"power, rule, sway",noun,vlasť,vlåsť,0,1,0.940,high,3,32,0.000
+13677,0,authority,noun,vlasť,vlåsť,0,1,0.940,high,3,16,0.000
 15741,0,owner,noun,vlastnica,vladelica,0,0,0.396,low,1,21,0.333
 22481,1,property (something owned),noun,vlastničstvo,sobstvenosť,0,0,0.459,medium,2,25,0.750
 24014,1,ownership,noun,vlastničstvo,valodanne,0,0,0.523,medium,1,17,0.833
@@ -15150,13 +15150,13 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 2541,0,"leader, chieftain",noun,vođ,vođ,1,1,0.960,high,3,27,0.000
 31282,0,rein,noun,vođa,lejcy,0,0,0.459,medium,2,25,1.000
 20290,0,"behaviour, behavior",noun,vođeńje,povedenje,0,0,0.459,medium,2,14,0.444
-36984,0,"soldier, warrior",noun,vojak,bojec,0,0,0.920,high,3,33,0.600
+36984,0,"soldier, warrior",noun,vojak,bojėc,0,0,0.920,high,3,33,0.600
 3108,0,enter,verb,vȯjdti,vojti,0,0,0.530,medium,2,10,0.167
-2124,0,military,adj,vojenny,vojenny,1,1,0.766,high,0,19,0.000
-13732,0,war,adj,vojenny,vojenny,1,1,0.920,high,3,15,0.000
+2124,0,military,adj,vojenny,vojėnny,0,1,0.766,high,0,19,0.000
+13732,0,war,adj,vojenny,vojėnny,0,1,0.920,high,3,15,0.000
 5340,0,"fight, combat",verb,vojevati,vojevati,1,1,0.920,high,3,19,0.000
 15153,0,militant,adj,vojevničji,bojevy,0,0,0.750,high,0,24,0.600
-19241,1,"fighter, warrior",noun,vojevnik,bojec,0,0,0.920,high,3,32,0.625
+19241,1,"fighter, warrior",noun,vojevnik,bojėc,0,0,0.920,high,3,32,0.625
 22247,1,voivode,noun,vojevoda,vojevoda,1,1,0.980,high,3,11,0.000
 36775,0,voivodship,noun,vojevodstvo,vojvodstvo,0,0,0.868,high,3,11,0.091
 5752,0,"soldier, warrior",noun,vojin,vojin,1,1,0.940,high,3,27,0.000
@@ -15278,7 +15278,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 5950,0,"commemorate, recall, recollect",verb,vȯzpomněti,pomanuti,0,0,0.398,low,1,21,0.500
 16776,0,perception,noun,vȯzprijęťje,vnimani,0,0,0.407,low,1,22,0.818
 802,0,age,noun,vȯzråst,věk,0,0,0.920,high,3,15,0.857
-21636,0,"height, stature",noun,vȯzråst,rast,0,0,0.920,high,3,24,0.429
+21636,0,"height, stature",noun,vȯzråst,råst,0,0,0.920,high,3,24,0.429
 13810,0,become an adult,verb,vȯzrastati,odrastati,0,0,0.425,low,1,11,0.200
 16419,1,become an adult,verb,vȯzråsti,vyrasti,0,0,0.464,medium,1,10,0.250
 23051,1,"adult, grown-up",noun,vȯzråstla,dorosla,0,0,0.523,medium,2,15,0.444
@@ -15341,13 +15341,13 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21199,0,harness,verb,vpręgati,zapragati,0,0,0.412,low,1,13,0.333
 21200,0,harness,verb,vpręgti,zaprahnouti,0,0,0.412,low,1,15,0.636
 17062,0,for the first time,adv,vpŕvo,pȯrvo,0,0,0.407,low,1,14,0.400
-1837,0,sparrow,noun,vråbec,vråbec,1,1,0.960,high,3,12,0.000
+1837,0,sparrow,noun,vråbec,vråbėc,0,1,0.960,high,3,12,0.000
 1839,1,"return (give back), give back",verb,vraćati,vracati,0,0,0.460,medium,2,12,0.143
 13825,0,"foe, enemy",noun,vråg,vråg,1,1,0.940,high,3,17,0.000
 31350,0,raven,noun,vrån,vrån,1,1,0.920,high,3,14,0.000
 1838,0,crow,noun,vråna,vråna,1,1,0.980,high,3,11,0.000
 1911,0,gate,noun,vråta,vråta,1,1,0.960,high,3,26,0.000
-3109,0,door,noun,vråta,dvero,0,0,0.940,high,3,15,1.000
+3109,0,door,noun,vråta,dvėro,0,0,0.940,high,3,15,1.000
 23252,0,porter,noun,vråtaŕ,portir,0,0,0.505,medium,2,25,0.667
 32443,0,#janitor,noun,vråtaŕ,domar,0,0,0.435,low,1,25,0.667
 31355,1,tansy,noun,vråtič,vråtič,1,1,0.920,high,3,11,0.000
@@ -15358,7 +15358,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 31357,0,tell fortunes,verb,vråžiti,vråžiti,1,1,0.920,high,3,24,0.000
 19253,0,fortune teller,noun,vråžka,varožka,0,0,0.523,medium,2,25,0.286
 13565,0,willow,noun,vŕba,vŕba,1,1,0.980,high,3,13,0.000
-31359,1,"growl, grumble",verb,vrčati,vŕčati,0,1,0.920,high,3,14,0.000
+31359,1,"growl, grumble",verb,vrčati,vrčati,1,1,0.920,high,3,14,0.000
 36257,0,"bag, sack",noun,vrěća,vrěća,1,1,0.920,high,3,22,0.000
 31360,1,ulcer,noun,vrěd,vrěd,1,1,0.920,high,3,18,0.000
 23953,0,"harmful, nasty",adj,vrědny,vrědny,1,1,0.920,high,3,25,0.000
@@ -15501,7 +15501,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 31407,0,pothole,noun,vyboj,vyboina,0,0,0.523,medium,1,22,0.429
 5011,0,otter,noun,vydra,vydra,1,1,0.980,high,3,11,0.000
 4375,1,comfort,noun,vygoda,komfort,0,0,0.523,medium,1,16,0.857
-15139,0,benefit,noun,vygoda,korist,0,0,0.920,high,3,19,1.000
+15139,0,benefit,noun,vygoda,korisť,0,0,0.920,high,3,19,1.000
 13925,0,comfortable,adv,vygodno,udobno,0,0,0.523,medium,2,21,0.571
 4376,0,comfortable,adj,vygodny,udobny,0,0,0.940,high,3,21,0.571
 16541,0,"exit, quit",verb,vyjdti,vyjti,0,0,0.530,medium,2,10,0.167
@@ -15532,7 +15532,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 3459,1,behind,adv,vzadu,zad,0,0,0.453,medium,2,24,0.400
 13986,0,mutually,adv,vzajemno,vzajemno,1,1,0.829,high,3,15,0.000
 23052,0,"mutuality, reciprocity",noun,vzajemnosť,vzajemnosť,1,1,0.713,medium,3,20,0.000
-1804,1,"mutual, reciprocal",adj,vzajemny,vzajemny,1,1,0.960,high,3,20,0.000
+1804,1,"mutual, reciprocal",adj,vzajemny,vzajėmny,0,1,0.960,high,3,20,0.000
 15656,1,"interaction, interplay",noun,vzajemodějańje,interakcija,0,0,0.505,medium,2,17,0.857
 13989,0,interact,verb,vzajemodějati,međudelovati,0,0,0.425,low,1,12,0.769
 562,1,"interaction, interplay",noun,vzajemodějstvo,vzaimodejstvie,0,0,0.459,medium,2,15,0.286
@@ -15838,7 +15838,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21229,0,"cufflink, collar stud",noun,zaponka,zaponka,1,1,0.523,medium,1,15,0.000
 21230,0,bolt (on a door),noun,zapor,reze,0,0,0.499,medium,1,25,1.000
 21231,0,constipation,noun,zapor,zapor,1,1,0.459,medium,1,19,0.000
-22241,0,commandment,noun,zapověď,zapověd,0,1,0.920,high,3,22,0.000
+22241,0,commandment,noun,zapověď,zapověď,1,1,0.920,high,3,22,0.000
 34510,1,belated,adj,zapozdněly,zapozdalyji,0,0,0.396,low,1,23,0.364
 21659,1,acquaint,verb,zapoznati,obeznamiti,0,0,0.412,low,1,12,0.600
 21660,1,acquaint,verb,zapoznavati,obeznamovati,0,0,0.412,low,1,12,0.500
@@ -15859,10 +15859,10 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 21661,0,earn,verb,zaråbotati,zarobiti,0,0,0.412,low,2,13,0.400
 21662,0,earn,verb,zaråbotyvati,zarabatyvati,0,0,0.398,low,1,11,0.083
 33069,1,overgrow,verb,zarastati,zarastati,1,1,0.693,medium,3,10,0.000
-14162,0,overgrow,verb,zaråsti,zarasti,0,1,0.873,high,3,13,0.000
+14162,0,overgrow,verb,zaråsti,zaråsti,1,1,0.873,high,3,13,0.000
 31546,0,"infection, contagion",noun,zaraza,zaraza,1,1,0.920,high,3,22,0.000
 21246,1,"infect, contaminate",verb,zaraziti,zaraziti,1,1,0.861,high,2,18,0.000
-14163,1,infectious,adj,zarazny,zarazny,1,1,0.772,high,2,14,0.000
+14163,1,infectious,adj,zarazny,zaråzny,0,1,0.772,high,2,14,0.000
 21244,0,"infect, contaminate",verb,zaražati,zaražac,0,0,0.464,medium,2,21,0.250
 5841,0,"infection, contamination",noun,zaražeńje,zaraženne,0,0,0.523,medium,1,21,0.111
 31548,1,rusty,adj,zarđavěly,zaržavely,0,0,0.407,low,2,22,0.100
@@ -15984,7 +15984,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 36324,0,addiction,noun,zavisnosť,zavisimosť,0,0,0.459,medium,2,24,0.200
 17069,0,dependent,adj,zavisny,zaležny,0,0,0.523,medium,2,13,0.429
 36325,1,addicted,adj,zavisny,zaležny,0,0,0.407,low,1,15,0.429
-22429,0,envy,noun,zavisť,zavist,0,1,0.960,high,3,17,0.000
+22429,0,envy,noun,zavisť,zavisť,1,1,0.960,high,3,17,0.000
 22430,1,envious,adj,zavistny,zavistny,1,1,0.505,medium,2,21,0.000
 31592,0,curl,noun,zavitȯk,zavitok,0,1,0.459,medium,1,28,0.000
 22514,0,"seize, take possession of",verb,zavladnųti,zavlådati,0,0,0.794,high,2,21,0.200
@@ -16044,7 +16044,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 35806,0,terrestrial,adj,zemsky,zemny,0,0,0.920,high,3,20,0.333
 31617,0,pupil (eye),noun,zěnica,zěnica,1,1,0.960,high,3,17,0.000
 31618,1,zenith,noun,zenit,zenit,1,1,0.970,high,3,15,0.000
-1925,0,son-in-law,noun,zęť,zęt,0,1,0.960,high,3,11,0.000
+1925,0,son-in-law,noun,zęť,zęť,1,1,0.960,high,3,11,0.000
 23717,0,yawn,verb,zěvati,zěvati,1,1,0.920,high,3,12,0.000
 23718,0,yawn,verb,zěvnųti,zevnuti,0,1,0.675,medium,3,11,0.000
 31622,0,zigzag,noun,zigzag,cik-cak,0,0,0.562,medium,2,12,0.714
@@ -16224,7 +16224,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 395,1,iron,noun,želězo,želězo,1,1,0.980,high,3,12,0.000
 31702,1,ferroconcrete,noun,želězobeton,železobeton,0,1,0.713,medium,3,11,0.000
 702,1,"sting, prick",noun,žęlo,žęlo,1,1,0.960,high,3,13,0.000
-2208,0,acorn,noun,želųď,želųd,0,1,0.960,high,3,12,0.000
+2208,0,acorn,noun,želųď,želųď,1,1,0.960,high,3,12,0.000
 16,0,stomach,noun,želųdȯk,želųdȯk,1,1,0.940,high,3,14,0.000
 2910,0,woman,noun,žena,žena,1,1,0.960,high,3,12,0.000
 3231,1,wife,noun,žena,žena,1,1,0.960,high,3,20,0.000
@@ -16256,7 +16256,7 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 19460,0,"living, livelihood",noun,živobyťje,živobyti,0,0,0.407,low,1,24,0.222
 21251,1,"painting, pictorial art.",noun,živopis,živopis,1,1,0.586,medium,2,21,0.000
 21253,0,painter,noun,živopisec,žyvapisec,0,0,0.523,medium,1,15,0.222
-20327,0,"liveliness, vitality",noun,živosť,živost,0,1,0.920,high,3,28,0.000
+20327,0,"liveliness, vitality",noun,živosť,živosť,1,1,0.920,high,3,28,0.000
 1996,1,life,noun,život,život,1,1,0.960,high,3,12,0.000
 1464,0,animal,noun,životina,životno,0,0,0.615,medium,2,15,0.250
 35507,0,breeder (of animals),noun,životinovod,životnovȯd,0,0,0.459,medium,2,16,0.091
@@ -16275,11 +16275,11 @@ id,holdout,gloss,pos,official,predicted,exact,normalized,score,confidence,branch
 14403,0,ass,noun,žopa,dupa,0,0,0.940,high,3,27,0.500
 32986,0,joviality,noun,žoviaľnosť,žoviaľnosť,1,1,0.396,low,2,24,0.000
 32985,1,jovial,adj,žoviaľny,vesely,0,0,0.920,high,3,19,0.750
-22962,1,gluttonous,adj,žravy,lakomy,0,0,0.920,high,3,23,0.833
+22962,1,gluttonous,adj,žravy,låkomy,0,0,0.920,high,3,23,0.833
 16346,0,foal,noun,žrěbę,žrěbę,1,1,0.960,high,3,16,0.000
 35265,1,stallion,noun,žrěbec,žrebec,0,1,0.695,medium,3,12,0.000
 1867,0,foal,noun,žrěbętko,žrěbę,0,0,0.940,high,3,17,0.375
-35703,0,"priest (pagan), druid",noun,žrec,žrec,1,1,0.960,high,3,27,0.000
+35703,0,"priest (pagan), druid",noun,žrec,žrėc,0,1,0.960,high,3,27,0.000
 15686,0,"devouring, glutting",noun,žrěńje,pažyranne,0,0,0.523,medium,1,16,0.556
 35704,0,priestess (pagan),noun,žrica,žrica,1,1,0.860,high,2,16,0.000
 2940,1,source,noun,žrlo,izvoro,0,0,0.920,high,3,16,0.833

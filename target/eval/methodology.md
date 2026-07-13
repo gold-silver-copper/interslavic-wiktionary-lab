@@ -14,20 +14,20 @@ Entries are split by a deterministic hash of their dictionary id (~25% held out,
 | +prefixes | 32.88% | 31.19% | +1.68 | 41.70% | 39.21% | +2.48 |
 | +depleophony | 32.87% | 31.17% | +1.70 | 41.88% | 39.41% | +2.47 |
 | +nasals | 33.24% | 31.56% | +1.68 | 41.97% | 39.50% | +2.46 |
-| +proto-derived | 36.75% | 35.02% | +1.73 | 44.08% | 42.01% | +2.08 |
-| +intl-preference | 36.83% | 35.12% | +1.71 | 44.17% | 42.10% | +2.06 |
-| +adj-fleeting | 37.90% | 36.54% | +1.36 | 45.67% | 43.85% | +1.83 |
-| +synonym-alts | 37.90% | 36.54% | +1.36 | 45.67% | 43.85% | +1.83 |
-| +prefix-strip | 38.41% | 37.22% | +1.18 | 45.86% | 44.09% | +1.77 |
-| +loan-stem-repair | 39.82% | 38.70% | +1.13 | 47.32% | 45.59% | +1.73 |
-| +verb-class | 39.88% | 38.70% | +1.18 | 47.39% | 45.61% | +1.78 |
-| +voicing | 39.96% | 38.74% | +1.22 | 47.49% | 45.66% | +1.83 |
-| +explicit-etymology | 40.15% | 39.21% | +0.94 | 47.45% | 46.05% | +1.40 |
-| +medoid-rep | 41.22% | 40.36% | +0.86 | 49.17% | 47.99% | +1.18 |
-| +deriv-suffixes | 41.47% | 40.61% | +0.86 | 49.30% | 48.16% | +1.14 |
-| +loan-hiatus | 41.54% | 40.63% | +0.91 | 49.38% | 48.19% | +1.19 |
-| +spirantization | 41.86% | 41.00% | +0.86 | 49.85% | 48.72% | +1.13 |
-| +stem-class-endings (production) | 41.91% | 41.12% | +0.78 | 49.90% | 48.85% | +1.05 |
+| +proto-derived | 36.88% | 35.41% | +1.47 | 44.08% | 42.01% | +2.08 |
+| +intl-preference | 36.97% | 35.51% | +1.46 | 44.17% | 42.10% | +2.06 |
+| +adj-fleeting | 38.04% | 36.95% | +1.08 | 45.67% | 43.85% | +1.83 |
+| +synonym-alts | 38.04% | 36.95% | +1.08 | 45.67% | 43.85% | +1.83 |
+| +prefix-strip | 38.57% | 37.62% | +0.95 | 45.86% | 44.09% | +1.77 |
+| +loan-stem-repair | 39.99% | 39.06% | +0.92 | 47.32% | 45.59% | +1.73 |
+| +verb-class | 40.04% | 39.06% | +0.98 | 47.39% | 45.61% | +1.78 |
+| +voicing | 40.12% | 39.11% | +1.01 | 47.49% | 45.66% | +1.83 |
+| +explicit-etymology | 40.42% | 39.65% | +0.77 | 47.45% | 46.05% | +1.40 |
+| +medoid-rep | 41.49% | 40.80% | +0.69 | 49.17% | 47.99% | +1.18 |
+| +deriv-suffixes | 41.74% | 41.05% | +0.69 | 49.30% | 48.16% | +1.14 |
+| +loan-hiatus | 41.81% | 41.07% | +0.74 | 49.38% | 48.19% | +1.19 |
+| +spirantization | 42.13% | 41.44% | +0.69 | 49.85% | 48.72% | +1.13 |
+| +stem-class-endings (production) | 42.18% | 41.56% | +0.61 | 49.90% | 48.85% | +1.05 |
 
 ## Ladder-rung significance (paired sign test)
 
@@ -42,15 +42,15 @@ Each rung vs the previous rung, paired per entry: `fixed` = newly matched, `brok
 | +prefixes | +0.82pp | 134/0 | 0.0000 | +0.38pp | 62/0 | 0.0000 |
 | +depleophony | -0.01pp | 0/2 | 0.5000 | +0.18pp | 39/9 | 0.0000 |
 | +nasals | +0.37pp | 62/1 | 0.0000 | +0.09pp | 23/8 | 0.0107 |
-| +proto-derived | +3.50pp | 697/127 | 0.0000 | +2.21pp | 499/138 | 0.0000 |
+| +proto-derived | +3.70pp | 733/130 | 0.0000 | +2.21pp | 499/138 | 0.0000 |
 | +intl-preference | +0.09pp | 28/14 | 0.0436 | +0.09pp | 28/14 | 0.0436 |
-| +adj-fleeting | +1.16pp | 195/6 | 0.0000 | +1.56pp | 262/7 | 0.0000 |
+| +adj-fleeting | +1.17pp | 196/6 | 0.0000 | +1.56pp | 262/7 | 0.0000 |
 | +synonym-alts | +0.00pp | 0/0 | 1.0000 | +0.00pp | 0/0 | 1.0000 |
-| +prefix-strip | +0.55pp | 98/8 | 0.0000 | +0.20pp | 41/8 | 0.0000 |
-| +loan-stem-repair | +1.43pp | 244/11 | 0.0000 | +1.47pp | 253/14 | 0.0000 |
+| +prefix-strip | +0.56pp | 102/10 | 0.0000 | +0.20pp | 41/8 | 0.0000 |
+| +loan-stem-repair | +1.42pp | 243/11 | 0.0000 | +1.47pp | 253/14 | 0.0000 |
 | +verb-class | +0.04pp | 11/4 | 0.1185 | +0.06pp | 14/4 | 0.0309 |
 | +voicing | +0.07pp | 13/1 | 0.0018 | +0.09pp | 15/1 | 0.0005 |
-| +explicit-etymology | +0.26pp | 205/163 | 0.0324 | +0.07pp | 218/207 | 0.6277 |
+| +explicit-etymology | +0.36pp | 222/164 | 0.0037 | +0.07pp | 218/207 | 0.6277 |
 | +medoid-rep | +1.09pp | 548/370 | 0.0000 | +1.77pp | 816/527 | 0.0000 |
 | +deriv-suffixes | +0.25pp | 40/0 | 0.0000 | +0.14pp | 23/0 | 0.0000 |
 | +loan-hiatus | +0.06pp | 10/0 | 0.0020 | +0.07pp | 11/0 | 0.0010 |
@@ -59,7 +59,7 @@ Each rung vs the previous rung, paired per entry: `fixed` = newly matched, `brok
 
 ## Headline uncertainty (percentile bootstrap, 1000 seeded resamples)
 
-- exact top-1 **41.71%** (95% CI 40.96–42.47%)
+- exact top-1 **42.02%** (95% CI 41.24–42.80%)
 - normalized top-1 **49.64%** (95% CI 48.86–50.39%)
 
 Deltas smaller than ~half this interval width should not be read as real without the paired test above (the paired test is far more sensitive than comparing two independent CIs).
@@ -71,13 +71,13 @@ Deltas smaller than ~half this interval width should not be read as real without
 | 0.3–0.4 | 453 | 0.393 | 0.130 | -0.263 |
 | 0.4–0.5 | 4201 | 0.447 | 0.192 | -0.255 |
 | 0.5–0.6 | 2866 | 0.547 | 0.391 | -0.156 |
-| 0.6–0.7 | 1515 | 0.650 | 0.583 | -0.067 |
-| 0.7–0.8 | 1293 | 0.750 | 0.662 | -0.088 |
+| 0.6–0.7 | 1514 | 0.650 | 0.583 | -0.066 |
+| 0.7–0.8 | 1294 | 0.750 | 0.662 | -0.089 |
 | 0.8–0.9 | 1264 | 0.846 | 0.739 | -0.107 |
 | 0.9–1.0 | 4708 | 0.948 | 0.729 | -0.219 |
 
 - **ECE (expected calibration error): 0.1855** — mean |score − empirical match rate| weighted by bin size; 0 is perfectly calibrated.
-- **Brier score: 0.2328** (lower is better; a constant base-rate predictor scores 0.2500).
+- **Brier score: 0.2329** (lower is better; a constant base-rate predictor scores 0.2500).
 - The three-way confidence badge (high/medium/low, thresholds 0.72/0.45 in `Confidence::from_score`) is derived from this score; if a bin's gap drifts past ~0.1 the thresholds should be re-fit.
 
 ### Isotonic recalibration (fit on dev, validated on holdout)
@@ -86,7 +86,7 @@ A monotone score→probability map (decile histogram + pool-adjacent-violators) 
 
 | Holdout metric | raw score | recalibrated | Δ |
 |---|---:|---:|---:|
-| ECE | 0.1942 | 0.0107 | -0.1835 |
+| ECE | 0.1942 | 0.0108 | -0.1834 |
 | Brier | 0.2334 | 0.1951 | -0.0383 |
 
 The recalibrated probability is valid for downstream consumers of this same official-row pipeline score as *P(matches the official lemma)*; the raw score remains the ranking key. It is not valid for the corpus path's separate coverage score (issue #89 J26). Refit whenever the ladder changes.
