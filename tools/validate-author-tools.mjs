@@ -11,8 +11,10 @@ const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m
 const client = scripts.find((s) => s.includes("function isvLookupBroad"));
 if (!client) throw new Error("forms client script not found");
 
+const fetched = [];
 const localFetch = async (url) => {
   const pathname = new URL(url, "https://slovowiki.invalid/").pathname.replace(/^\//, "");
+  fetched.push(pathname);
   const file = path.join(root, pathname);
   if (!fs.existsSync(file)) return { ok: false, json: async () => ({}) };
   return { ok: true, json: async () => JSON.parse(fs.readFileSync(file, "utf8")) };
@@ -48,6 +50,10 @@ if (!run("asciiVariants('cszcszc')").tooBroad) {
 const suggestion = await run("webSuggest('', 'domm')");
 if (suggestion.selftestFailed || JSON.stringify(suggestion.values) !== JSON.stringify(["dom", "doma", "Don"])) {
   throw new Error(`browser/CLI suggestion fixture drift: ${JSON.stringify(suggestion)}`);
+}
+const suggestionShardFetches = fetched.filter((file) => /^api\/suggest\/\d+\.json$/.test(file));
+if (suggestionShardFetches.length !== 1) {
+  throw new Error(`one unknown token fetched unrelated suggestion shards: ${suggestionShardFetches}`);
 }
 
 const checkerHtml = fs.readFileSync(path.join(root, "text-check.html"), "utf8");

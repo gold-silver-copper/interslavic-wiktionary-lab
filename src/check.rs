@@ -36,6 +36,15 @@ pub struct SemanticNote {
 
 pub const SUGGEST_SHARDS: u32 = 64;
 pub const SUGGEST_SELFTEST_INPUTS: &[&str] = &["domm", "pomocnyy", "rěkaa", "xyzq"];
+const SUGGEST_SELFTEST_ROWS: &[(&str, &str)] = &[
+    ("dom", "dom"),
+    ("doma", "doma"),
+    ("don", "Don"),
+    ("pomočny", "pomoćny"),
+    ("rěka", "rěka"),
+    ("reklama", "reklama"),
+    ("rešta", "rešta"),
+];
 
 pub struct Index {
     /// key → records (lemma citations and inflected forms).
@@ -679,9 +688,12 @@ pub fn preposition_government() -> HashMap<String, Vec<&'static str>> {
 /// Nearest known lemmas for an unknown token: same first letter, folded edit
 /// distance ≤ 2, closest first, at most 3 (deterministic tie-break by lemma).
 pub fn suggest(index: &Index, key: &str) -> Vec<String> {
+    suggest_rows(&index.lemma_keys, key)
+}
+
+fn suggest_rows(rows: &[(String, String)], key: &str) -> Vec<String> {
     let first = key.chars().next();
-    let mut cands: Vec<(usize, &str)> = index
-        .lemma_keys
+    let mut cands: Vec<(usize, &str)> = rows
         .iter()
         .filter(|(k, _)| k.chars().next() == first)
         .filter_map(|(k, lemma)| {
@@ -727,8 +739,17 @@ pub fn write_web_suggestions(out_dir: &Path, index: &Index) -> Result<usize> {
         bytes += body.len();
         std::fs::write(dir.join(format!("{shard}.json")), body)?;
     }
+    let fixture_rows: Vec<(String, String)> = SUGGEST_SELFTEST_ROWS
+        .iter()
+        .map(|(key, lemma)| (forms::form_key(key), lemma.to_string()))
+        .collect();
     let fixture = format!(
-        "{{\"shards\":{SUGGEST_SHARDS},\"samples\":[{}]}}\n",
+        "{{\"shards\":{SUGGEST_SHARDS},\"rows\":[{}],\"samples\":[{}]}}\n",
+        fixture_rows
+            .iter()
+            .map(|(key, lemma)| format!("[{},{}]", json_escape(key), json_escape(lemma)))
+            .collect::<Vec<_>>()
+            .join(","),
         SUGGEST_SELFTEST_INPUTS
             .iter()
             .map(|input| {
@@ -736,7 +757,7 @@ pub fn write_web_suggestions(out_dir: &Path, index: &Index) -> Result<usize> {
                 format!(
                     "[{},[{}]]",
                     json_escape(input),
-                    suggest(index, &key)
+                    suggest_rows(&fixture_rows, &key)
                         .iter()
                         .map(|value| json_escape(value))
                         .collect::<Vec<_>>()
@@ -1143,6 +1164,10 @@ mod tests {
         assert_eq!(
             fixture["samples"].as_array().unwrap().len(),
             SUGGEST_SELFTEST_INPUTS.len()
+        );
+        assert_eq!(
+            fixture["rows"].as_array().unwrap().len(),
+            SUGGEST_SELFTEST_ROWS.len()
         );
         assert_eq!(
             std::fs::read_dir(dir.join("api/suggest")).unwrap().count(),
