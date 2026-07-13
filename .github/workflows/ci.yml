@@ -43,6 +43,7 @@ jobs:
           cargo run --release -- export --out /tmp/slovowiki-aspect-ci
           python3 tools/validate-aspect-export.py /tmp/slovowiki-aspect-ci
           python3 tools/validate-linguistic-logic.py /tmp/slovowiki-aspect-ci
+          node tools/validate-author-tools.mjs /tmp/slovowiki-aspect-ci
           (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-a.sha256
           cargo run --release -- export --out /tmp/slovowiki-aspect-ci
           (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-b.sha256

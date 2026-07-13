@@ -451,9 +451,12 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   (any non-null generated probability ⇒ suggestion, never verification).
 
 Website twins of the API: **`forms.html`** (reverse lookup of any inflected
-form → analyses + entry links; also linked from every inflection table) and
-**`text-check.html`** (paste text, every token verified client-side). The
-CLI equivalent:
+form → analyses + entry links; after an exact miss it tries a bounded,
+ambiguity-preserving ASCII expansion and shows every matched key) and
+**`text-check.html`** (paste text, every token verified client-side, with the
+same nearest-lemma suggestion contract as the CLI). Official preposition entry
+infoboxes also show the governed cases from the same curated table used by the
+checker. The CLI equivalent:
 
 ```bash
 cargo run --release -- check-text tekst.txt          # human summary

@@ -69,8 +69,9 @@ for pair in pairs["pairs"]:
 
 # `total_bytes` is payload bytes and intentionally excludes meta.json itself.
 counted = [api / "lemmas.json", api / "agent-guide.md", api / "router-selftest.json",
-           api / "aspect-pairs.json"]
+           api / "aspect-pairs.json", api / "suggest-selftest.json"]
 counted.extend((api / "forms").glob("*.json"))
+counted.extend((api / "suggest").glob("*.json"))
 actual_bytes = sum(path.stat().st_size for path in counted)
 assert meta["total_bytes"] == actual_bytes, (
     "api total_bytes mismatch", meta["total_bytes"], actual_bytes

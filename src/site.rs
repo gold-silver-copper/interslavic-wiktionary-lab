@@ -1867,12 +1867,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     pair_json.push_str("\n]}\n");
     std::fs::create_dir_all(out_dir.join("api"))?;
     std::fs::write(out_dir.join("api/aspect-pairs.json"), &pair_json)?;
+    let checker_index = crate::check::build_index(
+        &official_entries,
+        Some(std::path::Path::new("data/novel-words.tsv")),
+    );
+    let suggest_bytes = crate::check::write_web_suggestions(out_dir, &checker_index)?;
     let api_counts = crate::forms::write_api(
         out_dir,
         &form_records,
         &lemma_records,
         &aspect_api,
-        pair_json.len(),
+        pair_json.len() + suggest_bytes,
         &build_meta.git,
         &crate::forms::agent_guide(),
     )?;
@@ -7606,6 +7611,27 @@ fn entry_infobox(m: &SiteEntryMeta, razum: &str, extra_rows: &str, proto_link: &
             m.conf.label(),
         )
     };
+    let government_rows = if m.pos == "prep" && (m.official_only || m.official_lemma.is_some()) {
+        let lemma = m.official_lemma.as_deref().unwrap_or(&m.title);
+        crate::check::preposition_government()
+            .get(&crate::forms::form_key(lemma))
+            .filter(|cases| !cases.is_empty())
+            .map(|cases| {
+                let labels = cases
+                    .iter()
+                    .map(|case| format!("{case}."))
+                    .collect::<Vec<_>>()
+                    .join(" / ");
+                format!(
+                    "<tr><th>Upravljanje</th><td>{} + {}</td></tr>",
+                    esc(lemma),
+                    esc(&labels)
+                )
+            })
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
     let aspect_rows = m
         .aspect
         .as_ref()
@@ -7629,7 +7655,7 @@ fn entry_infobox(m: &SiteEntryMeta, razum: &str, extra_rows: &str, proto_link: &
         .unwrap_or_default();
     format!(
         "<aside class='entry-infobox'><table class='wikitable compact-table'><caption>{}</caption>\
-         <tr><th>Čęst rěči</th><td>{}</td></tr>{aspect_rows}<tr><th>Stav</th><td>{}</td></tr>{reliability}\
+         <tr><th>Čęst rěči</th><td>{}</td></tr>{aspect_rows}{government_rows}<tr><th>Stav</th><td>{}</td></tr>{reliability}\
          <tr><th>Kvaliteta</th><td>{}</td></tr><tr><th>Dokaz</th><td>{} jęz. / {} vět.</td></tr>{razum}\
          <tr><th>Tip</th><td>{}</td></tr><tr><th>Predok</th><td>{}{proto_link}</td></tr>{extra_rows}<tr><th>ID</th><td>{}</td></tr></table></aside>",
         esc(&m.title),
@@ -8793,6 +8819,13 @@ function fnv1a32(s){const b=new TextEncoder().encode(s);let h=0x811c9dc5>>>0;for
 const shardCache={};
 async function isvShard(base,n){if(shardCache[n])return shardCache[n];shardCache[n]=fetch(base+'api/forms/'+n+'.json').then(r=>r.ok?r.json():{records:{}}).catch(()=>({records:{}}));return shardCache[n];}
 async function isvLookup(base,q){const ok=await routerSelftest(base);const key=isvFold(q);if(!ok){return{key:key,recs:[],selftestFailed:true};}const shard=fnv1a32(key)%__SHARDS__;const j=await isvShard(base,shard);return{key:key,recs:(j.records&&j.records[key])||[]};}
+function asciiVariants(key){if(!/^[a-z -]+$/.test(key))return{keys:[],tooBroad:false};let keys=[''];for(const ch of key){const opts=ch==='c'?['c','č']:ch==='s'?['s','š']:ch==='z'?['z','ž']:[ch];if(keys.length*opts.length>64)return{keys:[],tooBroad:true};keys=keys.flatMap(k=>opts.map(o=>k+o));}return{keys:keys.filter(k=>k!==key),tooBroad:false};}
+async function isvLookupBroad(base,q){const exact=await isvLookup(base,q);if(exact.selftestFailed||exact.recs.length)return{...exact,matchedKeys:exact.recs.length?[exact.key]:[],broadened:false};const variants=asciiVariants(exact.key);if(variants.tooBroad)return{...exact,matchedKeys:[],broadened:false,tooBroad:true};const hits=await Promise.all(variants.keys.map(k=>isvLookup(base,k)));const seen=new Set(),recs=[],matchedKeys=[];for(const hit of hits){if(hit.selftestFailed)return hit;if(hit.recs.length)matchedKeys.push(hit.key);for(const rec of hit.recs){const id=JSON.stringify(rec);if(!seen.has(id)){seen.add(id);recs.push(rec);}}}return{key:exact.key,recs,matchedKeys,broadened:recs.length>0};}
+function lev(a,b){a=Array.from(a);b=Array.from(b);const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const old=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return row[b.length];}
+const suggestCache={};let suggestTest=null;
+async function rawSuggest(base,q){const key=isvFold(q),first=Array.from(key)[0]||'',shard=fnv1a32(first)%__SUGGEST_SHARDS__;if(!suggestCache[shard])suggestCache[shard]=fetch(base+'api/suggest/'+shard+'.json').then(r=>r.ok?r.json():{rows:[]}).catch(()=>({rows:[]}));const j=await suggestCache[shard];return(j.rows||[]).filter(([k])=>Array.from(k)[0]===first).map(([k,l])=>[lev(k,key),l]).filter(([d])=>d<=2).sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)).slice(0,3).map(x=>x[1]);}
+async function suggestionSelftest(base){if(suggestTest)return suggestTest;suggestTest=(async()=>{try{const fixture=await fetch(base+'api/suggest-selftest.json').then(r=>r.json());if(fixture.shards!==__SUGGEST_SHARDS__)return false;for(const [q,want] of fixture.samples){const got=await rawSuggest(base,q);if(JSON.stringify(got)!==JSON.stringify(want))return false;}return true;}catch(e){return false;}})();return suggestTest;}
+async function webSuggest(base,q){return(await suggestionSelftest(base))?{values:await rawSuggest(base,q),selftestFailed:false}:{values:[],selftestFailed:true};}
 function recHtml(base,rec){const[form,lemma,id,pos,analyses,,status,prob,gloss]=rec;
  const st=status==='generated'?('<span class="pill">mašinova rekonstrukcija p='+(prob==null?'?':prob.toFixed(2))+'</span>'):('<span class="pill src-official">'+escHtml(status)+'</span>');
  const an=analyses.length?('<span class="muted">'+escHtml(analyses.join(', '))+'</span>'):'<span class="muted">(citatna forma)</span>';
@@ -8804,6 +8837,10 @@ function recHtml(base,rec){const[form,lemma,id,pos,analyses,,status,prob,gloss]=
         .collect::<Vec<_>>()
         .join(",");
     JS.replace("__SHARDS__", &crate::forms::SHARDS.to_string())
+        .replace(
+            "__SUGGEST_SHARDS__",
+            &crate::check::SUGGEST_SHARDS.to_string(),
+        )
         .replace("__FOLD_MAP__", &format!("{{{fold_map}}}"))
 }
 
@@ -8817,10 +8854,12 @@ fn forms_page() -> String {
          <div id='out'></div>\
          <p class='muted'>Iste dane služęt strojam: <code>api/forms/&lt;n&gt;.json</code> (indeks razděljeny na {} častij), <code>api/lemmas.json</code>, <code>api/meta.json</code>, <a href='api/agent-guide.md'>api/agent-guide.md</a>.</p>\
          <script>{}\
-async function go(){{const q=document.getElementById('formq').value;if(!q)return;const r=await isvLookup('',q);const out=document.getElementById('out');\
+async function go(){{const q=document.getElementById('formq').value;if(!q)return;const r=await isvLookupBroad('',q);const out=document.getElementById('out');\
 if(r.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — klient sę ne shoduje s eksporterom (vidi konzolų). Iskanje je zaprěno da ne davaje krive rezultaty.</p>';return;}}\
+if(r.tooBroad){{out.innerHTML='<p class=\"notice\">ASCII zapytanje imaje prěmnogo možnyh råzširenij; dodaj fonemične bukvy.</p>';return;}}\
 if(!r.recs.length){{out.innerHTML='<p>Ničto ne najdeno za ključ <b>'+escHtml(r.key)+'</b>. (Nepoznata forma ili mašinovo prědloženje bez zapisa.)</p>';return;}}\
-out.innerHTML='<p>Ključ: <b>'+escHtml(r.key)+'</b>, '+r.recs.length+' analiz:</p><ul>'+r.recs.map(x=>recHtml('',x)).join('')+'</ul>';}}\
+const broad=r.broadened?(' <span class=\"muted\">ASCII råzširenje: '+r.matchedKeys.map(escHtml).join(', ')+'</span>'):'';\
+out.innerHTML='<p>Ključ: <b>'+escHtml(r.key)+'</b>, '+r.recs.length+' analiz:'+broad+'</p><ul>'+r.recs.map(x=>recHtml('',x)).join('')+'</ul>';}}\
 const p=new URLSearchParams(location.search).get('q');if(p){{document.getElementById('formq').value=p;go();}}\
 </script></article>",
         crate::forms::SHARDS,
@@ -8832,34 +8871,35 @@ const p=new URLSearchParams(location.search).get('q');if(p){{document.getElement
 /// Client-side text verification (issue #11 phase 3): the static twin of the
 /// `check-text` CLI. Same tokenizer contract (internal hyphens kept, general
 /// two-token lookup so reflexive `sę` verbs and multi-word official lemmas
-/// resolve), same semantic-trap notes (fetched from `api/notes.json`); the
-/// CLI additionally offers nearest-lemma suggestions for unknown tokens.
+/// resolve), same semantic-trap notes (fetched from `api/notes.json`), and the
+/// CLI's frozen nearest-lemma suggestion contract for unknown tokens.
 fn text_check_page() -> String {
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Prověrka teksta</h1>\
          <p class='lede'>Vstavi medžuslovjansky tekst — vsaky token bųde prověrjeny v slovniku i v polnom indeksu form. Sinje = poznato, žėlta obvodka = mašinova rekonstrukcija, čŕveno = nepoznato, ⚠ = semantična past.</p>\
          <p><textarea id='t' rows='6' style='width:100%'></textarea></p>\
-         <p><button onclick='checkText()'>Prověri</button> <span class='muted'>CLI-blizenec: <code>cargo run -- check-text tekst.txt --json</code> (dodatno davaje predloženja za nepoznate tokeny).</span></p>\
+         <p><button onclick='checkText()'>Prověri</button> <span class='muted'>CLI-blizenec: <code>cargo run -- check-text tekst.txt --json</code>.</span></p>\
          <div id='out'></div>\
          <script>{}\
 let notes=null;\
 async function getNotes(){{if(notes)return notes;notes=fetch('api/notes.json').then(r=>r.ok?r.json():{{}}).catch(()=>({{}}));return notes;}}\
 async function checkText(){{\
 const text=document.getElementById('t').value;\
-const toks=text.match(/\\p{{L}}+(?:-\\p{{L}}+)*/gu)||[];\
+const toks=[...text.matchAll(/\\p{{L}}+(?:-\\p{{L}}+)*/gu)].map(m=>({{text:m[0],start:m.index,end:m.index+m[0].length}}));\
 const out=document.getElementById('out');out.innerHTML='<p>Prověrjanje…</p>';\
 const nts=await getNotes();\
 const parts=[];let i=0;\
 while(i<toks.length){{\
- const tok=toks[i];\
- if(i+1<toks.length){{const bi=await isvLookup('',tok+' '+toks[i+1]);if(bi.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}if(bi.recs.length){{parts.push(render(tok+' '+toks[i+1],bi.recs,nts,bi.key));i+=2;continue;}}}}\
- const r=await isvLookup('',tok);if(r.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}parts.push(render(tok,r.recs,nts,r.key));i+=1;\
+ const item=toks[i],tok=item.text;\
+ if(i+1<toks.length){{const bi=await isvLookup('',tok+' '+toks[i+1].text);if(bi.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}if(bi.recs.length){{parts.push(render(tok+' '+toks[i+1].text,bi.recs,nts,bi.key,[],item.start,toks[i+1].end));i+=2;continue;}}}}\
+ const r=await isvLookup('',tok);if(r.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka routera ne prošla — prověrka je zaprěna (vidi konzolų).</p>';return;}}const sug=r.recs.length?{{values:[],selftestFailed:false}}:await webSuggest('',tok);if(sug.selftestFailed){{out.innerHTML='<p class=\"notice\">Samoprověrka predloženij ne prošla — predloženja sųt zaprěna da ne odklanjajųt od CLI.</p>';return;}}parts.push(render(tok,r.recs,nts,r.key,sug.values,item.start,item.end));i+=1;\
 }}\
 out.innerHTML='<p>'+parts.join(' ')+'</p><p class='+String.fromCharCode(39)+'muted'+String.fromCharCode(39)+'>Klikni slovo za polnu analizu.</p>';\
 }}\
-function render(tok,recs,nts,key){{\
+function applySuggestion(button){{const box=document.getElementById('t'),start=Number(button.dataset.start),end=Number(button.dataset.end);if(box.value.slice(start,end)!==button.dataset.old)return;box.value=box.value.slice(0,start)+button.dataset.next+box.value.slice(end);checkText();}}\
+function render(tok,recs,nts,key,suggestions,start,end){{\
  const note=nts&&nts[key];\
- if(!recs.length)return '<a class=\"chip redlink\" href=\"forms.html?q='+encodeURIComponent(tok)+'\" title=\"nepoznato\">'+escHtml(tok)+'</a>';\
+ if(!recs.length){{const chips=suggestions.map(s=>'<button class=\"chip\" data-start=\"'+start+'\" data-end=\"'+end+'\" data-old=\"'+escHtml(tok)+'\" data-next=\"'+escHtml(s)+'\" onclick=\"applySuggestion(this)\">→ '+escHtml(s)+'</button>').join('');return '<span><a class=\"chip redlink\" href=\"forms.html?q='+encodeURIComponent(tok)+'\" title=\"nepoznato\">'+escHtml(tok)+'</a>'+chips+'</span>';}}\
  const gen=recs.every(r=>r[6]==='generated');\
  let ttl=gen?('mašinova rekonstrukcija p='+(recs[0][7]==null?'?':recs[0][7].toFixed(2))):recs.map(r=>r[1]+' ('+(r[4].join(', ')||'lemma')+')').slice(0,4).join('; ');\
  if(note)ttl='⚠ '+note.warning+(note.prefer&&note.prefer.length?' Prefer: '+note.prefer.join(', ')+'.':'')+' — '+ttl;\
@@ -10001,6 +10041,39 @@ mod tests {
         // Search-row letter: the fact treatment sets g.confidence High for
         // matched entries, so conf_letter must yield "V" for them.
         assert_eq!(conf_letter(Confidence::High), "V");
+    }
+
+    #[test]
+    fn author_tools_ship_ascii_fallback_and_web_suggestion_parity_checks() {
+        let forms = forms_page();
+        assert!(forms.contains("isvLookupBroad('',q)"), "{forms}");
+        assert!(forms.contains("ASCII råzširenje"), "{forms}");
+        let checker = text_check_page();
+        assert!(checker.contains("webSuggest('',tok)"), "{checker}");
+        assert!(checker.contains("applySuggestion(this)"), "{checker}");
+        assert!(checker.contains("suggest-selftest.json"), "{checker}");
+    }
+
+    #[test]
+    fn official_preposition_infobox_uses_checker_government() {
+        let mut m = meta_for(
+            Confidence::High,
+            None,
+            None,
+            true,
+            Some("bez"),
+            &["ru", "pl"],
+        );
+        m.title = "bez".to_string();
+        m.pos = "prep".to_string();
+        let html = entry_infobox(&m, "", "", "");
+        assert!(html.contains("<th>Upravljanje</th>"), "{html}");
+        assert!(html.contains("bez + gen."), "{html}");
+
+        m.title = "ne-prepozicija".to_string();
+        m.official_lemma = Some("ne-prepozicija".to_string());
+        let html = entry_infobox(&m, "", "", "");
+        assert!(!html.contains("Upravljanje"), "{html}");
     }
 
     /// Issue #75: aspect metadata is bidirectional machine-readable data and

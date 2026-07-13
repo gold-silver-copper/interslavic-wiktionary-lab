@@ -34,6 +34,9 @@ pub struct SemanticNote {
     pub prefer: Vec<String>,
 }
 
+pub const SUGGEST_SHARDS: u32 = 64;
+pub const SUGGEST_SELFTEST_INPUTS: &[&str] = &["domm", "pomocnyy", "rěkaa", "xyzq"];
+
 pub struct Index {
     /// key → records (lemma citations and inflected forms).
     pub by_key: HashMap<String, Vec<FormRecord>>,
@@ -56,30 +59,9 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
     forms::closed_class_records(&mut sink);
     let mut seen: HashSet<String> = HashSet::new();
     let mut noun_gender: HashMap<String, char> = HashMap::new();
-    let mut prep_cases: HashMap<String, Vec<&'static str>> = HashMap::new();
-    // Preposition government now comes from the interslavic crate's curated
-    // table (issue #12), which is built from the same official dictionary and
-    // encodes the (+5)=instrumental convention centrally. Fold each flavored
-    // key to the index's standard-orthography key convention and translate the
-    // crate's Case to the local labels.
-    let case_label = |c: interslavic::Case| -> &'static str {
-        match c {
-            interslavic::Case::Gen => "gen",
-            interslavic::Case::Dat => "dat",
-            interslavic::Case::Acc => "akuz",
-            interslavic::Case::Ins => "instr",
-            interslavic::Case::Loc => "lok",
-            interslavic::Case::Nom => "nom",
-        }
-    };
-    for (prep, cases) in interslavic::prepositions::PREPOSITIONS {
-        let entry = prep_cases.entry(forms::form_key(prep)).or_default();
-        for c in cases.iter().map(|c| case_label(*c)) {
-            if !entry.contains(&c) {
-                entry.push(c);
-            }
-        }
-    }
+    // Preposition government comes from the same shared table used by entry
+    // rendering; no site-only copy may drift from checker behavior.
+    let prep_cases = preposition_government();
     for e in entries {
         // ~230 rows list byform variants in one cell ("iměti, imati",
         // "srědnji, srědny") — each variant is its own lemma.
@@ -669,9 +651,34 @@ fn agreement_pass(
     }
 }
 
+/// Normalized preposition government from the interslavic crate's curated
+/// `(+N)` table. This is the sole adapter used by checking and site rendering.
+pub fn preposition_government() -> HashMap<String, Vec<&'static str>> {
+    let case_label = |c: interslavic::Case| -> &'static str {
+        match c {
+            interslavic::Case::Gen => "gen",
+            interslavic::Case::Dat => "dat",
+            interslavic::Case::Acc => "akuz",
+            interslavic::Case::Ins => "instr",
+            interslavic::Case::Loc => "lok",
+            interslavic::Case::Nom => "nom",
+        }
+    };
+    let mut out: HashMap<String, Vec<&'static str>> = HashMap::new();
+    for (prep, cases) in interslavic::prepositions::PREPOSITIONS {
+        let entry = out.entry(forms::form_key(prep)).or_default();
+        for case in cases.iter().map(|case| case_label(*case)) {
+            if !entry.contains(&case) {
+                entry.push(case);
+            }
+        }
+    }
+    out
+}
+
 /// Nearest known lemmas for an unknown token: same first letter, folded edit
-/// distance ≤ 2, closest first, at most 3 (deterministic tie-break by key).
-fn suggest(index: &Index, key: &str) -> Vec<String> {
+/// distance ≤ 2, closest first, at most 3 (deterministic tie-break by lemma).
+pub fn suggest(index: &Index, key: &str) -> Vec<String> {
     let first = key.chars().next();
     let mut cands: Vec<(usize, &str)> = index
         .lemma_keys
@@ -688,6 +695,60 @@ fn suggest(index: &Index, key: &str) -> Vec<String> {
         .take(3)
         .map(|(_, l)| l.to_string())
         .collect()
+}
+
+/// Write the browser's compact lemma-suggestion shards and a Rust-produced
+/// fixture that the JavaScript algorithm checks before showing suggestions.
+pub fn write_web_suggestions(out_dir: &Path, index: &Index) -> Result<usize> {
+    let dir = out_dir.join("api/suggest");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir)?;
+    let mut shards: BTreeMap<u32, Vec<&(String, String)>> = BTreeMap::new();
+    for row in &index.lemma_keys {
+        let first = row
+            .0
+            .chars()
+            .next()
+            .map(|c| c.to_string())
+            .unwrap_or_default();
+        let shard = forms::fnv1a32(&first) % SUGGEST_SHARDS;
+        shards.entry(shard).or_default().push(row);
+    }
+    let mut bytes = 0;
+    for shard in 0..SUGGEST_SHARDS {
+        let rows = shards.get(&shard).map(Vec::as_slice).unwrap_or(&[]);
+        let body = format!(
+            "{{\"shard\":{shard},\"rows\":[{}]}}\n",
+            rows.iter()
+                .map(|(key, lemma)| format!("[{},{}]", json_escape(key), json_escape(lemma)))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        bytes += body.len();
+        std::fs::write(dir.join(format!("{shard}.json")), body)?;
+    }
+    let fixture = format!(
+        "{{\"shards\":{SUGGEST_SHARDS},\"samples\":[{}]}}\n",
+        SUGGEST_SELFTEST_INPUTS
+            .iter()
+            .map(|input| {
+                let key = forms::form_key(input);
+                format!(
+                    "[{},[{}]]",
+                    json_escape(input),
+                    suggest(index, &key)
+                        .iter()
+                        .map(|value| json_escape(value))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    bytes += fixture.len();
+    std::fs::write(out_dir.join("api/suggest-selftest.json"), fixture)?;
+    Ok(bytes)
 }
 
 fn json_escape(s: &str) -> String {
@@ -1043,6 +1104,51 @@ mod tests {
             synthetic_index.noun_gender.get(&forms::form_key("testova")),
             Some(&' ')
         );
+    }
+
+    #[test]
+    fn shared_government_and_browser_suggestion_artifacts_are_deterministic() {
+        let government = preposition_government();
+        assert_eq!(government.get(&forms::form_key("bez")), Some(&vec!["gen"]));
+        assert_eq!(
+            government.get(&forms::form_key("v")),
+            Some(&vec!["akuz", "lok"])
+        );
+
+        let index = Index {
+            by_key: HashMap::new(),
+            lemma_keys: vec![
+                ("dom".to_string(), "dom".to_string()),
+                ("doma".to_string(), "doma".to_string()),
+                ("pomočny".to_string(), "pomoćny".to_string()),
+            ],
+            notes: BTreeMap::new(),
+            noun_gender: HashMap::new(),
+            prep_cases: government,
+        };
+        assert_eq!(suggest(&index, "domm"), vec!["dom", "doma"]);
+        let dir = std::env::temp_dir().join(format!(
+            "slovowiki-suggest-{}-{}",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        let bytes = write_web_suggestions(&dir, &index).expect("suggest artifacts");
+        assert!(bytes > 0);
+        let fixture: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(dir.join("api/suggest-selftest.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(fixture["shards"], SUGGEST_SHARDS);
+        assert_eq!(
+            fixture["samples"].as_array().unwrap().len(),
+            SUGGEST_SELFTEST_INPUTS.len()
+        );
+        assert_eq!(
+            std::fs::read_dir(dir.join("api/suggest")).unwrap().count(),
+            SUGGEST_SHARDS as usize
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
