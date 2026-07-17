@@ -123,8 +123,9 @@ Contributor-relevant invariants, all CI-tested or verified:
   `forms::SCHEMA_VERSION`.
 - **Determinism**: no timestamps, `BTreeMap` ordering — two consecutive
   exports must be byte-identical under `api/`.
-- **Trust model**: generated (unmatched) corpus lemmas get their probability
-  from the freshness-checked corpus calibrator and **no inflection records**;
+- **Trust model**: generated (unmatched) corpus lemmas expose a null probability
+  and **no inflection records**. The official-match calibration is retained only
+  as a `coverage_proxy` ranking in the proposal worklist;
   official facts remain null. Generated derivatives retain their separate
   pattern-specific Wilson holdout lower bound. Neither model is verification,
   and derivation proposals are never in the verification index.

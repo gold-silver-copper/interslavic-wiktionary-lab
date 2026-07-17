@@ -763,7 +763,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             p.status,
             p.g.confidence,
             p.g.score,
-            if p.matched.is_some() { None } else { prior },
+            None, // the official-match proxy is not a probability for unmatched entries
             p.g.n_langs,
             p.g.n_branches,
             p.g.set.borrowed,
@@ -1476,10 +1476,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     std::fs::write(out_dir.join(".nojekyll"), "")?;
 
     // ---- Novel-word proposal pipeline (Track C / issue #3) ----
-    // Only a calibrator fitted on THIS corpus-coverage score domain may assign
-    // probabilities or proposal buckets. Until that artifact exists, publish
-    // an empty worklist rather than relabel the official-row pipeline's
-    // operating points as evidence for this different model (issue #89 J26).
+    // The corpus-domain calibrator supplies an unconditional ranking proxy.
+    // After official matches are removed it is not a correctness probability;
+    // expose it only as `coverage_proxy`, never through API probability fields.
     let mut proposals: Vec<ProposalRow> = Vec::new();
     for p in &prepared {
         if p.suppressed || p.matched.is_some() {
@@ -1494,13 +1493,13 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if official_index.contains_fold(form) {
             continue;
         }
-        let prob = calibration.probability(p.g.score);
-        if prob >= crate::calibrate::REVIEW_T {
+        let coverage_proxy = calibration.probability(p.g.score);
+        if coverage_proxy >= crate::calibrate::REVIEW_T {
             proposals.push(ProposalRow {
                 id: p.id,
                 form: form.to_string(),
                 pos: p.g.set.pos.code().to_string(),
-                prob,
+                coverage_proxy,
                 ancestor: p.g.set.etymon.clone(),
                 n_langs: p.g.n_langs,
                 n_branches: p.g.n_branches,
@@ -1515,12 +1514,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             });
         }
     }
-    proposals.sort_by(|a, b| b.prob.total_cmp(&a.prob).then(a.id.cmp(&b.id)));
+    proposals.sort_by(|a, b| {
+        b.coverage_proxy
+            .total_cmp(&a.coverage_proxy)
+            .then(a.id.cmp(&b.id))
+    });
     let mut tsv =
-        String::from("form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\n");
+        String::from("form\tpos\tcoverage_proxy\tbucket\tancestor\tn_langs\tn_branches\tgloss\n");
     for r in &proposals {
-        // Buckets are only meaningful in calibrated-probability space.
-        let bucket = if r.prob >= crate::calibrate::PROPOSE_T {
+        // Thresholds partition this ranking proxy; they make no conditional
+        // precision claim about the already-filtered proposal population.
+        let bucket = if r.coverage_proxy >= crate::calibrate::PROPOSE_T {
             "predlog"
         } else {
             "pregled"
@@ -1530,7 +1534,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\n",
             r.form,
             r.pos,
-            r.prob,
+            r.coverage_proxy,
             bucket,
             r.ancestor,
             r.n_langs,
@@ -1551,7 +1555,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // One FormRecord pipeline: lemma records for every page headword, full
     // paradigm records for official headwords (an inflected form of a machine
     // reconstruction would be confidently wrong — generated lemmas contribute
-    // their citation form with the calibrated probability instead). Written as
+    // only their citation form, with null probability). Written as
     // the sharded static API under api/ plus meta.json and the agent guide.
     let mut form_sink = crate::forms::RecordSink::default();
     let mut lemma_sink = crate::forms::RecordSink::default();
@@ -1582,14 +1586,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         let Some(headword) = crate::forms::citation(&headword) else {
             continue;
         };
-        let prob = if status == "generated" {
-            Some(calibration.probability(p.g.score))
-        } else {
-            None
-        };
-        // A matched headword's paradigm must use the OFFICIAL part of speech —
-        // the form-only official match can cross POS, and a wrong-POS paradigm
-        // exported as verification-grade would be confidently wrong.
+        // The calibration target is official matching before this dictionary
+        // filter, so it cannot be a probability for a known-unmatched lemma.
+        let prob = None;
+        // A matched headword's paradigm uses the authoritative official POS.
         let (pos, gender) = match p.matched {
             Some(m) => {
                 let e = &official_entries[m.entry];
@@ -5704,10 +5704,9 @@ struct SiteEntryMeta {
     status: MatchStatus,
     conf: Confidence,
     score: f32,
-    /// Calibrated P(matches an official decision) for generated entries
-    /// (issue #77); `None` for official words — both matched (issue #86) and
-    /// official-only — which are facts, not predictions, plus raw
-    /// attestations and exports without a fitted calibrator.
+    /// Public probability field. Always `None` for corpus-site entries: official
+    /// rows are facts, while the official-match proxy is not conditional
+    /// correctness evidence for known-unmatched reconstructions.
     prob: Option<f64>,
     /// The calibrated PRIOR the generator assigned before the official match
     /// resolved it; set ONLY for matched entries (issue #86). Display-only:
@@ -7808,8 +7807,8 @@ fn contribute_page() -> String {
 }
 
 /// Machine-queryable entry metadata. Fields per entry: id, title, gloss, pos,
-/// quality, confidence, prob (calibrated probability, null for
-/// official/raw), langs (attesting-language COUNT), `langs_list` (the sorted
+/// quality, confidence, prob (null for corpus entries; ranking proxy is only in
+/// novel-words.tsv), langs (attesting-language COUNT), `langs_list` (the sorted
 /// attesting language-code SET, issue #73c), branches (branch count),
 /// `branch_pattern` (the exact branch combination "V"/"Z"/"J"/"V+Z"/…/
 /// "V+Z+J", null when no code resolves — issue #73c), borrowed, official,
@@ -8609,7 +8608,7 @@ struct ProposalRow {
     id: usize,
     form: String,
     pos: String,
-    prob: f64,
+    coverage_proxy: f64,
     ancestor: String,
     n_langs: usize,
     n_branches: usize,
@@ -8629,10 +8628,17 @@ fn proposals_page(
 ) -> String {
     let propose_t = crate::calibrate::PROPOSE_T;
     let review_t = crate::calibrate::REVIEW_T;
-    let n_propose = proposals.iter().filter(|r| r.prob >= propose_t).count();
+    let n_propose = proposals
+        .iter()
+        .filter(|r| r.coverage_proxy >= propose_t)
+        .count();
     let n_review = proposals.len() - n_propose;
     let mut rows = String::new();
-    for r in proposals.iter().filter(|r| r.prob >= propose_t).take(600) {
+    for r in proposals
+        .iter()
+        .filter(|r| r.coverage_proxy >= propose_t)
+        .take(600)
+    {
         // Curation-note keys follow the site-wide convention: standard
         // orthography, lowercase (see data/curation-notes.example.json).
         let note = curation
@@ -8648,7 +8654,7 @@ fn proposals_page(
             esc(&r.form),
             note,
             esc(&r.pos),
-            r.prob,
+            r.coverage_proxy,
             razum_pct(&r.langs),
             esc(&r.ancestor),
             r.n_langs,
@@ -8662,7 +8668,7 @@ fn proposals_page(
         calibration.calibrated_holdout.ece,
     );
     let summary = format!(
-        "<b>{n_propose}</b> predloženj (p≥{propose_t:.1}) + <b>{n_review}</b> k pregledu (p≥{review_t:.1}); polny spisok: <a href='novel-words.tsv'>novel-words.tsv</a>."
+        "<b>{n_propose}</b> predloženj (proxy≥{propose_t:.1}) + <b>{n_review}</b> k pregledu (proxy≥{review_t:.1}); polny spisok: <a href='novel-words.tsv'>novel-words.tsv</a>."
     );
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Predloženja novyh slov</h1>\

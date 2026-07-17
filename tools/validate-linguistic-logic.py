@@ -108,15 +108,9 @@ for entry in entries:
         )
     historical = {"cu", "orv"}.intersection(entry.get("langs_list", []))
     assert not historical, ("historical hint published as modern evidence", entry["id"], historical)
-    if entry["official"]:
-        assert entry["prob"] is None, ("official fact has model probability", entry["id"])
-    else:
-        assert entry["prob"] is not None, ("corpus reconstruction lacks probability", entry["id"])
-        raw = min(.99, max(.05, .12 + .55 * min(entry["langs"], 8) / 8 + .33 * min(entry["branches"], 3) / 3))
-        expected = deciles[min(int(raw * 10), 9)]
-        assert abs(entry["prob"] - round(expected, 3)) <= .0005, (
-            "corpus probability differs from coverage score map", entry["id"], raw, expected, entry["prob"]
-        )
+    assert entry["prob"] is None, (
+        "official-match proxy leaked into entry probability", entry["id"], entry["prob"]
+    )
 
 
 def aspect(pos_raw: str):
@@ -182,7 +176,7 @@ for row in lemmas:
     if row[2] in {"official", "official-only", "grammar"}:
         assert row[3] is None, ("official/grammar API probability must be null", row[:6])
     elif row[2] == "generated" and entry is not None and not entry["official"]:
-        assert row[3] == entry["prob"], ("corpus API probability differs from entries.json", row[:6], entry["prob"])
+        assert row[3] is None, ("official-match proxy leaked into corpus API probability", row[:6])
     elif row[2] == "generated":
         assert row[3] is not None and 0 <= row[3] <= .9, ("invalid derivative Wilson probability", row[:6])
 
@@ -207,15 +201,15 @@ for proto_path in sorted((root / "proto").glob("*.html")):
         assert marker >= 0
         assert not any(name in section[:marker] for name in historical_names)
 
-proposal_header = "form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss"
+proposal_header = "form\tpos\tcoverage_proxy\tbucket\tancestor\tn_langs\tn_branches\tgloss"
 with (root / "novel-words.tsv").open(newline="") as handle:
     reader = csv.DictReader(handle, delimiter="\t")
     assert "\t".join(reader.fieldnames or []) == proposal_header
     proposals = list(reader)
 assert proposals, "calibrated proposal worklist is empty"
 for row in proposals:
-    p = float(row["probability"])
-    assert p >= .3 and row["bucket"] == ("predlog" if p >= .6 else "pregled")
+    proxy = float(row["coverage_proxy"])
+    assert proxy >= .3 and row["bucket"] == ("predlog" if proxy >= .6 else "pregled")
 
 # The proposal form itself is a folded router key for its citation-form API row.
 # Compare as a multiset after looking up generated entries and excluding every
@@ -230,11 +224,13 @@ for shard_path in sorted((root / "api/forms").glob("*.json")):
 expected = Counter()
 for entry in entries:
     key = generated_key_by_id.get(entry["id"])
-    if entry["official"] or entry["prob"] < .3 or not key or key in official_fold_keys: continue
+    raw = min(.99, max(.05, .12 + .55 * min(entry["langs"], 8) / 8 + .33 * min(entry["branches"], 3) / 3))
+    proxy = deciles[min(int(raw * 10), 9)]
+    if entry["official"] or proxy < .3 or not key or key in official_fold_keys: continue
     if " " in entry["title"] or len(entry["title"]) < 3: continue
-    expected[(entry["title"], entry["pos"], f'{entry["prob"]:.3f}', "predlog" if entry["prob"] >= .6 else "pregled",
+    expected[(entry["title"], entry["pos"], f'{proxy:.3f}', "predlog" if proxy >= .6 else "pregled",
               entry["ancestor"], str(entry["langs"]), str(entry["branches"]), entry["gloss"].replace("\t", " ").replace("\n", " "))] += 1
-actual = Counter((r["form"], r["pos"], r["probability"], r["bucket"], r["ancestor"], r["n_langs"], r["n_branches"], r["gloss"]) for r in proposals)
+actual = Counter((r["form"], r["pos"], r["coverage_proxy"], r["bucket"], r["ancestor"], r["n_langs"], r["n_branches"], r["gloss"]) for r in proposals)
 assert actual == expected, ("proposal multiset differs from eligible generated entries", list((expected - actual).items())[:5], list((actual - expected).items())[:5])
 
 print(f"linguistic logic valid: {len(expected_senses)} official senses, {len(proposals)} corpus proposals; calibration/input/API/proposal invariants hold")

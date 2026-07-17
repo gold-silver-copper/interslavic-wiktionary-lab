@@ -362,7 +362,7 @@ data/
   proto-slavic.cache.json Proto-Slavic reconstructions (built by extract-proto)
   slavic-lemmas.cache.json every inherited + borrowed Slavic lemma (built by extract-lemmas)
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
-  novel-words.tsv         calibrated corpus proposal/review worklist
+  novel-words.tsv         corpus proposal/review worklist ranked by coverage_proxy
   corpus-coverage-calibration.json corpus calibrator (refit by corpus-calibrate)
   score-calibration.json  separate official-row pipeline calibrator (refit by evaluate)
   semantic-notes.json     curated false-friend warnings (applied by check-text)
@@ -494,8 +494,8 @@ verified by hashing two consecutive exports.
 Each entry page shows:
 
 - the **top candidate** headword with a **provenance** pill (proto-derived / consensus /
-  override) and, for unmatched corpus reconstructions, a dedicated calibrated
-  corpus-coverage probability (a semantic-coverage proxy, never verification);
+  override); unmatched corpus reconstructions have null probability because the
+  official-match calibration is only an unconditional pre-filter ranking proxy;
 - the **Proto-Slavic reconstruction** it was derived from, with Balto-Slavic / PIE
   ancestors and the link confidence;
 - **alternative** candidates with scores and branch coverage;

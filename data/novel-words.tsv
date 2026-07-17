@@ -1,4 +1,4 @@
-form	pos	probability	bucket	ancestor	n_langs	n_branches	gloss
+form	pos	coverage_proxy	bucket	ancestor	n_langs	n_branches	gloss
 Dunav	proper_noun	0.739	predlog	*Dunavь	8	3	Danube (a river in Europe; flowing 2,850 kilometers from the confluence of the B
 jabluko	noun	0.739	predlog	*ablъko	9	3	apple
 blha	noun	0.739	predlog	*blъxa	11	3	flea
