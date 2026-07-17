@@ -25,13 +25,14 @@ pub const CORPUS_SPLIT_POLICY: &str = "fnv1a-id-mod-4-holdout-v1";
 pub const CORPUS_ALGORITHM_VERSION: &str = "decile-pava-train-only-v1";
 /// Score semantics accepted by the official-row pipeline calibrator.
 pub const PIPELINE_SCORE_DOMAIN: &str = "pipeline-candidate-score-v1";
-/// Reserved domain for a future calibrator fitted on cognate-set coverage
-/// scores. Those scores are not compatible with [`PIPELINE_SCORE_DOMAIN`].
+/// Domain of the dedicated calibrator fitted on cognate-set coverage scores.
+/// These scores are not compatible with [`PIPELINE_SCORE_DOMAIN`].
 pub const CORPUS_COVERAGE_SCORE_DOMAIN: &str = "corpus-coverage-score-v1";
 
-/// Novel-word bucket thresholds on the calibrated probability. The measured
-/// precision/recall AT these cutoffs is persisted in [`Calibration`] by every
-/// `evaluate` run, so downstream displays never go stale.
+/// Shared numerical operating cutoffs. In the official-row pipeline these are
+/// calibrated-probability thresholds with measured precision/recall. In the
+/// dictionary-filtered corpus proposal path they only partition the
+/// unconditional `coverage_proxy`; they do not imply proposal-list precision.
 pub const PROPOSE_T: f64 = 0.6;
 pub const REVIEW_T: f64 = 0.3;
 
