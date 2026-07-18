@@ -21,8 +21,7 @@
 use crate::model::Pos;
 use crate::orthography as ortho;
 use interslavic::{
-    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, NounGender as IsvNounGender,
-    Number as IsvNumber, ISV,
+    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber, ISV,
 };
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -102,11 +101,11 @@ pub fn clean_cell(cell: &str) -> String {
 }
 
 /// Map the dictionary's gender metadata onto the inflector's.
-fn noun_gender(g: Option<crate::model::Gender>) -> Option<IsvNounGender> {
+fn noun_gender(g: Option<crate::model::Gender>) -> Option<IsvGender> {
     match g {
-        Some(crate::model::Gender::Masculine) => Some(IsvNounGender::Masculine),
-        Some(crate::model::Gender::Feminine) => Some(IsvNounGender::Feminine),
-        Some(crate::model::Gender::Neuter) => Some(IsvNounGender::Neuter),
+        Some(crate::model::Gender::Masculine) => Some(IsvGender::Masculine),
+        Some(crate::model::Gender::Feminine) => Some(IsvGender::Feminine),
+        Some(crate::model::Gender::Neuter) => Some(IsvGender::Neuter),
         _ => None,
     }
 }
