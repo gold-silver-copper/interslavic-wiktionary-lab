@@ -133,8 +133,35 @@ impl OfficialIndex {
     }
 }
 
-/// Choose the strongest compatible sense from an already spelling-filtered row
-/// set. Exact/folded spelling without this semantic evidence is never positive.
+/// Normalized comma/semicolon/slash-delimited gloss alternatives. A leading
+/// English infinitive marker is removed (`to have` → `have`), while an internal
+/// `to` is retained (`have to` stays distinct), so modal and lexical senses do
+/// not collapse merely because the content-token matcher drops stopwords.
+fn gloss_alternatives(gloss: &str) -> Vec<String> {
+    let mut alternatives: Vec<String> = gloss
+        .split([',', ';', '/'])
+        .filter_map(|part| {
+            let mut words: Vec<String> = part
+                .to_lowercase()
+                .split(|c: char| !c.is_alphabetic())
+                .filter(|word| !word.is_empty())
+                .map(str::to_string)
+                .collect();
+            if words.first().is_some_and(|word| word == "to") {
+                words.remove(0);
+            }
+            (!words.is_empty()).then(|| words.join(" "))
+        })
+        .collect();
+    alternatives.sort();
+    alternatives.dedup();
+    alternatives
+}
+
+/// Choose the uniquely strongest compatible sense from an already
+/// spelling-filtered row set. Exact/folded spelling without semantic evidence
+/// is never positive, and an unresolved semantic tie abstains instead of making
+/// dictionary row order part of lexical identity.
 pub fn select_official_entry(
     rows: &[usize],
     entries: &[OfficialEntry],
@@ -143,18 +170,32 @@ pub fn select_official_entry(
 ) -> Option<usize> {
     let wanted = crate::dump::gloss_tokens(gloss);
     let compact = wanted.join("");
-    rows.iter()
+    let wanted_alternatives = gloss_alternatives(gloss);
+    let scored: Vec<(usize, (bool, usize, bool))> = rows
+        .iter()
         .copied()
         .filter(|&i| entries[i].pos == pos)
         .map(|i| {
             let actual = crate::dump::gloss_tokens(&entries[i].english);
             let overlap = wanted.iter().filter(|token| actual.contains(token)).count();
             let compound = !compact.is_empty() && compact == actual.join("");
-            (i, overlap, compound)
+            let actual_alternatives = gloss_alternatives(&entries[i].english);
+            let exact_alternative = wanted_alternatives
+                .iter()
+                .any(|alternative| actual_alternatives.contains(alternative));
+            (i, (exact_alternative, overlap, compound))
         })
-        .filter(|(_, overlap, compound)| *overlap > 0 || *compound)
-        .max_by_key(|(i, overlap, compound)| (*overlap, *compound, std::cmp::Reverse(*i)))
-        .map(|(i, _, _)| i)
+        .filter(|(_, (exact_alternative, overlap, compound))| {
+            *exact_alternative || *overlap > 0 || *compound
+        })
+        .collect();
+    let best_score = scored.iter().map(|(_, score)| *score).max()?;
+    let mut best = scored
+        .iter()
+        .filter(|(_, score)| *score == best_score)
+        .map(|(i, _)| *i);
+    let winner = best.next()?;
+    best.next().is_none().then_some(winner)
 }
 
 #[cfg(test)]
@@ -227,6 +268,30 @@ mod tests {
             .match_candidates(&[candidate], &entries, Pos::Verb, "to have")
             .unwrap();
         assert_eq!(matched.spelling, "imati");
+    }
+
+    #[test]
+    fn semantic_ties_abstain_and_infinitive_direction_disambiguates() {
+        let entries = vec![
+            entry("417", "iměti, imati", Pos::Verb, "must, have to"),
+            entry("875", "iměti, imati", Pos::Verb, "have, possess, own"),
+        ];
+        let index = OfficialIndex::new(&entries);
+        assert_eq!(
+            index.match_form("imati", &entries, Pos::Verb, "to have"),
+            Some(1),
+            "lexical `to have` must not resolve to modal `have to`"
+        );
+
+        let tied = vec![
+            entry("1", "banka", Pos::Noun, "bank"),
+            entry("2", "banka", Pos::Noun, "bank"),
+        ];
+        assert_eq!(
+            OfficialIndex::new(&tied).match_form("banka", &tied, Pos::Noun, "bank"),
+            None,
+            "equal semantic evidence must not be broken by CSV order"
+        );
     }
 
     #[test]

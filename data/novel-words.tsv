@@ -1,290 +1,289 @@
 form	pos	coverage_proxy	bucket	ancestor	n_langs	n_branches	gloss
-Dunav	proper_noun	0.745	predlog	*Dunavь	8	3	Danube (a river in Europe; flowing 2,850 kilometers from the confluence of the B
-jabluko	noun	0.745	predlog	*ablъko	9	3	apple
-blha	noun	0.745	predlog	*blъxa	11	3	flea
-bogyni	noun	0.745	predlog	*bogyni	8	3	goddess
-bojati	verb	0.745	predlog	*bojati	7	3	to fear, to be afraid
-brånj	noun	0.745	predlog	*bornь	7	3	defence, defense
-bry	noun	0.745	predlog	*bry	9	3	eyebrow
-cŕky	noun	0.745	predlog	*cьrky	9	3	church
-dynja	noun	0.745	predlog	*dyňa	7	3	melon
-deska	noun	0.745	predlog	*dъska	7	3	board, plank
-dći	noun	0.745	predlog	*dъ̏ťi	7	3	daughter
-gať	noun	0.745	predlog	*gatь	8	3	a causeway through swamps, made from logs or brushwood, a corduroy road
-glytati	verb	0.745	predlog	*glъtati	7	3	to swallow
-godina	noun	0.745	predlog	*godina	11	3	hour
-grånostaj	noun	0.745	predlog	*gornostajь	7	3	stoat, ermine (Mustela erminea)
-gorny	adj	0.745	predlog	*gorьnъ	7	3	upper, top
-greby	noun	0.745	predlog	*greby	7	3	ridge
-gręda	noun	0.745	predlog	*gręda	7	3	beam
-jako	conj	0.745	predlog	*jako	9	3	if
-juha	noun	0.745	predlog	*juxa	8	3	soup
-istaba	noun	0.745	predlog	*jьstъba	8	3	room
-iti	verb	0.745	predlog	*jьti	10	3	to go
-kamy	noun	0.745	predlog	*kamy	11	3	stone
-kašȯlj	noun	0.745	predlog	*kaš(ь)ľь	7	3	cough
-kašȯljati	verb	0.745	predlog	*kašьľati	7	3	to cough
-kory	noun	0.745	predlog	*kory	10	3	root
-košara	noun	0.745	predlog	*košara	7	3	sheepfold
-kremy	noun	0.745	predlog	*kremy	9	3	flint
-knęgyni	noun	0.745	predlog	*kъnęgyni	7	3	princess
-leći	verb	0.745	predlog	*leťi	9	3	to lie down
-ličiti	verb	0.745	predlog	*ličiti	8	3	to count (to recite numbers in sequence)
-lųg	noun	0.745	predlog	*lǫgъ	8	3	meadow
-majati	verb	0.745	predlog	*majati	7	3	to exhaust, to harass
-mrěti	verb	0.745	predlog	*merti	9	3	to die
-moliti	verb	0.745	predlog	*modliti	8	3	to pray
-mråv	noun	0.745	predlog	*morvъ	12	3	ant
-moći	verb	0.745	predlog	*moťi	9	3	can, be able to
-mrky	noun	0.745	predlog	*mъrky	11	3	carrot
-najiti	verb	0.745	predlog	*najьti	7	3	to find
-obuti	verb	0.745	predlog	*obuti	7	3	to put on (socks, stockings, footwear)
-ognj	noun	0.745	predlog	*ogňь	12	3	fire
-låbųď	noun	0.745	predlog	*olbǫdь	7	3	swan
-låni	adv	0.745	predlog	*olni	8	3	last year
-låčny	adj	0.745	predlog	*òlčьnъ	7	3	greedy
-oloha	noun	0.745	predlog	*olьxa	9	3	alder
-råť	noun	0.745	predlog	*ortь	7	3	war
-otava	noun	0.745	predlog	*otava	10	3	aftergrass, aftermath; grass that comes up after mowing
-ovoće	noun	0.745	predlog	*ovoťe	9	3	fruit
-palica	noun	0.745	predlog	*palica	9	3	mace (weapon)
-pastyrj	noun	0.745	predlog	*pastyřь	9	3	shepherd
-pazduha	noun	0.745	predlog	*pazduxa	7	3	armpit
-plěn	noun	0.745	predlog	*pelnъ	7	3	captivity, custody
-prěpel	noun	0.745	predlog	*perpelъ	8	3	quail
-pečať	noun	0.745	predlog	*pečatь	7	3	seal (an official pattern)
-peći	verb	0.745	predlog	*peťi	9	3	to bake
-pitje	noun	0.745	predlog	*pitьje	8	3	drink, beverage
-pleće	noun	0.745	predlog	*pleťe	9	3	shoulder
-plyti	verb	0.745	predlog	*plyti	7	3	to swim
-plåmy	noun	0.745	predlog	*polmy	9	3	flame
-plånina	noun	0.745	predlog	*polnina	7	3	mountain
-post	noun	0.745	predlog	*postъ	7	3	fast (period of restricted eating)
-prijti	verb	0.745	predlog	*prijьti	7	3	to come (to), to arrive (at)
-pustyni	noun	0.745	predlog	*pustyni	8	3	desert
-pěsnj	noun	0.745	predlog	*pěsnь	10	3	song
-pěti	verb	0.745	predlog	*pěti	8	3	to sing
-papėr	noun	0.745	predlog	*pьpьrь	10	3	pepper (including sweet peppers, chilis as well as black pepper)
-pŕsty	noun	0.745	predlog	*pьrsty	11	3	ring
-remy	noun	0.745	predlog	*remy	9	3	belt; strap
-reći	verb	0.745	predlog	*reťi	7	3	to say
-rȯt	noun	0.745	predlog	*rъtъ	7	3	mouth
-rzati	verb	0.745	predlog	*rъzati	8	3	to neigh
-rȯž	noun	0.745	predlog	*rъžь	11	3	rye
-slověnin	noun	0.745	predlog	*slověninъ	11	3	Slav
-slza	noun	0.745	predlog	*slьza	11	3	tear
-smijati	verb	0.745	predlog	*smьjati	11	3	to laugh
-snop	noun	0.745	predlog	*snopъ	8	3	sheaf (bundle of grain or straw)
-som	noun	0.745	predlog	*somъ	9	3	catfish
-sråka	noun	0.745	predlog	*sorka	8	3	magpie
-soha	noun	0.745	predlog	*soxa	7	3	branching tree
-stegno	noun	0.745	predlog	*stegno	7	3	thigh
-strići	verb	0.745	predlog	*striťi	10	3	to cut (hair, fur, grass, etc.), to shear, to clip, to trim
-strųk	noun	0.745	predlog	*strǫkъ	7	3	waist
-sukno	noun	0.745	predlog	*sukno	8	3	cloth, broadcloth (a dense, smooth woolen or (rarely) cotton fabric)
-svŕč	noun	0.745	predlog	*svьrčь	7	3	cricket (insect)
-sypati	verb	0.745	predlog	*sypati	7	3	to sprinkle a granular substance
-sěnj	noun	0.745	predlog	*sěnь	8	3	shadow
-sěsti	verb	0.745	predlog	*sěsti	9	3	to sit down
-sěći	verb	0.745	predlog	*sěťi	9	3	to cut, chop, chip, hew
-sųdi	noun	0.745	predlog	*sǫdì	8	3	judge
-sŕdece	noun	0.745	predlog	*sьrdьce	10	3	heart
-sŕhy	noun	0.745	predlog	*sьrxy	9	3	hornet
-sčava	noun	0.745	predlog	*sьčava	9	3	tanning liquor
-tlěći	verb	0.745	predlog	*telťi	7	3	to beat, thrash
-tesla	noun	0.745	predlog	*tesla	7	3	adze (cutting tool)
-teta	noun	0.745	predlog	*teta	7	3	aunt
-teći	verb	0.745	predlog	*teťi	9	3	to flow, to run, to stream, to move
-togyda	adv	0.745	predlog	*togъda	7	3	then, at that time
-topolj	noun	0.745	predlog	*topolь	7	3	poplar, any tree of the genus Populus
-topor	noun	0.745	predlog	*toporъ	9	3	axe
-trųt	noun	0.745	predlog	*trǫtъ	8	3	drone (male bee)
-tur	noun	0.745	predlog	*tȗrъ	7	3	aurochs
-tvar	noun	0.745	predlog	*tvarь	8	3	face
-tyky	noun	0.745	predlog	*tyky	7	3	pumpkin
-těmę	noun	0.745	predlog	*těmę	7	3	crown of the head
-tkač	noun	0.745	predlog	*tъkačь	7	3	weaver
-strčati	verb	0.745	predlog	*(s)tъrčati	7	3	to run
-ulij	noun	0.745	predlog	*ulьjь	8	3	hive, beehive
-upȯvati	verb	0.745	predlog	*upъvati	7	3	to hope
-vaditi	verb	0.745	predlog	*vaditi	7	3	to take out, draw (something from somewhere)
-var	noun	0.745	predlog	*vȃrъ	9	3	heat
-vlěći	verb	0.745	predlog	*velťi	10	3	to drag, to haul, to draw
-vlåh	noun	0.745	predlog	*volxъ	9	3	Italian (person)
-věđa	noun	0.745	predlog	*věďa	7	3	eyelid
-vśųdu	adv	0.745	predlog	*vьśǫdu	8	3	everywhere
-hrbėt	noun	0.745	predlog	*xrьbьtъ	12	3	spine, backbone
-zelje	noun	0.745	predlog	*zelьje	7	3	cabbage
-zmij	noun	0.745	predlog	*zmьjь	8	3	dragon
-zråk	noun	0.745	predlog	*zorkъ	8	3	air
-čapja	noun	0.745	predlog	*čapľa	10	3	heron
-črěšnja	noun	0.745	predlog	*čèršьňa	10	3	sweet cherry (fruit and tree)
-četa	noun	0.745	predlog	*četa	7	3	troop, squad, host
-čųbėr	noun	0.745	predlog	*čǫbьrъ	7	3	savory (Satureja gen. et spp.)
-čolověk	noun	0.745	predlog	*čьlověkъ	8	3	man, person
-jęčmy	noun	0.745	predlog	*ęčьmy	10	3	barley
-rjuti	verb	0.745	predlog	*řuti	7	3	to roar
-šilo	noun	0.745	predlog	*šidlo	8	3	awl
-ščuka	noun	0.745	predlog	*ščùka	8	3	pike (fish)
-žrělo	noun	0.745	predlog	*žerdlo	9	3	pharynx
-žȯlna	noun	0.745	predlog	*žьlna	9	3	green woodpecker (Picus viridis)
-žvati	verb	0.745	predlog	*žьvati	7	3	to chew
-vųglj	noun	0.745	predlog	*ǫglь	8	3	coal, charcoal
-vųgorj	noun	0.745	predlog	*ǫgořь	9	3	eel
-vųs	noun	0.745	predlog	*ǫsъ	8	3	moustache
-vųtroba	noun	0.745	predlog	*ǫtroba	10	3	liver
-kit	noun	0.745	predlog	grc κῆτος	7	3	whale
-aleksandr	proper_noun	0.745	predlog	grc Ἀλέξανδρος	8	3	a female given name from Ancient Greek, equivalent to English Alexandra
-bant	noun	0.745	predlog	en band	7	3	band (group of musicians)
-basejn	noun	0.745	predlog	fr bassin	7	3	swimming pool
-blųg	noun	0.745	predlog	en blog	7	3	blog
-bula	noun	0.745	predlog	la bulla	7	3	a Muslim woman in harem pants or covered with a headscarf
-bulon	noun	0.745	predlog	fr bouillon	7	3	bouillon
-cebula	noun	0.745	predlog	la-lat cepulla	8	3	onion (Allium cepa)
-ceh	noun	0.745	predlog	gmh zeichen	8	3	guild
-cil	noun	0.745	predlog	gmh zil	7	3	aim, goal, purpose
-dajk	noun	0.745	predlog	grc διάκος	8	3	pupil (in school)
-egipet	proper_noun	0.745	predlog	la Aegyptus	7	3	Egypt (a country in North Africa and West Asia)
-ivan	proper_noun	0.745	predlog	grc Ἰωάννης	8	3	a male given name, Ivan, equivalent to English John
-jura	proper_noun	0.745	predlog	la Geōrgius	7	3	Jura (a mountain range on the border of France and Switzerland, extending into G
-kabel	noun	0.745	predlog	la capulum	7	3	cable
-klaster	noun	0.745	predlog	en cluster	8	3	cluster
-kana	noun	0.745	predlog	ota قنا	7	3	henna (Lawsonia inermis) (shrub; dye)
-kula	noun	0.745	predlog	ota قله	7	3	tower
-lidr	noun	0.745	predlog	en leader	7	3	leader
-lira	noun	0.745	predlog	la lībra	7	3	lira
-madar	noun	0.745	predlog	hu magyar	8	3	Hungarian (person)
-miting	noun	0.745	predlog	en meeting	7	3	rally, mass-meeting (a demonstration; an event where people gather together to p
-nika	proper_noun	0.745	predlog	grc Νίκη	7	3	Nike
-paštet	noun	0.745	predlog	de Pastete	8	3	pâté
-racija	noun	0.745	predlog	la ratiō	8	3	police raid
-sos	noun	0.745	predlog	la salsus	7	3	sauce
-sendvič	noun	0.745	predlog	en sandwich	7	3	sandwich
-spirt	noun	0.745	predlog	la spīritus	7	3	alcohol, spirits
-sura	noun	0.745	predlog	ar سُورَة	7	3	sura (any of the 114 chapters of the Quran)
-tur	noun	0.745	predlog	la turris	8	3	prison, jail
-Bogdan	proper_noun	0.622	predlog	*Bogъdanъ	6	3	a male given name, Bogdan
-Mokoš	proper_noun	0.622	predlog	*Mokošь	9	2	Mokosh
-Vlådiměr	proper_noun	0.622	predlog	*Voldiměrъ	6	3	a male given name
-jagnėc	noun	0.622	predlog	*agnьcь	6	3	lamb
-javiti	verb	0.622	predlog	*aviti	6	3	to inform, notify, let know
-bråv	noun	0.622	predlog	*borvъ	6	3	male sheep or goat
-bråšno	noun	0.622	predlog	*boršьno	6	3	flour
-běžati	verb	0.622	predlog	*běžati	6	3	to flee, run away
-divizna	noun	0.622	predlog	*divizna	6	3	mullein (Verbascum gen. et spp.)
-dvorėc	noun	0.622	predlog	*dvorьcь	6	3	castle
-drati	verb	0.622	predlog	*dьràti	6	3	to tear, pull apart
-goditi	verb	0.622	predlog	*goditi	6	3	to shoot (from a gun)
-gråditi	verb	0.622	predlog	*gorditi	6	3	to build
-geslo	noun	0.622	predlog	*gъslo	6	3	password
-jisty	adj	0.622	predlog	*jistъ	6	3	same
-ivȯlga	noun	0.622	predlog	*jьvьlga	6	3	oriole
-klepati	verb	0.622	predlog	*klepati	6	3	to rivet
-kråp	noun	0.622	predlog	*korpъ	6	3	carp
-kotiti	verb	0.622	predlog	*kotiti	6	3	to roll, to push (some object with wheels)
-kruh	noun	0.622	predlog	*kruxъ	6	3	bread
-kųdr	noun	0.622	predlog	*kǫdrь	6	3	curl (lock of curling hair)
-kudunja	noun	0.622	predlog	*kъduňa	6	3	quince (tree and fruit)
-matka	noun	0.622	predlog	*matъka	6	3	mother
-měniti	verb	0.622	predlog	*měniti	6	3	to consider, to regard (something as something else)
-nevod	noun	0.622	predlog	*nevodъ	6	3	seine
-něga	noun	0.622	predlog	*něga	6	3	care, nursing
-obćina	noun	0.622	predlog	*obьťina	6	3	county district, commune
-obėći	adj	0.622	predlog	*obьťь	6	3	common
-odr	noun	0.622	predlog	*odrъ	6	3	bed
-paųčina	noun	0.622	predlog	*paǫčina	6	3	cobweb
-pelyn	noun	0.622	predlog	*pelynъ	6	3	artemisia (Artemisia gen. et spp.), especially
-piščalj	noun	0.622	predlog	*piščalь	6	3	shepherd's pipe
-plaviti	verb	0.622	predlog	*plaviti	6	3	to melt, to fuse
-pliska	noun	0.622	predlog	*pliska	6	3	wagtail (any bird of the genus Motacilla)
-pobratim	noun	0.622	predlog	*pobratimъ	6	3	blood brother
-pråm	noun	0.622	predlog	*pormъ	6	3	ferry
-prěsny	adj	0.622	predlog	*prěsnъ	6	3	raw (of food)
-pųto	noun	0.622	predlog	*pǫto	6	3	fetter
-pȯlsť	noun	0.622	predlog	*pьlstь	6	3	felt (textile material)
-pŕga	noun	0.622	predlog	*pьrga	6	3	beebread
-rinųti	verb	0.622	predlog	*rinǫti	6	3	to push
-ręditi	verb	0.622	predlog	*ręditi	6	3	to ordain (that), to lay down the law
-rųgati	verb	0.622	predlog	*rǫgati	6	3	to mock, make fun of
-sanj	noun	0.622	predlog	*sanь	6	3	sledge, sleigh, sled (a vehicle on runners, used for conveying loads over the sn
-slånina	noun	0.622	predlog	*solnina	6	3	bacon
-spěti	verb	0.622	predlog	*spěti	6	3	to have time, to find time
-stepy	noun	0.622	predlog	*stepy	6	3	degree
-strup	noun	0.622	predlog	*strupъ	6	3	scab
-svętyni	noun	0.622	predlog	*svętyni	6	3	shrine
-svěćnik	noun	0.622	predlog	*svěťьnikъ	6	3	candlestick, candelabrum
-syry	adj	0.622	predlog	*syrъ	6	3	damp, moist
-syjėm	noun	0.622	predlog	*sъjьmъ	6	3	fair, exhibition, market
-snęti	verb	0.622	predlog	*sъnęti	6	3	to take off, to take away, to take down
-trěbiti	verb	0.622	predlog	*terbiti	6	3	to shell, husk
-tetrěv	noun	0.622	predlog	*tetervь	6	3	grouse
-tis	noun	0.622	predlog	*tisъ	6	3	yew (tree or wood)
-tysųti	noun	0.622	predlog	*tysǫti	6	3	thousand
-utěha	noun	0.622	predlog	*utěxa	6	3	fun, amusement
-vir	noun	0.622	predlog	*virъ	6	3	whirlpool
-volny	adj	0.622	predlog	*volьnъ	6	3	willing
-vråny	adj	0.622	predlog	*vornъ	6	3	black, raven-colored
-vråžda	noun	0.622	predlog	*voržьda	6	3	enmity, hostility
-vyknųti	verb	0.622	predlog	*vyknǫti	6	3	to get used to
-vyś	noun	0.622	predlog	*vysь	6	3	height
-vȯlčiji	adj	0.622	predlog	*vьlčьjь	6	3	wolfish, wolf's, lupine
-vŕšiti	verb	0.622	predlog	*vьršiti	6	3	to manage, to control, to direct, to do, to accomplish
-hlåp	noun	0.622	predlog	*xolpъ	7	2	serf, bondman, kholop
-hvråst	noun	0.622	predlog	*xvorstъ	6	3	oak (tree)
-hyža	noun	0.622	predlog	*xyža	6	3	pantry, larder, storeroom, cellar
-zob	noun	0.622	predlog	*zobь	6	3	oat
-zloděj	noun	0.622	predlog	*zъlodějь	6	3	thief
-šip	noun	0.622	predlog	*šipъ	6	3	thorn, spine
-ščir	noun	0.622	predlog	*ščirъ	6	3	amaranth (Amaranthus gen. et spp.)
-žezl	noun	0.622	predlog	*žezlъ	6	3	sceptre
-čao	intj	0.622	predlog	it ciao	6	3	bye
-pop	noun	0.622	predlog	grc πάπας	6	3	priest
-rom	noun	0.622	predlog	rom rrom	6	3	rum
-oleg	proper_noun	0.622	predlog	non Helgi	6	3	a male given name
-aleksej	proper_noun	0.622	predlog	grc Ἀλέξιος	6	3	a male given name from Ancient Greek, equivalent to English Alexius
-aljaska	proper_noun	0.622	predlog	ale alaxsxaq	6	3	Alaska (a state of the United States, formerly a territory)
-ansambl	noun	0.622	predlog	fr ensemble	6	3	ensemble
-aristotel	proper_noun	0.622	predlog	grc Ἀριστοτέλης	6	3	Aristotle
-atelje	noun	0.622	predlog	fr atelier	6	3	studio, atelier
-barka	noun	0.622	predlog	la-lat barca	6	3	launch (a big rowing boat)
-beži	adj	0.622	predlog	fr beige	6	3	beige
-brigada	noun	0.622	predlog	fr brigade	6	3	part-time job
-brindza	noun	0.622	predlog	ro brânză	6	3	bryndza
-bordel	noun	0.622	predlog	la-med bordellum	6	3	brothel
-buro	noun	0.622	predlog	fr bureau	6	3	office, bureau, agency
-debut	noun	0.622	predlog	fr début	6	3	debut
-depo	noun	0.622	predlog	fr dépôt	6	3	depot
-žanr	noun	0.622	predlog	fr genre	6	3	genre
-irena	proper_noun	0.622	predlog	grc Εἰρήνη	6	3	a female given name, Irina, from Ancient Greek, equivalent to English Irene
-flauta	noun	0.622	predlog	it flauto	6	3	flute
-fotelj	noun	0.622	predlog	fr fauteuil	6	3	armchair
-guru	noun	0.622	predlog	sa गुरु	6	3	guru
-adam	proper_noun	0.622	predlog	he אָדָם	6	3	Adam (the first man and the progenitor of the human race)
-kostol	noun	0.622	predlog	la castellum	6	3	château
-ketčup	noun	0.622	predlog	en ketchup	6	3	ketchup
-kombajn	noun	0.622	predlog	en combine	6	3	food processor, processor
-kran	noun	0.622	predlog	de Kran	6	3	crane
-kristian	proper_noun	0.622	predlog	la Chrīstiānus	6	3	a male given name from Ancient Greek, equivalent to English Christian
-lagr	noun	0.622	predlog	de Lager	6	3	camp
-maler	noun	0.622	predlog	la malus	6	3	painter
-ombudsman	noun	0.622	predlog	sv ombudsman	6	3	ombudsman
-parol	noun	0.622	predlog	la parabola	6	3	password
-partizan	noun	0.622	predlog	fr partisan	6	3	partisan, guerrilla
-pasažir	noun	0.622	predlog	fr passager	6	3	passenger
-paviljon	noun	0.622	predlog	fr pavillon	6	3	pavilion
-paša	noun	0.622	predlog	ota پاشا	6	3	pasha (title)
-pederast	noun	0.622	predlog	grc παιδεραστής	6	3	pederast
-pik	noun	0.622	predlog	de Pik	6	3	♠, spades in card- and boardgames
-post	noun	0.622	predlog	fr poste	6	3	post, office, appointment, position, job
-režisor	noun	0.622	predlog	fr régisseur	6	3	director
-ragbi	noun	0.622	predlog	en rugby	6	3	rugby
-saga	noun	0.622	predlog	non saga	6	3	saga
-sinagoga	noun	0.622	predlog	grc σῠνᾰγωγή	6	3	synagogue
-spageti	noun	0.622	predlog	it spaghetti	6	3	spaghetti
-štab	noun	0.622	predlog	de Stab	6	3	headquarters, staff
-tanc	noun	0.622	predlog	de Tanz	6	3	dance
-štuka	noun	0.622	predlog	de Stück	6	3	piece, each (in counting items)
-šturm	noun	0.622	predlog	de Sturm	6	3	storm, storming of something, assault (fast, violent, often frontal attack)
+Dunav	proper_noun	0.753	predlog	*Dunavь	8	3	Danube (a river in Europe; flowing 2,850 kilometers from the confluence of the B
+jabluko	noun	0.753	predlog	*ablъko	9	3	apple
+blha	noun	0.753	predlog	*blъxa	11	3	flea
+bogyni	noun	0.753	predlog	*bogyni	8	3	goddess
+bojati	verb	0.753	predlog	*bojati	7	3	to fear, to be afraid
+brånj	noun	0.753	predlog	*bornь	7	3	defence, defense
+bry	noun	0.753	predlog	*bry	9	3	eyebrow
+cŕky	noun	0.753	predlog	*cьrky	9	3	church
+dynja	noun	0.753	predlog	*dyňa	7	3	melon
+deska	noun	0.753	predlog	*dъska	7	3	board, plank
+dći	noun	0.753	predlog	*dъ̏ťi	7	3	daughter
+gať	noun	0.753	predlog	*gatь	8	3	a causeway through swamps, made from logs or brushwood, a corduroy road
+glytati	verb	0.753	predlog	*glъtati	7	3	to swallow
+godina	noun	0.753	predlog	*godina	11	3	hour
+grånostaj	noun	0.753	predlog	*gornostajь	7	3	stoat, ermine (Mustela erminea)
+gorny	adj	0.753	predlog	*gorьnъ	7	3	upper, top
+greby	noun	0.753	predlog	*greby	7	3	ridge
+gręda	noun	0.753	predlog	*gręda	7	3	beam
+juha	noun	0.753	predlog	*juxa	8	3	soup
+istaba	noun	0.753	predlog	*jьstъba	8	3	room
+kamy	noun	0.753	predlog	*kamy	11	3	stone
+kašȯlj	noun	0.753	predlog	*kaš(ь)ľь	7	3	cough
+kašȯljati	verb	0.753	predlog	*kašьľati	7	3	to cough
+kory	noun	0.753	predlog	*kory	10	3	root
+košara	noun	0.753	predlog	*košara	7	3	sheepfold
+kremy	noun	0.753	predlog	*kremy	9	3	flint
+knęgyni	noun	0.753	predlog	*kъnęgyni	7	3	princess
+leći	verb	0.753	predlog	*leťi	9	3	to lie down
+ličiti	verb	0.753	predlog	*ličiti	8	3	to count (to recite numbers in sequence)
+lųg	noun	0.753	predlog	*lǫgъ	8	3	meadow
+majati	verb	0.753	predlog	*majati	7	3	to exhaust, to harass
+mrěti	verb	0.753	predlog	*merti	9	3	to die
+moliti	verb	0.753	predlog	*modliti	8	3	to pray
+mråv	noun	0.753	predlog	*morvъ	12	3	ant
+moći	verb	0.753	predlog	*moťi	9	3	can, be able to
+mrky	noun	0.753	predlog	*mъrky	11	3	carrot
+najiti	verb	0.753	predlog	*najьti	7	3	to find
+obuti	verb	0.753	predlog	*obuti	7	3	to put on (socks, stockings, footwear)
+ognj	noun	0.753	predlog	*ogňь	12	3	fire
+låbųď	noun	0.753	predlog	*olbǫdь	7	3	swan
+låni	adv	0.753	predlog	*olni	8	3	last year
+låčny	adj	0.753	predlog	*òlčьnъ	7	3	greedy
+oloha	noun	0.753	predlog	*olьxa	9	3	alder
+råť	noun	0.753	predlog	*ortь	7	3	war
+otava	noun	0.753	predlog	*otava	10	3	aftergrass, aftermath; grass that comes up after mowing
+ovoće	noun	0.753	predlog	*ovoťe	9	3	fruit
+palica	noun	0.753	predlog	*palica	9	3	mace (weapon)
+pastyrj	noun	0.753	predlog	*pastyřь	9	3	shepherd
+pazduha	noun	0.753	predlog	*pazduxa	7	3	armpit
+plěn	noun	0.753	predlog	*pelnъ	7	3	captivity, custody
+prěpel	noun	0.753	predlog	*perpelъ	8	3	quail
+pečať	noun	0.753	predlog	*pečatь	7	3	seal (an official pattern)
+peći	verb	0.753	predlog	*peťi	9	3	to bake
+pitje	noun	0.753	predlog	*pitьje	8	3	drink, beverage
+pleće	noun	0.753	predlog	*pleťe	9	3	shoulder
+plyti	verb	0.753	predlog	*plyti	7	3	to swim
+plåmy	noun	0.753	predlog	*polmy	9	3	flame
+plånina	noun	0.753	predlog	*polnina	7	3	mountain
+post	noun	0.753	predlog	*postъ	7	3	fast (period of restricted eating)
+prijti	verb	0.753	predlog	*prijьti	7	3	to come (to), to arrive (at)
+pustyni	noun	0.753	predlog	*pustyni	8	3	desert
+pěsnj	noun	0.753	predlog	*pěsnь	10	3	song
+pěti	verb	0.753	predlog	*pěti	8	3	to sing
+papėr	noun	0.753	predlog	*pьpьrь	10	3	pepper (including sweet peppers, chilis as well as black pepper)
+pŕsty	noun	0.753	predlog	*pьrsty	11	3	ring
+remy	noun	0.753	predlog	*remy	9	3	belt; strap
+reći	verb	0.753	predlog	*reťi	7	3	to say
+rȯt	noun	0.753	predlog	*rъtъ	7	3	mouth
+rzati	verb	0.753	predlog	*rъzati	8	3	to neigh
+rȯž	noun	0.753	predlog	*rъžь	11	3	rye
+slověnin	noun	0.753	predlog	*slověninъ	11	3	Slav
+slza	noun	0.753	predlog	*slьza	11	3	tear
+smijati	verb	0.753	predlog	*smьjati	11	3	to laugh
+snop	noun	0.753	predlog	*snopъ	8	3	sheaf (bundle of grain or straw)
+som	noun	0.753	predlog	*somъ	9	3	catfish
+sråka	noun	0.753	predlog	*sorka	8	3	magpie
+soha	noun	0.753	predlog	*soxa	7	3	branching tree
+stegno	noun	0.753	predlog	*stegno	7	3	thigh
+strići	verb	0.753	predlog	*striťi	10	3	to cut (hair, fur, grass, etc.), to shear, to clip, to trim
+strųk	noun	0.753	predlog	*strǫkъ	7	3	waist
+sukno	noun	0.753	predlog	*sukno	8	3	cloth, broadcloth (a dense, smooth woolen or (rarely) cotton fabric)
+svŕč	noun	0.753	predlog	*svьrčь	7	3	cricket (insect)
+sypati	verb	0.753	predlog	*sypati	7	3	to sprinkle a granular substance
+sěnj	noun	0.753	predlog	*sěnь	8	3	shadow
+sěsti	verb	0.753	predlog	*sěsti	9	3	to sit down
+sěći	verb	0.753	predlog	*sěťi	9	3	to cut, chop, chip, hew
+sųdi	noun	0.753	predlog	*sǫdì	8	3	judge
+sŕdece	noun	0.753	predlog	*sьrdьce	10	3	heart
+sŕhy	noun	0.753	predlog	*sьrxy	9	3	hornet
+sčava	noun	0.753	predlog	*sьčava	9	3	tanning liquor
+tlěći	verb	0.753	predlog	*telťi	7	3	to beat, thrash
+tesla	noun	0.753	predlog	*tesla	7	3	adze (cutting tool)
+teta	noun	0.753	predlog	*teta	7	3	aunt
+teći	verb	0.753	predlog	*teťi	9	3	to flow, to run, to stream, to move
+togyda	adv	0.753	predlog	*togъda	7	3	then, at that time
+topolj	noun	0.753	predlog	*topolь	7	3	poplar, any tree of the genus Populus
+topor	noun	0.753	predlog	*toporъ	9	3	axe
+trųt	noun	0.753	predlog	*trǫtъ	8	3	drone (male bee)
+tur	noun	0.753	predlog	*tȗrъ	7	3	aurochs
+tvar	noun	0.753	predlog	*tvarь	8	3	face
+tyky	noun	0.753	predlog	*tyky	7	3	pumpkin
+těmę	noun	0.753	predlog	*těmę	7	3	crown of the head
+tkač	noun	0.753	predlog	*tъkačь	7	3	weaver
+strčati	verb	0.753	predlog	*(s)tъrčati	7	3	to run
+ulij	noun	0.753	predlog	*ulьjь	8	3	hive, beehive
+upȯvati	verb	0.753	predlog	*upъvati	7	3	to hope
+vaditi	verb	0.753	predlog	*vaditi	7	3	to take out, draw (something from somewhere)
+var	noun	0.753	predlog	*vȃrъ	9	3	heat
+vlěći	verb	0.753	predlog	*velťi	10	3	to drag, to haul, to draw
+vlåh	noun	0.753	predlog	*volxъ	9	3	Italian (person)
+věđa	noun	0.753	predlog	*věďa	7	3	eyelid
+vśųdu	adv	0.753	predlog	*vьśǫdu	8	3	everywhere
+hrbėt	noun	0.753	predlog	*xrьbьtъ	12	3	spine, backbone
+zelje	noun	0.753	predlog	*zelьje	7	3	cabbage
+zmij	noun	0.753	predlog	*zmьjь	8	3	dragon
+zråk	noun	0.753	predlog	*zorkъ	8	3	air
+čapja	noun	0.753	predlog	*čapľa	10	3	heron
+črěšnja	noun	0.753	predlog	*čèršьňa	10	3	sweet cherry (fruit and tree)
+četa	noun	0.753	predlog	*četa	7	3	troop, squad, host
+čųbėr	noun	0.753	predlog	*čǫbьrъ	7	3	savory (Satureja gen. et spp.)
+čolověk	noun	0.753	predlog	*čьlověkъ	8	3	man, person
+jęčmy	noun	0.753	predlog	*ęčьmy	10	3	barley
+rjuti	verb	0.753	predlog	*řuti	7	3	to roar
+šilo	noun	0.753	predlog	*šidlo	8	3	awl
+ščuka	noun	0.753	predlog	*ščùka	8	3	pike (fish)
+žrělo	noun	0.753	predlog	*žerdlo	9	3	pharynx
+žȯlna	noun	0.753	predlog	*žьlna	9	3	green woodpecker (Picus viridis)
+žvati	verb	0.753	predlog	*žьvati	7	3	to chew
+vųglj	noun	0.753	predlog	*ǫglь	8	3	coal, charcoal
+vųgorj	noun	0.753	predlog	*ǫgořь	9	3	eel
+vųs	noun	0.753	predlog	*ǫsъ	8	3	moustache
+vųtroba	noun	0.753	predlog	*ǫtroba	10	3	liver
+vųzl	noun	0.753	predlog	*ǫzlъ	8	3	knot (looping)
+kit	noun	0.753	predlog	grc κῆτος	7	3	whale
+aleksandr	proper_noun	0.753	predlog	grc Ἀλέξανδρος	8	3	a female given name from Ancient Greek, equivalent to English Alexandra
+bant	noun	0.753	predlog	en band	7	3	band (group of musicians)
+basejn	noun	0.753	predlog	fr bassin	7	3	swimming pool
+blųg	noun	0.753	predlog	en blog	7	3	blog
+bula	noun	0.753	predlog	la bulla	7	3	a Muslim woman in harem pants or covered with a headscarf
+bulon	noun	0.753	predlog	fr bouillon	7	3	bouillon
+cebula	noun	0.753	predlog	la-lat cepulla	8	3	onion (Allium cepa)
+ceh	noun	0.753	predlog	gmh zeichen	8	3	guild
+cil	noun	0.753	predlog	gmh zil	7	3	aim, goal, purpose
+dajk	noun	0.753	predlog	grc διάκος	8	3	pupil (in school)
+egipet	proper_noun	0.753	predlog	la Aegyptus	7	3	Egypt (a country in North Africa and West Asia)
+ivan	proper_noun	0.753	predlog	grc Ἰωάννης	8	3	a male given name, Ivan, equivalent to English John
+jura	proper_noun	0.753	predlog	la Geōrgius	7	3	Jura (a mountain range on the border of France and Switzerland, extending into G
+kabel	noun	0.753	predlog	la capulum	7	3	cable
+klaster	noun	0.753	predlog	en cluster	8	3	cluster
+kana	noun	0.753	predlog	ota قنا	7	3	henna (Lawsonia inermis) (shrub; dye)
+kula	noun	0.753	predlog	ota قله	7	3	tower
+lidr	noun	0.753	predlog	en leader	7	3	leader
+lira	noun	0.753	predlog	la lībra	7	3	lira
+madar	noun	0.753	predlog	hu magyar	8	3	Hungarian (person)
+miting	noun	0.753	predlog	en meeting	7	3	rally, mass-meeting (a demonstration; an event where people gather together to p
+nika	proper_noun	0.753	predlog	grc Νίκη	7	3	Nike
+paštet	noun	0.753	predlog	de Pastete	8	3	pâté
+racija	noun	0.753	predlog	la ratiō	8	3	police raid
+sos	noun	0.753	predlog	la salsus	7	3	sauce
+sendvič	noun	0.753	predlog	en sandwich	7	3	sandwich
+spirt	noun	0.753	predlog	la spīritus	7	3	alcohol, spirits
+sura	noun	0.753	predlog	ar سُورَة	7	3	sura (any of the 114 chapters of the Quran)
+tur	noun	0.753	predlog	la turris	8	3	prison, jail
+Bogdan	proper_noun	0.625	predlog	*Bogъdanъ	6	3	a male given name, Bogdan
+Mokoš	proper_noun	0.625	predlog	*Mokošь	9	2	Mokosh
+Vlådiměr	proper_noun	0.625	predlog	*Voldiměrъ	6	3	a male given name
+jagnėc	noun	0.625	predlog	*agnьcь	6	3	lamb
+javiti	verb	0.625	predlog	*aviti	6	3	to inform, notify, let know
+bråv	noun	0.625	predlog	*borvъ	6	3	male sheep or goat
+bråšno	noun	0.625	predlog	*boršьno	6	3	flour
+běžati	verb	0.625	predlog	*běžati	6	3	to flee, run away
+divizna	noun	0.625	predlog	*divizna	6	3	mullein (Verbascum gen. et spp.)
+dvorėc	noun	0.625	predlog	*dvorьcь	6	3	castle
+drati	verb	0.625	predlog	*dьràti	6	3	to tear, pull apart
+goditi	verb	0.625	predlog	*goditi	6	3	to shoot (from a gun)
+gråditi	verb	0.625	predlog	*gorditi	6	3	to build
+geslo	noun	0.625	predlog	*gъslo	6	3	password
+jisty	adj	0.625	predlog	*jistъ	6	3	same
+ivȯlga	noun	0.625	predlog	*jьvьlga	6	3	oriole
+klepati	verb	0.625	predlog	*klepati	6	3	to rivet
+kråp	noun	0.625	predlog	*korpъ	6	3	carp
+kotiti	verb	0.625	predlog	*kotiti	6	3	to roll, to push (some object with wheels)
+kruh	noun	0.625	predlog	*kruxъ	6	3	bread
+kųdr	noun	0.625	predlog	*kǫdrь	6	3	curl (lock of curling hair)
+kudunja	noun	0.625	predlog	*kъduňa	6	3	quince (tree and fruit)
+matka	noun	0.625	predlog	*matъka	6	3	mother
+měniti	verb	0.625	predlog	*měniti	6	3	to consider, to regard (something as something else)
+nevod	noun	0.625	predlog	*nevodъ	6	3	seine
+něga	noun	0.625	predlog	*něga	6	3	care, nursing
+obćina	noun	0.625	predlog	*obьťina	6	3	county district, commune
+obėći	adj	0.625	predlog	*obьťь	6	3	common
+odr	noun	0.625	predlog	*odrъ	6	3	bed
+paųčina	noun	0.625	predlog	*paǫčina	6	3	cobweb
+pelyn	noun	0.625	predlog	*pelynъ	6	3	artemisia (Artemisia gen. et spp.), especially
+piščalj	noun	0.625	predlog	*piščalь	6	3	shepherd's pipe
+plaviti	verb	0.625	predlog	*plaviti	6	3	to melt, to fuse
+pliska	noun	0.625	predlog	*pliska	6	3	wagtail (any bird of the genus Motacilla)
+pobratim	noun	0.625	predlog	*pobratimъ	6	3	blood brother
+pråm	noun	0.625	predlog	*pormъ	6	3	ferry
+prěsny	adj	0.625	predlog	*prěsnъ	6	3	raw (of food)
+pųto	noun	0.625	predlog	*pǫto	6	3	fetter
+pȯlsť	noun	0.625	predlog	*pьlstь	6	3	felt (textile material)
+pŕga	noun	0.625	predlog	*pьrga	6	3	beebread
+rinųti	verb	0.625	predlog	*rinǫti	6	3	to push
+ręditi	verb	0.625	predlog	*ręditi	6	3	to ordain (that), to lay down the law
+rųgati	verb	0.625	predlog	*rǫgati	6	3	to mock, make fun of
+sanj	noun	0.625	predlog	*sanь	6	3	sledge, sleigh, sled (a vehicle on runners, used for conveying loads over the sn
+slånina	noun	0.625	predlog	*solnina	6	3	bacon
+spěti	verb	0.625	predlog	*spěti	6	3	to have time, to find time
+stepy	noun	0.625	predlog	*stepy	6	3	degree
+strup	noun	0.625	predlog	*strupъ	6	3	scab
+svętyni	noun	0.625	predlog	*svętyni	6	3	shrine
+svěćnik	noun	0.625	predlog	*svěťьnikъ	6	3	candlestick, candelabrum
+syry	adj	0.625	predlog	*syrъ	6	3	damp, moist
+syjėm	noun	0.625	predlog	*sъjьmъ	6	3	fair, exhibition, market
+snęti	verb	0.625	predlog	*sъnęti	6	3	to take off, to take away, to take down
+trěbiti	verb	0.625	predlog	*terbiti	6	3	to shell, husk
+tetrěv	noun	0.625	predlog	*tetervь	6	3	grouse
+tis	noun	0.625	predlog	*tisъ	6	3	yew (tree or wood)
+tysųti	noun	0.625	predlog	*tysǫti	6	3	thousand
+utěha	noun	0.625	predlog	*utěxa	6	3	fun, amusement
+vir	noun	0.625	predlog	*virъ	6	3	whirlpool
+volny	adj	0.625	predlog	*volьnъ	6	3	willing
+vråny	adj	0.625	predlog	*vornъ	6	3	black, raven-colored
+vråžda	noun	0.625	predlog	*voržьda	6	3	enmity, hostility
+vyknųti	verb	0.625	predlog	*vyknǫti	6	3	to get used to
+vyś	noun	0.625	predlog	*vysь	6	3	height
+vȯlčiji	adj	0.625	predlog	*vьlčьjь	6	3	wolfish, wolf's, lupine
+vŕšiti	verb	0.625	predlog	*vьršiti	6	3	to manage, to control, to direct, to do, to accomplish
+hlåp	noun	0.625	predlog	*xolpъ	7	2	serf, bondman, kholop
+hvråst	noun	0.625	predlog	*xvorstъ	6	3	oak (tree)
+hyža	noun	0.625	predlog	*xyža	6	3	pantry, larder, storeroom, cellar
+zob	noun	0.625	predlog	*zobь	6	3	oat
+zloděj	noun	0.625	predlog	*zъlodějь	6	3	thief
+šip	noun	0.625	predlog	*šipъ	6	3	thorn, spine
+ščir	noun	0.625	predlog	*ščirъ	6	3	amaranth (Amaranthus gen. et spp.)
+žezl	noun	0.625	predlog	*žezlъ	6	3	sceptre
+čao	intj	0.625	predlog	it ciao	6	3	bye
+pop	noun	0.625	predlog	grc πάπας	6	3	priest
+rom	noun	0.625	predlog	rom rrom	6	3	rum
+oleg	proper_noun	0.625	predlog	non Helgi	6	3	a male given name
+aleksej	proper_noun	0.625	predlog	grc Ἀλέξιος	6	3	a male given name from Ancient Greek, equivalent to English Alexius
+aljaska	proper_noun	0.625	predlog	ale alaxsxaq	6	3	Alaska (a state of the United States, formerly a territory)
+ansambl	noun	0.625	predlog	fr ensemble	6	3	ensemble
+aristotel	proper_noun	0.625	predlog	grc Ἀριστοτέλης	6	3	Aristotle
+atelje	noun	0.625	predlog	fr atelier	6	3	studio, atelier
+barka	noun	0.625	predlog	la-lat barca	6	3	launch (a big rowing boat)
+beži	adj	0.625	predlog	fr beige	6	3	beige
+brigada	noun	0.625	predlog	fr brigade	6	3	part-time job
+brindza	noun	0.625	predlog	ro brânză	6	3	bryndza
+bordel	noun	0.625	predlog	la-med bordellum	6	3	brothel
+buro	noun	0.625	predlog	fr bureau	6	3	office, bureau, agency
+debut	noun	0.625	predlog	fr début	6	3	debut
+depo	noun	0.625	predlog	fr dépôt	6	3	depot
+žanr	noun	0.625	predlog	fr genre	6	3	genre
+irena	proper_noun	0.625	predlog	grc Εἰρήνη	6	3	a female given name, Irina, from Ancient Greek, equivalent to English Irene
+flauta	noun	0.625	predlog	it flauto	6	3	flute
+fotelj	noun	0.625	predlog	fr fauteuil	6	3	armchair
+guru	noun	0.625	predlog	sa गुरु	6	3	guru
+adam	proper_noun	0.625	predlog	he אָדָם	6	3	Adam (the first man and the progenitor of the human race)
+kostol	noun	0.625	predlog	la castellum	6	3	château
+ketčup	noun	0.625	predlog	en ketchup	6	3	ketchup
+kombajn	noun	0.625	predlog	en combine	6	3	food processor, processor
+kran	noun	0.625	predlog	de Kran	6	3	crane
+kristian	proper_noun	0.625	predlog	la Chrīstiānus	6	3	a male given name from Ancient Greek, equivalent to English Christian
+lagr	noun	0.625	predlog	de Lager	6	3	camp
+maler	noun	0.625	predlog	la malus	6	3	painter
+ombudsman	noun	0.625	predlog	sv ombudsman	6	3	ombudsman
+parol	noun	0.625	predlog	la parabola	6	3	password
+partizan	noun	0.625	predlog	fr partisan	6	3	partisan, guerrilla
+pasažir	noun	0.625	predlog	fr passager	6	3	passenger
+paviljon	noun	0.625	predlog	fr pavillon	6	3	pavilion
+paša	noun	0.625	predlog	ota پاشا	6	3	pasha (title)
+pederast	noun	0.625	predlog	grc παιδεραστής	6	3	pederast
+pik	noun	0.625	predlog	de Pik	6	3	♠, spades in card- and boardgames
+post	noun	0.625	predlog	fr poste	6	3	post, office, appointment, position, job
+režisor	noun	0.625	predlog	fr régisseur	6	3	director
+ragbi	noun	0.625	predlog	en rugby	6	3	rugby
+saga	noun	0.625	predlog	non saga	6	3	saga
+sinagoga	noun	0.625	predlog	grc σῠνᾰγωγή	6	3	synagogue
+spageti	noun	0.625	predlog	it spaghetti	6	3	spaghetti
+štab	noun	0.625	predlog	de Stab	6	3	headquarters, staff
+tanc	noun	0.625	predlog	de Tanz	6	3	dance
+štuka	noun	0.625	predlog	de Stück	6	3	piece, each (in counting items)
+šturm	noun	0.625	predlog	de Sturm	6	3	storm, storming of something, assault (fast, violent, often frontal attack)
 Vęćeslav	proper_noun	0.490	pregled	*Vęťeslàvъ	5	3	a male given name, Vyacheslav
 jah	intj	0.490	pregled	*axъ	5	3	ah! expresses surprise, fear, pleasure, sadness, sudden understanding
 ban	noun	0.490	pregled	*banъ	4	3	ban (title)
@@ -364,6 +363,7 @@ nastroj	noun	0.490	pregled	*nastrojь	4	3	mood, spirit
 němičėsk	noun	0.490	pregled	*němьčьskъ	4	3	the German language
 nȯćvy	noun	0.490	pregled	*nъťьvy	5	3	a kind of tub used for performing household jobs, particularly bathing small chi
 oboz	noun	0.490	pregled	*obozъ	4	3	string of carts, wagon train, string of sledges
+obvråtiti	verb	0.490	pregled	*obvortiti	4	3	to turn
 oměg	noun	0.490	pregled	*oměgъ	4	3	hemlock, conium
 oralo	noun	0.490	pregled	*oradlo	4	3	ard, wooden plough
 råkyta	noun	0.490	pregled	*orkyta	5	3	sallow, willow (Salix fragilis, Salix caprea) (tree or wood)
@@ -719,630 +719,629 @@ sprint	noun	0.490	pregled	en sprint	5	3	sprint (short race at top speed)
 zevs	proper_noun	0.490	pregled	grc Ζεύς	4	3	Zeus
 ego	noun	0.490	pregled	la ego	4	3	ego
 hit	noun	0.490	pregled	en hit	4	3	hit (popular song)
-Vlådislav	proper_noun	0.360	pregled	*Voldislavъ	4	2	a male given name, equivalent to English Ladislaus
-jablonj	noun	0.360	pregled	*ablonь	5	2	apple tree
-jabo	conj	0.360	pregled	*abo	5	2	or
-jani	conj	0.360	pregled	*ani	4	2	neither, nor, or
-jače	conj	0.360	pregled	*ače	3	3	if
-jaščerica	noun	0.360	pregled	*aščerica	3	3	lizard
-jaščerka	noun	0.360	pregled	*aščerъka	5	2	lizard
-babon	noun	0.360	pregled	*babonъ	4	2	superstition
-bagr	noun	0.360	pregled	*bagrъ	4	2	black locust
-bara	noun	0.360	pregled	*bara	4	2	puddle
-batę	noun	0.360	pregled	*batę	4	2	dad
-belen	noun	0.360	pregled	*bel(e)nъ	3	3	henbane
-bilo	noun	0.360	pregled	*bidlo	5	2	pulse, heartbeat
-bliskati	verb	0.360	pregled	*bliskati	5	2	to flash (to shine or illuminate intermittently)
-bod	noun	0.360	pregled	*bodъ	4	2	sting (with a needle or a sharp object)
-bolěsť	noun	0.360	pregled	*bolěstь	4	2	illness, disease, sickness, malady, ailment
-boriti	verb	0.360	pregled	*boriti	4	2	to fight, struggle
-božiji	adj	0.360	pregled	*božьjь	5	2	godly, divine
-bresti	verb	0.360	pregled	*bresti	4	2	to plod, to lag
-brehati	verb	0.360	pregled	*brexati	4	2	to bark
-bryla	noun	0.360	pregled	*bryla	4	2	hunk, mass, lump, clod (shapeless piece of something)
-brkati	verb	0.360	pregled	*brъkati	5	2	to kick by the hind legs (horse, bovine etc.)
-bylo	noun	0.360	pregled	*bydlò	4	2	cattle
-byčiji	adj	0.360	pregled	*byčьjь	3	3	bull; taurine
-brkati	verb	0.360	pregled	*bъrkàti	3	3	to get a sex drive
-brk	noun	0.360	pregled	*bъrkъ	5	2	moustache
-cěsta	noun	0.360	pregled	*cěsta	4	2	road
-degȯť	noun	0.360	pregled	*degъtь	5	2	tar
-divak	noun	0.360	pregled	*divakъ	3	3	spectator, viewer
-dobjesť	noun	0.360	pregled	*dobľestь	4	2	valour, prowess
-dojti	verb	0.360	pregled	*dojьti	4	2	to arrive, come
-dražiti	verb	0.360	pregled	*dražiti	3	3	to irritate
-dristati	verb	0.360	pregled	*dristati	4	2	to have diarrhea
-dropty	noun	0.360	pregled	*dropъty	3	3	great bustard (a species of bird)
-dročiti	verb	0.360	pregled	*dročiti	4	2	to jerk off, to wank, to beat off (to masturbate)
-droždžje	noun	0.360	pregled	*droždžьje	5	2	yeast
-družiti	verb	0.360	pregled	*družiti	4	2	to be friends (with), to be on friendly terms (with)
-duma	noun	0.360	pregled	*duma	4	2	word (unit of language)
-dvėr	noun	0.360	pregled	*dvь̀rь	4	2	alternative form of drzwi
-jelovy	adj	0.360	pregled	*edlovъ	3	3	spruce, fir
-jely	noun	0.360	pregled	*elỳ	4	2	deer
-jelha	noun	0.360	pregled	*elьxa	4	2	alder
-gajka	noun	0.360	pregled	*gajьka	4	2	nut (fastener intended to be screwed onto a threaded bolt)
-gatiti	verb	0.360	pregled	*gatìti	4	2	to coat, to pad (to cover something with some material, especially straw to seal
-glezn	noun	0.360	pregled	*gleznъ	5	2	ankle
-glumiti	verb	0.360	pregled	*glumiti	4	2	to act (to perform a theatrical role; to play a role)
-glum	noun	0.360	pregled	*glumъ	3	3	actor
-ględati	verb	0.360	pregled	*ględati	5	2	to watch, to guard
-glȯhnųti	verb	0.360	pregled	*glъxnǫti	3	3	to grow/to become deaf
-gnobiti	verb	0.360	pregled	*gnobiti	4	2	to annoy, to irritate
-gogol	proper_noun	0.360	pregled	*gogolъ	4	2	a surname, Gogol
-golųby	adj	0.360	pregled	*golǫbъ	5	2	pigeon, pigeon's
-grån	noun	0.360	pregled	*gornъ	4	2	pot, crock (a rounded ceramic vessel)
-gostapoda	noun	0.360	pregled	*gostьpoda	3	3	owner, proprietor
-grabji	noun	0.360	pregled	*grabji	3	3	rake
-gryža	noun	0.360	pregled	*gryža	5	2	hernia
-gybělj	noun	0.360	pregled	*gybělь	4	2	loss, death, demise (due to a violent or unnatural cause, e.g. war, accident, or
-gylj	noun	0.360	pregled	*gylь	4	2	bullfinch (any bird of the genus Pyrrhula)
-gynųti	verb	0.360	pregled	*gynǫti	3	3	to die
-gųži	noun	0.360	pregled	*gǫži	5	2	crowd, jam
-jary	adj	0.360	pregled	*jarъ	5	2	ardent
-izuti	verb	0.360	pregled	*jьzuti	4	2	to take off (socks, stockings, footwear)
-klikati	verb	0.360	pregled	*klikati	5	2	to call
-klopot	noun	0.360	pregled	*klopotъ	5	2	trouble (difficulty, problem)
-kob	noun	0.360	pregled	*kobь	3	3	fate
-kojiti	verb	0.360	pregled	*kojiti	3	3	to breastfeed, to suckle, to nurse
-kolarj	noun	0.360	pregled	*kolařь	4	2	wheelwright
-konati	verb	0.360	pregled	*konati	4	2	to ruin, to finish off, to end, to destroy
-končiti	verb	0.360	pregled	*konьčiti	4	2	to finish, to end
-kråguj	noun	0.360	pregled	*korgujь	4	2	sparrowhawk (Accipiter nisus)
-kråk	noun	0.360	pregled	*korkъ	4	2	step, pace
-kråvaj	noun	0.360	pregled	*korvajь	4	2	korovai (large, single-piece round or rectangular loaf of bread, elaborately dec
-kotoryj	pron	0.360	pregled	*kotorъjь	5	2	which?
-kovalj	noun	0.360	pregled	*kovàľь	4	2	smith, blacksmith
-kohati	verb	0.360	pregled	*koxati	4	2	to love (to have a strong affection for; to have romantic feelings for)
-kočan	noun	0.360	pregled	*kočanъ	5	2	cabbage head
-koćka	noun	0.360	pregled	*kòťьka	5	2	cat
-krajati	verb	0.360	pregled	*krajati	4	2	to cut, to slice (to incise someone or something)
-kraska	noun	0.360	pregled	*krasъka	3	3	paint, dye, ink
-krupny	adj	0.360	pregled	*krupьnъ	4	2	large, big, voluminous
-kruša	noun	0.360	pregled	*kruša	4	2	pear (fruit)
-kršiti	verb	0.360	pregled	*krъšiti	5	2	to break (some object that resists)
-kucy	adj	0.360	pregled	*kucъ	4	2	dock-tailed, short-tailed
-kuditi	verb	0.360	pregled	*kuditi	4	2	to criticize
-kutiti	verb	0.360	pregled	*kutiti	3	3	to carouse, to revel (make merry)
-kviliti	verb	0.360	pregled	*kviliti	5	2	to squeak, squeal
-knęžę	noun	0.360	pregled	*kъnęžę	4	2	prince
-krk	noun	0.360	pregled	*kъrkъ	4	2	neck
-krpa	noun	0.360	pregled	*kъrpa	4	2	towel
-krtiti	verb	0.360	pregled	*kъrtiti	3	3	to entice, to tempt
-laditi	verb	0.360	pregled	*laditi	5	2	to get on (with), to agree (with), to be on good terms (with)
-lad	noun	0.360	pregled	*ladъ	4	2	harmony, concord
-laz	noun	0.360	pregled	*lazъ	3	3	manhole, trapdoor
-luža	noun	0.360	pregled	*luža	4	2	puddle, pool
-lędina	noun	0.360	pregled	*lędina	5	2	untilled land
-lękati	verb	0.360	pregled	*lękati	3	3	to startle, jolt, scare, frighten
-lěha	noun	0.360	pregled	*lěxa	3	3	bed (garden plot)
-mariti	verb	0.360	pregled	*mariti	3	3	to dream (to hope, to wish)
-maslěny	adj	0.360	pregled	*maslěnъ	4	2	oil
-mačka	noun	0.360	pregled	*mačьka	5	2	cat (domestic species)
-męknųti	verb	0.360	pregled	*męknǫti	3	3	to soften
-městce	noun	0.360	pregled	*městьce	4	2	place, room, space (location or position in space)
-mųžščina	noun	0.360	pregled	*mǫžьščina	4	2	man (male person)
-mȯldni	noun	0.360	pregled	*mъldni	4	2	lightning
-mŕva	noun	0.360	pregled	*mьrva	5	2	crumb
-mėsť	noun	0.360	pregled	*mьstь	3	3	revenge, vengeance
-mzda	noun	0.360	pregled	*mьzdà	3	3	payment, reward, fee
-mžuriti	verb	0.360	pregled	*mьžuriti	4	2	to squint, to narrow one's eyes
-nadeđa	noun	0.360	pregled	*nadeďa	4	2	hope
-napasť	noun	0.360	pregled	*napastь	4	2	temptation
-nareći	verb	0.360	pregled	*nareťi	4	2	to name
-načŕt	noun	0.360	pregled	*načьrtъ	4	2	sketch
-niknųti	verb	0.360	pregled	*niknǫti	4	2	to sprout, shoot up
-niz	noun	0.360	pregled	*nizъ	5	2	bottom, lower part
-obuvati	verb	0.360	pregled	*obuvati	3	3	to put on (socks, stockings, footwear)
-obyjętje	noun	0.360	pregled	*obъjętьje	3	3	embrace (hug)
-odolěn	noun	0.360	pregled	*odolěnъ	3	3	valerian (Valeriana officinalis)
-obdějalo	noun	0.360	pregled	*o(b)dějadlo	4	2	suit
-ogar	noun	0.360	pregled	*ogarь	4	2	sighthound
-opsika	noun	0.360	pregled	*opsika	5	2	aspen
-rålija	noun	0.360	pregled	*orlьja	4	2	arable land, ploughland, farmland (land that has been or is meant to be ploughed
-råtaj	noun	0.360	pregled	*ortajь	4	2	agriculturist, soil cultivator
-otbojny	adj	0.360	pregled	*otъbojьnъ	3	3	repulsive, negative
-otličny	adj	0.360	pregled	*otъličьnъ	5	2	different
-otreći	verb	0.360	pregled	*otъreťi	4	2	to disown, to disavow, to renounce, to give up, to repudiate
-palba	noun	0.360	pregled	*palьba	3	3	shooting
-pasmo	noun	0.360	pregled	*pasmo	5	2	zone, area, range
-pasynȯk	noun	0.360	pregled	*pasynъkъ	4	2	stepson
-pasěka	noun	0.360	pregled	*pasěka	4	2	apiary
-pahnųti	verb	0.360	pregled	*paxnǫti	4	2	to smell, to have a smell
-pazderje	noun	0.360	pregled	*pazderьje	4	2	shive, boon (ligneous waste product of fiber production)
-paziti	verb	0.360	pregled	*paziti	4	2	to observe, to watch, to keep an eye on
-plěvel	noun	0.360	pregled	*pelvelъ	3	3	darnel, cockle (Lolium)
-prěbiti	verb	0.360	pregled	*perbiti	4	2	to beat up
-prětiti	verb	0.360	pregled	*pertiti	4	2	to threaten, menace
-prěvråtiti	verb	0.360	pregled	*pervortiti	3	3	to turn into, to change
-pećera	noun	0.360	pregled	*peťera	5	2	cave
-pilny	adj	0.360	pregled	*pilьnъ	4	2	vigilant, watchful, wakeful, attentive
-piskor	noun	0.360	pregled	*piskorь	4	2	common gudgeon (fish, Gobio gobio)
-plytky	adj	0.360	pregled	*plytъkъ	4	2	shallow
-plěna	noun	0.360	pregled	*plěna	4	2	film, pellicle, tape
-plěš	noun	0.360	pregled	*plěšь	3	3	bald spot, bald patch
-pråk	noun	0.360	pregled	*porkъ	4	2	mangonel, catapult
-pråmy	noun	0.360	pregled	*pormy	4	2	lock, tuft (of hair)
-pråpor	noun	0.360	pregled	*porporъ	4	2	regimental colours/colors
-postava	noun	0.360	pregled	*postava	4	2	posture (someone's body structure)
-počivati	verb	0.360	pregled	*počivati	4	2	to sleep, to rest
-poljėsk	proper_noun	0.360	pregled	*poľьskъ	4	2	Polish (language)
-pritča	noun	0.360	pregled	*pritъča	4	2	parable, fable
-pro	prep	0.360	pregled	*pro	4	2	about, concerning
-prętati	verb	0.360	pregled	*prętati	4	2	to conceal, to hide
-puzdro	noun	0.360	pregled	*puzdro	4	2	coffer (small chest used to store valuables)
-pěstiti	verb	0.360	pregled	*pěstiti	3	3	to caress, to fondle
-pěstovati	verb	0.360	pregled	*pěstovati	4	2	to nurse, to take care of
-prt	noun	0.360	pregled	*pъrtъ	3	3	pants, trousers
-pȯvny	adj	0.360	pregled	*pъvьnъ	4	2	sure, certain (sure in one's mind, positive; absolutely confident in the truth o
-pŕť	noun	0.360	pregled	*pьrtь	3	3	Karelian cottage
-psina	noun	0.360	pregled	*pьsina	3	3	dog
-psiji	adj	0.360	pregled	*pьsьjь	3	3	dog; canine
-račiti	verb	0.360	pregled	*račiti	3	3	to desire, to want
-riza	noun	0.360	pregled	*riza	4	2	cassock
-rogoz	noun	0.360	pregled	*rogozъ	4	2	bulrush, cattail (any of several wetland herbs, Typha)
-roniti	verb	0.360	pregled	*roniti	4	2	to dive (swim under water)
-rođstvo	noun	0.360	pregled	*roďьstvo	4	2	Christmas
-ruho	noun	0.360	pregled	*ruxo	5	2	clothes, attire, garment
-rybiji	adj	0.360	pregled	*rybьjь	3	3	fish
-rězky	adj	0.360	pregled	*rězъkъ	4	2	sharp, keen
-rųb	noun	0.360	pregled	*rǫbъ	5	2	rim
-rděti	verb	0.360	pregled	*rъděti	3	3	to redden, to blush
-sadno	noun	0.360	pregled	*sadьno	3	3	gist; crux
-sijati	verb	0.360	pregled	*sijati	5	2	to shine, emit light
-siry	adj	0.360	pregled	*sirъ	3	3	orphaned
-skarędy	adj	0.360	pregled	*skarędъ	3	3	stingy, niggardly
-skoba	noun	0.360	pregled	*skoba	4	2	cramp, crampon, staple, bracket, shackle
-skora	noun	0.360	pregled	*skora	5	2	hide, coat, pelt, skin (especially when used as a material)
-skrånj	noun	0.360	pregled	*skornь	4	2	temple
-skovrån	noun	0.360	pregled	*skovornъ	5	2	lark
-skrbiti	verb	0.360	pregled	*skъrbiti	4	2	to take care of
-slota	noun	0.360	pregled	*slota	4	2	bad, rainy weather
-smědy	adj	0.360	pregled	*smědъ	5	2	brown
-smrčėk	noun	0.360	pregled	*smъrčьkъ	5	2	morel (Morchella gen. et spp.)
-smŕděti	verb	0.360	pregled	*smьrděti	4	2	to stink, smell (bad)
-slåp	noun	0.360	pregled	*solpъ	4	2	waterfall
-spěh	noun	0.360	pregled	*spěxъ	3	3	in expressions only
-starati	verb	0.360	pregled	*starati	3	3	to take care of, to look after
-starina	noun	0.360	pregled	*starina	4	2	antiquity (ancient times; relic of ancient times)
-statȯk	noun	0.360	pregled	*statъkъ	5	2	ship, craft, vessel
-strumy	noun	0.360	pregled	*strumy	4	2	brook, stream
-stryžėnj	noun	0.360	pregled	*strьžьnь	5	2	core
-stěg	noun	0.360	pregled	*stěgъ	4	2	banner, flag
-stųpa	noun	0.360	pregled	*stǫpa	3	3	mortar (a hollow vessel used to grind ingredients with a pestle)
-stklěny	adj	0.360	pregled	*stьklěnъ	5	2	glass
-stvol	noun	0.360	pregled	*stьvolъ	4	2	trunk, tree trunk
-suti	verb	0.360	pregled	*suti	4	2	to pour (something friable), to strew, to sprinkle
-svekry	noun	0.360	pregled	*svekry	5	2	husband's mother, mother-in-law
-svid	noun	0.360	pregled	*svidъ	5	2	common dogwood (Cornus sanguinea)
-svråb	noun	0.360	pregled	*svorbъ	3	3	scabies
-sębr	noun	0.360	pregled	*sębrъ	5	2	friend, pal
-sěmijny	adj	0.360	pregled	*sěmьjьnъ	5	2	family, domestic
-sųdak	noun	0.360	pregled	*sǫdakъ	4	2	zander, pike-perch (the fish or its meat, which is highly regarded)
-sųk	noun	0.360	pregled	*sǫkъ	3	3	bough, limb, branch
-sličny	adj	0.360	pregled	*sъličьnъ	5	2	similar
-splav	noun	0.360	pregled	*sъplavъ	4	2	raft
-srěsti	verb	0.360	pregled	*sъrěsti	4	2	to meet, to encounter
-stvoritelj	noun	0.360	pregled	*sъtvoriteľь	4	2	creator
-sȯljub	noun	0.360	pregled	*sъľubъ	5	2	promise
-tať	noun	0.360	pregled	*tatь	4	2	thief
-tek	noun	0.360	pregled	*tekъ	4	2	watercourse
-teti	verb	0.360	pregled	*teti	5	2	to babble (of a baby)
-tlåčiti	verb	0.360	pregled	*tolčiti	4	2	to press, to squeeze (something physically)
-tråk	noun	0.360	pregled	*torkъ	3	3	ray
-traviti	verb	0.360	pregled	*traviti	4	2	to digest
-trěščati	verb	0.360	pregled	*trěščati	3	3	to crackle (make a fizzing sound)
-trųs	noun	0.360	pregled	*trǫsъ	4	2	coward
-tędzati	verb	0.360	pregled	*tędzati	4	2	to drag, to pull
-tęti	verb	0.360	pregled	*tęti	4	2	to cut
-tęžar	noun	0.360	pregled	*tęžarъ	4	2	weight (force an object exerts on the object it is on due to gravitation)
-tęžiti	verb	0.360	pregled	*tęžiti	3	3	to mine, to extract
-tyjdėnj	noun	0.360	pregled	*tъjьdьnь	4	2	week
-tȯkmo	adv	0.360	pregled	*tъkъmo	4	2	only
-tščeta	noun	0.360	pregled	*tъščeta	4	2	damage, harm (abstract measure of something not being intact; harm)
-tŕkati	verb	0.360	pregled	*tьrkati	4	2	to push, to shove
-tŕzati	verb	0.360	pregled	*tьrzati	4	2	to jerk, twitch
-ugasiti	verb	0.360	pregled	*ugasiti	4	2	to turn off (a light or electrical device)
-ugoda	noun	0.360	pregled	*ugoda	4	2	pleasantness, delightfulness, agreeableness
-ugor	noun	0.360	pregled	*ugorъ	4	2	fallow land
-ustava	noun	0.360	pregled	*ustava	4	2	act; statute; bill; law (generally applicable legal act, adopted by the highest
-vaditi	proper_noun	0.360	pregled	*vaditi	4	2	a male given name, Vadim
-vodnik	noun	0.360	pregled	*vodьnikъ	3	3	water-transport worker
-vlåšsky	adj	0.360	pregled	*volšьskъ	5	2	Wallachian
-vråb	noun	0.360	pregled	*vorbь	3	3	sparrow, spadger
-vråt	noun	0.360	pregled	*vortъ	5	2	neck
-vydati	verb	0.360	pregled	*vydati	4	2	to give out, to pay out, to hand, to issue, to distribute
-vydavati	verb	0.360	pregled	*vydavati	5	2	to give out, to pay out, to hand, to issue, to distribute
-vyslati	verb	0.360	pregled	*vysъlati	4	2	to send
-věrovati	verb	0.360	pregled	*věrovati	5	2	to believe (in, especially to believe in God)
-větv	noun	0.360	pregled	*větvь	4	2	branch
-věverka	noun	0.360	pregled	*věverъka	5	2	squirrel
-věha	noun	0.360	pregled	*věxa	4	2	milestone, landmark
-věščba	noun	0.360	pregled	*věščьba	4	2	exercise, practice, drill (any activity designed to develop or hone a skill or a
-věćati	verb	0.360	pregled	*věťati	4	2	to deliberate, confer
-vŕsta	noun	0.360	pregled	*vьrsta	5	2	kind, sort
-vŕv	noun	0.360	pregled	*vьrvь	5	2	ribbon, tape, streamer
-vrěva	noun	0.360	pregled	*vьrěva	5	2	shoving, jostling
-vėśi	adj	0.360	pregled	*vьśь	3	3	all, complete, whole
-hlěbny	adj	0.360	pregled	*xlěbьnъ	4	2	bread
-hohol	proper_noun	0.360	pregled	*xoxolъ	4	2	a male surname
-holjeva	noun	0.360	pregled	*xoľeva	4	2	bootleg (top of a high boot)
-hudoba	noun	0.360	pregled	*xudoba	5	2	livestock
-hula	noun	0.360	pregled	*xula	4	2	animadversion, reviling, abuse
-huliti	verb	0.360	pregled	*xuliti	5	2	to blaspheme
-hyliti	verb	0.360	pregled	*xyliti	4	2	to tilt, to lean; to bow; to bend; to decline (to cause something to at least pa
-hytati	verb	0.360	pregled	*xytati	3	3	to grab, to seize, to grasp (to take hold of quickly)
-zabiti	verb	0.360	pregled	*zabiti	3	3	to hammer in, pound in, drive in
-zagråda	noun	0.360	pregled	*zagorda	5	2	garden
-zajti	verb	0.360	pregled	*zajьti	3	3	to go behind (corner, object)
-zaprtȯk	noun	0.360	pregled	*zapъrtъkъ	4	2	addled egg
-zatajiti	verb	0.360	pregled	*zatajiti	4	2	to conceal
-zatopn	noun	0.360	pregled	*zatopnъ	3	3	bay
-zavada	noun	0.360	pregled	*zavada	3	3	quarrel
-zavrěti	verb	0.360	pregled	*zaverti	5	2	to contain; to include
-zavodnik	noun	0.360	pregled	*zavodьnikъ	4	2	seducer
-zelen	noun	0.360	pregled	*zelenъ	3	3	green, environmentalist (a member of a green party)
-zid	noun	0.360	pregled	*zidъ	5	2	wall
-zimnica	noun	0.360	pregled	*zimьnica	4	2	food stored for winter
-zinųti	verb	0.360	pregled	*zinǫti	4	2	to open one's mouth
-zobati	verb	0.360	pregled	*zobati	4	2	to peck
-zob	noun	0.360	pregled	*zobъ	3	3	chunk of fodder
-zlåtnik	noun	0.360	pregled	*zoltьnikъ	4	2	gold coin
-zveno	noun	0.360	pregled	*zvenò	3	3	link (element of a chain)
-čakati	verb	0.360	pregled	*čakati	4	2	to wait (delay until some event)
-čekan	noun	0.360	pregled	*čekanъ	3	3	chisel, caulking hammer
-čemer	noun	0.360	pregled	*čemerъ	4	2	gall
-čban	noun	0.360	pregled	*čьbanъ	4	2	jug (large round serving vessel)
-čbėr	noun	0.360	pregled	*čьbьrъ	4	2	tub (a round open-top container)
-jeskyni	noun	0.360	pregled	*ěskyni	4	2	cave, cavern
-jesniti	verb	0.360	pregled	*ěsniti	3	3	to explain
-jeđa	noun	0.360	pregled	*ěďa	4	2	food
-ljut	noun	0.360	pregled	*ľutъ	4	2	February
-šaliti	verb	0.360	pregled	*šaliti	3	3	to joke; to joke around
-ševeliti	verb	0.360	pregled	*ševeliti	3	3	to stir, to turn over
-šibati	verb	0.360	pregled	*šibati	4	2	to flog, whip, birch
-šibenica	noun	0.360	pregled	*šibenica	4	2	gallows
-šur	noun	0.360	pregled	*šurь	4	2	brother-in-law (brother of one's wife)
-ščiry	adj	0.360	pregled	*ščirъ	5	2	sincere; frank, honest
-šętati	verb	0.360	pregled	*šętati	4	2	to walk, stroll
-ženka	noun	0.360	pregled	*ženъka	4	2	female (of animals)
-župa	noun	0.360	pregled	*župa	4	2	parish (Catholic)
-župan	noun	0.360	pregled	*županъ	5	2	head of a district
-žrati	verb	0.360	pregled	*žьrati	3	3	to eat
-žŕď	noun	0.360	pregled	*žьrdь	4	2	perch; pole; ricker
-vųgr	noun	0.360	pregled	*ǫgrъ	3	3	blackhead, comedo, acne, pimple
-vųsaty	adj	0.360	pregled	*ǫsatъ	3	3	moustached (having moustache)
-vųtȯk	noun	0.360	pregled	*ǫtъkъ	3	3	weft, woof
-bon	noun	0.360	pregled	fr bon	3	3	voucher
-fah	noun	0.360	pregled	de Fach	4	2	profession
-vic	noun	0.360	pregled	de Witz	4	2	joke (a funny or witty story, usually spoken)
-abdal	noun	0.360	pregled	ota ابدال	4	2	fool, idiot, simpleton
-abreviatura	noun	0.360	pregled	la abbreviātūra	3	3	scribal abbreviation (abbreviations used by ancient and medieval scribes writing
-absolut	noun	0.360	pregled	la absolūtus	3	3	absolute, something absolute
-absolvent	noun	0.360	pregled	la absolvēns	4	2	graduate
-aceton	noun	0.360	pregled	la acētum	3	3	acetone (a colourless, volatile, flammable liquid ketone, (CH₃)₂CO, used as a so
-advent	noun	0.360	pregled	la adventus	4	2	Advent (season before Christmas)
-agar	noun	0.360	pregled	ms agar	3	3	agar
-akušer	noun	0.360	pregled	fr accoucheur	4	2	obstetrician
-alah	proper_noun	0.360	pregled	ar اَللّٰه	3	3	Allah
-alfa	noun	0.360	pregled	grc ἄλφα	4	2	alpha (Greek letter Α, α)
-allah	proper_noun	0.360	pregled	ar اللّٰه	4	2	Allah (God, in Islam)
-almara	noun	0.360	pregled	la armārium	4	2	cupboard
-anton	proper_noun	0.360	pregled	la Antōnius	4	2	a male given name, equivalent to English Anthony
-hangar	noun	0.360	pregled	fr hangar	5	2	hangar
-angina	noun	0.360	pregled	la angina	3	3	tonsillitis
-anilin	noun	0.360	pregled	fr aniline	3	3	aniline, aminobenzene (C₆H₅NH₂)
-anime	noun	0.360	pregled	ja アニメ	4	2	anime
-arkkosinus	noun	0.360	pregled	la arcus	3	3	weapon for self-defense or hand-to-hand combat
-arondisman	noun	0.360	pregled	fr arrondissement	4	2	arrondissement
-artikl	noun	0.360	pregled	la articulus	3	3	article, item, commodity
-aršin	noun	0.360	pregled	ota آرشون / آرشین	4	2	arshin
-ataše	noun	0.360	pregled	fr attaché	4	2	attaché
-avenu	noun	0.360	pregled	fr avenue	4	2	avenue
-avers	noun	0.360	pregled	la adversus	3	3	obverse
-azart	noun	0.360	pregled	fr hasard	4	2	gambling
-palto	noun	0.360	pregled	la palla	4	2	overcoat, greatcoat, carrick
-bankrut	noun	0.360	pregled	fr banqueroute	3	3	bankrupt, insolvent (a bankrupt person)
-barbados	proper_noun	0.360	pregled	en Barbados	3	3	Barbados (an island and country in the Caribbean)
-barist	noun	0.360	pregled	it barista	3	3	barista (person who prepares coffee in a coffee shop for customers)
-bača	noun	0.360	pregled	ro baci	4	2	elder shepherd from Karpaty
-beduin	noun	0.360	pregled	ar بَدَوِيُّون	3	3	bedouin
-bestseler	noun	0.360	pregled	en bestseller	4	2	bestseller
-bidon	noun	0.360	pregled	fr bidon	3	3	can, churn (a large metal or plastic cylindrical container with a secure lid or
-blaha	noun	0.360	pregled	gmh blëch	4	2	sheet metal (metal worked into a thin, flat sheet, used widely as construction m
-blickrig	noun	0.360	pregled	de Blitzkrieg	4	2	blitzkrieg
-bluz	noun	0.360	pregled	en blues	4	2	blues (music)
-bokal	noun	0.360	pregled	fr bocal	5	2	jug
-bordy	adj	0.360	pregled	fr bordeaux	4	2	maroon, claret (color)
-bormašina	noun	0.360	pregled	de Bohrmaschine	3	3	drill used by dentists
-brendi	noun	0.360	pregled	en brandy	4	2	brandy
-brokat	noun	0.360	pregled	de Brokat	3	3	brocade
-bot	noun	0.360	pregled	en bot	4	2	snowboots
-bukmejker	noun	0.360	pregled	en bookmaker	3	3	bookmaker, bookie (a person who calculates odds and accepts bets)
-buldog	noun	0.360	pregled	en bulldog	4	2	bulldog
-bort	noun	0.360	pregled	de Bord	4	2	board, side
-buržuazija	noun	0.360	pregled	fr bourgeoisie	4	2	bourgeoisie
-čizma	noun	0.360	pregled	ota چیزمه	5	2	boot
-col	noun	0.360	pregled	de Zoll	4	2	inch
-dubl	noun	0.360	pregled	fr double	3	3	take
-demokratija	noun	0.360	pregled	la-med democratia	4	2	democracy
-detal	noun	0.360	pregled	fr détail	4	2	detail
-droga	noun	0.360	pregled	fr drogue	4	2	drug (illegal or intoxicating)
-dubel	noun	0.360	pregled	la duplus	4	2	doublet
-dušman	noun	0.360	pregled	ota دشمان	4	2	enemy
-divizija	noun	0.360	pregled	la dīvīsiō	4	2	division
-dekanat	noun	0.360	pregled	la-med decānātus	4	2	dean's office
-džamija	noun	0.360	pregled	ota جامع	5	2	mosque
-džentlmen	noun	0.360	pregled	en gentleman	4	2	gentleman
-edip	proper_noun	0.360	pregled	grc Οἰδίπους	3	3	Oedipus
-jegr	noun	0.360	pregled	de Jäger	3	3	gamekeeper
-elegija	noun	0.360	pregled	la elegīa	4	2	elegy
-epos	noun	0.360	pregled	la epos	3	3	epic (extended narrative poem)
-estragon	noun	0.360	pregled	fr estragon	3	3	tarragon
-eutanazie	noun	0.360	pregled	grc εὐθανασίᾱ	3	3	euthanasia
-ekskrement	noun	0.360	pregled	la excrēmentum	3	3	excrement
-faeton	noun	0.360	pregled	grc Φαέθων	3	3	phaeton (a type of horse carriage)
-fajn	adv	0.360	pregled	de fein	3	3	well
-familija	noun	0.360	pregled	la familia	4	2	surname, last name, family name
-fant	noun	0.360	pregled	de Pfand	3	3	fant (game in which players perform comic tasks, assigned by lot to the owner of
-fason	noun	0.360	pregled	la factiō	3	3	cut (manner or style a garment etc. is fashioned in)
-fener	noun	0.360	pregled	ota فنار	4	2	lamp, lantern
-ferma	noun	0.360	pregled	fr ferme	4	2	farm
-fest	adv	0.360	pregled	de fest	4	2	very
-file	noun	0.360	pregled	fr filet	4	2	fillet
-finiš	noun	0.360	pregled	en finish	3	3	finish (end of race, etc.)
-ford	noun	0.360	pregled	no fjord	4	2	fjord
-flakon	noun	0.360	pregled	fr flacon	4	2	bottle, vial, flask (usually of perfume, shampoo, cosmetics, etc.)
-forint	noun	0.360	pregled	hu forint	3	3	forint (currency of Hungary)
-frajer	noun	0.360	pregled	de Freier	3	3	not a criminal person, a potential victim of a crime, any person (male); a perso
-frontmen	noun	0.360	pregled	en front man	4	2	front man (the lead singer in a musical group)
-fuga	noun	0.360	pregled	de Fuge	3	3	fugue
-furaž	noun	0.360	pregled	fr fourrage	3	3	fodder (food for animals)
-gaur	noun	0.360	pregled	ota كاور	3	3	giaour (infidel)
-gerasim	proper_noun	0.360	pregled	grc Γεράσιμος	4	2	a male given name, Gerasim, from Ancient Greek
-germanija	proper_noun	0.360	pregled	la Germānia	3	3	Germany (a country in Central Europe)
-hestija	proper_noun	0.360	pregled	grc Ἑστία	3	3	Hestia (goddess of hearth and household)
-grigorij	proper_noun	0.360	pregled	grc Γρηγόριος	3	3	a male given name, Grigory, from Ancient Greek, equivalent to English Gregory
-hadis	noun	0.360	pregled	ar حَدِيث	3	3	hadith
-halštuk	noun	0.360	pregled	de Halstuch	4	2	necktie, tie
-hanš	proper_noun	0.360	pregled	de Hans	3	3	a transliteration of the German male given name Hans
-harč	noun	0.360	pregled	ar خَرْج	4	2	food, grub
-korset	noun	0.360	pregled	fr corset	5	2	corset
-hartija	noun	0.360	pregled	el χαρτί	5	2	paper
-gejmer	noun	0.360	pregled	en gamer	4	2	gamer
-hetman	noun	0.360	pregled	de Hauptmann	4	2	queen (chess piece)
-olga	proper_noun	0.360	pregled	ru,uk О́льга	4	2	a female given name
-helsinki	proper_noun	0.360	pregled	fi Helsinki	3	3	Helsinki (the capital city of Finland)
-hercog	noun	0.360	pregled	de Herzog	5	2	duke
-hidžab	noun	0.360	pregled	ar حِجَاب	3	3	hijab (headscarf)
-handra	noun	0.360	pregled	de Hader	4	2	melancholy, blues
-hodža	noun	0.360	pregled	ota خواجه	3	3	preacher
-tomaš	proper_noun	0.360	pregled	la Thōmās	4	2	a male given name, Foma, equivalent to English Thomas
-hot-dog	noun	0.360	pregled	en hot dog	4	2	hot dog
-gradus	noun	0.360	pregled	la gradus	4	2	degree
-grubijan	noun	0.360	pregled	de Grobian	5	2	churl, boor, cad, chuff, vulgarian, bounder (rude and mean fellow)
-gvalt	noun	0.360	pregled	gmh gewalt	4	2	din, row, rumpus, hubbub, racket (loud noise, commotion)
-gvardija	noun	0.360	pregled	it guardia	4	2	guard (armed forces)
-igor	proper_noun	0.360	pregled	non Yngvarr	5	2	a male given name, Igor
-imam	noun	0.360	pregled	ota امام	4	2	imam
-jota	noun	0.360	pregled	grc ἰῶτα	4	2	somersault
-ipsilon	noun	0.360	pregled	grc ὖ ψιλόν	4	2	upsilon (Υ, υ; the twentieth letter of Classical and Modern Greek; the twenty-se
-iisus	proper_noun	0.360	pregled	grc Ἰησοῦς	4	2	Jesus
-italia	proper_noun	0.360	pregled	la Ī̆talia	4	2	Italy (a country in Southern Europe)
-jakov	proper_noun	0.360	pregled	grc Ἰάκωβος	4	2	Jacob
-jantar	noun	0.360	pregled	lt jentaras	5	2	amber (fossil resin)
-jarmark	noun	0.360	pregled	de Jahrmarkt	4	2	fair (market), funfair, county fair, state fair
-jasmin	noun	0.360	pregled	ota یاسمین	4	2	jasmine (plant of the genus Jasminum)
-eres	noun	0.360	pregled	grc αἵρεσις	4	2	heresy
-eva	proper_noun	0.360	pregled	grc εὐαγγέλιον	5	2	gospel
-jorkšir	proper_noun	0.360	pregled	en Yorkshire	3	3	Yorkshire (a county of England)
-junesko	proper_noun	0.360	pregled	en UNESCO	4	2	UNESCO
-kadet	noun	0.360	pregled	de Kadett	3	3	cadet (student at a military school)
-kajuta	noun	0.360	pregled	de Kajüte	3	3	cabin
-kanapa	noun	0.360	pregled	la cōnōpēum	4	2	sofa, couch
-kapo	noun	0.360	pregled	la cāpō	3	3	kapo (a prisoner in a Nazi concentration camp who was given food and privileges
-kar'er	noun	0.360	pregled	it carriera	5	2	career
-kaskada	noun	0.360	pregled	fr cascade	3	3	cascade
-kaskader	noun	0.360	pregled	fr cascadeur	3	3	stuntman
-kauč	noun	0.360	pregled	en couch	5	2	couch
-kazan	noun	0.360	pregled	ota قزان	4	2	cauldron
-kitelj	noun	0.360	pregled	de Kittel	3	3	type of a military uniform
-kimči	noun	0.360	pregled	ko 김치	3	3	kimchi
-cent	noun	0.360	pregled	la centum	4	2	cent (hundredth of a dollar, euro, etc.)
-klarinet	noun	0.360	pregled	it clarinetto	5	2	clarinet (woodwind musical instrument)
-klip	noun	0.360	pregled	en clip	4	2	music video
-klun	noun	0.360	pregled	en clown	5	2	clown (performance artist working e.g. in a circus)
-kofa	noun	0.360	pregled	ota قوغه	4	2	pail, bucket
-kokluš	noun	0.360	pregled	fr coqueluche	4	2	whooping cough
-kolos	noun	0.360	pregled	la colossus	4	2	colossus (statue of gigantic size)
-komoda	noun	0.360	pregled	fr commode	3	3	chest of drawers, bureau, dresser, commode
-kompetencija	noun	0.360	pregled	la-lat competentia	3	3	competence, competency
-koncesija	noun	0.360	pregled	la concessiō	3	3	concession
-kongresmen	noun	0.360	pregled	en congressman	3	3	congressman
-konstruktor	noun	0.360	pregled	la-lat cōnstructor	3	3	designer, design engineer, constructor
-kontur	noun	0.360	pregled	fr contour	4	2	contour, outline
-kornfleks	noun	0.360	pregled	en cornflakes	3	3	cornflakes
-kort	noun	0.360	pregled	en court	3	3	tennis court, court
-kovboj	noun	0.360	pregled	en cowboy	4	2	cowboy
-koč	noun	0.360	pregled	hu kocsi	5	2	blanket (heavy, loosely woven fabric, usually large and woollen, used for warmth
-krindž	noun	0.360	pregled	en cringe	4	2	cringe
-kroasan	noun	0.360	pregled	fr croissant	4	2	croissant
-kofr	noun	0.360	pregled	de Koffer	4	2	suitcase
-kuhna	noun	0.360	pregled	zlw-opl kuchnia	4	2	kitchen
-kulon	noun	0.360	pregled	fr coulomb	4	2	pendant
-kvark	noun	0.360	pregled	en quark	5	2	quark
-kiril	proper_noun	0.360	pregled	grc Κύριλλος	4	2	a male given name, Kirill, equivalent to English Cyril
-laguna	noun	0.360	pregled	la lacūna	3	3	lagoon
-lakrica	noun	0.360	pregled	la liquiritia	4	2	liquorice
-lapsus	noun	0.360	pregled	la lapsus	3	3	blunder, slip
-leno	noun	0.360	pregled	gmh lēhen	5	2	łan (medieval Polish measurement of field area)
-lepta	noun	0.360	pregled	grc λεπτόν	3	3	lepton (coin)
-loža	noun	0.360	pregled	fr loge	4	2	box (compartment to sit in)
-luks	noun	0.360	pregled	la lūx	3	3	lux (unit of light)
-madam	noun	0.360	pregled	fr madame	3	3	madam (polite term of address to a woman)
-mafija	noun	0.360	pregled	it mafia	3	3	mafia
-magacin	noun	0.360	pregled	it magazzino	3	3	depot
-mahr	noun	0.360	pregled	de Macher	4	2	shank, switchblade (type of small knife used in fights)
-maja	noun	0.360	pregled	es maya	4	2	a female given name, Maya, from Ancient Greek
-mihail	proper_noun	0.360	pregled	grc-koi Μιχαήλ	4	2	a male given name from Hebrew, equivalent to English Michael
-makaroni	noun	0.360	pregled	it macaroni	4	2	macaroni
-malezija	proper_noun	0.360	pregled	ms Malaysia	4	2	Malaysia (a country in Southeast Asia)
-malovati	verb	0.360	pregled	gmh mâlên	4	2	to draw
-malver	noun	0.360	pregled	en malware	4	2	malware (software developed to harm a computer system)
-maneken	noun	0.360	pregled	fr mannequin	4	2	mannequin, dummy
-mangust	noun	0.360	pregled	fr mangouste	3	3	mongoose
-maniak	noun	0.360	pregled	la-lat maniacus	3	3	maniac
-mantelj	noun	0.360	pregled	de Mantel	4	2	coat, overcoat, raincoat
-marketing	noun	0.360	pregled	en marketing	4	2	marketing
-markiz	noun	0.360	pregled	fr marquis	5	2	marquis, marquess (title of nobility)
-mastika	noun	0.360	pregled	grc μαστίχη	3	3	mastic, resin, gum
-maštab	noun	0.360	pregled	de Maßstab	4	2	scale (ratio of distances)
-medik	noun	0.360	pregled	la medicus	3	3	medic
-melasa	noun	0.360	pregled	la-med mellacea	3	3	molasses, treacle (thick brownish syrup refined from sugarcane)
-mem	noun	0.360	pregled	en meme	5	2	meme
-mitropolija	noun	0.360	pregled	gkm μητρόπολις	3	3	metropolis, archdiocese
-mjanma	proper_noun	0.360	pregled	my မြန်မာ	3	3	Myanmar (a country in Southeast Asia)
-mozaika	noun	0.360	pregled	la-med musaicum	3	3	mosaic
-mošeja	noun	0.360	pregled	it moschea	4	2	mosque
-musket	noun	0.360	pregled	fr mousquet	4	2	musket
-mušketor	noun	0.360	pregled	fr mousquetaire	3	3	musketeer (foot soldier)
-mušmula	noun	0.360	pregled	el μούσμουλο	4	2	medlar
-miris	noun	0.360	pregled	grc μύρον	5	2	chrism
-nokaut	noun	0.360	pregled	en knockout	4	2	knockout
-natura	noun	0.360	pregled	la natura	3	3	nature (the natural world)
-nejtralitet	noun	0.360	pregled	de Neutralität	4	2	neutrality
-nivo	noun	0.360	pregled	fr niveau	4	2	level
-oferta	noun	0.360	pregled	la-lat offerta	3	3	offer, tender, quotation
-okej	intj	0.360	pregled	en okay	4	2	okay, all right, fine
-oniks	noun	0.360	pregled	grc ὄνυξ	3	3	onyx
-osaka	proper_noun	0.360	pregled	ja 大阪	4	2	Osaka (the capital city of Osaka Prefecture, Japan)
-oval	noun	0.360	pregled	la-med ovālis	3	3	oval
-padišah	noun	0.360	pregled	ota پادشاه	3	3	Padishah
-papagaj	noun	0.360	pregled	de Papagei	4	2	parrot
-paranoja	noun	0.360	pregled	grc παράνοια	4	2	paranoia
-parket	noun	0.360	pregled	fr parquet	3	3	parquet
-parmezan	noun	0.360	pregled	fr parmesan	3	3	parmesan
-parta	noun	0.360	pregled	fr à part	3	3	school desk
-parti	noun	0.360	pregled	en party	3	3	informal party for young people, get-together
-pasjans	noun	0.360	pregled	fr patience	4	2	solitaire, patience (card game)
-pavel	proper_noun	0.360	pregled	la Paulus	4	2	a male given name, equivalent to English Paul
-pašto	noun	0.360	pregled	ps پښتو	3	3	Pashto; one of the official languages of Afghanistan
-pejzaž	noun	0.360	pregled	fr paysage	5	2	landscape
-petar	proper_noun	0.360	pregled	grc Πέτρος	4	2	a male given name, Pyotr, equivalent to English Peter
-piano	noun	0.360	pregled	it piano	4	2	piano
-piranja	noun	0.360	pregled	pt piranha	5	2	piranha
-pita	noun	0.360	pregled	el πίτα	5	2	pita (piece of pita bread; a flat bread pouch used for making sandwiches such as
-platon	proper_noun	0.360	pregled	grc Πλάτων	4	2	Plato
-porcelan	noun	0.360	pregled	it porcellana	4	2	porcelain
-por	noun	0.360	pregled	la porrum	3	3	leek (vegetable)
-portfel	noun	0.360	pregled	fr portefeuille	5	2	briefcase
-profesja	noun	0.360	pregled	la professiō	4	2	profession (occupation, trade, craft, or activity in which one has a professed e
-psiheja	noun	0.360	pregled	grc ψυχή	4	2	Psyche
-pulovr	noun	0.360	pregled	en pullover	3	3	pullover (sweater)
-pulsar	noun	0.360	pregled	en pulsar	5	2	pulsar
-pank	noun	0.360	pregled	en punk	4	2	punk
-rafal	proper_noun	0.360	pregled	la Rāphāēl	3	3	a transliteration of the English male given name Raphael
-randevu	noun	0.360	pregled	fr rendez-vous	3	3	rendezvous
-rensomver	noun	0.360	pregled	en ransomware	4	2	ransomware
-rojal	noun	0.360	pregled	la rēgālis	3	3	grand piano
-rekrut	noun	0.360	pregled	de Rekrut	3	3	recruit, conscript
-rele	noun	0.360	pregled	fr relais	3	3	relay
-ressora	noun	0.360	pregled	fr ressort	3	3	leaf spring, spring (device made of flexible material)
-rezume	noun	0.360	pregled	fr résumé	4	2	summary, abstract, roundup
-roba	noun	0.360	pregled	fr robe	4	2	female evening dress, evening gown
-rola	noun	0.360	pregled	la rotulus	4	2	role, part
-romans	noun	0.360	pregled	la rōmānicus	3	3	romance, a love song (of a sentimental nature)
-rubka	noun	0.360	pregled	nl roef	3	3	deckhouse, deck cabin
-ruleta	noun	0.360	pregled	fr roulette	3	3	tape measure (retractable, e.g. for carpentry)
-saldo	noun	0.360	pregled	it saldo	3	3	balance
-sansusi	proper_noun	0.360	pregled	fr sans souci	4	2	Sanssouci
-seksy	adj	0.360	pregled	en sexy	4	2	sexy
-oseledec	noun	0.360	pregled	non síld	4	2	herring
-semestr	noun	0.360	pregled	la sēmēstris	4	2	semester, term (half of school year)
-sion	proper_noun	0.360	pregled	grc-koi Σῑών	4	2	Zion (a hill in Jerusalem, Israel, on which ancient Jerusalem was partly built;
-skald	noun	0.360	pregled	non skald	3	3	skald
-skaut	noun	0.360	pregled	en scout	3	3	scout (member of the scout movement)
-skumbrija	noun	0.360	pregled	el σκουμπρί	5	2	mackerel
-skutr	noun	0.360	pregled	en scooter	3	3	scooter
-cmentar	noun	0.360	pregled	la coemētērium	4	2	cemetery, graveyard
-sori	intj	0.360	pregled	en sorry	3	3	sorry
-stafaž	noun	0.360	pregled	de Staffage	3	3	staffage
-stepan	proper_noun	0.360	pregled	grc Στέφανος	4	2	a male given name, equivalent to English Stephen
-stihar	noun	0.360	pregled	grc στιχάριον	3	3	sticharion (liturgical vestment of Eastern Christianity)
-stek	noun	0.360	pregled	en stick	4	2	steak
-štos	noun	0.360	pregled	de Stoß	4	2	stack, pile
-štrajk	noun	0.360	pregled	de Streik	3	3	strike (work stoppage)
-štraus	noun	0.360	pregled	de Strauß	3	3	ostrich
-suita	noun	0.360	pregled	fr suite	4	2	suite
-supermen	noun	0.360	pregled	en superman	3	3	superman
-super	intj	0.360	pregled	la super	3	3	super
-sutra	noun	0.360	pregled	sa सूत्र	3	3	sutra
-simetrija	noun	0.360	pregled	la symmetria	3	3	symmetry
-sintaksis	noun	0.360	pregled	la-lat syntaxis	3	3	syntax (study of the structure of phrases and sentences)
-taburet	noun	0.360	pregled	fr tabouret	3	3	ottoman, footstool
-tac	noun	0.360	pregled	fr tasse	4	2	tray, salver
-tavan	noun	0.360	pregled	ota تاوان	5	2	Taiwan (a partly-recognized country in East Asia consisting of a main island and
-atanas	proper_noun	0.360	pregled	grc Ἀθανάσιος	4	2	a male given name, Atanas, from Ancient Greek, equivalent to English Athanasius
-tandem	noun	0.360	pregled	la tandem	3	3	tandem (bicycle, machine, engine, activity, etc.)
-tarot	noun	0.360	pregled	fr tarot	3	3	tarot (card game)
-tarif	noun	0.360	pregled	it tariffa	4	2	tariff
-tava	noun	0.360	pregled	ota تاوه	4	2	baking pan, tray (for cooking)
-teren	noun	0.360	pregled	fr terrain	4	2	terrain
-terror	noun	0.360	pregled	la terror	3	3	terror (terrorist activities)
-trajekt	noun	0.360	pregled	la trāiectus	5	2	ferry
-triko	noun	0.360	pregled	fr tricot	3	3	tricot
-trioda	noun	0.360	pregled	en triode	3	3	triode
-trotoar	noun	0.360	pregled	fr trottoir	5	2	sidewalk (US), pavement (UK)
-trufel	noun	0.360	pregled	la tuber	4	2	truffle (any of various edible fungi, of the genus Tuber, that grow in the soil
-tepih	noun	0.360	pregled	de Teppich	4	2	carpet
-vestern	noun	0.360	pregled	en western	4	2	western
-urdu	noun	0.360	pregled	ur اردو	4	2	Urdu (language)
-valerij	proper_noun	0.360	pregled	la Valerius	4	2	a male given name, Valery or Valeri
-vasilij	proper_noun	0.360	pregled	grc Βασίλειος	4	2	a male given name from Greek, equivalent to English Basil
-vataga	noun	0.360	pregled	trk-pro *ōtag	3	3	gang (big, noisy group of people)
-venedikt	proper_noun	0.360	pregled	la-ecc benedictus	4	2	a male given name, Venedikt, from Latin, equivalent to English Benedict
-vesta	noun	0.360	pregled	de Weste	4	2	waistcoat, vest (sleeveless garment)
-vit	proper_noun	0.360	pregled	la Vitus	4	2	a male given name
-viktor	proper_noun	0.360	pregled	la Victor	3	3	a male given name, Viktor, equivalent to English Victor
-vinkl	noun	0.360	pregled	de Winkel	3	3	winkel (color and letter coded patch used by Nazis to classify prisoners in conc
-žemla	noun	0.360	pregled	de Semmel	4	2	bun (small bread roll)
-zdrada	noun	0.360	pregled	zlw-opl zdrada	4	2	treason, betrayal
-zurna	noun	0.360	pregled	ota زورنا⁩	4	2	zurna
-cela	noun	0.360	pregled	ota كل	3	3	bald spot
-čoha	noun	0.360	pregled	ota چوقه	5	2	broadcloth
-šaman	noun	0.360	pregled	de Schamane	3	3	shaman
-šose	noun	0.360	pregled	fr chaussée	3	3	synonym of szosa
-šedevr	noun	0.360	pregled	fr chef-d'œuvre	4	2	masterpiece (piece of work that has been given much critical praise)
-šelma	noun	0.360	pregled	gmh schelme	3	3	rascal, rogue, scoundrel
-šorty	noun	0.360	pregled	de Schürze	3	3	apron
-šlagr	noun	0.360	pregled	de Schlager	3	3	Schlager
-šlahta	noun	0.360	pregled	gmh slahte	5	2	szlachta (nobility in Poland and the Grand Duchy of Lithuania, including Belarus
-šlak	noun	0.360	pregled	de Schlacke	3	3	drudgery, slog, menial work
-šlam	noun	0.360	pregled	de Schleim	3	3	rabble, scum
-smak	noun	0.360	pregled	gmh gesmac	4	2	taste
-šnaps	noun	0.360	pregled	de Schnaps	3	3	schnapps
-šoping	noun	0.360	pregled	en shopping	4	2	shopping
-sorta	noun	0.360	pregled	la sors	3	3	sort, kind, variety (type, race, category)
-špada	noun	0.360	pregled	vec spada	3	3	swords in Spanish playing cards
-spina	noun	0.360	pregled	la spīna	5	2	back, the rear of the torso
-šurup	noun	0.360	pregled	gmh schrūbe	4	2	bolt (metal fastener)
-šrift	noun	0.360	pregled	de Schrift	4	2	type, print, script, font
-standart	noun	0.360	pregled	en standard	4	2	standard (level of quality)
-štok	noun	0.360	pregled	de Stock	3	3	doorframe
-štrek	noun	0.360	pregled	de Strecke	3	3	drift
-štift	noun	0.360	pregled	de Stift	3	3	A small round pin, a dowel installed to keep two pieces in position.
-šuflada	noun	0.360	pregled	de Schublade	4	2	drawer (open-topped box in a cabinet used for storing)
-šinel	noun	0.360	pregled	fr chenille	4	2	uniform overcoat; greatcoat
-žandarmerija	noun	0.360	pregled	fr gendarmerie	3	3	gendarmerie
-žeton	noun	0.360	pregled	fr jeton	3	3	token; coin (e.g. in a casino), chip
-žongler	noun	0.360	pregled	fr jongleur	3	3	juggler
-aperkat	noun	0.360	pregled	en uppercut	4	2	uppercut
-aba	noun	0.360	pregled	ota عبا	4	2	aba
-but	noun	0.360	pregled	ota بوت	4	2	thigh
-cap	noun	0.360	pregled	ro țap	3	3	caliber
-han	noun	0.360	pregled	ota خان	3	3	inn
-kar	noun	0.360	pregled	ota كار	3	3	power barrow, dummy car
-roz-	prefix	0.360	pregled		4	2	indicates dissolution or undoing a process, dis-
-top	noun	0.360	pregled	ota طوپ	5	2	cannon
-veb	noun	0.360	pregled	en web	3	3	web (the World Wide Web)
-vi-	prefix	0.360	pregled		4	2	out, out from (describing an action of moving outside from inside)
+Vlådislav	proper_noun	0.357	pregled	*Voldislavъ	4	2	a male given name, equivalent to English Ladislaus
+jablonj	noun	0.357	pregled	*ablonь	5	2	apple tree
+jani	conj	0.357	pregled	*ani	4	2	neither, nor, or
+jače	conj	0.357	pregled	*ače	3	3	if
+jaščerica	noun	0.357	pregled	*aščerica	3	3	lizard
+jaščerka	noun	0.357	pregled	*aščerъka	5	2	lizard
+babon	noun	0.357	pregled	*babonъ	4	2	superstition
+bagr	noun	0.357	pregled	*bagrъ	4	2	black locust
+bara	noun	0.357	pregled	*bara	4	2	puddle
+batę	noun	0.357	pregled	*batę	4	2	dad
+belen	noun	0.357	pregled	*bel(e)nъ	3	3	henbane
+bilo	noun	0.357	pregled	*bidlo	5	2	pulse, heartbeat
+bliskati	verb	0.357	pregled	*bliskati	5	2	to flash (to shine or illuminate intermittently)
+bod	noun	0.357	pregled	*bodъ	4	2	sting (with a needle or a sharp object)
+bolěsť	noun	0.357	pregled	*bolěstь	4	2	illness, disease, sickness, malady, ailment
+boriti	verb	0.357	pregled	*boriti	4	2	to fight, struggle
+božiji	adj	0.357	pregled	*božьjь	5	2	godly, divine
+bresti	verb	0.357	pregled	*bresti	4	2	to plod, to lag
+brehati	verb	0.357	pregled	*brexati	4	2	to bark
+bryla	noun	0.357	pregled	*bryla	4	2	hunk, mass, lump, clod (shapeless piece of something)
+brkati	verb	0.357	pregled	*brъkati	5	2	to kick by the hind legs (horse, bovine etc.)
+bylo	noun	0.357	pregled	*bydlò	4	2	cattle
+byčiji	adj	0.357	pregled	*byčьjь	3	3	bull; taurine
+brkati	verb	0.357	pregled	*bъrkàti	3	3	to get a sex drive
+brk	noun	0.357	pregled	*bъrkъ	5	2	moustache
+cěsta	noun	0.357	pregled	*cěsta	4	2	road
+degȯť	noun	0.357	pregled	*degъtь	5	2	tar
+divak	noun	0.357	pregled	*divakъ	3	3	spectator, viewer
+dobjesť	noun	0.357	pregled	*dobľestь	4	2	valour, prowess
+dojti	verb	0.357	pregled	*dojьti	4	2	to arrive, come
+dražiti	verb	0.357	pregled	*dražiti	3	3	to irritate
+dristati	verb	0.357	pregled	*dristati	4	2	to have diarrhea
+dropty	noun	0.357	pregled	*dropъty	3	3	great bustard (a species of bird)
+dročiti	verb	0.357	pregled	*dročiti	4	2	to jerk off, to wank, to beat off (to masturbate)
+droždžje	noun	0.357	pregled	*droždžьje	5	2	yeast
+družiti	verb	0.357	pregled	*družiti	4	2	to be friends (with), to be on friendly terms (with)
+duma	noun	0.357	pregled	*duma	4	2	word (unit of language)
+dvėr	noun	0.357	pregled	*dvь̀rь	4	2	alternative form of drzwi
+jelovy	adj	0.357	pregled	*edlovъ	3	3	spruce, fir
+jely	noun	0.357	pregled	*elỳ	4	2	deer
+jelha	noun	0.357	pregled	*elьxa	4	2	alder
+gajka	noun	0.357	pregled	*gajьka	4	2	nut (fastener intended to be screwed onto a threaded bolt)
+gatiti	verb	0.357	pregled	*gatìti	4	2	to coat, to pad (to cover something with some material, especially straw to seal
+glezn	noun	0.357	pregled	*gleznъ	5	2	ankle
+glumiti	verb	0.357	pregled	*glumiti	4	2	to act (to perform a theatrical role; to play a role)
+glum	noun	0.357	pregled	*glumъ	3	3	actor
+ględati	verb	0.357	pregled	*ględati	5	2	to watch, to guard
+glȯhnųti	verb	0.357	pregled	*glъxnǫti	3	3	to grow/to become deaf
+gnobiti	verb	0.357	pregled	*gnobiti	4	2	to annoy, to irritate
+gogol	proper_noun	0.357	pregled	*gogolъ	4	2	a surname, Gogol
+golųby	adj	0.357	pregled	*golǫbъ	5	2	pigeon, pigeon's
+grån	noun	0.357	pregled	*gornъ	4	2	pot, crock (a rounded ceramic vessel)
+gostapoda	noun	0.357	pregled	*gostьpoda	3	3	owner, proprietor
+grabji	noun	0.357	pregled	*grabji	3	3	rake
+gryža	noun	0.357	pregled	*gryža	5	2	hernia
+gybělj	noun	0.357	pregled	*gybělь	4	2	loss, death, demise (due to a violent or unnatural cause, e.g. war, accident, or
+gylj	noun	0.357	pregled	*gylь	4	2	bullfinch (any bird of the genus Pyrrhula)
+gynųti	verb	0.357	pregled	*gynǫti	3	3	to die
+gųži	noun	0.357	pregled	*gǫži	5	2	crowd, jam
+jary	adj	0.357	pregled	*jarъ	5	2	ardent
+izuti	verb	0.357	pregled	*jьzuti	4	2	to take off (socks, stockings, footwear)
+klikati	verb	0.357	pregled	*klikati	5	2	to call
+klopot	noun	0.357	pregled	*klopotъ	5	2	trouble (difficulty, problem)
+kob	noun	0.357	pregled	*kobь	3	3	fate
+kojiti	verb	0.357	pregled	*kojiti	3	3	to breastfeed, to suckle, to nurse
+kolarj	noun	0.357	pregled	*kolařь	4	2	wheelwright
+konati	verb	0.357	pregled	*konati	4	2	to ruin, to finish off, to end, to destroy
+končiti	verb	0.357	pregled	*konьčiti	4	2	to finish, to end
+kråguj	noun	0.357	pregled	*korgujь	4	2	sparrowhawk (Accipiter nisus)
+kråk	noun	0.357	pregled	*korkъ	4	2	step, pace
+kråvaj	noun	0.357	pregled	*korvajь	4	2	korovai (large, single-piece round or rectangular loaf of bread, elaborately dec
+kotoryj	pron	0.357	pregled	*kotorъjь	5	2	which?
+kovalj	noun	0.357	pregled	*kovàľь	4	2	smith, blacksmith
+kohati	verb	0.357	pregled	*koxati	4	2	to love (to have a strong affection for; to have romantic feelings for)
+kočan	noun	0.357	pregled	*kočanъ	5	2	cabbage head
+koćka	noun	0.357	pregled	*kòťьka	5	2	cat
+krajati	verb	0.357	pregled	*krajati	4	2	to cut, to slice (to incise someone or something)
+kraska	noun	0.357	pregled	*krasъka	3	3	paint, dye, ink
+krupny	adj	0.357	pregled	*krupьnъ	4	2	large, big, voluminous
+kruša	noun	0.357	pregled	*kruša	4	2	pear (fruit)
+kršiti	verb	0.357	pregled	*krъšiti	5	2	to break (some object that resists)
+kucy	adj	0.357	pregled	*kucъ	4	2	dock-tailed, short-tailed
+kuditi	verb	0.357	pregled	*kuditi	4	2	to criticize
+kutiti	verb	0.357	pregled	*kutiti	3	3	to carouse, to revel (make merry)
+kviliti	verb	0.357	pregled	*kviliti	5	2	to squeak, squeal
+knęžę	noun	0.357	pregled	*kъnęžę	4	2	prince
+krk	noun	0.357	pregled	*kъrkъ	4	2	neck
+krpa	noun	0.357	pregled	*kъrpa	4	2	towel
+krtiti	verb	0.357	pregled	*kъrtiti	3	3	to entice, to tempt
+laditi	verb	0.357	pregled	*laditi	5	2	to get on (with), to agree (with), to be on good terms (with)
+lad	noun	0.357	pregled	*ladъ	4	2	harmony, concord
+laz	noun	0.357	pregled	*lazъ	3	3	manhole, trapdoor
+luža	noun	0.357	pregled	*luža	4	2	puddle, pool
+lędina	noun	0.357	pregled	*lędina	5	2	untilled land
+lękati	verb	0.357	pregled	*lękati	3	3	to startle, jolt, scare, frighten
+lěha	noun	0.357	pregled	*lěxa	3	3	bed (garden plot)
+mariti	verb	0.357	pregled	*mariti	3	3	to dream (to hope, to wish)
+maslěny	adj	0.357	pregled	*maslěnъ	4	2	oil
+mačka	noun	0.357	pregled	*mačьka	5	2	cat (domestic species)
+męknųti	verb	0.357	pregled	*męknǫti	3	3	to soften
+městce	noun	0.357	pregled	*městьce	4	2	place, room, space (location or position in space)
+mųžščina	noun	0.357	pregled	*mǫžьščina	4	2	man (male person)
+mȯldni	noun	0.357	pregled	*mъldni	4	2	lightning
+mŕva	noun	0.357	pregled	*mьrva	5	2	crumb
+mėsť	noun	0.357	pregled	*mьstь	3	3	revenge, vengeance
+mzda	noun	0.357	pregled	*mьzdà	3	3	payment, reward, fee
+mžuriti	verb	0.357	pregled	*mьžuriti	4	2	to squint, to narrow one's eyes
+nadeđa	noun	0.357	pregled	*nadeďa	4	2	hope
+napasť	noun	0.357	pregled	*napastь	4	2	temptation
+nareći	verb	0.357	pregled	*nareťi	4	2	to name
+načŕt	noun	0.357	pregled	*načьrtъ	4	2	sketch
+niknųti	verb	0.357	pregled	*niknǫti	4	2	to sprout, shoot up
+niz	noun	0.357	pregled	*nizъ	5	2	bottom, lower part
+obuvati	verb	0.357	pregled	*obuvati	3	3	to put on (socks, stockings, footwear)
+obyjętje	noun	0.357	pregled	*obъjętьje	3	3	embrace (hug)
+odolěn	noun	0.357	pregled	*odolěnъ	3	3	valerian (Valeriana officinalis)
+obdějalo	noun	0.357	pregled	*o(b)dějadlo	4	2	suit
+ogar	noun	0.357	pregled	*ogarь	4	2	sighthound
+opsika	noun	0.357	pregled	*opsika	5	2	aspen
+rålija	noun	0.357	pregled	*orlьja	4	2	arable land, ploughland, farmland (land that has been or is meant to be ploughed
+råtaj	noun	0.357	pregled	*ortajь	4	2	agriculturist, soil cultivator
+otbojny	adj	0.357	pregled	*otъbojьnъ	3	3	repulsive, negative
+otličny	adj	0.357	pregled	*otъličьnъ	5	2	different
+otreći	verb	0.357	pregled	*otъreťi	4	2	to disown, to disavow, to renounce, to give up, to repudiate
+palba	noun	0.357	pregled	*palьba	3	3	shooting
+pasmo	noun	0.357	pregled	*pasmo	5	2	zone, area, range
+pasynȯk	noun	0.357	pregled	*pasynъkъ	4	2	stepson
+pasěka	noun	0.357	pregled	*pasěka	4	2	apiary
+pahnųti	verb	0.357	pregled	*paxnǫti	4	2	to smell, to have a smell
+pazderje	noun	0.357	pregled	*pazderьje	4	2	shive, boon (ligneous waste product of fiber production)
+paziti	verb	0.357	pregled	*paziti	4	2	to observe, to watch, to keep an eye on
+plěvel	noun	0.357	pregled	*pelvelъ	3	3	darnel, cockle (Lolium)
+prěbiti	verb	0.357	pregled	*perbiti	4	2	to beat up
+prětiti	verb	0.357	pregled	*pertiti	4	2	to threaten, menace
+prěvråtiti	verb	0.357	pregled	*pervortiti	3	3	to turn into, to change
+pećera	noun	0.357	pregled	*peťera	5	2	cave
+pilny	adj	0.357	pregled	*pilьnъ	4	2	vigilant, watchful, wakeful, attentive
+piskor	noun	0.357	pregled	*piskorь	4	2	common gudgeon (fish, Gobio gobio)
+plytky	adj	0.357	pregled	*plytъkъ	4	2	shallow
+plěna	noun	0.357	pregled	*plěna	4	2	film, pellicle, tape
+plěš	noun	0.357	pregled	*plěšь	3	3	bald spot, bald patch
+pråk	noun	0.357	pregled	*porkъ	4	2	mangonel, catapult
+pråmy	noun	0.357	pregled	*pormy	4	2	lock, tuft (of hair)
+pråpor	noun	0.357	pregled	*porporъ	4	2	regimental colours/colors
+postava	noun	0.357	pregled	*postava	4	2	posture (someone's body structure)
+počivati	verb	0.357	pregled	*počivati	4	2	to sleep, to rest
+poljėsk	proper_noun	0.357	pregled	*poľьskъ	4	2	Polish (language)
+pritča	noun	0.357	pregled	*pritъča	4	2	parable, fable
+pro	prep	0.357	pregled	*pro	4	2	about, concerning
+prętati	verb	0.357	pregled	*prętati	4	2	to conceal, to hide
+puzdro	noun	0.357	pregled	*puzdro	4	2	coffer (small chest used to store valuables)
+pěstiti	verb	0.357	pregled	*pěstiti	3	3	to caress, to fondle
+pěstovati	verb	0.357	pregled	*pěstovati	4	2	to nurse, to take care of
+prt	noun	0.357	pregled	*pъrtъ	3	3	pants, trousers
+pȯvny	adj	0.357	pregled	*pъvьnъ	4	2	sure, certain (sure in one's mind, positive; absolutely confident in the truth o
+pŕť	noun	0.357	pregled	*pьrtь	3	3	Karelian cottage
+psina	noun	0.357	pregled	*pьsina	3	3	dog
+psiji	adj	0.357	pregled	*pьsьjь	3	3	dog; canine
+račiti	verb	0.357	pregled	*račiti	3	3	to desire, to want
+riza	noun	0.357	pregled	*riza	4	2	cassock
+rogoz	noun	0.357	pregled	*rogozъ	4	2	bulrush, cattail (any of several wetland herbs, Typha)
+roniti	verb	0.357	pregled	*roniti	4	2	to dive (swim under water)
+rođstvo	noun	0.357	pregled	*roďьstvo	4	2	Christmas
+ruho	noun	0.357	pregled	*ruxo	5	2	clothes, attire, garment
+rybiji	adj	0.357	pregled	*rybьjь	3	3	fish
+rězky	adj	0.357	pregled	*rězъkъ	4	2	sharp, keen
+rųb	noun	0.357	pregled	*rǫbъ	5	2	rim
+rděti	verb	0.357	pregled	*rъděti	3	3	to redden, to blush
+sadno	noun	0.357	pregled	*sadьno	3	3	gist; crux
+sijati	verb	0.357	pregled	*sijati	5	2	to shine, emit light
+siry	adj	0.357	pregled	*sirъ	3	3	orphaned
+skarędy	adj	0.357	pregled	*skarędъ	3	3	stingy, niggardly
+skoba	noun	0.357	pregled	*skoba	4	2	cramp, crampon, staple, bracket, shackle
+skora	noun	0.357	pregled	*skora	5	2	hide, coat, pelt, skin (especially when used as a material)
+skrånj	noun	0.357	pregled	*skornь	4	2	temple
+skovrån	noun	0.357	pregled	*skovornъ	5	2	lark
+skrbiti	verb	0.357	pregled	*skъrbiti	4	2	to take care of
+slota	noun	0.357	pregled	*slota	4	2	bad, rainy weather
+smědy	adj	0.357	pregled	*smědъ	5	2	brown
+smrčėk	noun	0.357	pregled	*smъrčьkъ	5	2	morel (Morchella gen. et spp.)
+smŕděti	verb	0.357	pregled	*smьrděti	4	2	to stink, smell (bad)
+slåp	noun	0.357	pregled	*solpъ	4	2	waterfall
+spěh	noun	0.357	pregled	*spěxъ	3	3	in expressions only
+starati	verb	0.357	pregled	*starati	3	3	to take care of, to look after
+starina	noun	0.357	pregled	*starina	4	2	antiquity (ancient times; relic of ancient times)
+statȯk	noun	0.357	pregled	*statъkъ	5	2	ship, craft, vessel
+strumy	noun	0.357	pregled	*strumy	4	2	brook, stream
+stryžėnj	noun	0.357	pregled	*strьžьnь	5	2	core
+stěg	noun	0.357	pregled	*stěgъ	4	2	banner, flag
+stųpa	noun	0.357	pregled	*stǫpa	3	3	mortar (a hollow vessel used to grind ingredients with a pestle)
+stklěny	adj	0.357	pregled	*stьklěnъ	5	2	glass
+stvol	noun	0.357	pregled	*stьvolъ	4	2	trunk, tree trunk
+suti	verb	0.357	pregled	*suti	4	2	to pour (something friable), to strew, to sprinkle
+svekry	noun	0.357	pregled	*svekry	5	2	husband's mother, mother-in-law
+svid	noun	0.357	pregled	*svidъ	5	2	common dogwood (Cornus sanguinea)
+svråb	noun	0.357	pregled	*svorbъ	3	3	scabies
+sębr	noun	0.357	pregled	*sębrъ	5	2	friend, pal
+sěmijny	adj	0.357	pregled	*sěmьjьnъ	5	2	family, domestic
+sųdak	noun	0.357	pregled	*sǫdakъ	4	2	zander, pike-perch (the fish or its meat, which is highly regarded)
+sųk	noun	0.357	pregled	*sǫkъ	3	3	bough, limb, branch
+sličny	adj	0.357	pregled	*sъličьnъ	5	2	similar
+splav	noun	0.357	pregled	*sъplavъ	4	2	raft
+srěsti	verb	0.357	pregled	*sъrěsti	4	2	to meet, to encounter
+stvoritelj	noun	0.357	pregled	*sъtvoriteľь	4	2	creator
+sȯljub	noun	0.357	pregled	*sъľubъ	5	2	promise
+tať	noun	0.357	pregled	*tatь	4	2	thief
+tek	noun	0.357	pregled	*tekъ	4	2	watercourse
+teti	verb	0.357	pregled	*teti	5	2	to babble (of a baby)
+tlåčiti	verb	0.357	pregled	*tolčiti	4	2	to press, to squeeze (something physically)
+tråk	noun	0.357	pregled	*torkъ	3	3	ray
+traviti	verb	0.357	pregled	*traviti	4	2	to digest
+trěščati	verb	0.357	pregled	*trěščati	3	3	to crackle (make a fizzing sound)
+trųs	noun	0.357	pregled	*trǫsъ	4	2	coward
+tędzati	verb	0.357	pregled	*tędzati	4	2	to drag, to pull
+tęti	verb	0.357	pregled	*tęti	4	2	to cut
+tęžar	noun	0.357	pregled	*tęžarъ	4	2	weight (force an object exerts on the object it is on due to gravitation)
+tęžiti	verb	0.357	pregled	*tęžiti	3	3	to mine, to extract
+tyjdėnj	noun	0.357	pregled	*tъjьdьnь	4	2	week
+tȯkmo	adv	0.357	pregled	*tъkъmo	4	2	only
+tščeta	noun	0.357	pregled	*tъščeta	4	2	damage, harm (abstract measure of something not being intact; harm)
+tŕkati	verb	0.357	pregled	*tьrkati	4	2	to push, to shove
+tŕzati	verb	0.357	pregled	*tьrzati	4	2	to jerk, twitch
+ugasiti	verb	0.357	pregled	*ugasiti	4	2	to turn off (a light or electrical device)
+ugoda	noun	0.357	pregled	*ugoda	4	2	pleasantness, delightfulness, agreeableness
+ugor	noun	0.357	pregled	*ugorъ	4	2	fallow land
+ustava	noun	0.357	pregled	*ustava	4	2	act; statute; bill; law (generally applicable legal act, adopted by the highest
+vaditi	proper_noun	0.357	pregled	*vaditi	4	2	a male given name, Vadim
+vodnik	noun	0.357	pregled	*vodьnikъ	3	3	water-transport worker
+vlåšsky	adj	0.357	pregled	*volšьskъ	5	2	Wallachian
+vråb	noun	0.357	pregled	*vorbь	3	3	sparrow, spadger
+vråt	noun	0.357	pregled	*vortъ	5	2	neck
+vydati	verb	0.357	pregled	*vydati	4	2	to give out, to pay out, to hand, to issue, to distribute
+vydavati	verb	0.357	pregled	*vydavati	5	2	to give out, to pay out, to hand, to issue, to distribute
+vyslati	verb	0.357	pregled	*vysъlati	4	2	to send
+věrovati	verb	0.357	pregled	*věrovati	5	2	to believe (in, especially to believe in God)
+větv	noun	0.357	pregled	*větvь	4	2	branch
+věverka	noun	0.357	pregled	*věverъka	5	2	squirrel
+věha	noun	0.357	pregled	*věxa	4	2	milestone, landmark
+věščba	noun	0.357	pregled	*věščьba	4	2	exercise, practice, drill (any activity designed to develop or hone a skill or a
+věćati	verb	0.357	pregled	*věťati	4	2	to deliberate, confer
+vŕsta	noun	0.357	pregled	*vьrsta	5	2	kind, sort
+vŕv	noun	0.357	pregled	*vьrvь	5	2	ribbon, tape, streamer
+vrěva	noun	0.357	pregled	*vьrěva	5	2	shoving, jostling
+vėśi	adj	0.357	pregled	*vьśь	3	3	all, complete, whole
+hlěbny	adj	0.357	pregled	*xlěbьnъ	4	2	bread
+hohol	proper_noun	0.357	pregled	*xoxolъ	4	2	a male surname
+holjeva	noun	0.357	pregled	*xoľeva	4	2	bootleg (top of a high boot)
+hudoba	noun	0.357	pregled	*xudoba	5	2	livestock
+hula	noun	0.357	pregled	*xula	4	2	animadversion, reviling, abuse
+huliti	verb	0.357	pregled	*xuliti	5	2	to blaspheme
+hyliti	verb	0.357	pregled	*xyliti	4	2	to tilt, to lean; to bow; to bend; to decline (to cause something to at least pa
+hytati	verb	0.357	pregled	*xytati	3	3	to grab, to seize, to grasp (to take hold of quickly)
+zabiti	verb	0.357	pregled	*zabiti	3	3	to hammer in, pound in, drive in
+zagråda	noun	0.357	pregled	*zagorda	5	2	garden
+zajti	verb	0.357	pregled	*zajьti	3	3	to go behind (corner, object)
+zaprtȯk	noun	0.357	pregled	*zapъrtъkъ	4	2	addled egg
+zatajiti	verb	0.357	pregled	*zatajiti	4	2	to conceal
+zatopn	noun	0.357	pregled	*zatopnъ	3	3	bay
+zavada	noun	0.357	pregled	*zavada	3	3	quarrel
+zavrěti	verb	0.357	pregled	*zaverti	5	2	to contain; to include
+zavodnik	noun	0.357	pregled	*zavodьnikъ	4	2	seducer
+zelen	noun	0.357	pregled	*zelenъ	3	3	green, environmentalist (a member of a green party)
+zid	noun	0.357	pregled	*zidъ	5	2	wall
+zimnica	noun	0.357	pregled	*zimьnica	4	2	food stored for winter
+zinųti	verb	0.357	pregled	*zinǫti	4	2	to open one's mouth
+zobati	verb	0.357	pregled	*zobati	4	2	to peck
+zob	noun	0.357	pregled	*zobъ	3	3	chunk of fodder
+zlåtnik	noun	0.357	pregled	*zoltьnikъ	4	2	gold coin
+zveno	noun	0.357	pregled	*zvenò	3	3	link (element of a chain)
+čakati	verb	0.357	pregled	*čakati	4	2	to wait (delay until some event)
+čekan	noun	0.357	pregled	*čekanъ	3	3	chisel, caulking hammer
+čemer	noun	0.357	pregled	*čemerъ	4	2	gall
+čban	noun	0.357	pregled	*čьbanъ	4	2	jug (large round serving vessel)
+čbėr	noun	0.357	pregled	*čьbьrъ	4	2	tub (a round open-top container)
+jeskyni	noun	0.357	pregled	*ěskyni	4	2	cave, cavern
+jesniti	verb	0.357	pregled	*ěsniti	3	3	to explain
+jeđa	noun	0.357	pregled	*ěďa	4	2	food
+ljut	noun	0.357	pregled	*ľutъ	4	2	February
+šaliti	verb	0.357	pregled	*šaliti	3	3	to joke; to joke around
+ševeliti	verb	0.357	pregled	*ševeliti	3	3	to stir, to turn over
+šibati	verb	0.357	pregled	*šibati	4	2	to flog, whip, birch
+šibenica	noun	0.357	pregled	*šibenica	4	2	gallows
+šur	noun	0.357	pregled	*šurь	4	2	brother-in-law (brother of one's wife)
+ščiry	adj	0.357	pregled	*ščirъ	5	2	sincere; frank, honest
+šętati	verb	0.357	pregled	*šętati	4	2	to walk, stroll
+ženka	noun	0.357	pregled	*ženъka	4	2	female (of animals)
+župa	noun	0.357	pregled	*župa	4	2	parish (Catholic)
+župan	noun	0.357	pregled	*županъ	5	2	head of a district
+žrati	verb	0.357	pregled	*žьrati	3	3	to eat
+žŕď	noun	0.357	pregled	*žьrdь	4	2	perch; pole; ricker
+vųgr	noun	0.357	pregled	*ǫgrъ	3	3	blackhead, comedo, acne, pimple
+vųsaty	adj	0.357	pregled	*ǫsatъ	3	3	moustached (having moustache)
+vųtȯk	noun	0.357	pregled	*ǫtъkъ	3	3	weft, woof
+bon	noun	0.357	pregled	fr bon	3	3	voucher
+fah	noun	0.357	pregled	de Fach	4	2	profession
+vic	noun	0.357	pregled	de Witz	4	2	joke (a funny or witty story, usually spoken)
+abdal	noun	0.357	pregled	ota ابدال	4	2	fool, idiot, simpleton
+abreviatura	noun	0.357	pregled	la abbreviātūra	3	3	scribal abbreviation (abbreviations used by ancient and medieval scribes writing
+absolut	noun	0.357	pregled	la absolūtus	3	3	absolute, something absolute
+absolvent	noun	0.357	pregled	la absolvēns	4	2	graduate
+aceton	noun	0.357	pregled	la acētum	3	3	acetone (a colourless, volatile, flammable liquid ketone, (CH₃)₂CO, used as a so
+advent	noun	0.357	pregled	la adventus	4	2	Advent (season before Christmas)
+agar	noun	0.357	pregled	ms agar	3	3	agar
+akušer	noun	0.357	pregled	fr accoucheur	4	2	obstetrician
+alah	proper_noun	0.357	pregled	ar اَللّٰه	3	3	Allah
+alfa	noun	0.357	pregled	grc ἄλφα	4	2	alpha (Greek letter Α, α)
+allah	proper_noun	0.357	pregled	ar اللّٰه	4	2	Allah (God, in Islam)
+almara	noun	0.357	pregled	la armārium	4	2	cupboard
+anton	proper_noun	0.357	pregled	la Antōnius	4	2	a male given name, equivalent to English Anthony
+hangar	noun	0.357	pregled	fr hangar	5	2	hangar
+angina	noun	0.357	pregled	la angina	3	3	tonsillitis
+anilin	noun	0.357	pregled	fr aniline	3	3	aniline, aminobenzene (C₆H₅NH₂)
+anime	noun	0.357	pregled	ja アニメ	4	2	anime
+arkkosinus	noun	0.357	pregled	la arcus	3	3	weapon for self-defense or hand-to-hand combat
+arondisman	noun	0.357	pregled	fr arrondissement	4	2	arrondissement
+artikl	noun	0.357	pregled	la articulus	3	3	article, item, commodity
+aršin	noun	0.357	pregled	ota آرشون / آرشین	4	2	arshin
+ataše	noun	0.357	pregled	fr attaché	4	2	attaché
+avenu	noun	0.357	pregled	fr avenue	4	2	avenue
+avers	noun	0.357	pregled	la adversus	3	3	obverse
+azart	noun	0.357	pregled	fr hasard	4	2	gambling
+palto	noun	0.357	pregled	la palla	4	2	overcoat, greatcoat, carrick
+bankrut	noun	0.357	pregled	fr banqueroute	3	3	bankrupt, insolvent (a bankrupt person)
+barbados	proper_noun	0.357	pregled	en Barbados	3	3	Barbados (an island and country in the Caribbean)
+barist	noun	0.357	pregled	it barista	3	3	barista (person who prepares coffee in a coffee shop for customers)
+bača	noun	0.357	pregled	ro baci	4	2	elder shepherd from Karpaty
+beduin	noun	0.357	pregled	ar بَدَوِيُّون	3	3	bedouin
+bestseler	noun	0.357	pregled	en bestseller	4	2	bestseller
+bidon	noun	0.357	pregled	fr bidon	3	3	can, churn (a large metal or plastic cylindrical container with a secure lid or
+blaha	noun	0.357	pregled	gmh blëch	4	2	sheet metal (metal worked into a thin, flat sheet, used widely as construction m
+blickrig	noun	0.357	pregled	de Blitzkrieg	4	2	blitzkrieg
+bluz	noun	0.357	pregled	en blues	4	2	blues (music)
+bokal	noun	0.357	pregled	fr bocal	5	2	jug
+bordy	adj	0.357	pregled	fr bordeaux	4	2	maroon, claret (color)
+bormašina	noun	0.357	pregled	de Bohrmaschine	3	3	drill used by dentists
+brendi	noun	0.357	pregled	en brandy	4	2	brandy
+brokat	noun	0.357	pregled	de Brokat	3	3	brocade
+bot	noun	0.357	pregled	en bot	4	2	snowboots
+bukmejker	noun	0.357	pregled	en bookmaker	3	3	bookmaker, bookie (a person who calculates odds and accepts bets)
+buldog	noun	0.357	pregled	en bulldog	4	2	bulldog
+bort	noun	0.357	pregled	de Bord	4	2	board, side
+buržuazija	noun	0.357	pregled	fr bourgeoisie	4	2	bourgeoisie
+čizma	noun	0.357	pregled	ota چیزمه	5	2	boot
+col	noun	0.357	pregled	de Zoll	4	2	inch
+dubl	noun	0.357	pregled	fr double	3	3	take
+demokratija	noun	0.357	pregled	la-med democratia	4	2	democracy
+detal	noun	0.357	pregled	fr détail	4	2	detail
+droga	noun	0.357	pregled	fr drogue	4	2	drug (illegal or intoxicating)
+dubel	noun	0.357	pregled	la duplus	4	2	doublet
+dušman	noun	0.357	pregled	ota دشمان	4	2	enemy
+divizija	noun	0.357	pregled	la dīvīsiō	4	2	division
+dekanat	noun	0.357	pregled	la-med decānātus	4	2	dean's office
+džamija	noun	0.357	pregled	ota جامع	5	2	mosque
+džentlmen	noun	0.357	pregled	en gentleman	4	2	gentleman
+edip	proper_noun	0.357	pregled	grc Οἰδίπους	3	3	Oedipus
+jegr	noun	0.357	pregled	de Jäger	3	3	gamekeeper
+elegija	noun	0.357	pregled	la elegīa	4	2	elegy
+epos	noun	0.357	pregled	la epos	3	3	epic (extended narrative poem)
+estragon	noun	0.357	pregled	fr estragon	3	3	tarragon
+eutanazie	noun	0.357	pregled	grc εὐθανασίᾱ	3	3	euthanasia
+ekskrement	noun	0.357	pregled	la excrēmentum	3	3	excrement
+faeton	noun	0.357	pregled	grc Φαέθων	3	3	phaeton (a type of horse carriage)
+fajn	adv	0.357	pregled	de fein	3	3	well
+familija	noun	0.357	pregled	la familia	4	2	surname, last name, family name
+fant	noun	0.357	pregled	de Pfand	3	3	fant (game in which players perform comic tasks, assigned by lot to the owner of
+fason	noun	0.357	pregled	la factiō	3	3	cut (manner or style a garment etc. is fashioned in)
+fener	noun	0.357	pregled	ota فنار	4	2	lamp, lantern
+ferma	noun	0.357	pregled	fr ferme	4	2	farm
+fest	adv	0.357	pregled	de fest	4	2	very
+file	noun	0.357	pregled	fr filet	4	2	fillet
+finiš	noun	0.357	pregled	en finish	3	3	finish (end of race, etc.)
+ford	noun	0.357	pregled	no fjord	4	2	fjord
+flakon	noun	0.357	pregled	fr flacon	4	2	bottle, vial, flask (usually of perfume, shampoo, cosmetics, etc.)
+forint	noun	0.357	pregled	hu forint	3	3	forint (currency of Hungary)
+frajer	noun	0.357	pregled	de Freier	3	3	not a criminal person, a potential victim of a crime, any person (male); a perso
+frontmen	noun	0.357	pregled	en front man	4	2	front man (the lead singer in a musical group)
+fuga	noun	0.357	pregled	de Fuge	3	3	fugue
+furaž	noun	0.357	pregled	fr fourrage	3	3	fodder (food for animals)
+gaur	noun	0.357	pregled	ota كاور	3	3	giaour (infidel)
+gerasim	proper_noun	0.357	pregled	grc Γεράσιμος	4	2	a male given name, Gerasim, from Ancient Greek
+germanija	proper_noun	0.357	pregled	la Germānia	3	3	Germany (a country in Central Europe)
+hestija	proper_noun	0.357	pregled	grc Ἑστία	3	3	Hestia (goddess of hearth and household)
+grigorij	proper_noun	0.357	pregled	grc Γρηγόριος	3	3	a male given name, Grigory, from Ancient Greek, equivalent to English Gregory
+hadis	noun	0.357	pregled	ar حَدِيث	3	3	hadith
+halštuk	noun	0.357	pregled	de Halstuch	4	2	necktie, tie
+hanš	proper_noun	0.357	pregled	de Hans	3	3	a transliteration of the German male given name Hans
+harč	noun	0.357	pregled	ar خَرْج	4	2	food, grub
+korset	noun	0.357	pregled	fr corset	5	2	corset
+hartija	noun	0.357	pregled	el χαρτί	5	2	paper
+gejmer	noun	0.357	pregled	en gamer	4	2	gamer
+hetman	noun	0.357	pregled	de Hauptmann	4	2	queen (chess piece)
+olga	proper_noun	0.357	pregled	ru,uk О́льга	4	2	a female given name
+helsinki	proper_noun	0.357	pregled	fi Helsinki	3	3	Helsinki (the capital city of Finland)
+hercog	noun	0.357	pregled	de Herzog	5	2	duke
+hidžab	noun	0.357	pregled	ar حِجَاب	3	3	hijab (headscarf)
+handra	noun	0.357	pregled	de Hader	4	2	melancholy, blues
+hodža	noun	0.357	pregled	ota خواجه	3	3	preacher
+tomaš	proper_noun	0.357	pregled	la Thōmās	4	2	a male given name, Foma, equivalent to English Thomas
+hot-dog	noun	0.357	pregled	en hot dog	4	2	hot dog
+gradus	noun	0.357	pregled	la gradus	4	2	degree
+grubijan	noun	0.357	pregled	de Grobian	5	2	churl, boor, cad, chuff, vulgarian, bounder (rude and mean fellow)
+gvalt	noun	0.357	pregled	gmh gewalt	4	2	din, row, rumpus, hubbub, racket (loud noise, commotion)
+gvardija	noun	0.357	pregled	it guardia	4	2	guard (armed forces)
+igor	proper_noun	0.357	pregled	non Yngvarr	5	2	a male given name, Igor
+imam	noun	0.357	pregled	ota امام	4	2	imam
+jota	noun	0.357	pregled	grc ἰῶτα	4	2	somersault
+ipsilon	noun	0.357	pregled	grc ὖ ψιλόν	4	2	upsilon (Υ, υ; the twentieth letter of Classical and Modern Greek; the twenty-se
+iisus	proper_noun	0.357	pregled	grc Ἰησοῦς	4	2	Jesus
+italia	proper_noun	0.357	pregled	la Ī̆talia	4	2	Italy (a country in Southern Europe)
+jakov	proper_noun	0.357	pregled	grc Ἰάκωβος	4	2	Jacob
+jantar	noun	0.357	pregled	lt jentaras	5	2	amber (fossil resin)
+jarmark	noun	0.357	pregled	de Jahrmarkt	4	2	fair (market), funfair, county fair, state fair
+jasmin	noun	0.357	pregled	ota یاسمین	4	2	jasmine (plant of the genus Jasminum)
+eres	noun	0.357	pregled	grc αἵρεσις	4	2	heresy
+eva	proper_noun	0.357	pregled	grc εὐαγγέλιον	5	2	gospel
+jorkšir	proper_noun	0.357	pregled	en Yorkshire	3	3	Yorkshire (a county of England)
+junesko	proper_noun	0.357	pregled	en UNESCO	4	2	UNESCO
+kadet	noun	0.357	pregled	de Kadett	3	3	cadet (student at a military school)
+kajuta	noun	0.357	pregled	de Kajüte	3	3	cabin
+kanapa	noun	0.357	pregled	la cōnōpēum	4	2	sofa, couch
+kapo	noun	0.357	pregled	la cāpō	3	3	kapo (a prisoner in a Nazi concentration camp who was given food and privileges
+kar'er	noun	0.357	pregled	it carriera	5	2	career
+kaskada	noun	0.357	pregled	fr cascade	3	3	cascade
+kaskader	noun	0.357	pregled	fr cascadeur	3	3	stuntman
+kauč	noun	0.357	pregled	en couch	5	2	couch
+kazan	noun	0.357	pregled	ota قزان	4	2	cauldron
+kitelj	noun	0.357	pregled	de Kittel	3	3	type of a military uniform
+kimči	noun	0.357	pregled	ko 김치	3	3	kimchi
+cent	noun	0.357	pregled	la centum	4	2	cent (hundredth of a dollar, euro, etc.)
+klarinet	noun	0.357	pregled	it clarinetto	5	2	clarinet (woodwind musical instrument)
+klip	noun	0.357	pregled	en clip	4	2	music video
+klun	noun	0.357	pregled	en clown	5	2	clown (performance artist working e.g. in a circus)
+kofa	noun	0.357	pregled	ota قوغه	4	2	pail, bucket
+kokluš	noun	0.357	pregled	fr coqueluche	4	2	whooping cough
+kolos	noun	0.357	pregled	la colossus	4	2	colossus (statue of gigantic size)
+komoda	noun	0.357	pregled	fr commode	3	3	chest of drawers, bureau, dresser, commode
+kompetencija	noun	0.357	pregled	la-lat competentia	3	3	competence, competency
+koncesija	noun	0.357	pregled	la concessiō	3	3	concession
+kongresmen	noun	0.357	pregled	en congressman	3	3	congressman
+konstruktor	noun	0.357	pregled	la-lat cōnstructor	3	3	designer, design engineer, constructor
+kontur	noun	0.357	pregled	fr contour	4	2	contour, outline
+kornfleks	noun	0.357	pregled	en cornflakes	3	3	cornflakes
+kort	noun	0.357	pregled	en court	3	3	tennis court, court
+kovboj	noun	0.357	pregled	en cowboy	4	2	cowboy
+koč	noun	0.357	pregled	hu kocsi	5	2	blanket (heavy, loosely woven fabric, usually large and woollen, used for warmth
+krindž	noun	0.357	pregled	en cringe	4	2	cringe
+kroasan	noun	0.357	pregled	fr croissant	4	2	croissant
+kofr	noun	0.357	pregled	de Koffer	4	2	suitcase
+kuhna	noun	0.357	pregled	zlw-opl kuchnia	4	2	kitchen
+kulon	noun	0.357	pregled	fr coulomb	4	2	pendant
+kvark	noun	0.357	pregled	en quark	5	2	quark
+kiril	proper_noun	0.357	pregled	grc Κύριλλος	4	2	a male given name, Kirill, equivalent to English Cyril
+laguna	noun	0.357	pregled	la lacūna	3	3	lagoon
+lakrica	noun	0.357	pregled	la liquiritia	4	2	liquorice
+lapsus	noun	0.357	pregled	la lapsus	3	3	blunder, slip
+leno	noun	0.357	pregled	gmh lēhen	5	2	łan (medieval Polish measurement of field area)
+lepta	noun	0.357	pregled	grc λεπτόν	3	3	lepton (coin)
+loža	noun	0.357	pregled	fr loge	4	2	box (compartment to sit in)
+luks	noun	0.357	pregled	la lūx	3	3	lux (unit of light)
+madam	noun	0.357	pregled	fr madame	3	3	madam (polite term of address to a woman)
+mafija	noun	0.357	pregled	it mafia	3	3	mafia
+magacin	noun	0.357	pregled	it magazzino	3	3	depot
+mahr	noun	0.357	pregled	de Macher	4	2	shank, switchblade (type of small knife used in fights)
+maja	noun	0.357	pregled	es maya	4	2	a female given name, Maya, from Ancient Greek
+mihail	proper_noun	0.357	pregled	grc-koi Μιχαήλ	4	2	a male given name from Hebrew, equivalent to English Michael
+makaroni	noun	0.357	pregled	it macaroni	4	2	macaroni
+malezija	proper_noun	0.357	pregled	ms Malaysia	4	2	Malaysia (a country in Southeast Asia)
+malovati	verb	0.357	pregled	gmh mâlên	4	2	to draw
+malver	noun	0.357	pregled	en malware	4	2	malware (software developed to harm a computer system)
+maneken	noun	0.357	pregled	fr mannequin	4	2	mannequin, dummy
+mangust	noun	0.357	pregled	fr mangouste	3	3	mongoose
+maniak	noun	0.357	pregled	la-lat maniacus	3	3	maniac
+mantelj	noun	0.357	pregled	de Mantel	4	2	coat, overcoat, raincoat
+marketing	noun	0.357	pregled	en marketing	4	2	marketing
+markiz	noun	0.357	pregled	fr marquis	5	2	marquis, marquess (title of nobility)
+mastika	noun	0.357	pregled	grc μαστίχη	3	3	mastic, resin, gum
+maštab	noun	0.357	pregled	de Maßstab	4	2	scale (ratio of distances)
+medik	noun	0.357	pregled	la medicus	3	3	medic
+melasa	noun	0.357	pregled	la-med mellacea	3	3	molasses, treacle (thick brownish syrup refined from sugarcane)
+mem	noun	0.357	pregled	en meme	5	2	meme
+mitropolija	noun	0.357	pregled	gkm μητρόπολις	3	3	metropolis, archdiocese
+mjanma	proper_noun	0.357	pregled	my မြန်မာ	3	3	Myanmar (a country in Southeast Asia)
+mozaika	noun	0.357	pregled	la-med musaicum	3	3	mosaic
+mošeja	noun	0.357	pregled	it moschea	4	2	mosque
+musket	noun	0.357	pregled	fr mousquet	4	2	musket
+mušketor	noun	0.357	pregled	fr mousquetaire	3	3	musketeer (foot soldier)
+mušmula	noun	0.357	pregled	el μούσμουλο	4	2	medlar
+miris	noun	0.357	pregled	grc μύρον	5	2	chrism
+nokaut	noun	0.357	pregled	en knockout	4	2	knockout
+natura	noun	0.357	pregled	la natura	3	3	nature (the natural world)
+nejtralitet	noun	0.357	pregled	de Neutralität	4	2	neutrality
+nivo	noun	0.357	pregled	fr niveau	4	2	level
+oferta	noun	0.357	pregled	la-lat offerta	3	3	offer, tender, quotation
+okej	intj	0.357	pregled	en okay	4	2	okay, all right, fine
+oniks	noun	0.357	pregled	grc ὄνυξ	3	3	onyx
+osaka	proper_noun	0.357	pregled	ja 大阪	4	2	Osaka (the capital city of Osaka Prefecture, Japan)
+oval	noun	0.357	pregled	la-med ovālis	3	3	oval
+padišah	noun	0.357	pregled	ota پادشاه	3	3	Padishah
+papagaj	noun	0.357	pregled	de Papagei	4	2	parrot
+paranoja	noun	0.357	pregled	grc παράνοια	4	2	paranoia
+parket	noun	0.357	pregled	fr parquet	3	3	parquet
+parmezan	noun	0.357	pregled	fr parmesan	3	3	parmesan
+parta	noun	0.357	pregled	fr à part	3	3	school desk
+parti	noun	0.357	pregled	en party	3	3	informal party for young people, get-together
+pasjans	noun	0.357	pregled	fr patience	4	2	solitaire, patience (card game)
+pavel	proper_noun	0.357	pregled	la Paulus	4	2	a male given name, equivalent to English Paul
+pašto	noun	0.357	pregled	ps پښتو	3	3	Pashto; one of the official languages of Afghanistan
+pejzaž	noun	0.357	pregled	fr paysage	5	2	landscape
+petar	proper_noun	0.357	pregled	grc Πέτρος	4	2	a male given name, Pyotr, equivalent to English Peter
+piano	noun	0.357	pregled	it piano	4	2	piano
+piranja	noun	0.357	pregled	pt piranha	5	2	piranha
+pita	noun	0.357	pregled	el πίτα	5	2	pita (piece of pita bread; a flat bread pouch used for making sandwiches such as
+platon	proper_noun	0.357	pregled	grc Πλάτων	4	2	Plato
+porcelan	noun	0.357	pregled	it porcellana	4	2	porcelain
+por	noun	0.357	pregled	la porrum	3	3	leek (vegetable)
+portfel	noun	0.357	pregled	fr portefeuille	5	2	briefcase
+profesja	noun	0.357	pregled	la professiō	4	2	profession (occupation, trade, craft, or activity in which one has a professed e
+psiheja	noun	0.357	pregled	grc ψυχή	4	2	Psyche
+pulovr	noun	0.357	pregled	en pullover	3	3	pullover (sweater)
+pulsar	noun	0.357	pregled	en pulsar	5	2	pulsar
+pank	noun	0.357	pregled	en punk	4	2	punk
+rafal	proper_noun	0.357	pregled	la Rāphāēl	3	3	a transliteration of the English male given name Raphael
+randevu	noun	0.357	pregled	fr rendez-vous	3	3	rendezvous
+rensomver	noun	0.357	pregled	en ransomware	4	2	ransomware
+rojal	noun	0.357	pregled	la rēgālis	3	3	grand piano
+rekrut	noun	0.357	pregled	de Rekrut	3	3	recruit, conscript
+rele	noun	0.357	pregled	fr relais	3	3	relay
+ressora	noun	0.357	pregled	fr ressort	3	3	leaf spring, spring (device made of flexible material)
+rezume	noun	0.357	pregled	fr résumé	4	2	summary, abstract, roundup
+roba	noun	0.357	pregled	fr robe	4	2	female evening dress, evening gown
+rola	noun	0.357	pregled	la rotulus	4	2	role, part
+romans	noun	0.357	pregled	la rōmānicus	3	3	romance, a love song (of a sentimental nature)
+rubka	noun	0.357	pregled	nl roef	3	3	deckhouse, deck cabin
+ruleta	noun	0.357	pregled	fr roulette	3	3	tape measure (retractable, e.g. for carpentry)
+saldo	noun	0.357	pregled	it saldo	3	3	balance
+sansusi	proper_noun	0.357	pregled	fr sans souci	4	2	Sanssouci
+seksy	adj	0.357	pregled	en sexy	4	2	sexy
+oseledec	noun	0.357	pregled	non síld	4	2	herring
+semestr	noun	0.357	pregled	la sēmēstris	4	2	semester, term (half of school year)
+sion	proper_noun	0.357	pregled	grc-koi Σῑών	4	2	Zion (a hill in Jerusalem, Israel, on which ancient Jerusalem was partly built;
+skald	noun	0.357	pregled	non skald	3	3	skald
+skaut	noun	0.357	pregled	en scout	3	3	scout (member of the scout movement)
+skumbrija	noun	0.357	pregled	el σκουμπρί	5	2	mackerel
+skutr	noun	0.357	pregled	en scooter	3	3	scooter
+cmentar	noun	0.357	pregled	la coemētērium	4	2	cemetery, graveyard
+sori	intj	0.357	pregled	en sorry	3	3	sorry
+stafaž	noun	0.357	pregled	de Staffage	3	3	staffage
+stepan	proper_noun	0.357	pregled	grc Στέφανος	4	2	a male given name, equivalent to English Stephen
+stihar	noun	0.357	pregled	grc στιχάριον	3	3	sticharion (liturgical vestment of Eastern Christianity)
+stek	noun	0.357	pregled	en stick	4	2	steak
+štos	noun	0.357	pregled	de Stoß	4	2	stack, pile
+štrajk	noun	0.357	pregled	de Streik	3	3	strike (work stoppage)
+štraus	noun	0.357	pregled	de Strauß	3	3	ostrich
+suita	noun	0.357	pregled	fr suite	4	2	suite
+supermen	noun	0.357	pregled	en superman	3	3	superman
+super	intj	0.357	pregled	la super	3	3	super
+sutra	noun	0.357	pregled	sa सूत्र	3	3	sutra
+simetrija	noun	0.357	pregled	la symmetria	3	3	symmetry
+sintaksis	noun	0.357	pregled	la-lat syntaxis	3	3	syntax (study of the structure of phrases and sentences)
+taburet	noun	0.357	pregled	fr tabouret	3	3	ottoman, footstool
+tac	noun	0.357	pregled	fr tasse	4	2	tray, salver
+tavan	noun	0.357	pregled	ota تاوان	5	2	Taiwan (a partly-recognized country in East Asia consisting of a main island and
+atanas	proper_noun	0.357	pregled	grc Ἀθανάσιος	4	2	a male given name, Atanas, from Ancient Greek, equivalent to English Athanasius
+tandem	noun	0.357	pregled	la tandem	3	3	tandem (bicycle, machine, engine, activity, etc.)
+tarot	noun	0.357	pregled	fr tarot	3	3	tarot (card game)
+tarif	noun	0.357	pregled	it tariffa	4	2	tariff
+tava	noun	0.357	pregled	ota تاوه	4	2	baking pan, tray (for cooking)
+teren	noun	0.357	pregled	fr terrain	4	2	terrain
+terror	noun	0.357	pregled	la terror	3	3	terror (terrorist activities)
+trajekt	noun	0.357	pregled	la trāiectus	5	2	ferry
+triko	noun	0.357	pregled	fr tricot	3	3	tricot
+trioda	noun	0.357	pregled	en triode	3	3	triode
+trotoar	noun	0.357	pregled	fr trottoir	5	2	sidewalk (US), pavement (UK)
+trufel	noun	0.357	pregled	la tuber	4	2	truffle (any of various edible fungi, of the genus Tuber, that grow in the soil
+tepih	noun	0.357	pregled	de Teppich	4	2	carpet
+vestern	noun	0.357	pregled	en western	4	2	western
+urdu	noun	0.357	pregled	ur اردو	4	2	Urdu (language)
+valerij	proper_noun	0.357	pregled	la Valerius	4	2	a male given name, Valery or Valeri
+vasilij	proper_noun	0.357	pregled	grc Βασίλειος	4	2	a male given name from Greek, equivalent to English Basil
+vataga	noun	0.357	pregled	trk-pro *ōtag	3	3	gang (big, noisy group of people)
+venedikt	proper_noun	0.357	pregled	la-ecc benedictus	4	2	a male given name, Venedikt, from Latin, equivalent to English Benedict
+vesta	noun	0.357	pregled	de Weste	4	2	waistcoat, vest (sleeveless garment)
+vit	proper_noun	0.357	pregled	la Vitus	4	2	a male given name
+viktor	proper_noun	0.357	pregled	la Victor	3	3	a male given name, Viktor, equivalent to English Victor
+vinkl	noun	0.357	pregled	de Winkel	3	3	winkel (color and letter coded patch used by Nazis to classify prisoners in conc
+žemla	noun	0.357	pregled	de Semmel	4	2	bun (small bread roll)
+zdrada	noun	0.357	pregled	zlw-opl zdrada	4	2	treason, betrayal
+zurna	noun	0.357	pregled	ota زورنا⁩	4	2	zurna
+cela	noun	0.357	pregled	ota كل	3	3	bald spot
+čoha	noun	0.357	pregled	ota چوقه	5	2	broadcloth
+šaman	noun	0.357	pregled	de Schamane	3	3	shaman
+šose	noun	0.357	pregled	fr chaussée	3	3	synonym of szosa
+šedevr	noun	0.357	pregled	fr chef-d'œuvre	4	2	masterpiece (piece of work that has been given much critical praise)
+šelma	noun	0.357	pregled	gmh schelme	3	3	rascal, rogue, scoundrel
+šorty	noun	0.357	pregled	de Schürze	3	3	apron
+šlagr	noun	0.357	pregled	de Schlager	3	3	Schlager
+šlahta	noun	0.357	pregled	gmh slahte	5	2	szlachta (nobility in Poland and the Grand Duchy of Lithuania, including Belarus
+šlak	noun	0.357	pregled	de Schlacke	3	3	drudgery, slog, menial work
+šlam	noun	0.357	pregled	de Schleim	3	3	rabble, scum
+smak	noun	0.357	pregled	gmh gesmac	4	2	taste
+šnaps	noun	0.357	pregled	de Schnaps	3	3	schnapps
+šoping	noun	0.357	pregled	en shopping	4	2	shopping
+sorta	noun	0.357	pregled	la sors	3	3	sort, kind, variety (type, race, category)
+špada	noun	0.357	pregled	vec spada	3	3	swords in Spanish playing cards
+spina	noun	0.357	pregled	la spīna	5	2	back, the rear of the torso
+šurup	noun	0.357	pregled	gmh schrūbe	4	2	bolt (metal fastener)
+šrift	noun	0.357	pregled	de Schrift	4	2	type, print, script, font
+standart	noun	0.357	pregled	en standard	4	2	standard (level of quality)
+štok	noun	0.357	pregled	de Stock	3	3	doorframe
+štrek	noun	0.357	pregled	de Strecke	3	3	drift
+štift	noun	0.357	pregled	de Stift	3	3	A small round pin, a dowel installed to keep two pieces in position.
+šuflada	noun	0.357	pregled	de Schublade	4	2	drawer (open-topped box in a cabinet used for storing)
+šinel	noun	0.357	pregled	fr chenille	4	2	uniform overcoat; greatcoat
+žandarmerija	noun	0.357	pregled	fr gendarmerie	3	3	gendarmerie
+žeton	noun	0.357	pregled	fr jeton	3	3	token; coin (e.g. in a casino), chip
+žongler	noun	0.357	pregled	fr jongleur	3	3	juggler
+aperkat	noun	0.357	pregled	en uppercut	4	2	uppercut
+aba	noun	0.357	pregled	ota عبا	4	2	aba
+but	noun	0.357	pregled	ota بوت	4	2	thigh
+cap	noun	0.357	pregled	ro țap	3	3	caliber
+han	noun	0.357	pregled	ota خان	3	3	inn
+kar	noun	0.357	pregled	ota كار	3	3	power barrow, dummy car
+roz-	prefix	0.357	pregled		4	2	indicates dissolution or undoing a process, dis-
+top	noun	0.357	pregled	ota طوپ	5	2	cannon
+veb	noun	0.357	pregled	en web	3	3	web (the World Wide Web)
+vi-	prefix	0.357	pregled		4	2	out, out from (describing an action of moving outside from inside)

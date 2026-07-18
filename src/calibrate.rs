@@ -20,7 +20,7 @@ pub const PATH: &str = "data/score-calibration.json";
 /// Committed location of the corpus coverage calibrator.
 pub const CORPUS_PATH: &str = "data/corpus-coverage-calibration.json";
 pub const CORPUS_SCHEMA_VERSION: u32 = 1;
-pub const CORPUS_LABEL_POLICY_VERSION: &str = "official-pos-semantic-proxy-byforms-v2";
+pub const CORPUS_LABEL_POLICY_VERSION: &str = "official-pos-semantic-proxy-sense-ties-v3";
 pub const CORPUS_SPLIT_POLICY: &str = "fnv1a-id-mod-4-holdout-v1";
 pub const CORPUS_ALGORITHM_VERSION: &str = "decile-pava-train-only-v1";
 /// Score semantics accepted by the official-row pipeline calibrator.

@@ -17,7 +17,7 @@ artifact = json.loads(artifact_path.read_text())
 assert artifact["schema_version"] == 1
 assert artifact["score_domain"] == "corpus-coverage-score-v1"
 assert artifact["score_model_version"] == "coverage-languages-branches-v1"
-assert artifact["label_policy_version"] == "official-pos-semantic-proxy-byforms-v2"
+assert artifact["label_policy_version"] == "official-pos-semantic-proxy-sense-ties-v3"
 assert artifact["split_policy"] == "fnv1a-id-mod-4-holdout-v1"
 assert artifact["algorithm_version"] == "decile-pava-train-only-v1"
 sha256 = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
