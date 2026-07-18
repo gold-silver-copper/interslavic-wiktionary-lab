@@ -46,7 +46,6 @@ use std::path::Path;
 
 /// Generate the whole static site under `out_dir`.
 pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
-    crate::forms::install_quiet_inflection_hook();
     let entries = official::load(official_path)?;
     let overrides = Overrides::load(Path::new(crate::DEFAULT_OVERRIDES));
     let cfg = ConsensusConfig::production();
@@ -283,7 +282,6 @@ impl DeterministicEntryIds {
 /// etymologically-connected Slavic lemmas becomes one Interslavic word, with
 /// confidence scaling by how many languages/branches attest it.
 pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -> Result<()> {
-    crate::forms::install_quiet_inflection_hook();
     let corpus = crate::dump::LemmaCorpus::load(lemmas_path)?;
     let cfg = ConsensusConfig::production();
     let sets = crate::corpus::build_sets(&corpus);

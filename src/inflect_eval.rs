@@ -16,7 +16,6 @@ use std::path::Path;
 /// lexicalized suppletive plurals surface. Report: inflection-report.md.
 pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use crate::model::{Gender, Pos};
-    crate::forms::install_quiet_inflection_hook();
     let entries = crate::official::load(official_path)?;
     let fold = |x: &str| crate::orthography::to_standard(&x.trim().to_lowercase());
 

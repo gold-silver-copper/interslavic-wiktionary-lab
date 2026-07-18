@@ -30,9 +30,13 @@ use std::path::Path;
 /// Counts inflection-table panics swallowed by the quiet hook.
 static INFLECTION_PANICS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
-/// Install a panic hook that suppresses expected failures originating in the
-/// bundled inflector while preserving the default hook for application bugs.
-pub fn install_quiet_inflection_hook() {
+/// Install the CLI's process-lifetime hook for expected inflector failures.
+///
+/// Panic hooks are process-global, so reusable library exports deliberately do
+/// not call this. The command-line binary installs it once before an export or
+/// inflection evaluation and then exits.
+#[doc(hidden)]
+pub fn install_cli_quiet_inflection_hook() {
     let default = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let from_inflector = info

@@ -11,7 +11,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use interslavic_wiktionary_lab::{
-    check, derive, dump, enrich, eval, inflect_eval, official, site, DEFAULT_DUMP,
+    check, derive, dump, enrich, eval, forms, inflect_eval, official, site, DEFAULT_DUMP,
     DEFAULT_ENRICH_CACHE, DEFAULT_LEMMA_CACHE, DEFAULT_OFFICIAL, DEFAULT_PROTO_CACHE,
     DEFAULT_RAW_LEMMA_CACHE, DEFAULT_WIKI_DIR,
 };
@@ -230,6 +230,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Export { official, out } => {
+            forms::install_cli_quiet_inflection_hook();
             // The site is the cognate-set dictionary built from the Wiktionary
             // Slavic-lemma corpus when it's available; otherwise fall back to the
             // official-dictionary-seeded site.
@@ -275,7 +276,10 @@ fn main() -> Result<()> {
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
         Command::AspectEval { official, out } => eval::run_aspect_eval(&official, &out),
         Command::EvidenceEval { official, out } => eval::run_evidence_eval(&official, &out),
-        Command::InflectEval { official, out } => inflect_eval::run_inflect_eval(&official, &out),
+        Command::InflectEval { official, out } => {
+            forms::install_cli_quiet_inflection_hook();
+            inflect_eval::run_inflect_eval(&official, &out)
+        }
         Command::CheckText {
             file,
             json,
