@@ -900,7 +900,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     let meta_by_id: std::collections::HashMap<usize, SiteEntryMeta> =
         metas.iter().map(|m| (m.id, m.clone())).collect();
     let homographs = homograph_groups(&metas);
-    let build_meta = BuildMeta::current(metas.len(), lemma_total);
+    let build_meta = BuildMeta::current(metas.len(), lemma_total)?;
     let curation = load_curation_notes();
     let edges = build_edges(
         &prepared,

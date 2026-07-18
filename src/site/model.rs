@@ -5,6 +5,7 @@
 //! depend on any renderer.
 
 use crate::model::{Confidence, MatchStatus};
+use anyhow::{bail, Context, Result};
 
 pub(super) const REPO_URL: &str = "https://github.com/gold-silver-copper/Slovowiki";
 pub(super) const SITE_URL: &str = "https://grift.rs/Slovowiki/";
@@ -141,20 +142,47 @@ pub(super) struct BuildMeta {
 }
 
 impl BuildMeta {
-    pub(super) fn current(total_entries: usize, lemma_total: usize) -> Self {
-        let git =
-            git_output(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "neznany".to_string());
-        // A commit timestamp keeps otherwise identical exports reproducible.
-        let generated = git_output(&["show", "-s", "--format=%ct", "HEAD"])
-            .map(|stamp| format!("{stamp} UNIX"))
-            .unwrap_or_else(|| "0 UNIX".to_string());
-        Self {
+    pub(super) fn current(total_entries: usize, lemma_total: usize) -> Result<Self> {
+        // Cross-revision equivalence checks can pin provenance explicitly. The
+        // default remains the checked-out commit, so normal exports keep their
+        // truthful revision metadata and per-commit featured-page seed.
+        let git = env_override("SLOVOWIKI_BUILD_GIT")?
+            .or_else(|| git_output(&["rev-parse", "--short", "HEAD"]))
+            .unwrap_or_else(|| "neznany".to_string());
+        let generated = match env_override("SOURCE_DATE_EPOCH")? {
+            Some(stamp) => format_source_date_epoch(&stamp)?,
+            None => git_output(&["show", "-s", "--format=%ct", "HEAD"])
+                .map(|stamp| format!("{stamp} UNIX"))
+                .unwrap_or_else(|| "0 UNIX".to_string()),
+        };
+        Ok(Self {
             git,
             generated,
             total_entries,
             lemma_total,
-        }
+        })
     }
+}
+
+fn env_override(name: &str) -> Result<Option<String>> {
+    match std::env::var(name) {
+        Ok(value) => {
+            let value = value.trim();
+            if value.is_empty() {
+                bail!("{name} is set but empty");
+            }
+            Ok(Some(value.to_string()))
+        }
+        Err(std::env::VarError::NotPresent) => Ok(None),
+        Err(std::env::VarError::NotUnicode(_)) => bail!("{name} is not valid Unicode"),
+    }
+}
+
+pub(super) fn format_source_date_epoch(stamp: &str) -> Result<String> {
+    let stamp = stamp.parse::<u64>().with_context(|| {
+        format!("SOURCE_DATE_EPOCH must be a non-negative integer, got `{stamp}`")
+    })?;
+    Ok(format!("{stamp} UNIX"))
 }
 
 fn git_output(args: &[&str]) -> Option<String> {

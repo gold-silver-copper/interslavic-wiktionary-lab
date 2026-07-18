@@ -425,6 +425,10 @@ cargo run --release -- oracle
 
 # Generate the static website locally (no server; not published anywhere):
 cargo run --release -- export --out site
+# Cross-revision byte comparisons can pin the provenance fields and the
+# featured-page seed while leaving normal exports tied to their actual commit:
+SLOVOWIKI_BUILD_GIT=2f6e722 SOURCE_DATE_EPOCH=1784371344 \
+  cargo run --release -- export --out site
 # Preview locally with any static server, e.g.:
 #   (cd site && python3 -m http.server 8765)   # or: make serve
 

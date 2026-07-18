@@ -2,7 +2,8 @@ use super::coverage::{inject_generated_derivatives, plan_raw_pages, select_offic
 use super::entries::{cognate_block, noun_table, word_chip};
 use super::layout::json_str;
 use super::model::{
-    proto_stem, razum_pct, BuildMeta, HeadwordIndex, SiteEntryInput, SiteEntryMeta,
+    format_source_date_epoch, proto_stem, razum_pct, BuildMeta, HeadwordIndex, SiteEntryInput,
+    SiteEntryMeta,
 };
 use super::navigation::{
     branch_pattern, entries_json, entry_infobox, entry_meta, needs_review, provenance_block,
@@ -534,9 +535,14 @@ fn deterministic_entry_ids_ignore_previous_output() {
     assert_eq!(sequence(), (1, 2, 2));
     assert_eq!(sequence(), sequence());
     assert_eq!(
-        BuildMeta::current(1, 1).generated,
-        BuildMeta::current(1, 1).generated
+        BuildMeta::current(1, 1).unwrap().generated,
+        BuildMeta::current(1, 1).unwrap().generated
     );
+    assert_eq!(
+        format_source_date_epoch("1784371344").unwrap(),
+        "1784371344 UNIX"
+    );
+    assert!(format_source_date_epoch("not-an-epoch").is_err());
 }
 
 /// Test metas for the official-fact-treatment invariants (issue #86).
