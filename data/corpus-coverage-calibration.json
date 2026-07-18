@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "score_domain": "corpus-coverage-score-v1",
+  "score_model_version": "coverage-languages-branches-v1",
+  "label_policy_version": "official-pos-semantic-proxy-sense-ties-v3",
+  "split_policy": "fnv1a-id-mod-4-holdout-v1",
+  "algorithm_version": "decile-pava-train-only-v1",
+  "provenance": {
+    "lemmas_path": "data/slavic-lemmas.cache.json",
+    "official_path": "data/official-isv.csv",
+    "lemmas_sha256": "c9611dd774f8a9a1caee14d53fbef0d4192301676bd4f066466bc92080ba283a",
+    "official_sha256": "5265761404d6bda07df55d1069d26350b2c107731c63913f827054d793d46cff",
+    "fitted_on": "corpus semantic-proxy train split only"
+  },
+  "counts": {
+    "train": 20203,
+    "train_positive": 3405,
+    "holdout": 6834,
+    "holdout_positive": 1135
+  },
+  "raw_holdout": {
+    "ece": 0.2361715481433127,
+    "brier": 0.1646435794930115
+  },
+  "calibrated_holdout": {
+    "ece": 0.010921571123401582,
+    "brier": 0.10869609007356675
+  },
+  "reliability_bins": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 4407,
+      "hits": 302,
+      "mean_probability": 0.07140625754037523
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 498,
+      "hits": 74,
+      "mean_probability": 0.125
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 934,
+      "hits": 229,
+      "mean_probability": 0.23293199559597036
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 312,
+      "hits": 124,
+      "mean_probability": 0.3570634037819789
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 278,
+      "hits": 124,
+      "mean_probability": 0.48959608323133363
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "hits": 0,
+      "mean_probability": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 114,
+      "hits": 60,
+      "mean_probability": 0.625
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 291,
+      "hits": 222,
+      "mean_probability": 0.7532467532467498
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "hits": 0,
+      "mean_probability": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 0,
+      "hits": 0,
+      "mean_probability": 0.0
+    }
+  ],
+  "propose": {
+    "threshold": 0.6,
+    "selected": 405,
+    "hits": 282,
+    "precision": 0.6962962962962963,
+    "coverage": 0.24845814977973568
+  },
+  "review": {
+    "threshold": 0.3,
+    "selected": 995,
+    "hits": 530,
+    "precision": 0.5326633165829145,
+    "coverage": 0.4669603524229075
+  },
+  "deciles": [
+    0.029411764705882353,
+    0.029411764705882353,
+    0.07178120836925006,
+    0.125,
+    0.20507166482910694,
+    0.2839248434237996,
+    0.35706340378198,
+    0.48959608323133413,
+    0.625,
+    0.7532467532467533
+  ]
+}

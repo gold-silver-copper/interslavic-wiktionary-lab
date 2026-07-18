@@ -37,6 +37,11 @@ jobs:
         run: |
           cargo run --release -- aspect-eval
           git diff --exit-code -- target/eval/aspect-pairs.md target/eval/aspect-pairs.tsv
+      - name: Corpus calibration frozen-artifact guard
+        run: |
+          cargo run --release -- corpus-calibrate
+          git diff --exit-code -- data/corpus-coverage-calibration.json target/eval/corpus-coverage-calibration.md target/eval/corpus-coverage-evaluation.tsv
+          git diff --exit-code -- data/score-calibration.json
       - name: Aspect production-export guard
         run: |
           rm -rf /tmp/slovowiki-aspect-ci
@@ -48,7 +53,7 @@ jobs:
           cargo run --release -- export --out /tmp/slovowiki-aspect-ci
           (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-b.sha256
           diff -u /tmp/export-tree-a.sha256 /tmp/export-tree-b.sha256
-          git diff --exit-code -- data/novel-words.tsv data/score-calibration.json
+          git diff --exit-code -- data/novel-words.tsv data/corpus-coverage-calibration.json data/score-calibration.json
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)

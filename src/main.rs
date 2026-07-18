@@ -22,6 +22,8 @@ mod calibrate;
 mod check;
 mod consensus;
 mod corpus;
+mod corpus_calibrate;
+mod corpus_reference;
 mod derive;
 mod dump;
 mod enrich;
@@ -146,6 +148,18 @@ enum Command {
     CorpusEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
+    },
+    /// Fit the dedicated corpus coverage probability map on the fixed train
+    /// split and report metrics on the untouched holdout split.
+    CorpusCalibrate {
+        #[arg(long, default_value = DEFAULT_LEMMA_CACHE)]
+        lemmas: PathBuf,
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+        #[arg(long, default_value = crate::calibrate::CORPUS_PATH)]
+        artifact: PathBuf,
     },
     /// Benchmark the derivation layer: mined official base→derivative pairs,
     /// seam-aware layer vs naive concatenation (Track A / issue #1).
@@ -309,6 +323,12 @@ fn main() -> Result<()> {
         Command::Explain { query, official } => eval::explain(&official, &query),
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),
         Command::CorpusEval { official } => eval::run_corpus_eval(&official),
+        Command::CorpusCalibrate {
+            lemmas,
+            official,
+            out,
+            artifact,
+        } => corpus_calibrate::run(&lemmas, &official, &out, &artifact),
         Command::DeriveEval { official, out } => derive::run_eval(&official, &out),
         Command::MultiwordEval { official, out } => eval::run_multiword_eval(&official, &out),
         Command::AspectEval { official, out } => eval::run_aspect_eval(&official, &out),

@@ -5,8 +5,8 @@
 //! `data/novel-words.tsv` contains rows from a compatible calibrator), then
 //! tokenizes the input and classifies every token:
 //!
-//! `known-lemma` / `known-form` / `generated` (carries p when proposals are enabled) / `unknown` (with
-//! nearest-lemma suggestions) — plus curated semantic-trap warnings from
+//! `known-lemma` / `known-form` / `generated` (an unverified proposal with
+//! null probability) / `unknown` (with nearest-lemma suggestions) — plus curated semantic-trap warnings from
 //! `data/semantic-notes.json`. Two-token keys (reflexive `X sę` verbs and
 //! two-word official lemmas) are found by a general bigram lookup; only
 //! 3+-token phrases are out of tokenized reach (their lemma records still
@@ -49,7 +49,9 @@ const SUGGEST_SELFTEST_ROWS: &[(&str, &str)] = &[
 pub struct Index {
     /// key → records (lemma citations and inflected forms).
     pub by_key: HashMap<String, Vec<FormRecord>>,
-    /// All lemma keys, for nearest-suggestion search.
+    /// Verification-grade lemma keys for nearest-suggestion search. Generated
+    /// proposals remain directly lookupable in `by_key` but are excluded here
+    /// because the suggestion wire format does not carry status.
     pub lemma_keys: Vec<(String, String)>, // (key, display lemma)
     pub notes: BTreeMap<String, SemanticNote>,
     /// Noun lemma key → dictionary gender (m/f/n), for agreement checking.
@@ -61,8 +63,10 @@ pub struct Index {
 }
 
 /// Build the verification index from the official dictionary (lemmas + full
-/// paradigms) and, when present, the committed novel-word proposals (lemma
-/// records with their calibrated probability).
+/// paradigms) and, when present, the committed novel-word proposals. Proposal
+/// lemma records keep a null probability: their TSV coverage proxy is only an
+/// unconditional ranking feature, not correctness evidence for known-unmatched
+/// reconstructions.
 pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) -> Index {
     let mut sink = RecordSink::default();
     forms::closed_class_records(&mut sink);
@@ -153,9 +157,9 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
         }
     }
     if let Some(path) = novel_words_tsv {
-        // The proposals file is a committed export artifact (`export` refreshes
-        // it). It is intentionally header-only while corpus calibration is
-        // paused; a missing file is a separate reproducibility warning.
+        // The proposals file is a committed, corpus-calibrated export artifact
+        // (`export` refreshes it). A missing file is a separate reproducibility
+        // warning; rows remain suggestions rather than verification facts.
         let tsv = std::fs::read_to_string(path).unwrap_or_else(|e| {
             eprintln!(
                 "warning: generated-word proposal artifact unavailable ({}: {e}); \
@@ -169,7 +173,7 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
             if cols.len() < 8 {
                 continue;
             }
-            let (form, pos, prob, gloss) = (cols[0], cols[1], cols[2], cols[7]);
+            let (form, pos, gloss) = (cols[0], cols[1], cols[7]);
             let pos: &'static str = match pos {
                 "noun" => "noun",
                 "verb" => "verb",
@@ -178,17 +182,7 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
                 "proper_noun" => "proper_noun",
                 _ => "other",
             };
-            sink.add(
-                form,
-                "",
-                form,
-                0,
-                pos,
-                "lemma",
-                "generated",
-                prob.parse::<f64>().ok(),
-                gloss,
-            );
+            sink.add(form, "", form, 0, pos, "lemma", "generated", None, gloss);
         }
     }
     let records = sink.into_records();
@@ -196,7 +190,7 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
     let mut lemma_keys: Vec<(String, String)> = Vec::new();
     let mut lemma_seen: HashSet<String> = HashSet::new();
     for r in records {
-        if r.source == "lemma" && lemma_seen.insert(r.key.clone()) {
+        if r.source == "lemma" && r.status != "generated" && lemma_seen.insert(r.key.clone()) {
             lemma_keys.push((r.key.clone(), r.lemma.clone()));
         }
         by_key.entry(r.key.clone()).or_default().push(r);
@@ -230,7 +224,8 @@ pub struct TokenReport {
     /// Analyses of the matching records (feature strings).
     pub analyses: Vec<String>,
     pub ambiguous: bool,
-    /// Calibrated probability, for generated lemmas.
+    /// Model-specific probability when one is applicable. Corpus proposal
+    /// lemmas always carry `None`; their coverage proxy is not a probability.
     pub probability: Option<f64>,
     /// Nearest known lemmas, for unknown tokens.
     pub suggestions: Vec<String>,
@@ -685,8 +680,10 @@ pub fn preposition_government() -> HashMap<String, Vec<&'static str>> {
     out
 }
 
-/// Nearest known lemmas for an unknown token: same first letter, folded edit
-/// distance ≤ 2, closest first, at most 3 (deterministic tie-break by lemma).
+/// Nearest verification-grade lemmas for an unknown token: same first letter,
+/// folded edit distance ≤ 2, closest first, at most 3 (deterministic tie-break
+/// by lemma). Generated proposals are excluded because suggestions carry no
+/// status with which a consumer could identify them as unverified.
 pub fn suggest(index: &Index, key: &str) -> Vec<String> {
     suggest_rows(&index.lemma_keys, key)
 }
@@ -820,11 +817,8 @@ pub fn run(official_path: &Path, text_path: &Path, json: bool) -> Result<()> {
             }
             "generated" => {
                 println!(
-                    "  ~ {:<20} generated (p={}) — machine reconstruction, not official",
-                    r.token,
-                    r.probability
-                        .map(|p| format!("{p:.2}"))
-                        .unwrap_or_else(|| "?".into())
+                    "  ~ {:<20} generated — machine reconstruction, not official",
+                    r.token
                 );
             }
             _ => {}
@@ -976,6 +970,33 @@ mod tests {
             .step_by(20)
             .collect();
         build_index(&entries, None)
+    }
+
+    #[test]
+    fn proposal_coverage_proxy_is_not_exposed_as_probability() {
+        let path = std::env::temp_dir().join(format!(
+            "slovowiki-check-proposal-proxy-{}.tsv",
+            std::process::id()
+        ));
+        std::fs::write(
+            &path,
+            "form\tpos\tcoverage_proxy\tbucket\tancestor\tn_langs\tn_branches\tgloss\n\
+             jabluko\tnoun\t0.739\tpredlog\t*ablъko\t9\t3\tapple\n",
+        )
+        .unwrap();
+        let index = build_index(&[], Some(&path));
+        let reports = check_text(&index, "jabluko");
+        assert_eq!(reports.len(), 1);
+        assert_eq!(reports[0].status, "generated");
+        assert_eq!(reports[0].probability, None);
+        assert!(serde_json::to_string(&reports[0])
+            .unwrap()
+            .contains("\"probability\":null"));
+        assert!(
+            suggest(&index, &forms::form_key("jablukoo")).is_empty(),
+            "unverified proposal leaked into status-free typo suggestions"
+        );
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

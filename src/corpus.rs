@@ -17,6 +17,19 @@ use crate::normalize::{self, NormForm};
 use crate::orthography as ortho;
 use std::collections::BTreeMap;
 
+/// Version of the cognate-coverage ranking formula. Bump and refit the corpus
+/// calibrator whenever [`coverage_score`] changes.
+pub const COVERAGE_SCORE_MODEL_VERSION: &str = "coverage-languages-branches-v1";
+
+/// Raw corpus coverage ranking feature. This is neither a probability nor the
+/// official-row pipeline candidate score; only the dedicated corpus artifact
+/// may map it to a probability.
+pub fn coverage_score(n_langs: usize, n_branches: usize) -> f32 {
+    let lang_term = (n_langs.min(8) as f32) / 8.0;
+    let branch_term = (n_branches.min(3) as f32) / 3.0;
+    (0.12 + 0.55 * lang_term + 0.33 * branch_term).clamp(0.05, 0.99)
+}
+
 /// A group of etymologically-connected modern lemmas — either a shared
 /// Proto-Slavic root (inherited) or a shared non-Slavic source (borrowing).
 #[derive(Debug, Clone)]
@@ -597,9 +610,7 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
 /// higher confidence. A single-language guess is Low; a word spread across the
 /// branches is High.
 fn coverage_confidence(n_langs: usize, n_branches: usize) -> (Confidence, f32) {
-    let lang_term = (n_langs.min(8) as f32) / 8.0;
-    let branch_term = (n_branches as f32) / 3.0;
-    let score = (0.12 + 0.55 * lang_term + 0.33 * branch_term).clamp(0.05, 0.99);
+    let score = coverage_score(n_langs, n_branches);
     let confidence = if n_langs >= 5 && n_branches >= 2 {
         Confidence::High
     } else if n_langs >= 3 && n_branches >= 2 {
@@ -652,13 +663,23 @@ mod tests {
     }
 
     #[test]
-    fn coverage_confidence_is_monotone_in_langs() {
+    fn coverage_confidence_is_monotone_and_formula_is_pinned() {
         let mut prev = -1.0;
-        for nl in 1..=8 {
-            let (_, s) = coverage_confidence(nl, 2);
-            assert!(s >= prev, "score not monotone at {nl} langs");
-            prev = s;
+        for branches in 1..=3 {
+            for nl in 1..=8 {
+                let (_, s) = coverage_confidence(nl, branches);
+                assert!(
+                    s >= prev || branches > 1,
+                    "score not monotone at {nl} langs"
+                );
+                assert!(coverage_score(nl + 1, branches) >= s);
+                assert!(coverage_score(nl, branches + 1) >= s);
+                prev = s;
+            }
         }
+        assert!((coverage_score(1, 1) - 0.29875).abs() < 1e-6);
+        assert!((coverage_score(3, 2) - 0.546_25).abs() < 1e-6);
+        assert!((coverage_score(8, 3) - 0.99).abs() < 1e-6);
         assert!(matches!(coverage_confidence(6, 3).0, Confidence::High));
         assert!(matches!(coverage_confidence(3, 2).0, Confidence::Medium));
         assert!(matches!(coverage_confidence(1, 1).0, Confidence::Low));

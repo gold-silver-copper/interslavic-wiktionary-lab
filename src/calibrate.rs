@@ -12,19 +12,27 @@
 //! changes — and committed, so compatible static builds stay deterministic.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::path::Path;
 
-/// Committed location of the fitted calibrator.
+/// Committed location of the fitted pipeline calibrator.
 pub const PATH: &str = "data/score-calibration.json";
+/// Committed location of the corpus coverage calibrator.
+pub const CORPUS_PATH: &str = "data/corpus-coverage-calibration.json";
+pub const CORPUS_SCHEMA_VERSION: u32 = 1;
+pub const CORPUS_LABEL_POLICY_VERSION: &str = "official-pos-semantic-proxy-sense-ties-v3";
+pub const CORPUS_SPLIT_POLICY: &str = "fnv1a-id-mod-4-holdout-v1";
+pub const CORPUS_ALGORITHM_VERSION: &str = "decile-pava-train-only-v1";
 /// Score semantics accepted by the official-row pipeline calibrator.
 pub const PIPELINE_SCORE_DOMAIN: &str = "pipeline-candidate-score-v1";
-/// Reserved domain for a future calibrator fitted on cognate-set coverage
-/// scores. Those scores are not compatible with [`PIPELINE_SCORE_DOMAIN`].
+/// Domain of the dedicated calibrator fitted on cognate-set coverage scores.
+/// These scores are not compatible with [`PIPELINE_SCORE_DOMAIN`].
 pub const CORPUS_COVERAGE_SCORE_DOMAIN: &str = "corpus-coverage-score-v1";
 
-/// Novel-word bucket thresholds on the calibrated probability. The measured
-/// precision/recall AT these cutoffs is persisted in [`Calibration`] by every
-/// `evaluate` run, so downstream displays never go stale.
+/// Shared numerical operating cutoffs. In the official-row pipeline these are
+/// calibrated-probability thresholds with measured precision/recall. In the
+/// dictionary-filtered corpus proposal path they only partition the
+/// unconditional `coverage_proxy`; they do not imply proposal-list precision.
 pub const PROPOSE_T: f64 = 0.6;
 pub const REVIEW_T: f64 = 0.3;
 
@@ -62,17 +70,26 @@ impl Calibration {
     /// another score domain is a hard error: both values may lie in 0–1 while
     /// representing unrelated ranking functions.
     pub fn load_for_domain(path: &Path, expected_domain: &str) -> anyhow::Result<Option<Self>> {
-        let Some(cal) = Self::load(path)? else {
+        if !path.exists() {
             return Ok(None);
-        };
+        }
+        let raw = std::fs::read_to_string(path)?;
+        let value: serde_json::Value = serde_json::from_str(&raw)
+            .map_err(|e| anyhow::anyhow!("parse calibration {}: {e}", path.display()))?;
+        let domain = value
+            .get("score_domain")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         anyhow::ensure!(
-            cal.score_domain == expected_domain,
+            domain == expected_domain,
             "calibration {} has score domain {:?}, expected {:?}",
             path.display(),
-            cal.score_domain,
+            domain,
             expected_domain
         );
-        Ok(Some(cal))
+        Ok(Some(serde_json::from_value(value).map_err(|e| {
+            anyhow::anyhow!("parse calibration {}: {e}", path.display())
+        })?))
     }
 
     /// Calibrated probability for a raw candidate score.
@@ -104,6 +121,249 @@ impl Calibration {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CorpusProvenance {
+    pub lemmas_path: String,
+    pub official_path: String,
+    pub lemmas_sha256: String,
+    pub official_sha256: String,
+    pub fitted_on: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CorpusCounts {
+    pub train: usize,
+    pub train_positive: usize,
+    pub holdout: usize,
+    pub holdout_positive: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CorpusMetrics {
+    pub ece: f64,
+    pub brier: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ReliabilityBin {
+    pub lower: f64,
+    pub upper: f64,
+    pub count: usize,
+    pub hits: usize,
+    pub mean_probability: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperatingPoint {
+    pub threshold: f64,
+    pub selected: usize,
+    pub hits: usize,
+    pub precision: f64,
+    /// Recall over holdout semantic positives (official coverage proxy).
+    pub coverage: f64,
+}
+
+/// Required, freshness-checked calibration for the corpus coverage ranking
+/// feature. This type is deliberately incompatible with [`Calibration`].
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CorpusCalibration {
+    pub schema_version: u32,
+    pub score_domain: String,
+    pub score_model_version: String,
+    pub label_policy_version: String,
+    pub split_policy: String,
+    pub algorithm_version: String,
+    pub provenance: CorpusProvenance,
+    pub counts: CorpusCounts,
+    pub raw_holdout: CorpusMetrics,
+    pub calibrated_holdout: CorpusMetrics,
+    pub reliability_bins: Vec<ReliabilityBin>,
+    pub propose: OperatingPoint,
+    pub review: OperatingPoint,
+    pub deciles: [f64; 10],
+}
+
+impl CorpusCalibration {
+    /// Load a required corpus artifact and validate its domain, versions, input
+    /// digests and probability map before any consumer mutates output.
+    pub fn load_required(
+        path: &Path,
+        expected_lemmas_sha256: &str,
+        expected_official_sha256: &str,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(path.exists(), "missing required corpus calibration {} — run `cargo run --release -- corpus-calibrate`", path.display());
+        let raw = std::fs::read_to_string(path)
+            .map_err(|e| anyhow::anyhow!("read corpus calibration {}: {e}", path.display()))?;
+        let value: serde_json::Value = serde_json::from_str(&raw)
+            .map_err(|e| anyhow::anyhow!("parse corpus calibration {}: {e}", path.display()))?;
+        let domain = value
+            .get("score_domain")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        anyhow::ensure!(
+            domain == CORPUS_COVERAGE_SCORE_DOMAIN,
+            "corpus calibration {} has score domain {:?}, expected {:?}",
+            path.display(),
+            domain,
+            CORPUS_COVERAGE_SCORE_DOMAIN
+        );
+        let cal: Self = serde_json::from_value(value)
+            .map_err(|e| anyhow::anyhow!("parse corpus calibration {}: {e}", path.display()))?;
+        cal.validate(expected_lemmas_sha256, expected_official_sha256)?;
+        Ok(cal)
+    }
+
+    pub fn validate(&self, lemmas_sha256: &str, official_sha256: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.schema_version == CORPUS_SCHEMA_VERSION,
+            "unsupported corpus calibration schema version {} (expected {})",
+            self.schema_version,
+            CORPUS_SCHEMA_VERSION
+        );
+        anyhow::ensure!(
+            self.score_model_version == crate::corpus::COVERAGE_SCORE_MODEL_VERSION,
+            "stale corpus score model version {:?} (expected {:?})",
+            self.score_model_version,
+            crate::corpus::COVERAGE_SCORE_MODEL_VERSION
+        );
+        anyhow::ensure!(
+            self.label_policy_version == CORPUS_LABEL_POLICY_VERSION,
+            "stale corpus label policy version {:?}",
+            self.label_policy_version
+        );
+        anyhow::ensure!(
+            self.split_policy == CORPUS_SPLIT_POLICY,
+            "stale corpus split policy {:?}",
+            self.split_policy
+        );
+        anyhow::ensure!(
+            self.algorithm_version == CORPUS_ALGORITHM_VERSION,
+            "stale corpus calibration algorithm {:?}",
+            self.algorithm_version
+        );
+        anyhow::ensure!(
+            self.provenance.lemmas_sha256 == lemmas_sha256,
+            "stale corpus calibration lemma input digest: artifact {}, input {}",
+            self.provenance.lemmas_sha256,
+            lemmas_sha256
+        );
+        anyhow::ensure!(
+            self.provenance.official_sha256 == official_sha256,
+            "stale corpus calibration official input digest: artifact {}, input {}",
+            self.provenance.official_sha256,
+            official_sha256
+        );
+        anyhow::ensure!(
+            self.counts.train > 0 && self.counts.holdout > 0,
+            "corpus calibration has empty train/holdout split"
+        );
+        anyhow::ensure!(
+            self.counts.train_positive > 0 && self.counts.train_positive < self.counts.train,
+            "corpus calibration train split lacks a class"
+        );
+        anyhow::ensure!(
+            self.counts.holdout_positive > 0 && self.counts.holdout_positive < self.counts.holdout,
+            "corpus calibration holdout split lacks a class"
+        );
+        let mut previous = 0.0;
+        for (i, p) in self.deciles.iter().copied().enumerate() {
+            anyhow::ensure!(
+                p.is_finite() && (0.0..=1.0).contains(&p),
+                "invalid corpus calibration probability at decile {i}: {p}"
+            );
+            anyhow::ensure!(
+                i == 0 || p >= previous,
+                "non-monotone corpus calibration at decile {i}"
+            );
+            previous = p;
+        }
+        for (name, metrics) in [
+            ("raw", &self.raw_holdout),
+            ("calibrated", &self.calibrated_holdout),
+        ] {
+            anyhow::ensure!(
+                metrics.ece.is_finite()
+                    && metrics.brier.is_finite()
+                    && (0.0..=1.0).contains(&metrics.ece)
+                    && (0.0..=1.0).contains(&metrics.brier),
+                "invalid {name} corpus holdout metrics"
+            );
+        }
+        anyhow::ensure!(
+            self.reliability_bins.len() == 10,
+            "corpus calibration must contain 10 reliability bins"
+        );
+        for (i, bin) in self.reliability_bins.iter().enumerate() {
+            anyhow::ensure!(
+                (bin.lower - i as f64 / 10.0).abs() < 1e-12
+                    && (bin.upper - (i + 1) as f64 / 10.0).abs() < 1e-12,
+                "invalid corpus reliability-bin boundaries at {i}"
+            );
+            anyhow::ensure!(
+                bin.hits <= bin.count
+                    && bin.mean_probability.is_finite()
+                    && (0.0..=1.0).contains(&bin.mean_probability),
+                "invalid corpus reliability-bin values at {i}"
+            );
+        }
+        anyhow::ensure!(
+            self.reliability_bins.iter().map(|b| b.count).sum::<usize>() == self.counts.holdout,
+            "corpus holdout reliability-bin total does not match count"
+        );
+        anyhow::ensure!(
+            self.reliability_bins.iter().map(|b| b.hits).sum::<usize>()
+                == self.counts.holdout_positive,
+            "corpus holdout reliability-bin hit total does not match positives"
+        );
+        anyhow::ensure!(
+            self.propose.threshold == PROPOSE_T && self.review.threshold == REVIEW_T,
+            "corpus operating-point thresholds differ from exporter thresholds"
+        );
+        for op in [&self.propose, &self.review] {
+            anyhow::ensure!(
+                op.selected <= self.counts.holdout
+                    && op.hits <= op.selected
+                    && op.hits <= self.counts.holdout_positive,
+                "invalid corpus operating-point counts"
+            );
+            anyhow::ensure!(
+                op.precision.is_finite()
+                    && op.coverage.is_finite()
+                    && (0.0..=1.0).contains(&op.precision)
+                    && (0.0..=1.0).contains(&op.coverage),
+                "invalid corpus operating-point metrics"
+            );
+            let precision = if op.selected == 0 {
+                0.0
+            } else {
+                op.hits as f64 / op.selected as f64
+            };
+            let coverage = op.hits as f64 / self.counts.holdout_positive as f64;
+            anyhow::ensure!(
+                (op.precision - precision).abs() < 1e-12 && (op.coverage - coverage).abs() < 1e-12,
+                "inconsistent corpus operating-point metrics"
+            );
+        }
+        Ok(())
+    }
+
+    pub fn probability(&self, score: f32) -> f64 {
+        self.deciles[((score.clamp(0.0, 1.0) * 10.0) as usize).min(9)]
+    }
+
+    pub fn review_band_precision(&self) -> Option<f64> {
+        let hits = self.review.hits.checked_sub(self.propose.hits)?;
+        let selected = self.review.selected.checked_sub(self.propose.selected)?;
+        (selected > 0).then_some(hits as f64 / selected as f64)
+    }
+}
+
+pub fn sha256_file(path: &Path) -> anyhow::Result<String> {
+    let bytes = std::fs::read(path)
+        .map_err(|e| anyhow::anyhow!("read {} for SHA-256: {e}", path.display()))?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,6 +390,128 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("score domain"), "{err}");
+        let _ = std::fs::remove_file(path);
+    }
+
+    fn corpus_calibration() -> CorpusCalibration {
+        CorpusCalibration {
+            schema_version: CORPUS_SCHEMA_VERSION,
+            score_domain: CORPUS_COVERAGE_SCORE_DOMAIN.into(),
+            score_model_version: crate::corpus::COVERAGE_SCORE_MODEL_VERSION.into(),
+            label_policy_version: CORPUS_LABEL_POLICY_VERSION.into(),
+            split_policy: CORPUS_SPLIT_POLICY.into(),
+            algorithm_version: CORPUS_ALGORITHM_VERSION.into(),
+            provenance: CorpusProvenance {
+                lemmas_path: "lemmas".into(),
+                official_path: "official".into(),
+                lemmas_sha256: "l".into(),
+                official_sha256: "o".into(),
+                fitted_on: "train".into(),
+            },
+            counts: CorpusCounts {
+                train: 2,
+                train_positive: 1,
+                holdout: 2,
+                holdout_positive: 1,
+            },
+            raw_holdout: CorpusMetrics {
+                ece: 0.2,
+                brier: 0.2,
+            },
+            calibrated_holdout: CorpusMetrics {
+                ece: 0.1,
+                brier: 0.1,
+            },
+            reliability_bins: (0..10)
+                .map(|i| ReliabilityBin {
+                    lower: i as f64 / 10.0,
+                    upper: (i + 1) as f64 / 10.0,
+                    count: if i == 5 { 2 } else { 0 },
+                    hits: if i == 5 { 1 } else { 0 },
+                    mean_probability: if i == 5 { 0.5 } else { 0.0 },
+                })
+                .collect(),
+            propose: OperatingPoint {
+                threshold: PROPOSE_T,
+                selected: 1,
+                hits: 1,
+                precision: 1.0,
+                coverage: 1.0,
+            },
+            review: OperatingPoint {
+                threshold: REVIEW_T,
+                selected: 2,
+                hits: 1,
+                precision: 0.5,
+                coverage: 1.0,
+            },
+            deciles: [0.5; 10],
+        }
+    }
+
+    #[test]
+    fn corpus_loader_is_required_domain_checked_and_fresh() {
+        let path = std::env::temp_dir().join(format!(
+            "slovowiki-corpus-calibration-{}.json",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        assert!(CorpusCalibration::load_required(&path, "l", "o")
+            .unwrap_err()
+            .to_string()
+            .contains("missing required"));
+        std::fs::write(&path, "{").unwrap();
+        assert!(CorpusCalibration::load_required(&path, "l", "o")
+            .unwrap_err()
+            .to_string()
+            .contains("parse corpus calibration"));
+        std::fs::write(
+            &path,
+            serde_json::to_string(&Calibration {
+                score_domain: PIPELINE_SCORE_DOMAIN.into(),
+                fitted_on: String::new(),
+                holdout_ece: 0.0,
+                propose_pr: (0.0, 0.0),
+                review_pr: (0.0, 0.0),
+                deciles: [0.0; 10],
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        assert!(CorpusCalibration::load_required(&path, "l", "o")
+            .unwrap_err()
+            .to_string()
+            .contains("score domain"));
+        let mut c = corpus_calibration();
+        std::fs::write(&path, serde_json::to_string(&c).unwrap()).unwrap();
+        assert_eq!(
+            CorpusCalibration::load_required(&path, "l", "o").unwrap(),
+            c
+        );
+        assert!(CorpusCalibration::load_required(&path, "wrong", "o")
+            .unwrap_err()
+            .to_string()
+            .contains("digest"));
+        c.algorithm_version = "old".into();
+        std::fs::write(&path, serde_json::to_string(&c).unwrap()).unwrap();
+        assert!(CorpusCalibration::load_required(&path, "l", "o")
+            .unwrap_err()
+            .to_string()
+            .contains("algorithm"));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn pipeline_loader_rejects_corpus_artifact() {
+        let path = std::env::temp_dir().join(format!(
+            "slovowiki-pipeline-reject-corpus-{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, serde_json::to_string(&corpus_calibration()).unwrap()).unwrap();
+        assert!(Calibration::load_for_domain(&path, PIPELINE_SCORE_DOMAIN)
+            .unwrap_err()
+            .to_string()
+            .contains("score domain"));
         let _ = std::fs::remove_file(path);
     }
 

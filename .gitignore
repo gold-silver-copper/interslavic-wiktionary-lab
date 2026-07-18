@@ -1,4 +1,8 @@
-/target/
+/target/*
+!/target/eval/
+/target/eval/*
+!/target/eval/corpus-coverage-calibration.md
+!/target/eval/corpus-coverage-evaluation.tsv
 /site/
 data/*.tmp
 data/wiktionary-lab.json

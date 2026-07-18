@@ -13,3 +13,4 @@ serde_json = "1.0"
 # Pages can build without the sibling checkout. For local work against a
 # sibling clone, override with a [patch] or swap to a path dependency.
 interslavic = "=0.6.0"
+sha2 = "0.10"

@@ -1,11 +1,12 @@
 DUMP ?= /Users/kisaczka/Desktop/code/wikidata/raw-wiktextract-data.jsonl
 WIKI_DIR ?= /Users/kisaczka/Desktop/code/wikidata
 OFFICIAL ?= data/official-isv.csv
+LEMMAS ?= data/slavic-lemmas.cache.json
 SITE ?= site
 OUT ?= target/eval
 
 .PHONY: extract-proto extract-lemmas extract-raw-slavic extract-enrich extract-all \
-	eval proto-eval corpus-eval aspect-eval audit export serve explain coverage check fmt test clean \
+	eval proto-eval corpus-eval corpus-calibrate aspect-eval audit export serve explain coverage check fmt test clean \
 	search-perf
 
 # One-time: stream the 23GB dump into the Proto-Slavic cache (enables +proto-derived).
@@ -46,6 +47,10 @@ audit:
 # The site path (corpus::generate_set) accuracy vs the official dictionary.
 corpus-eval:
 	cargo run --release -- corpus-eval
+
+# Fit and freeze the dedicated corpus coverage calibrator and audit inventory.
+corpus-calibrate:
+	cargo run --release -- corpus-calibrate --lemmas "$(LEMMAS)" --official "$(OFFICIAL)" --out "$(OUT)"
 
 # Dedicated perfective↔imperfective pair benchmark (issue #75).
 aspect-eval:
