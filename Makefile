@@ -1,6 +1,7 @@
 DUMP ?= /Users/kisaczka/Desktop/code/wikidata/raw-wiktextract-data.jsonl
 WIKI_DIR ?= /Users/kisaczka/Desktop/code/wikidata
 OFFICIAL ?= data/official-isv.csv
+LEMMAS ?= data/slavic-lemmas.cache.json
 SITE ?= site
 OUT ?= target/eval
 

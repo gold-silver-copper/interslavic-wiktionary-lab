@@ -332,7 +332,8 @@ fn select_official_entry(
 ) -> Option<usize> {
     let set_tokens = crate::dump::gloss_tokens(set_gloss);
     let set_compact = set_tokens.join("");
-    rows.iter()
+    let scored: Vec<(usize, (usize, bool))> = rows
+        .iter()
         .copied()
         .filter(|&i| official_entries[i].pos == pos)
         .map(|i| {
@@ -342,11 +343,19 @@ fn select_official_entry(
             // feather grass/feathergrass). Joined content-token equality is a
             // positive semantic discriminator without admitting unrelated POS.
             let compound_match = !set_compact.is_empty() && set_compact == gloss.join("");
-            (i, overlap, compound_match)
+            (i, (overlap, compound_match))
         })
-        .filter(|(_, overlap, compound_match)| *overlap > 0 || *compound_match)
-        .max_by_key(|(_, overlap, compound_match)| (*overlap, *compound_match))
-        .map(|(i, _, _)| i)
+        .filter(|(_, (overlap, compound_match))| *overlap > 0 || *compound_match)
+        .collect();
+    let best_score = scored.iter().map(|(_, score)| *score).max()?;
+    let mut winners = scored
+        .iter()
+        .filter(|(_, score)| *score == best_score)
+        .map(|(i, _)| *i);
+    let winner = winners.next()?;
+    // An equal semantic score is unresolved ambiguity, not permission to make
+    // CSV row order part of official lexical identity.
+    winners.next().is_none().then_some(winner)
 }
 
 /// Generate the static site from the Wiktionary cognate-set corpus. Every set of
@@ -9860,6 +9869,20 @@ mod tests {
             .collect();
         assert!(imati_senses.contains("417") && imati_senses.contains("875"));
         assert!(spelling_index.contains_fold("imati"));
+
+        // Government annotations sanitize to the same citation spelling for
+        // several senses. Equal semantic evidence must abstain rather than
+        // selecting whichever dictionary row happens to come last.
+        let naskakati = spelling_index.lookup("naskakati").unwrap();
+        assert_eq!(
+            select_official_entry(
+                &naskakati.sense_indices(),
+                &entries,
+                crate::model::Pos::Verb,
+                "to jump [with на (na, + accusative) ‘into a fence, etc.’] while on horseback",
+            ),
+            None
+        );
 
         let leo = entries
             .iter()
