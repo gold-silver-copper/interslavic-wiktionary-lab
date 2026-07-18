@@ -83,10 +83,9 @@ with official_path.open(newline="") as handle:
         title = row["isv"].strip()
         if not title or "#" in title:
             continue
-        key = title.lower()
         forms = citation_forms(title)
-        accepted_titles = {key, *(form.lower() for form in forms)}
-        official_spellings.update(accepted_titles)
+        accepted_titles = {title, *forms}
+        official_spellings.update(spelling.lower() for spelling in accepted_titles)
         gloss = row["en"].strip()
         sense_id = row["id"]
         # Slash notation is expanded by the pre-existing FormRecord cell
@@ -110,7 +109,7 @@ for entry in entries:
     assert sense_id, ("official entry lacks source sense ID", entry["id"])
     assert sense_id not in actual_senses, ("duplicate official source sense ID", sense_id)
     actual_senses[sense_id] = (
-        entry["title"].strip().lower(), entry["gloss"].strip(), entry["pos"]
+        entry["title"].strip(), entry["gloss"].strip(), entry["pos"]
     )
     actual_entries[sense_id] = entry
 assert actual_senses.keys() == expected_senses.keys(), "official source sense IDs differ"
@@ -126,7 +125,7 @@ for sense_id, (actual_title, actual_gloss, actual_pos) in actual_senses.items():
 for sense_id, expected in expected_aspects.items():
     entry = actual_entries[sense_id]
     accepted_titles, gloss, pos, value = expected
-    assert entry["title"].strip().lower() in accepted_titles
+    assert entry["title"].strip() in accepted_titles
     actual = (entry["gloss"].strip(), entry["pos"], entry["aspect"])
     assert actual == (gloss, pos, value), ("official aspect sense mismatch", sense_id, expected, actual)
 

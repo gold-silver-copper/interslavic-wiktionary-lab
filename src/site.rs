@@ -461,17 +461,18 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 .find_map(|(rank, candidate)| {
                     let spelling_match = official_index.lookup(&candidate.form)?;
                     let entry = select_official_entry(
-                        &spelling_match.sense_indices,
+                        &spelling_match.sense_indices(),
                         &official_entries,
                         g.set.pos,
                         &g.set.gloss,
                     )?;
+                    let spelling = spelling_match.spelling_for(entry)?.to_string();
                     Some((
                         OfficialMatch {
                             rank: rank + 1,
                             entry,
                         },
-                        spelling_match.spelling,
+                        spelling,
                     ))
                 });
         let display = reference_match
@@ -2023,12 +2024,13 @@ fn build_corpus_render_index(
                 .find_map(|(rank, candidate)| {
                     let spelling_match = official_index.lookup(&candidate.form)?;
                     let entry = select_official_entry(
-                        &spelling_match.sense_indices,
+                        &spelling_match.sense_indices(),
                         official_entries,
                         g.set.pos,
                         &g.set.gloss,
                     )?;
-                    Some(((rank + 1, entry), spelling_match.spelling))
+                    let spelling = spelling_match.spelling_for(entry)?.to_string();
+                    Some(((rank + 1, entry), spelling))
                 });
         let display = reference_match
             .as_ref()
@@ -9851,14 +9853,22 @@ mod tests {
 
         let spelling_index = crate::official::OfficialSpellingIndex::new(&entries);
         let imati = spelling_index.lookup("imati").unwrap();
-        assert_eq!(imati.spelling, "imati");
-        let imati_senses: std::collections::HashSet<&str> = imati
-            .sense_indices
+        let imati_indices = imati.sense_indices();
+        let imati_senses: std::collections::HashSet<&str> = imati_indices
             .iter()
             .map(|&i| entries[i].id.as_str())
             .collect();
         assert!(imati_senses.contains("417") && imati_senses.contains("875"));
         assert!(spelling_index.contains_fold("imati"));
+
+        let leo = entries
+            .iter()
+            .position(|entry| entry.id == "27163")
+            .unwrap();
+        assert_eq!(
+            spelling_index.lookup("lev").unwrap().spelling_for(leo),
+            Some("Lev")
+        );
 
         let last = entries.iter().find(|entry| entry.id == "2323").unwrap();
         let mut keys = Vec::new();

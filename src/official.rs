@@ -157,9 +157,37 @@ pub struct OfficialSpellingIndex {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OfficialSpellingMatch {
-    pub sense_indices: Vec<usize>,
+pub struct OfficialCitationMatch {
+    pub sense_index: usize,
     pub spelling: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OfficialSpellingMatch {
+    citations: Vec<OfficialCitationMatch>,
+}
+
+impl OfficialSpellingMatch {
+    pub fn sense_indices(&self) -> Vec<usize> {
+        let mut sense_indices: Vec<usize> = self
+            .citations
+            .iter()
+            .map(|citation| citation.sense_index)
+            .collect();
+        sense_indices.sort_unstable();
+        sense_indices.dedup();
+        sense_indices
+    }
+
+    /// Canonical citation spelling belonging to the selected official sense.
+    /// Keeping this association prevents a case-insensitive lookup bucket from
+    /// lending another sense's casing (`lev` lion vs `Lev` Leo).
+    pub fn spelling_for(&self, sense_index: usize) -> Option<&str> {
+        self.citations
+            .iter()
+            .find(|citation| citation.sense_index == sense_index)
+            .map(|citation| citation.spelling.as_str())
+    }
 }
 
 impl OfficialSpellingIndex {
@@ -206,13 +234,18 @@ impl OfficialSpellingIndex {
             }
             rows
         };
-        let mut sense_indices: Vec<usize> = rows.iter().map(|row| row.sense_index).collect();
-        sense_indices.sort_unstable();
-        sense_indices.dedup();
-        Some(OfficialSpellingMatch {
-            sense_indices,
-            spelling: rows.first()?.spelling.clone(),
-        })
+        let mut citations: Vec<OfficialCitationMatch> = Vec::new();
+        for row in rows {
+            if !citations.iter().any(|citation| {
+                citation.sense_index == row.sense_index && citation.spelling == row.spelling
+            }) {
+                citations.push(OfficialCitationMatch {
+                    sense_index: row.sense_index,
+                    spelling: row.spelling.clone(),
+                });
+            }
+        }
+        (!citations.is_empty()).then_some(OfficialSpellingMatch { citations })
     }
 
     /// Whether any official single-word citation occupies this folded spelling.
@@ -399,10 +432,16 @@ mod tests {
         let mut adjective_byforms = entry_with_same_in("");
         adjective_byforms.isv = "poslědnji, poslědny".into();
         let index = OfficialSpellingIndex::new(&[byforms, adjective_byforms]);
-        assert_eq!(index.lookup("imati").unwrap().spelling, "imati");
-        assert_eq!(index.lookup("iměti").unwrap().sense_indices, [0]);
-        assert_eq!(index.lookup("poslědnji").unwrap().sense_indices, [1]);
-        assert_eq!(index.lookup("poslědny").unwrap().spelling, "poslědny");
+        assert_eq!(
+            index.lookup("imati").unwrap().spelling_for(0),
+            Some("imati")
+        );
+        assert_eq!(index.lookup("iměti").unwrap().sense_indices(), [0]);
+        assert_eq!(index.lookup("poslědnji").unwrap().sense_indices(), [1]);
+        assert_eq!(
+            index.lookup("poslědny").unwrap().spelling_for(1),
+            Some("poslědny")
+        );
         assert!(index.contains_fold("imati"));
 
         let mut governed = entry_with_same_in("");
@@ -412,6 +451,19 @@ mod tests {
         let mut flagged = entry_with_same_in("");
         flagged.isv = "#izstava, izstavka".into();
         assert!(flagged.citation_forms().is_empty());
+    }
+
+    #[test]
+    fn exact_lookup_keeps_canonical_spelling_bound_to_its_sense() {
+        let mut common = entry_with_same_in("");
+        common.isv = "lev".into();
+        let mut proper = entry_with_same_in("");
+        proper.isv = "Lev".into();
+        let index = OfficialSpellingIndex::new(&[common, proper]);
+        let matched = index.lookup("lev").unwrap();
+        assert_eq!(matched.sense_indices(), [0, 1]);
+        assert_eq!(matched.spelling_for(0), Some("lev"));
+        assert_eq!(matched.spelling_for(1), Some("Lev"));
     }
 
     #[test]
