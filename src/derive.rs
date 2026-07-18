@@ -1,7 +1,7 @@
 //! Productive Interslavic derivation: generate a lemma's word FAMILY.
 //!
 //! Interslavic word formation is regular and documented (RULE_SPEC §3.4, the
-//! [DERIV] correspondence tables, steen derivation.html). This module derives,
+//! `DERIV` correspondence tables, steen derivation.html). This module derives,
 //! from one citation form, its regular derivatives — abstract `-osť`, adverb,
 //! verbal noun `-ńje`, agentive `-telj` (+`-teljstvo`/`-teljka`), denominal
 //! adjectives `-ny`/`-sky`, diminutive `-ka`/feminine `-ica`, negation `ne-` —
@@ -429,10 +429,10 @@ pub fn pattern_probabilities(entries: &[OfficialEntry]) -> DerivationProbabiliti
 
 /// The `derive-eval` benchmark. Leakage story: input = the official BASE lemma
 /// + its POS; gold = the official DERIVATIVE, which the layer never sees. Pairs
-/// are mined by inverse folded-form lookup, so pair SELECTION shares alternation
-/// knowledge with the layer (a selection bias, disclosed here), but the layer
-/// must still produce the full official string — flavored letters, suffix
-/// allomorph and seam included — forward, without the answer.
+///   are mined by inverse folded-form lookup, so pair SELECTION shares alternation
+///   knowledge with the layer (a selection bias, disclosed here), but the layer
+///   must still produce the full official string — flavored letters, suffix
+///   allomorph and seam included — forward, without the answer.
 pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let entries = official::load(official_path)?;
     let pairs = mine_pairs(&entries);

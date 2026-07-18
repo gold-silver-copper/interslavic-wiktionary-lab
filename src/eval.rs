@@ -154,9 +154,6 @@ struct EntryResult {
     predicted: String,
     exact: bool,
     normalized: bool,
-    skeleton: bool,
-    top3: bool,
-    top5: bool,
     norm_edit: f32,
     branch_cov: usize,
     confidence: Option<Confidence>,
@@ -199,16 +196,6 @@ struct RunMetrics {
     by_branch: [Bucket; 4],
     by_conf: BTreeMap<&'static str, Bucket>,
     results: Vec<EntryResult>,
-}
-
-fn branch_cov_of(input: &MeaningInput) -> usize {
-    let mut branches = Vec::new();
-    for f in &input.forms {
-        if f.modern && !branches.contains(&f.branch) {
-            branches.push(f.branch);
-        }
-    }
-    branches.len()
 }
 
 /// Benchmark the **site's** generation path (`corpus::generate_set`) against the
@@ -389,9 +376,6 @@ fn evaluate_config(
             predicted,
             exact,
             normalized,
-            skeleton,
-            top3,
-            top5,
             norm_edit,
             branch_cov,
             confidence,
@@ -1427,8 +1411,8 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         recoverable += 1;
         let reachable = carriers.iter().any(|&i| {
             let l = &corpus.entries[i];
-            !cited.contains(l.lang.as_str())
-                && !(e.pos == Pos::Verb && matches!(l.lang.as_str(), "bg" | "mk"))
+            !(cited.contains(l.lang.as_str())
+                || e.pos == Pos::Verb && matches!(l.lang.as_str(), "bg" | "mk"))
         });
         if reachable {
             rec_reachable += 1;
@@ -1614,7 +1598,7 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let mut n_two = 0usize;
     let mut n_long = 0usize;
     for e in &multi {
-        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        let toks: Vec<&str> = e.isv.split_whitespace().collect();
         match (toks.len(), toks.last()) {
             (2, Some(&"sę")) => n_sie += 1,
             (2, _) => n_two += 1,
@@ -1630,7 +1614,7 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let mut a_nodetect = 0usize;
     let (mut a_dev, mut a_dev_nm, mut a_held, mut a_held_nm) = (0usize, 0usize, 0usize, 0usize);
     for e in &multi {
-        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        let toks: Vec<&str> = e.isv.split_whitespace().collect();
         if toks.len() != 2 || toks[1] != "sę" {
             continue;
         }
@@ -1664,7 +1648,7 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let (mut b_dev, mut b_dev_nm, mut b_held, mut b_held_nm) = (0usize, 0usize, 0usize, 0usize);
     let mut b_miss: Vec<String> = Vec::new();
     for e in &multi {
-        let toks: Vec<&str> = e.isv.trim().split_whitespace().collect();
+        let toks: Vec<&str> = e.isv.split_whitespace().collect();
         if toks.len() != 2 || toks[1] == "sę" {
             continue;
         }
@@ -2998,7 +2982,7 @@ fn fnv1a(s: &str) -> u64 {
 /// derive-eval, …) so all dev/holdout numbers are computed on the same
 /// entries. Never change the hash or the modulus.
 pub fn is_holdout_id(id: &str) -> bool {
-    fnv1a(id) % 4 == 0
+    fnv1a(id).is_multiple_of(4)
 }
 
 /// Exact two-sided sign test on discordant pairs. Under H0 the smaller tail is

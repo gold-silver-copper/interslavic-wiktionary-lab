@@ -120,7 +120,7 @@ pub struct ConsensusConfig {
     /// attested form) — instead of the fixed REP_PRIORITY, avoiding dialectal /
     /// oblique outliers. The rep-eval probe measured +1.09pp exact.
     pub medoid_representative: bool,
-    /// Derivational-suffix normalization (root-consistency invariant [DERIV]):
+    /// Derivational-suffix normalization (root-consistency invariant `DERIV`):
     /// -telj- kept before suffixes (-teljstvo/-teljny), feminine i-stem -sť
     /// (kosť, radosť), deverbal -livy — each categorical in the dictionary.
     pub derivational_suffixes: bool,
@@ -1295,9 +1295,8 @@ fn nasal_from_polish(word: &str, pl: &str) -> Option<String> {
     // *ę AND *ǫ (ręka<*rǫka, gęś<*gǫsь), so its quality is ambiguous — decide
     // front/back from the representative's own reflex vowel at that slot: a back
     // reflex (u/o/…) means the ISV nasal is back (ų), else front (ę) (B6).
-    let target = if nasal.1 == 'ǫ' {
-        'ų'
-    } else if matches!(slot.1, 'u' | 'o' | 'ų' | 'ǫ' | 'å' | 'ȯ' | 'y') {
+    let target = if nasal.1 == 'ǫ' || matches!(slot.1, 'u' | 'o' | 'ų' | 'ǫ' | 'å' | 'ȯ' | 'y')
+    {
         'ų'
     } else {
         'ę'
@@ -1464,7 +1463,7 @@ fn tidy_ending(word: &str, pos: Pos, gender: Option<Gender>) -> String {
                 w.push_str("ti");
             } else if w.ends_with("t") && !w.ends_with("ti") {
                 // Russian -ть already lost soft sign -> ends in t
-                w.push_str("i");
+                w.push('i');
             } else if w.ends_with("ć") {
                 w.truncate(w.len() - "ć".len());
                 w.push_str("ti");

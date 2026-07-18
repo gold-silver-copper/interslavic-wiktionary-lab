@@ -236,7 +236,7 @@ fn liquid_metathesis(input: &str, trace: &mut Vec<RuleStep>) -> String {
 }
 
 fn nasals(input: &str, trace: &mut Vec<RuleStep>) -> String {
-    let out = input.replace('ǫ', "ų").replace('ę', "ę");
+    let out = input.replace('ǫ', "ų");
     step(
         trace,
         "nasal-vowels",

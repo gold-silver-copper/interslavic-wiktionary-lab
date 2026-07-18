@@ -38,7 +38,7 @@ pub fn split_cell(cell: &str) -> Vec<(String, bool)> {
             _ => {}
         }
     }
-    for piece in cleaned.split(|c| c == ',' || c == ';' || c == '/') {
+    for piece in cleaned.split([',', ';', '/']) {
         let mut p = piece.trim();
         if p.is_empty() {
             continue;
@@ -393,15 +393,8 @@ fn translit_latin(lang: &str, s: &str) -> String {
                 .replace("rz", "ř")
                 .replace("ch", "h");
         }
-        "cs" | "sk" => {
-            t = t.replace("ch", "h").replace("dž", "dž");
-        }
-        "sl" | "hr" | "bs" | "sh" => {
-            t = t
-                .replace("dž", "dž")
-                .replace("lj", "lj")
-                .replace("nj", "nj");
-        }
+        "cs" | "sk" => t = t.replace("ch", "h"),
+        "sl" | "hr" | "bs" | "sh" => {}
         _ => {}
     }
     let mut out = String::with_capacity(t.len());
@@ -468,7 +461,7 @@ pub fn desc_skeleton(lang: &str, word: &str) -> String {
 
 /// Choose the single most representative form from a normalized cell: the first
 /// non-flagged variant, else the first variant.
-pub fn primary<'a>(forms: &'a [NormForm]) -> Option<&'a NormForm> {
+pub fn primary(forms: &[NormForm]) -> Option<&NormForm> {
     forms.iter().find(|f| !f.flagged).or_else(|| forms.first())
 }
 

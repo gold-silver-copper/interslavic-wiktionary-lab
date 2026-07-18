@@ -159,6 +159,10 @@ impl EnrichIndex {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
 }
 
 /// True when a string carries leaked wiki/HTML markup (as opposed to a bare `<`
@@ -239,6 +243,10 @@ impl Xref {
 
     pub fn len(&self) -> usize {
         self.by_key.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_key.is_empty()
     }
 
     pub fn ambiguous_len(&self) -> usize {

@@ -1,5 +1,8 @@
 /target/
 /site/
+# Local multi-gigabyte source datasets; committed caches remain tracked.
+/data/raw-wiktextract-data.jsonl
+/data/wiktionary/
 data/*.tmp
 data/wiktionary-lab.json
 __pycache__/

@@ -1,6 +1,6 @@
 # V7 report — full-pipeline review and the measured close of the gap
 
-Response to `IMPROVEMENT_PROMPT_V7.md`. The V7 brief asked for a *systematic,
+Response to [`docs/history/IMPROVEMENT_PROMPT_V7.md`](docs/history/IMPROVEMENT_PROMPT_V7.md). The V7 brief asked for a *systematic,
 per-stage* review with two new diagnostic instruments built first, then fixes
 spent where the attribution says the headroom actually is — not where a pattern
 happens to be visible in a CSV.

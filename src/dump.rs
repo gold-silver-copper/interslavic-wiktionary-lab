@@ -695,7 +695,7 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
         match classify_lemma(&value) {
             LemmaGate::Keep(entry) => {
                 entries.push(entry);
-                if entries.len() % 5000 == 0 {
+                if entries.len().is_multiple_of(5000) {
                     eprintln!(
                         "  collected {} Slavic lemmas after {} lines",
                         entries.len(),
@@ -780,13 +780,6 @@ pub fn extract_lemmas(dump: &Path, out: &Path) -> Result<()> {
         line_count
     );
     Ok(())
-}
-
-fn lemma_from_value(value: &Value) -> Option<LemmaEntry> {
-    match classify_lemma(value) {
-        LemmaGate::Keep(entry) => Some(entry),
-        _ => None,
-    }
 }
 
 /// The lemma gate. The Keep branch is unchanged from the pre-#86 extractor
@@ -1271,6 +1264,7 @@ fn classify_raw_slavic(value: &Value) -> RawOutcome {
 
 /// Apply the RAW gate to one page, returning the kept [`RawSlavicLemma`] when it
 /// is a single-token Slavic content lemma with at least one real gloss.
+#[cfg(test)]
 fn raw_slavic_from_value(value: &Value) -> Option<RawSlavicLemma> {
     match classify_raw_slavic(value) {
         RawOutcome::Kept(lemma) => Some(lemma),
@@ -1368,7 +1362,7 @@ pub fn extract(dump: &Path, out: &Path) -> Result<()> {
         }
         if let Some(entry) = proto_from_value(&value) {
             entries.push(entry);
-            if entries.len() % 2000 == 0 {
+            if entries.len().is_multiple_of(2000) {
                 eprintln!(
                     "  extracted {} Proto-Slavic entries after {} lines",
                     entries.len(),

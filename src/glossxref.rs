@@ -95,7 +95,7 @@ impl GlossXref {
     /// gloss order (deduped), excluding the source word's own language (which
     /// also excludes the word itself). Over-generic tokens (in > `FREQ_CAP`
     /// lemmas) are skipped. Each group's `(lang, word)` list is already
-    /// language-sorted (from [`finalize`]).
+    /// language-sorted (from [`Self::finalize`]).
     pub fn matches(&self, lang: &str, glosses: &[String]) -> Vec<(String, Vec<(String, String)>)> {
         let mut out = Vec::new();
         let mut seen = HashSet::new();

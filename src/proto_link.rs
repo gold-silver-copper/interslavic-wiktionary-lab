@@ -9,6 +9,7 @@
 //!   2. **derived-form similarity** — how close the proto engine's output is to
 //!      the modern consensus shape;
 //!   3. **gloss overlap** — English gloss tokens shared with the proto senses.
+//!
 //! POS agreement gates the match. The combined confidence is thresholded so the
 //! proto path is only taken when the link is trustworthy.
 

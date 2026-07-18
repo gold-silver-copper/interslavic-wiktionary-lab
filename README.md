@@ -318,6 +318,8 @@ and the **site's** `corpus::generate_set` (`corpus-eval`).
 
 ```
 src/
+  lib.rs           reusable library boundary and portable data-path defaults
+  main.rs          thin Clap command parser and library dispatch adapter
   model.rs         Candidate / RuleStep / Evidence / Confidence / MatchStatus / Pos
   lang.rs          Slavic language + branch + script metadata
   normalize.rs     per-language script → common phonemic Latin (keeps ě/ę/ǫ/č/ć/đ)
@@ -337,13 +339,23 @@ src/
   calibrate.rs     the persisted isotonic score→probability calibrator
   forms.rs         FormRecord pipeline: paradigm cells (single source for the
                    site's inflection tables AND the sharded static api/)
+  inflect_eval.rs  full-corpus inflection evaluation + grammar invariants
   check.rs         check-text: tokenizer, form lookup, semantic-trap warnings
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
   thesaurus.rs     dictionary-derived ISV synonym thesaurus
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
   flavorize.rs     display flavorization of source words into ISV orthography
                    (winyl→vinyl, дело→dělo) + RU running-text transliteration
-  site.rs          static site generator (export) — HTML pages, search, api/
+  site/
+    mod.rs         export/export_corpus filesystem orchestration
+    model.rs       typed RenderContext and page/build inputs
+    assets.rs      bundled CSS and shared/page-specific static JavaScript
+    layout.rs      shared HTML shell and escaping/JSON helpers
+    entries.rs     generated, official-only, and raw entry rendering
+    search.rs      search models, folding, sharding, UI, and client JavaScript
+    coverage.rs    raw-corpus dedup planning and coverage reporting
+    navigation.rs  categories, portals, backlinks, and graph/index pages
+    special.rs     metrics, datasets, proposals, forms, and scholarly pages
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
   overrides.toml          manual curation file
@@ -356,7 +368,14 @@ data/
   score-calibration.json  official-row pipeline calibrator (domain-checked; refit by evaluate)
   semantic-notes.json     curated false-friend warnings (applied by check-text)
   curation-notes.example.json  format of the optional human curation notes
+docs/history/
+  IMPROVEMENT_PROMPT*.md historical experiment briefs (not contributor instructions)
 ```
+
+Within `site/`, dependencies flow from shared `model`/`assets` and `layout`
+boundaries into page-specific renderers, then into `site::export` orchestration.
+Modules use explicit imports so cross-boundary dependencies remain visible and
+cycles cannot be hidden by a shared glob namespace.
 
 ## Commands
 
@@ -406,6 +425,10 @@ cargo run --release -- oracle
 
 # Generate the static website locally (no server; not published anywhere):
 cargo run --release -- export --out site
+# Cross-revision byte comparisons can pin the provenance fields and the
+# featured-page seed while leaving normal exports tied to their actual commit:
+SLOVOWIKI_BUILD_GIT=2f6e722 SOURCE_DATE_EPOCH=1784371344 \
+  cargo run --release -- export --out site
 # Preview locally with any static server, e.g.:
 #   (cd site && python3 -m http.server 8765)   # or: make serve
 

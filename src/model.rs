@@ -177,7 +177,7 @@ pub struct Reconstruction {
     pub word: String,
     pub proto_balto_slavic: String,
     pub proto_indo_european: String,
-    /// Link confidence in [0,1] from the leakage-free linker.
+    /// Link confidence in `[0, 1]` from the leakage-free linker.
     pub confidence: f32,
 }
 

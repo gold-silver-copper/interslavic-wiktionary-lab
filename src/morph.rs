@@ -26,7 +26,7 @@ pub struct LemmaRules {
     pub endings: bool,
     /// Verbal/nominal prefix normalization (råz-, prěd-).
     pub prefixes: bool,
-    /// Derivational-suffix normalization (root-consistency invariant [DERIV]):
+    /// Derivational-suffix normalization (root-consistency invariant `DERIV`):
     /// -telj- kept before suffixes, feminine i-stem -sť, -livy.
     pub deriv: bool,
     /// Graeco-Latin hiatus in loans: ISV keeps -ia- (social-, entuziazm), the

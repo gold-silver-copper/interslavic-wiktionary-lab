@@ -135,7 +135,7 @@ pub fn levenshtein(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
-/// Normalized edit distance in [0,1]: edit distance over the standard spelling
+/// Normalized edit distance in `[0, 1]`: edit distance over the standard spelling
 /// divided by the longer length.
 pub fn normalized_edit_distance(a: &str, b: &str) -> f32 {
     let sa = to_standard(&a.to_lowercase());

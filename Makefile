@@ -1,5 +1,5 @@
-DUMP ?= /Users/kisaczka/Desktop/code/wikidata/raw-wiktextract-data.jsonl
-WIKI_DIR ?= /Users/kisaczka/Desktop/code/wikidata
+DUMP ?= data/raw-wiktextract-data.jsonl
+WIKI_DIR ?= data/wiktionary
 OFFICIAL ?= data/official-isv.csv
 SITE ?= site
 OUT ?= target/eval

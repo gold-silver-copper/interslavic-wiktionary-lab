@@ -57,5 +57,5 @@ representative for the worse; the extra variants add noise our representative-se
 can't filter as a human would.
 
 **Conclusion:** the voting machine *validates* our architecture but offers no drop-in win.
-The real remaining levers stay the ones in `IMPROVEMENT_PROMPT_V3.md` §C/§D (root modeling,
+The real remaining levers stay the ones in [`docs/history/IMPROVEMENT_PROMPT_V3.md`](../docs/history/IMPROVEMENT_PROMPT_V3.md) §C/§D (root modeling,
 link coverage) — not the per-language normalization tables.

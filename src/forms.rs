@@ -27,6 +27,38 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
+/// Counts inflection-table panics swallowed by the quiet hook.
+static INFLECTION_PANICS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// Install the CLI's process-lifetime hook for expected inflector failures.
+///
+/// Panic hooks are process-global, so reusable library exports deliberately do
+/// not call this. The command-line binary installs it once before an export or
+/// inflection evaluation and then exits.
+#[doc(hidden)]
+pub fn install_cli_quiet_inflection_hook() {
+    let default = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let from_inflector = info
+            .location()
+            .map(|location| location.file().contains("interslavic"))
+            .unwrap_or(false);
+        if from_inflector {
+            INFLECTION_PANICS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        } else {
+            default(info);
+        }
+    }));
+}
+
+pub fn inflection_panic_count() -> usize {
+    INFLECTION_PANICS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+pub fn reset_inflection_panic_count() {
+    INFLECTION_PANICS.store(0, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Shard count for the form index. Changing it is a schema break: bump
 /// [`SCHEMA_VERSION`] and regenerate `api/agent-guide.md`.
 pub const SHARDS: u32 = 2048;
