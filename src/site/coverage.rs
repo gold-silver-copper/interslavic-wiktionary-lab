@@ -8,7 +8,7 @@ use super::model::HeadwordIndex;
 use crate::consensus::ConsensusConfig;
 use crate::official::{self, OfficialEntry};
 use anyhow::Result;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 use std::path::Path;
 // ---------------------------------------------------------------------------
@@ -58,9 +58,17 @@ pub(super) struct CovPrepared {
     pub(super) id: usize,
     pub(super) g: crate::corpus::GeneratedWord,
     pub(super) display: String,
-    pub(super) matched: Option<(usize, usize)>,
+    pub(super) matched: Option<(usize, OfficialSurface)>,
     pub(super) suppressed: bool,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct OfficialSurface {
+    pub(super) entry: usize,
+    pub(super) form: String,
+}
+
+pub(super) type OfficialSurfaceMap = HashMap<String, Vec<OfficialSurface>>;
 
 /// Select an official sense only with positive lexical evidence. Exact/folded
 /// spelling is a candidate lookup, not enough by itself to establish identity.
@@ -89,6 +97,98 @@ pub(super) fn select_official_entry(
         .map(|(index, _, _)| index)
 }
 
+pub(super) fn official_surface_maps(
+    official_entries: &[OfficialEntry],
+) -> (OfficialSurfaceMap, OfficialSurfaceMap) {
+    let mut official_by_exact: OfficialSurfaceMap = HashMap::new();
+    let mut official_by_fold: OfficialSurfaceMap = HashMap::new();
+    for (i, e) in official_entries.iter().enumerate() {
+        for byform in e.citation_byforms() {
+            let form = byform.form;
+            let lower = form.to_lowercase();
+            if lower.trim().is_empty() {
+                continue;
+            }
+            let surface = OfficialSurface {
+                entry: i,
+                form: form.clone(),
+            };
+            official_by_exact
+                .entry(lower.clone())
+                .or_default()
+                .push(surface.clone());
+            official_by_fold
+                .entry(crate::orthography::to_standard(&lower))
+                .or_default()
+                .push(surface);
+        }
+    }
+    (official_by_exact, official_by_fold)
+}
+
+pub(super) fn select_official_surface(
+    official_by_exact: &OfficialSurfaceMap,
+    official_by_fold: &OfficialSurfaceMap,
+    form: &str,
+    official_entries: &[OfficialEntry],
+    pos: crate::model::Pos,
+    set_gloss: &str,
+) -> Option<OfficialSurface> {
+    let lower = form.trim().to_lowercase();
+    if lower.is_empty() {
+        return None;
+    }
+    if let Some(surfaces) = official_by_exact.get(&lower) {
+        return select_surface(surfaces, official_entries, pos, set_gloss);
+    }
+    let surfaces = official_by_fold.get(&crate::orthography::to_standard(&lower))?;
+    if !fold_surfaces_unambiguous(surfaces) {
+        return None;
+    }
+    select_surface(surfaces, official_entries, pos, set_gloss)
+}
+
+pub(super) fn insert_official_byform_aliases(
+    index: &mut HeadwordIndex,
+    official_entries: &[OfficialEntry],
+    entry: usize,
+    id: usize,
+) {
+    for byform in official_entries[entry].citation_byforms() {
+        index.insert(&byform.form, id);
+    }
+}
+
+fn select_surface(
+    surfaces: &[OfficialSurface],
+    official_entries: &[OfficialEntry],
+    pos: crate::model::Pos,
+    set_gloss: &str,
+) -> Option<OfficialSurface> {
+    let mut rows = Vec::new();
+    for surface in surfaces {
+        if !rows.contains(&surface.entry) {
+            rows.push(surface.entry);
+        }
+    }
+    let entry = select_official_entry(&rows, official_entries, pos, set_gloss)?;
+    surfaces
+        .iter()
+        .find(|surface| surface.entry == entry)
+        .cloned()
+}
+
+fn fold_surfaces_unambiguous(surfaces: &[OfficialSurface]) -> bool {
+    let Some(first) = surfaces.first() else {
+        return false;
+    };
+    let same_entry = surfaces.iter().all(|surface| surface.entry == first.entry);
+    let same_form = surfaces
+        .iter()
+        .all(|surface| surface.form.eq_ignore_ascii_case(&first.form));
+    same_entry || same_form
+}
+
 /// Build the identity-safe headword index (`isv_to_id`) and cognate cross-reference
 /// (`xref`) exactly as `export_corpus` does, so a raw lemma is judged
 /// "already covered" identically. Returns them plus the generated/official
@@ -105,24 +205,7 @@ pub(super) fn build_corpus_render_index(
     let cfg = ConsensusConfig::production();
     let sets = crate::corpus::build_sets(corpus);
 
-    let mut official_by_exact: std::collections::HashMap<String, Vec<usize>> =
-        std::collections::HashMap::new();
-    let mut official_by_fold: std::collections::HashMap<String, Vec<usize>> =
-        std::collections::HashMap::new();
-    for (i, e) in official_entries.iter().enumerate() {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
-            continue;
-        }
-        official_by_exact
-            .entry(isv.to_lowercase())
-            .or_default()
-            .push(i);
-        official_by_fold
-            .entry(crate::orthography::to_standard(&isv.to_lowercase()))
-            .or_default()
-            .push(i);
-    }
+    let (official_by_exact, official_by_fold) = official_surface_maps(official_entries);
 
     // First pass: generate every set (same as export).
     let mut covered: std::collections::HashSet<String> = std::collections::HashSet::new();
@@ -135,33 +218,25 @@ pub(super) fn build_corpus_render_index(
             continue;
         }
         id += 1;
-        let matched: Option<(usize, usize)> =
-            g.candidates
-                .iter()
-                .take(5)
-                .enumerate()
-                .find_map(|(rank, c)| {
-                    let lower = c.form.trim().to_lowercase();
-                    let rows = if let Some(rows) = official_by_exact.get(&lower) {
-                        rows.as_slice()
-                    } else {
-                        let rows = official_by_fold
-                            .get(&crate::orthography::to_standard(&lower))?
-                            .as_slice();
-                        let mut spellings = rows
-                            .iter()
-                            .map(|&i| official_entries[i].isv.trim().to_lowercase());
-                        let first = spellings.next()?;
-                        if spellings.any(|s| s != first) {
-                            return None;
-                        }
-                        rows
-                    };
-                    let i = select_official_entry(rows, official_entries, g.set.pos, &g.set.gloss)?;
-                    Some((rank + 1, i))
-                });
+        let matched: Option<(usize, OfficialSurface)> = g
+            .candidates
+            .iter()
+            .take(5)
+            .enumerate()
+            .find_map(|(rank, c)| {
+                select_official_surface(
+                    &official_by_exact,
+                    &official_by_fold,
+                    &c.form,
+                    official_entries,
+                    g.set.pos,
+                    &g.set.gloss,
+                )
+                .map(|surface| (rank + 1, surface))
+            });
         let display = matched
-            .map(|(_, i)| official_entries[i].isv.trim().to_string())
+            .as_ref()
+            .map(|(_, surface)| surface.form.clone())
             .unwrap_or_else(|| form.clone());
         prepared.push(CovPrepared {
             id,
@@ -182,7 +257,8 @@ pub(super) fn build_corpus_render_index(
         };
         let mut best: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
         for (i, p) in prepared.iter().enumerate() {
-            if let Some((_, entry)) = p.matched {
+            if let Some((_, surface)) = &p.matched {
+                let entry = surface.entry;
                 let e = &official_entries[entry];
                 let key = e.id.clone();
                 let win = match best.get(&key) {
@@ -195,9 +271,10 @@ pub(super) fn build_corpus_render_index(
             }
         }
         for (i, p) in prepared.iter_mut().enumerate() {
-            let Some((_, entry)) = p.matched else {
+            let Some((_, surface)) = &p.matched else {
                 continue;
             };
+            let entry = surface.entry;
             let key = official_entries[entry].id.clone();
             if best.get(&key) != Some(&i) {
                 p.matched = None;
@@ -210,8 +287,10 @@ pub(super) fn build_corpus_render_index(
     // a gloss token with a stronger set.
     {
         let gloss_of = |p: &CovPrepared| -> Vec<String> {
-            match p.matched {
-                Some((_, entry)) => crate::dump::gloss_tokens(&official_entries[entry].english),
+            match &p.matched {
+                Some((_, surface)) => {
+                    crate::dump::gloss_tokens(&official_entries[surface.entry].english)
+                }
                 None => crate::dump::gloss_tokens(&p.g.set.gloss),
             }
         };
@@ -251,6 +330,9 @@ pub(super) fn build_corpus_render_index(
             continue;
         }
         isv_to_id.insert(&p.display, p.id);
+        if let Some((_, surface)) = &p.matched {
+            insert_official_byform_aliases(&mut isv_to_id, official_entries, surface.entry, p.id);
+        }
         for m in &p.g.set.members {
             xref.insert(&m.lang, &m.word, p.id);
         }
@@ -260,15 +342,15 @@ pub(super) fn build_corpus_render_index(
     // fold them into `isv_to_id`, so raw dedup mirrors the real export.
     covered.clear();
     for p in prepared.iter().filter(|p| !p.suppressed) {
-        if let Some((_, entry)) = p.matched {
-            covered.insert(official_entries[entry].id.clone());
+        if let Some((_, surface)) = &p.matched {
+            covered.insert(official_entries[surface.entry].id.clone());
         }
     }
     let mut official_only = 0usize;
-    let mut official_only_records: Vec<(usize, String)> = Vec::new();
+    let mut official_only_records: Vec<(usize, Vec<String>)> = Vec::new();
     for e in official_entries {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains('#') {
+        let byforms = official::citation_forms(&e.isv);
+        if byforms.is_empty() {
             continue;
         }
         if !covered.insert(e.id.clone()) {
@@ -276,10 +358,12 @@ pub(super) fn build_corpus_render_index(
         }
         id += 1;
         official_only += 1;
-        official_only_records.push((id, isv.to_string()));
+        official_only_records.push((id, byforms));
     }
-    for (oid, isv) in &official_only_records {
-        isv_to_id.insert(isv, *oid);
+    for (oid, byforms) in &official_only_records {
+        for isv in byforms {
+            isv_to_id.insert(isv, *oid);
+        }
     }
 
     (xref, isv_to_id, generated_pages, official_only)

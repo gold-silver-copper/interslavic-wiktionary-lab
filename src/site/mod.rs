@@ -7,7 +7,10 @@
 //! any static host). All links are relative and all CSS is local.
 
 use self::assets::css;
-use self::coverage::{inject_generated_derivatives, plan_raw_pages, select_official_entry};
+use self::coverage::{
+    inject_generated_derivatives, insert_official_byform_aliases, official_surface_maps,
+    plan_raw_pages, select_official_surface, OfficialSurface,
+};
 use self::entries::{
     branch_evidence, build_input, corpus_about, corpus_entry_page, corpus_home, derivation_block,
     entry_page, family_block, official_only_page, raw_lemma_page, synonyms_block, CorpusHomeInput,
@@ -43,6 +46,28 @@ use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::Path;
+
+fn add_official_byform_keys<'a>(
+    keys: &mut Vec<(String, usize)>,
+    byforms: impl IntoIterator<Item = &'a str>,
+    display: &str,
+    rank: usize,
+) {
+    let display_lower = display.to_lowercase();
+    for byform in byforms {
+        let lower = byform.to_lowercase();
+        for k in [
+            lower.clone(),
+            crate::orthography::to_standard(&lower),
+            crate::orthography::ascii_skeleton(byform),
+        ] {
+            if k.chars().count() >= 2 && k != display_lower && !keys.iter().any(|(kk, _)| kk == &k)
+            {
+                keys.push((k, rank));
+            }
+        }
+    }
+}
 
 /// Generate the whole static site under `out_dir`.
 pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
@@ -84,12 +109,19 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
         if input.forms.iter().filter(|f| f.modern).count() < 2 || entry.isv.trim().is_empty() {
             continue;
         }
-        let official = if entry.isv.contains(' ') || entry.isv.contains('#') {
-            None
-        } else {
-            Some(entry.isv.as_str())
-        };
-        let mut g = generator::generate(&input, official, proto, &cfg, &overrides);
+        let official_byforms: Vec<String> = entry
+            .citation_byforms()
+            .into_iter()
+            .filter(|byform| !byform.form.contains(' '))
+            .map(|byform| byform.form)
+            .collect();
+        let mut g = generator::generate_with_official_byforms(
+            &input,
+            official_byforms.iter().map(String::as_str),
+            proto,
+            &cfg,
+            &overrides,
+        );
         // Display badges come from the calibrated probability, never the raw
         // score (issue #77); scores/ordering stay untouched.
         if let Some(cal) = &calibration {
@@ -107,15 +139,18 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
             MatchStatus::DiffersFromOfficial => n_diff += 1,
             MatchStatus::NoOfficialEntry => n_none += 1,
         }
-        if let Some(off) = official {
-            if crate::orthography::exact_match(&top.form, off) {
+        if !official_byforms.is_empty() {
+            if official_byforms
+                .iter()
+                .any(|off| crate::orthography::exact_match(&top.form, off))
+            {
                 n_exact += 1;
             }
-            if g.candidates
-                .iter()
-                .take(3)
-                .any(|c| crate::orthography::normalized_match(&c.form, off))
-            {
+            if g.candidates.iter().take(3).any(|c| {
+                official_byforms
+                    .iter()
+                    .any(|off| crate::orthography::normalized_match(&c.form, off))
+            }) {
                 n_top3 += 1;
             }
         }
@@ -131,28 +166,25 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
             MatchStatus::NoOfficialEntry => "N",
         };
         let mut keys = search_keys(&g.candidates, &form);
-        if let Some(off) = official {
+        if !official_byforms.is_empty() {
             // The official lemma is searchable even when no candidate spells it:
             // point it at the candidate that agrees (normalized), else the top.
             let rank = g
                 .candidates
                 .iter()
-                .position(|c| crate::orthography::normalized_match(&c.form, off))
+                .position(|c| {
+                    official_byforms
+                        .iter()
+                        .any(|off| crate::orthography::normalized_match(&c.form, off))
+                })
                 .map(|i| i + 1)
                 .unwrap_or(1);
-            let lower = off.to_lowercase();
-            for k in [
-                lower.clone(),
-                crate::orthography::to_standard(&lower),
-                crate::orthography::ascii_skeleton(off),
-            ] {
-                if k.chars().count() >= 2
-                    && !keys.iter().any(|(kk, _)| kk == &k)
-                    && k != form.to_lowercase()
-                {
-                    keys.push((k, rank));
-                }
-            }
+            add_official_byform_keys(
+                &mut keys,
+                official_byforms.iter().map(String::as_str),
+                &form,
+                rank,
+            );
         }
         let gloss70 = truncate(&entry.english, 70);
         // Razumlivost (element 12) from the committee's own sameInLanguages
@@ -316,24 +348,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // Keep exact scientific spellings distinct. Standard folding is useful for
     // lookup, but it is not lexical identity: dŕžati/držati and legti/lęgti
     // are different official lemmas with different meanings/aspects.
-    let mut official_by_exact: std::collections::HashMap<String, Vec<usize>> =
-        std::collections::HashMap::new();
-    let mut official_by_fold: std::collections::HashMap<String, Vec<usize>> =
-        std::collections::HashMap::new();
-    for (i, e) in official_entries.iter().enumerate() {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
-            continue;
-        }
-        official_by_exact
-            .entry(isv.to_lowercase())
-            .or_default()
-            .push(i);
-        official_by_fold
-            .entry(crate::orthography::to_standard(&isv.to_lowercase()))
-            .or_default()
-            .push(i);
-    }
+    let (official_by_exact, official_by_fold) = official_surface_maps(&official_entries);
 
     // IDs depend only on the finalized deterministic export order. No previous
     // site or compatibility registry participates in allocation.
@@ -383,6 +398,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             &self.g.set
         }
     }
+    struct OfficialOnlyRecord {
+        id: usize,
+        entry: OfficialEntry,
+        display: String,
+        byforms: Vec<String>,
+    }
     let mut prepared: Vec<Prepared> = Vec::new();
     for set in sets {
         let members = set.members.len();
@@ -399,34 +420,28 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         // Prefer an exact scientific spelling. A folded match is accepted only
         // when every row under that fold has the same exact spelling;
         // otherwise distinct lexemes get separate official-only pages.
-        let matched: Option<OfficialMatch> =
-            g.candidates
-                .iter()
-                .take(5)
-                .enumerate()
-                .find_map(|(rank, c)| {
-                    let lower = c.form.trim().to_lowercase();
-                    let rows = if let Some(rows) = official_by_exact.get(&lower) {
-                        rows.as_slice()
-                    } else {
-                        let fold = crate::orthography::to_standard(&lower);
-                        let rows = official_by_fold.get(&fold)?.as_slice();
-                        let mut spellings = rows
-                            .iter()
-                            .map(|&i| official_entries[i].isv.trim().to_lowercase());
-                        let first = spellings.next()?;
-                        if spellings.any(|s| s != first) {
-                            return None;
-                        }
-                        rows
-                    };
-                    let entry =
-                        select_official_entry(rows, &official_entries, g.set.pos, &g.set.gloss)?;
-                    Some(OfficialMatch {
-                        rank: rank + 1,
-                        entry,
-                    })
-                });
+        let official_surface_match: Option<(usize, OfficialSurface)> = g
+            .candidates
+            .iter()
+            .take(5)
+            .enumerate()
+            .find_map(|(rank, c)| {
+                select_official_surface(
+                    &official_by_exact,
+                    &official_by_fold,
+                    &c.form,
+                    &official_entries,
+                    g.set.pos,
+                    &g.set.gloss,
+                )
+                .map(|surface| (rank + 1, surface))
+            });
+        let matched = official_surface_match
+            .as_ref()
+            .map(|(rank, surface)| OfficialMatch {
+                rank: *rank,
+                entry: surface.entry,
+            });
         if matched.is_some() {
             official += 1;
         }
@@ -435,8 +450,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         } else {
             MatchStatus::NoOfficialEntry
         };
-        let display = matched
-            .map(|m| official_entries[m.entry].isv.trim().to_string())
+        let display = official_surface_match
+            .map(|(_, surface)| surface.form)
             .unwrap_or_else(|| form.clone());
         prepared.push(Prepared {
             // Assigned only after homograph demotion and suppression finalize
@@ -636,6 +651,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     for p in &prepared {
         if !p.suppressed {
             isv_to_id.insert(&p.display, p.id);
+            if let Some(m) = p.matched {
+                insert_official_byform_aliases(&mut isv_to_id, &official_entries, m.entry, p.id);
+            }
         }
     }
 
@@ -671,21 +689,28 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // Reserve official-only ids before rendering so all wiki indexes can see
     // the complete static site graph.
     let mut official_only = 0usize;
-    let mut official_only_records: Vec<(usize, OfficialEntry)> = Vec::new();
+    let mut official_only_records: Vec<OfficialOnlyRecord> = Vec::new();
     for e in &official_entries {
-        let isv = e.isv.trim();
-        if isv.is_empty() || isv.contains('#') {
+        let byforms: Vec<String> = e.citation_byforms().into_iter().map(|b| b.form).collect();
+        let Some(display) = byforms.first().cloned() else {
             continue;
-        }
+        };
         if !covered.insert(e.id.clone()) {
             continue; // this exact official sense already has a generated page
         }
         let entry_id = entry_ids.alloc();
         official_only += 1;
-        official_only_records.push((entry_id, e.clone()));
+        official_only_records.push(OfficialOnlyRecord {
+            id: entry_id,
+            entry: e.clone(),
+            display,
+            byforms,
+        });
     }
-    for (oid, e) in &official_only_records {
-        isv_to_id.insert(e.isv.trim(), *oid);
+    for record in &official_only_records {
+        for byform in &record.byforms {
+            isv_to_id.insert(byform, record.id);
+        }
     }
 
     // Raw-attestation pre-pass (issue #64): load the raw corpus and decide
@@ -766,9 +791,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             n_branches: p.g.n_branches,
             borrowed: p.g.set.borrowed,
             official_only: false,
-            official_lemma: p
-                .matched
-                .map(|m| official_entries[m.entry].isv.trim().to_string()),
+            official_lemma: p.matched.map(|_| p.display.clone()),
             ancestor,
             languages: langs,
             wiki_categories,
@@ -779,7 +802,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         }
         metas.push(meta);
     }
-    for (oid, e) in &official_only_records {
+    for record in &official_only_records {
+        let oid = record.id;
+        let e = &record.entry;
+        let isv = record.display.as_str();
         let input = build_input(e);
         let mut langs: Vec<String> = input
             .forms
@@ -795,8 +821,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         }
         let wiki_categories = wiktionary_category_paths_for_input(&input, enrich.as_ref());
         let mut meta = entry_meta(SiteEntryInput {
-            id: *oid,
-            title: e.isv.trim(),
+            id: oid,
+            title: isv,
             gloss: &e.english,
             pos: if crate::aspect::aspect(&e.pos_raw).is_some() {
                 "verb"
@@ -810,7 +836,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             n_branches: branches.len(),
             borrowed: e.genesis.trim() == "I",
             official_only: true,
-            official_lemma: Some(e.isv.trim().to_string()),
+            official_lemma: Some(isv.to_string()),
             ancestor: String::new(),
             languages: langs,
             wiki_categories,
@@ -833,8 +859,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             official_page_ids.insert(official_entries[m.entry].id.clone(), p.id);
         }
     }
-    for (id, e) in &official_only_records {
-        official_page_ids.insert(e.id.clone(), *id);
+    for record in &official_only_records {
+        official_page_ids.insert(record.entry.id.clone(), record.id);
     }
     for e in &official_entries {
         let Some(aspect) = crate::aspect::aspect(&e.pos_raw) else {
@@ -978,8 +1004,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             pf.id.clone(),
             official_page_ids.get(ipf.id.as_str()).copied(),
             official_page_ids.get(pf.id.as_str()).copied(),
-            ipf.isv.trim().to_string(),
-            pf.isv.trim().to_string(),
+            ipf.primary_citation_byform()
+                .unwrap_or_else(|| ipf.isv.trim().to_string()),
+            pf.primary_citation_byform()
+                .unwrap_or_else(|| pf.isv.trim().to_string()),
             prediction,
         ));
     }
@@ -1031,16 +1059,14 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         // the official lemma's synonyms for a different sense).
         let matched_entry = p.matched.map(|m| &official_entries[m.entry]);
         let synonyms = match matched_entry {
-            Some(e) => synonyms_block(e.isv.trim(), &thesaurus, &isv_to_id),
+            Some(_) => synonyms_block(&p.display, &thesaurus, &isv_to_id),
             None => String::new(),
         };
         // Word-formation family from the display headword: the official lemma
         // with its OFFICIAL part of speech when matched (the form-only match can
         // cross POS), else the reconstruction — marked as such in the block.
         let derivation = match matched_entry {
-            Some(e) => {
-                derivation_block(e.isv.trim(), e.pos, &isv_to_id, true, p.id, &mut deriv_rows)
-            }
+            Some(e) => derivation_block(&p.display, e.pos, &isv_to_id, true, p.id, &mut deriv_rows),
             None => derivation_block(
                 p.g.form(),
                 p.g.set.pos,
@@ -1087,7 +1113,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             status: p.status,
             official: p.matched.map(|m| {
                 let e = &official_entries[m.entry];
-                (m.rank, e.isv.trim(), e.english.as_str())
+                (m.rank, p.display.as_str(), e.english.as_str())
             }),
             official_grammar: official_pg,
             official_display: official_disp,
@@ -1109,6 +1135,13 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         // searchable too — it is already searchable on official-only pages, so
         // this closes the parity gap without touching the entry HTML.
         if let Some(e) = matched_entry {
+            let byforms: Vec<String> = e.citation_byforms().into_iter().map(|b| b.form).collect();
+            add_official_byform_keys(
+                &mut keys,
+                byforms.iter().map(String::as_str),
+                &p.display,
+                p.matched.map(|m| m.rank).unwrap_or(1),
+            );
             for tok in crate::dump::gloss_tokens(&e.english) {
                 if tok.chars().count() >= 3 && !keys.iter().any(|(k, _)| k == &tok) {
                     keys.push((tok, 6));
@@ -1199,16 +1232,18 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // Multi-word lemmas (`pęt na desęte`) and reflexives (`… sę`) are included
     // (the single-token generator never produces them, so they would otherwise
     // have no page at all) — display-only parity, generation is untouched.
-    for (oid, e) in &official_only_records {
-        let isv = e.isv.trim();
+    for record in &official_only_records {
+        let oid = record.id;
+        let e = &record.entry;
+        let isv = record.display.as_str();
         let fold = crate::orthography::to_standard(&isv.to_lowercase());
         let syn = synonyms_block(isv, &thesaurus, &isv_to_id);
-        let deriv = derivation_block(isv, e.pos, &isv_to_id, true, *oid, &mut deriv_rows);
-        let meta = meta_by_id.get(oid).expect("official-only entry meta");
+        let deriv = derivation_block(isv, e.pos, &isv_to_id, true, oid, &mut deriv_rows);
+        let meta = meta_by_id.get(&oid).expect("official-only entry meta");
         let wiki_top = entry_tabs(meta) + &homograph_notice(meta, &homographs);
         let wiki_bottom = entry_wiki_blocks(
             meta,
-            backlinks.get(oid).map(Vec::as_slice).unwrap_or(&[]),
+            backlinks.get(&oid).map(Vec::as_slice).unwrap_or(&[]),
             &edges,
             &curation,
             &build_meta,
@@ -1216,12 +1251,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         let html = official_only_page(OfficialEntryInput {
             isv,
             entry: e,
-            id: *oid,
+            id: oid,
             synonyms: &syn,
             derivation: &deriv,
             wiki_top: &wiki_top,
             meta,
-            raw_credit: &raw_credit_line(raw_plan.credit.get(oid)),
+            raw_credit: &raw_credit_line(raw_plan.credit.get(&oid)),
             wiki_bottom: &wiki_bottom,
             context: &render_context,
         });
@@ -1235,6 +1270,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 keys.push((k, 1));
             }
         }
+        add_official_byform_keys(&mut keys, record.byforms.iter().map(String::as_str), isv, 1);
         // The committee's per-language translations (issue #31): this makes an
         // official-only lemma findable by any of its Slavic cognate spellings —
         // Cyrillic or Latinized — plus `de`/`nl`/`eo` as lower-weight
@@ -1257,7 +1293,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         };
         let gloss70 = truncate(&e.english, 70);
         search_rows.push(SearchRow {
-            id: *oid,
+            id: oid,
             head: format!(
                 "[{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 oid,
@@ -1280,7 +1316,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         });
         rows.push(HomeRow {
             freq: 0.5,
-            id: *oid,
+            id: oid,
             form: isv.to_string(),
             gloss: e.english.clone(),
             pos: e.pos.code().to_string(),
@@ -1560,21 +1596,21 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         if p.suppressed {
             continue;
         }
-        let (headword, status, gloss): (String, &'static str, String) = match p.matched {
+        let (headwords, status, gloss): (Vec<String>, &'static str, String) = match p.matched {
             Some(m) => {
                 let e = &official_entries[m.entry];
-                (e.isv.trim().to_string(), "official", e.english.clone())
+                let mut headwords: Vec<String> =
+                    e.citation_byforms().into_iter().map(|b| b.form).collect();
+                if let Some(i) = headwords.iter().position(|form| form == &p.display) {
+                    headwords.swap(0, i);
+                }
+                (headwords, "official", e.english.clone())
             }
-            None => (p.g.form().to_string(), "generated", p.g.set.gloss.clone()),
-        };
-        if headword.is_empty() || headword.contains('!') {
-            continue;
-        }
-        // Sanitize the citation: generated forms can carry raw pipeline
-        // notation ("pleskati,*plěskati"), official ones government hints
-        // ("pozirati (na)") — neither belongs in a lookup key.
-        let Some(headword) = crate::forms::citation(&headword) else {
-            continue;
+            None => (
+                vec![p.g.form().to_string()],
+                "generated",
+                p.g.set.gloss.clone(),
+            ),
         };
         let prob = if status == "generated" {
             calibration.as_ref().map(|c| c.probability(p.g.score))
@@ -1595,55 +1631,68 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             }
             None => (p.g.set.pos, None),
         };
-        lemma_sink.add(
-            &headword,
-            "",
-            &headword,
-            p.id,
-            pos.code(),
-            "lemma",
-            status,
-            prob,
-            &gloss,
-        );
-        form_sink.add(
-            &headword,
-            "",
-            &headword,
-            p.id,
-            pos.code(),
-            "lemma",
-            status,
-            prob,
-            &gloss,
-        );
-        if status == "official" && seen_paradigm.insert(format!("{headword}|{}", pos.code())) {
-            crate::forms::paradigm_records(
-                &mut form_sink,
+        for headword in headwords {
+            if headword.is_empty() || headword.contains('!') {
+                continue;
+            }
+            // Sanitize the citation: generated forms can carry raw pipeline
+            // notation ("pleskati,*plěskati"), official ones government hints
+            // ("pozirati (na)") — neither belongs in a lookup key.
+            let Some(headword) = crate::forms::citation(&headword) else {
+                continue;
+            };
+            lemma_sink.add(
                 &headword,
-                pos,
-                gender,
+                "",
+                &headword,
                 p.id,
-                "official",
-                None,
+                pos.code(),
+                "lemma",
+                status,
+                prob,
                 &gloss,
             );
-            crate::forms::pronoun_numeral_records(
-                &mut form_sink,
+            form_sink.add(
                 &headword,
-                pos,
+                "",
+                &headword,
                 p.id,
-                "official",
+                pos.code(),
+                "lemma",
+                status,
+                prob,
                 &gloss,
             );
-        }
-        // An attested (official-matched) base: derive its family later. The
-        // reconstruction path (status == "generated") is deliberately excluded.
-        if status == "official" {
-            attested_bases.push((headword.clone(), pos, p.id, gloss.clone()));
+            if status == "official" && seen_paradigm.insert(format!("{headword}|{}", pos.code())) {
+                crate::forms::paradigm_records(
+                    &mut form_sink,
+                    &headword,
+                    pos,
+                    gender,
+                    p.id,
+                    "official",
+                    None,
+                    &gloss,
+                );
+                crate::forms::pronoun_numeral_records(
+                    &mut form_sink,
+                    &headword,
+                    pos,
+                    p.id,
+                    "official",
+                    &gloss,
+                );
+            }
+            // An attested (official-matched) base: derive its family later. The
+            // reconstruction path (status == "generated") is deliberately excluded.
+            if status == "official" {
+                attested_bases.push((headword.clone(), pos, p.id, gloss.clone()));
+            }
         }
     }
-    for (oid, e) in &official_only_records {
+    for record in &official_only_records {
+        let oid = record.id;
+        let e = &record.entry;
         let api_pos = if crate::aspect::aspect(&e.pos_raw).is_some() {
             crate::model::Pos::Verb
         } else {
@@ -1651,10 +1700,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         };
         // ~230 rows list byform variants in one cell ("iměti, imati"): each
         // variant is its own lemma (and gets its own paradigm).
-        for isv in e.isv.split(',').map(str::trim) {
-            if isv.is_empty() || isv.contains('#') || isv.contains('!') {
-                continue;
-            }
+        for isv in &record.byforms {
             let Some(clean) = crate::forms::citation(isv) else {
                 continue;
             };
@@ -1663,7 +1709,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 isv,
                 "",
                 isv,
-                *oid,
+                oid,
                 api_pos.code(),
                 "lemma",
                 "official-only",
@@ -1674,7 +1720,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 isv,
                 "",
                 isv,
-                *oid,
+                oid,
                 api_pos.code(),
                 "lemma",
                 "official-only",
@@ -1687,7 +1733,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                     isv,
                     api_pos,
                     e.noun_traits.gender,
-                    *oid,
+                    oid,
                     "official-only",
                     None,
                     &e.english,
@@ -1696,12 +1742,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                     &mut form_sink,
                     isv,
                     api_pos,
-                    *oid,
+                    oid,
                     "official-only",
                     &e.english,
                 );
             }
-            attested_bases.push((isv.to_string(), api_pos, *oid, e.english.clone()));
+            attested_bases.push((isv.to_string(), api_pos, oid, e.english.clone()));
         }
     }
     // ---- Generated derivatives off attested bases (issue #37) ----

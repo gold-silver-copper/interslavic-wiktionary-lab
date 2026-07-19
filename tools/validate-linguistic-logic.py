@@ -61,30 +61,68 @@ def aspect(pos_raw: str):
     return None
 
 
+def citation_forms(raw: str):
+    forms = []
+    start = 0
+    depth = 0
+    parts = []
+    for i, ch in enumerate(raw):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        elif ch == "," and depth == 0:
+            parts.append(raw[start:i])
+            start = i + 1
+    parts.append(raw[start:])
+    for part in parts:
+        part = part.strip()
+        if not part or "#" in part or "!" in part:
+            continue
+        while True:
+            match = re.search(r"\([^)]*\)", part)
+            if not match:
+                break
+            part = (part[:match.start()] + part[match.end():]).strip()
+        part = part.split(",", 1)[0].strip()
+        if not part or any(marker in part for marker in ("#", "!", "*", "(", ")")):
+            continue
+        if part not in forms:
+            forms.append(part)
+    return forms
+
+
 expected_senses = {}
 expected_aspects = {}
 official_spellings = set()
 with official_path.open(newline="") as handle:
     for row in csv.DictReader(handle):
-        title = row["isv"].strip()
-        if not title or "#" in title:
+        byforms = [form.lower() for form in citation_forms(row["isv"])]
+        if not byforms:
             continue
-        key = title.lower()
-        official_spellings.add(key)
+        official_spellings.update(byforms)
         gloss = row["en"].strip()
         sense_id = row["id"]
         pos = normalized_pos(row["partOfSpeech"])
-        expected_senses[sense_id] = (key, gloss, pos)
+        expected_senses[sense_id] = (set(byforms), gloss, pos)
         value = aspect(row["partOfSpeech"])
         if value:
-            expected_aspects[sense_id] = (key, gloss, pos, value)
+            expected_aspects[sense_id] = (set(byforms), gloss, pos, value)
 
-missing = sorted(
-    title
-    for title in official_spellings
-    if not any(entry["official"] for entry in by_title.get(title, []))
-)
-assert not missing, ("exact official spellings missing from export", missing[:20], len(missing))
+lemmas = json.loads((root / "api/lemmas.json").read_text())["lemmas"]
+official_api_lemmas = {
+    row[0].strip().lower()
+    for row in lemmas
+    if row[2] in {"official", "official-only"}
+}
+official_entry_titles = {
+    entry["title"].strip().lower()
+    for entry in entries
+    if entry["official"]
+}
+represented_spellings = official_entry_titles | official_api_lemmas
+missing = sorted(title for title in official_spellings if title not in represented_spellings)
+assert not missing, ("official byform spellings missing from export/API", missing[:20], len(missing))
 
 actual_senses = {}
 actual_entries = {}
@@ -95,22 +133,37 @@ for entry in entries:
     sense_id = entry.get("official_id")
     assert sense_id, ("official entry lacks source sense ID", entry["id"])
     assert sense_id not in actual_senses, ("duplicate official source sense ID", sense_id)
-    actual_senses[sense_id] = (
-        entry["title"].strip().lower(), entry["gloss"].strip(), entry["pos"]
+    expected = expected_senses.get(sense_id)
+    assert expected is not None, ("unexpected official source sense ID", sense_id)
+    expected_byforms, expected_gloss, expected_pos = expected
+    actual_title = entry["title"].strip().lower()
+    actual = (entry["gloss"].strip(), entry["pos"])
+    assert actual_title in expected_byforms, (
+        "official source title is not a citation byform", sense_id, actual_title, sorted(expected_byforms)
     )
+    assert actual == (expected_gloss, expected_pos), (
+        "official source sense metadata differs", sense_id, (expected_gloss, expected_pos), actual
+    )
+    actual_senses[sense_id] = actual
     actual_entries[sense_id] = entry
-assert actual_senses == expected_senses, (
-    "official source senses differ", list((expected_senses.items() ^ actual_senses.items()))[:20]
+assert set(actual_senses) == set(expected_senses), (
+    "official source sense IDs differ", sorted(set(expected_senses) ^ set(actual_senses))[:20]
 )
 
 for sense_id, expected in expected_aspects.items():
     entry = actual_entries[sense_id]
-    actual = (entry["title"].strip().lower(), entry["gloss"].strip(), entry["pos"], entry["aspect"])
-    assert actual == expected, ("official aspect sense mismatch", sense_id, expected, actual)
+    expected_byforms, expected_gloss, expected_pos, expected_aspect = expected
+    actual_title = entry["title"].strip().lower()
+    actual = (entry["gloss"].strip(), entry["pos"], entry["aspect"])
+    assert actual_title in expected_byforms, (
+        "official aspect title is not a citation byform", sense_id, actual_title, sorted(expected_byforms)
+    )
+    assert actual == (expected_gloss, expected_pos, expected_aspect), (
+        "official aspect sense mismatch", sense_id, (expected_gloss, expected_pos, expected_aspect), actual
+    )
 
 by_id = {entry["id"]: entry for entry in entries}
 assert len(by_id) == len(entries), "duplicate entries.json IDs"
-lemmas = json.loads((root / "api/lemmas.json").read_text())["lemmas"]
 for row in lemmas:
     entry_id = row[4]
     if entry_id != 0:

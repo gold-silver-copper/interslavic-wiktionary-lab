@@ -1,4 +1,7 @@
-use super::coverage::{inject_generated_derivatives, plan_raw_pages, select_official_entry};
+use super::coverage::{
+    inject_generated_derivatives, insert_official_byform_aliases, official_surface_maps,
+    plan_raw_pages, raw_lemma_fate, select_official_entry, select_official_surface, RawFate,
+};
 use super::entries::{cognate_block, noun_table, word_chip};
 use super::layout::json_str;
 use super::model::{
@@ -460,6 +463,96 @@ fn official_matching_requires_pos_and_gloss_evidence() {
     let bajka = select_official_entry(&bajka_rows, &entries, crate::model::Pos::Noun, "fairy tale")
         .unwrap();
     assert_eq!(entries[bajka].english, "fairytale");
+}
+
+#[test]
+fn official_surface_matching_uses_each_byform_without_fake_combined_spellings() {
+    let entries = crate::official::load(Path::new("data/official-isv.csv")).unwrap();
+    let (exact, folded) = official_surface_maps(&entries);
+    assert!(!exact.contains_key("iměti, imati"));
+    assert!(!exact.contains_key("poslědnji, poslědny"));
+
+    let imeti = select_official_surface(
+        &exact,
+        &folded,
+        "iměti",
+        &entries,
+        crate::model::Pos::Verb,
+        "have, own, possess",
+    )
+    .unwrap();
+    let imati = select_official_surface(
+        &exact,
+        &folded,
+        "imati",
+        &entries,
+        crate::model::Pos::Verb,
+        "have, own, possess",
+    )
+    .unwrap();
+    assert_eq!(entries[imeti.entry].id, "875");
+    assert_eq!(entries[imati.entry].id, "875");
+    assert_eq!(imeti.form, "iměti");
+    assert_eq!(imati.form, "imati");
+
+    let posledny = select_official_surface(
+        &exact,
+        &folded,
+        "poslědny",
+        &entries,
+        crate::model::Pos::Adjective,
+        "last",
+    )
+    .unwrap();
+    assert_eq!(entries[posledny.entry].id, "2323");
+    assert_eq!(posledny.form, "poslědny");
+
+    let kako = select_official_surface(
+        &exact,
+        &folded,
+        "kako",
+        &entries,
+        crate::model::Pos::Adverb,
+        "how",
+    )
+    .unwrap();
+    assert_eq!(entries[kako.entry].id, "1193");
+    assert_eq!(kako.form, "kako");
+
+    assert!(select_official_surface(
+        &exact,
+        &folded,
+        "lěgti",
+        &entries,
+        crate::model::Pos::Verb,
+        "lie down",
+    )
+    .is_none());
+}
+
+#[test]
+fn matched_official_byform_aliases_route_raw_dedup_to_the_same_page() {
+    let entries = crate::official::load(Path::new("data/official-isv.csv")).unwrap();
+    let entry = entries
+        .iter()
+        .position(|entry| entry.id == "875")
+        .expect("iměti/imati fixture");
+    let mut index = HeadwordIndex::default();
+    insert_official_byform_aliases(&mut index, &entries, entry, 42);
+    assert_eq!(index.resolve("iměti"), Some(42));
+    assert_eq!(index.resolve("imati"), Some(42));
+    assert_eq!(index.resolve("iměti, imati"), None);
+
+    let mut raw_covered = std::collections::HashSet::new();
+    assert!(matches!(
+        raw_lemma_fate(
+            &raw_lem("hr", "imati", "verb"),
+            &crate::enrich::Xref::new(),
+            &index,
+            &mut raw_covered,
+        ),
+        RawFate::DedupedFold { target: 42 }
+    ));
 }
 
 #[test]

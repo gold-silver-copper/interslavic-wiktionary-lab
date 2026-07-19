@@ -77,28 +77,30 @@ impl Thesaurus {
         let mut by_trans: HashMap<(String, String), BTreeSet<String>> = HashMap::new();
 
         for e in official {
-            let isv = e.isv.trim();
-            if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
-                continue;
-            }
-            let k = key(isv);
-            let pos = pos_class(e.pos);
-            let gloss: HashSet<String> =
-                crate::dump::gloss_tokens(&e.english).into_iter().collect();
-            info.entry(k.clone()).or_insert(Info {
-                orig: isv.to_string(),
-                pos,
-                gloss,
-            });
-            for &lang in SLAV {
-                if let Some(cell) = e.cells.get(lang) {
-                    for (form, _) in crate::normalize::split_cell(cell) {
-                        let tk = trans_key(&form);
-                        if tk.chars().count() >= 3 {
-                            by_trans
-                                .entry((lang.to_string(), tk))
-                                .or_default()
-                                .insert(k.clone());
+            for byform in e.citation_byforms() {
+                let isv = byform.form;
+                if isv.contains(' ') {
+                    continue;
+                }
+                let k = key(&isv);
+                let pos = pos_class(e.pos);
+                let gloss: HashSet<String> =
+                    crate::dump::gloss_tokens(&e.english).into_iter().collect();
+                info.entry(k.clone()).or_insert(Info {
+                    orig: isv.to_string(),
+                    pos,
+                    gloss,
+                });
+                for &lang in SLAV {
+                    if let Some(cell) = e.cells.get(lang) {
+                        for (form, _) in crate::normalize::split_cell(cell) {
+                            let tk = trans_key(&form);
+                            if tk.chars().count() >= 3 {
+                                by_trans
+                                    .entry((lang.to_string(), tk))
+                                    .or_default()
+                                    .insert(k.clone());
+                            }
                         }
                     }
                 }

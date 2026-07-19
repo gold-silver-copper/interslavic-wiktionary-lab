@@ -42,7 +42,28 @@ pub struct OfficialEntry {
     pub using_example: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct OfficialByform<'a> {
+    pub entry: &'a OfficialEntry,
+    pub form: String,
+}
+
 impl OfficialEntry {
+    /// Sanitized citation spellings represented by this official row. The raw
+    /// dictionary uses top-level commas for byforms (`iměti, imati`), while
+    /// multiword lemmas and parenthetical government hints are part of a single
+    /// citation surface.
+    pub fn citation_byforms(&self) -> Vec<OfficialByform<'_>> {
+        citation_forms(&self.isv)
+            .into_iter()
+            .map(|form| OfficialByform { entry: self, form })
+            .collect()
+    }
+
+    pub fn primary_citation_byform(&self) -> Option<String> {
+        citation_forms(&self.isv).into_iter().next()
+    }
+
     /// True when the lemma is a single inflectable word we can benchmark on
     /// (skip multi-word phrases, coinage-flagged forms, bracketed notes).
     pub fn is_benchmarkable(&self) -> bool {
@@ -121,6 +142,46 @@ impl OfficialEntry {
             })
             .collect()
     }
+}
+
+pub fn citation_forms(raw: &str) -> Vec<String> {
+    let mut forms = Vec::new();
+    for part in split_citation_variants(raw) {
+        let part = part.trim();
+        if part.is_empty() || part.contains('#') || part.contains('!') {
+            continue;
+        }
+        let Some(clean) = crate::forms::citation(part) else {
+            continue;
+        };
+        let clean = clean.trim();
+        if clean.is_empty() || clean.contains('#') || clean.contains('!') {
+            continue;
+        }
+        if !forms.iter().any(|seen| seen == clean) {
+            forms.push(clean.to_string());
+        }
+    }
+    forms
+}
+
+fn split_citation_variants(raw: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut start = 0usize;
+    let mut depth = 0usize;
+    for (i, ch) in raw.char_indices() {
+        match ch {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                out.push(&raw[start..i]);
+                start = i + ch.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    out.push(&raw[start..]);
+    out
 }
 
 /// Minimal RFC-4180 CSV reader: handles quoted fields with embedded commas,
@@ -270,6 +331,12 @@ mod tests {
         }
     }
 
+    fn entry_with_isv(isv: &str) -> OfficialEntry {
+        let mut entry = entry_with_same_in("");
+        entry.isv = isv.to_string();
+        entry
+    }
+
     /// The same_in expansion (issue #79 review): branch markers cover the
     /// branch's modern CSV languages, the committee group codes expand to
     /// their members, punctuation/`~` are stripped, `sh` expands to its
@@ -300,5 +367,22 @@ mod tests {
         assert_eq!(branches("yu"), vec![Branch::South]);
         assert_eq!(branches("#ru~"), vec![Branch::East]);
         assert!(branches("ps").is_empty());
+    }
+
+    #[test]
+    fn citation_byforms_split_top_level_commas_only() {
+        let forms = |isv: &str| {
+            entry_with_isv(isv)
+                .citation_byforms()
+                .into_iter()
+                .map(|byform| byform.form)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(forms("iměti, imati"), vec!["iměti", "imati"]);
+        assert_eq!(forms("poslědnji, poslědny"), vec!["poslědnji", "poslědny"]);
+        assert_eq!(forms("kak, kako"), vec!["kak", "kako"]);
+        assert_eq!(forms("pęt na desęte"), vec!["pęt na desęte"]);
+        assert_eq!(forms("pozirati (na)"), vec!["pozirati"]);
+        assert_eq!(forms("dobry, #dobrějši, !dobrěje, *dobro"), vec!["dobry"]);
     }
 }
