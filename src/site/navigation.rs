@@ -2002,7 +2002,7 @@ pub(super) fn contribute_page() -> String {
       <ol><li><code>cargo test</code></li><li><code>cargo run --release -- export --out site</code></li><li>Za ručne noty dodaj <code>data/curation-notes.json</code> s ključem zaglavnogo slova ili id-ja.</li><li>Za grešku v zapisu klikni <i>Popraviti / problem</i> na vrhu strany.</li></ol>\
       <h2>Kuracija bez koda</h2>\
       <ul>\
-        <li><b>Semantične pasti</b> (falšive prijatelje): <code>data/semantic-notes.json</code> — vsaka nota mųsi citovati oficialno značenje; noty sę pokazujųt v <a href='text-check.html'>Prověrkě teksta</a> i v CLI <code>check-text</code>.</li>\
+        <li><b>Semantične pasti</b> (falšive prijatelje): sųt izračunany avtomatično iz kešov dokazov (kolizija poverhnosti × razhodnost glos); noty sę pokazujųt v <a href='text-check.html'>Prověrkě teksta</a> i v CLI <code>check-text</code>.</li>\
         <li><b>Predloženja novyh slov</b>: prěgledaj <a href='proposals.html'>Predloženja</a>, kogda korpusny model bude iměti vlastnu validovanu kalibraciju, i dodaj kuratorsku notu za slovo.</li>\
         <li><b>Prověrka form</b>: <a href='forms.html'>Iskanje form</a> pokazyvaje vse analizy kojejkoli fleksijnoj formy.</li>\
       </ul>\

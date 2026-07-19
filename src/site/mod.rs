@@ -726,6 +726,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         .as_ref()
         .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, entry_ids.max_id()))
         .unwrap_or_default();
+    // Computed false-friend notes (replaces the retired curated
+    // data/semantic-notes.json): detected from the same evidence caches that
+    // are already in memory, then shared by api/notes.json, the English API
+    // candidates, and the checker index below.
+    let ff_notes =
+        crate::falsefriends::compute(&official_entries, Some(&corpus), raw_corpus.as_ref());
+    println!(
+        "false-friends: {} computed notes ({} collisions) from cache surface × gloss divergence.",
+        ff_notes.len(),
+        ff_notes.values().map(|n| n.collisions.len()).sum::<usize>(),
+    );
     // Raw-collision display credit census (issue #86 item 6).
     println!(
         "raw-credit: {} entries show {} fold-deduped raw attestations (display-only, issue #86).",
@@ -1766,35 +1777,12 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     println!("api: added {deriv_added} generated derivative lemmas off attested bases (issue #37)");
     let form_records = form_sink.into_records();
     let lemma_records = lemma_sink.into_records();
-    // Semantic-trap notes for the web text-checker (same file the CLI reads),
-    // re-keyed by folded form so the client looks up by key directly.
-    if let Ok(raw) = std::fs::read_to_string(crate::check::SEMANTIC_NOTES) {
-        if let Ok(parsed) = serde_json::from_str::<
-            std::collections::BTreeMap<String, crate::check::SemanticNote>,
-        >(&raw)
-        {
-            let mut js = String::from("{");
-            for (i, (k, v)) in parsed.iter().enumerate() {
-                if i > 0 {
-                    js.push(',');
-                }
-                let _ = write!(
-                    js,
-                    "{}:{{\"warning\":{},\"prefer\":[{}]}}",
-                    serde_json::to_string(&crate::forms::form_key(k))?,
-                    serde_json::to_string(&v.warning)?,
-                    v.prefer
-                        .iter()
-                        .map(|p| serde_json::to_string(p).unwrap_or_default())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                );
-            }
-            js.push_str("}\n");
-            std::fs::create_dir_all(out_dir.join("api"))?;
-            std::fs::write(out_dir.join("api").join("notes.json"), js)?;
-        }
-    }
+    // Computed false-friend notes for the web text-checker (the CLI computes
+    // the same records), keyed by folded form so the client looks up by key
+    // directly. Deterministic: BTreeMap ordering, serde output.
+    let notes_json = serde_json::to_string(&ff_notes)? + "\n";
+    std::fs::create_dir_all(out_dir.join("api"))?;
+    std::fs::write(out_dir.join("api").join("notes.json"), &notes_json)?;
     let aspect_api: crate::forms::AspectMeta = metas
         .iter()
         .filter_map(|m| {
@@ -1808,6 +1796,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &lemma_records,
         &metas,
         &aspect_api,
+        &ff_notes,
         &build_meta.git,
     )?;
     println!(
@@ -1855,6 +1844,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     let checker_index = crate::check::build_index(
         &official_entries,
         Some(std::path::Path::new("data/novel-words.tsv")),
+        ff_notes.clone(),
     );
     let suggest_bytes = crate::check::write_web_suggestions(out_dir, &checker_index)?;
     let api_counts = crate::forms::write_api(
@@ -1862,7 +1852,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &form_records,
         &lemma_records,
         &aspect_api,
-        pair_json.len() + suggest_bytes + english_counts.bytes,
+        ff_notes.len(),
+        pair_json.len() + suggest_bytes + english_counts.bytes + notes_json.len(),
         &build_meta.git,
         &crate::forms::agent_guide(),
     )?;

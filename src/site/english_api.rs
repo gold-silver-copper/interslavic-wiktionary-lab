@@ -322,35 +322,13 @@ fn status_rank(status: &str) -> i32 {
     }
 }
 
-fn semantic_notes() -> BTreeMap<String, crate::check::SemanticNote> {
-    let parsed = std::fs::read_to_string(crate::check::SEMANTIC_NOTES)
-        .map_err(|err| err.to_string())
-        .and_then(|raw| {
-            serde_json::from_str::<BTreeMap<String, crate::check::SemanticNote>>(&raw)
-                .map_err(|err| err.to_string())
-        });
-    match parsed {
-        Ok(notes) => notes
-            .into_iter()
-            .map(|(key, note)| (forms::form_key(&key), note))
-            .collect(),
-        Err(err) => {
-            println!(
-                "warning: english api built without semantic warnings ({}: {err})",
-                crate::check::SEMANTIC_NOTES
-            );
-            BTreeMap::new()
-        }
-    }
-}
-
 pub(super) fn build_english_index(
     lemmas: &[FormRecord],
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
+    notes: &BTreeMap<String, crate::falsefriends::Note>,
 ) -> BTreeMap<String, Vec<EnglishCandidate>> {
     let meta_by_id: HashMap<usize, &SiteEntryMeta> = metas.iter().map(|m| (m.id, m)).collect();
-    let notes = semantic_notes();
     let mut candidates: BTreeMap<(String, usize, String), EnglishCandidate> = BTreeMap::new();
 
     for record in lemmas {
@@ -458,6 +436,7 @@ pub(super) fn write_en_api(
     lemmas: &[FormRecord],
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
+    notes: &BTreeMap<String, crate::falsefriends::Note>,
     git: &str,
 ) -> anyhow::Result<EnglishApiCounts> {
     let api = out_dir.join("api");
@@ -465,7 +444,7 @@ pub(super) fn write_en_api(
     let _ = std::fs::remove_dir_all(&en_dir);
     std::fs::create_dir_all(&en_dir)?;
 
-    let index = build_english_index(lemmas, metas, aspect_meta);
+    let index = build_english_index(lemmas, metas, aspect_meta, notes);
     let key_count = index.len();
     let mut shards: BTreeMap<u32, BTreeMap<String, Vec<EnglishCandidate>>> = BTreeMap::new();
     let mut candidate_count = 0usize;
@@ -538,8 +517,8 @@ pub(super) fn write_en_api(
             "match": "why this candidate is indexed for this English key",
             "aspect": "ipf, pf, ipf/pf, or null",
             "aspect_partners": "known aspect partner entry ids and lemmas",
-            "warnings": "semantic-trap warnings from api/notes.json",
-            "prefer": "preferred alternatives from semantic notes",
+            "warnings": "computed false-friend warnings (same records as api/notes.json)",
+            "prefer": "official lemma(s) covering the divergent sense, computed from gloss overlap",
             "form_lookup": "folded lemma key and api/forms shard for inflection lookup",
             "probability": "model-specific generated probability when available"
         },
@@ -779,7 +758,7 @@ mod tests {
             record("save-machine", 2, "generated", "save", Some(0.9)),
         ];
         let metas = vec![meta(1, Some("official-1")), meta(2, None)];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
         let save = index.get("save").expect("save key");
         assert_eq!(save[0].lemma, "spasati");
         assert_eq!(save[0].status, "official");
@@ -794,7 +773,7 @@ mod tests {
             record("divina", 2, "official-only", "game, wildfowl", None),
         ];
         let metas = vec![meta(1, Some("bridge-1")), meta(2, Some("game-2"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
         let game = index.get("game").expect("game key");
         assert_eq!(game[0].lemma, "divina");
         assert_eq!(game[0].match_kind, "exact-gloss-head");
@@ -806,7 +785,7 @@ mod tests {
     fn indexes_of_phrases_and_tokens() {
         let records = vec![record("gerb", 1, "official", "coat of arms", None)];
         let metas = vec![meta(1, Some("arms-1"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
         assert_eq!(
             index.get("coat of arms").expect("phrase key")[0].lemma,
             "gerb"
@@ -823,7 +802,7 @@ mod tests {
             record("imati", 10, "official", "to have", None),
         ];
         let metas = vec![meta(10, Some("have-10"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
         let have = index.get("have").expect("have key");
         let lemmas: Vec<&str> = have.iter().map(|c| c.lemma.as_str()).collect();
         assert!(lemmas.contains(&"iměti"));
@@ -841,8 +820,15 @@ mod tests {
             official_lemma: Some("igra".to_string()),
             ..meta(42, Some("game-42"))
         }];
-        let counts = write_en_api(&tmp, &records, &metas, &AspectMeta::new(), "test")
-            .expect("write english api");
+        let counts = write_en_api(
+            &tmp,
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            "test",
+        )
+        .expect("write english api");
         assert!(tmp.join("api/en/meta.json").exists());
         assert!(tmp
             .join(format!("api/en/{}.json", english_shard_of("game")))

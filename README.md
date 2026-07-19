@@ -364,7 +364,6 @@ data/
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
   novel-words.tsv         paused proposal artifact (header-only until corpus calibration)
   score-calibration.json  official-row pipeline calibrator (domain-checked; refit by evaluate)
-  semantic-notes.json     curated false-friend warnings (applied by check-text)
   curation-notes.example.json  format of the optional human curation notes
 docs/history/
   IMPROVEMENT_PROMPT*.md historical experiment briefs (not contributor instructions)
@@ -506,9 +505,11 @@ adjective–noun case/number/gender — gender in the singular only, preposition
 government parsed from the dictionary's own `(+N)` annotations, pronoun–verb
 person/number; a warning fires only when NO combination of analyses is
 compatible, never across punctuation) and applies
-the curated false-friend notes in `data/semantic-notes.json` (each note
-anchored to the official gloss; the web twin reads the same notes from
-`api/notes.json`). CI-tested: round-trip (rendered table cells appear in the
+**computed false-friend notes** (`src/falsefriends.rs`: a language's word that
+folds onto an official lemma's surface but whose English Wiktionary glosses
+share no content token with the official gloss — detected deterministically
+from the committed caches, no curated list; the web twin reads the same
+records from `api/notes.json`). CI-tested: round-trip (rendered table cells appear in the
 records — unit-scale per POS) and self-verification (sampled official lemmas
 and paradigm cells resolve as known; garbage as unknown). Determinism is
 by construction (no timestamps in `api/`, BTreeMap ordering) and was
