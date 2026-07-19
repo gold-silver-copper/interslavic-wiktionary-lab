@@ -339,7 +339,8 @@ src/
   forms.rs         FormRecord pipeline: paradigm cells (single source for the
                    site's inflection tables AND the sharded static api/)
   inflect_eval.rs  full-corpus inflection evaluation + grammar invariants
-  check.rs         check-text: tokenizer, form lookup, semantic-trap warnings
+  check.rs         check-text: tokenizer, form lookup, agreement + summary gate
+  falsefriends.rs  computed false-friend warnings (surface collision × gloss divergence)
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
   thesaurus.rs     dictionary-derived ISV synonym thesaurus
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
@@ -434,10 +435,18 @@ cargo run -- explain duša
 cargo run -- explain "computer"
 
 # Verify an Interslavic text against the lexicon (tokens classified as
-# known-lemma / known-form / generated / unknown, false-friend warnings,
-# nearest-lemma suggestions; --json for agents):
+# known-lemma / known-form / generated / unknown, computed false-friend
+# warnings, nearest-lemma suggestions; --json for agents):
 cargo run --release -- check-text tekst.txt
 cargo run --release -- check-text tekst.txt --json
+# CI gate: summary + nonzero exit when unknown tokens / agreement errors
+# exceed the (default 0) thresholds:
+cargo run --release -- check-text tekst.txt --summary --max-unknown 0
+
+# English → Interslavic lookup against a prior export's static API — the
+# reference client for the documented normalization/routing/retry ladder:
+cargo run --release -- en "healing"
+cargo run --release -- en "coat of arms" --json
 ```
 
 ## Lexical verification API (for humans and AI agents)
@@ -468,10 +477,23 @@ translation and text-verification workflows. The artifacts:
   API for translation agents. English keys are lowercased, punctuation-folded,
   whitespace-collapsed, stripped of a leading verb marker `to `, then routed by
   `fnv1a32(utf8(key)) % 256`. Records are ranked candidate objects with lemma,
-  entry id, official id, POS, gloss, status/trust, match reason, aspect
-  partners, semantic warnings, and a `form_lookup` pointer into
-  `api/forms/<n>.json` for inflection/analysis. `api/en/selftest.json` holds
-  frozen `[raw_query, normalized_key, shard]` samples for client verification.
+  entry id, official id, POS, gloss, status/trust, match reason (including
+  `derived-english` — generated derivatives indexed under mechanical English
+  derivations of their base gloss: invisible→invisibility, heal→healing),
+  aspect partners, computed false-friend warnings, ranking evidence
+  (`frequency`/`langs`/`branch_pattern`/`borrowed`), and a `form_lookup`
+  pointer into `api/forms/<n>.json` for inflection/analysis. A documented
+  retry ladder (article strip → per-content-word → de-suffixing) walks until
+  a verified candidate surfaces; the `en` CLI subcommand is its reference
+  implementation. `api/en/selftest.json` holds frozen
+  `[raw_query, normalized_key, shard]` and `desuffix_samples` for client
+  verification.
+- `api/notes.json` — **computed false-friend notes** (no curated list): a
+  language's word that folds onto an official lemma's surface but whose
+  English Wiktionary glosses share no content token with the official gloss;
+  each record carries the rendered `warning`, a computed `prefer` (the
+  official lemma best covering the divergent sense), and per-language
+  `collisions` evidence. Counted in `api/meta.json`.
 - `api/aspect-pairs.json` — the production pair model's official endpoints,
   linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
   present stems where applicable.

@@ -1164,9 +1164,16 @@ English key — never across keys; across keys compare `trust`/`status`. A
     BASE's page. `probability` is the per-pattern Wilson-95 lower bound of an
     off-official-base holdout's exact-match rate (capped 0.90; see
     `derivation-report.md`) — a form-accuracy proxy that cannot measure whether
-    the derivative is a real word, so treat it as a suggestion.
+    the derivative is a real word, so treat it as a suggestion;
+  - **raw-attested borrowed internationalisms** — cognate sets the evidence
+    gate never saw (no etymology section on any Wiktionary member, e.g. the
+    teleport family), recovered from raw attestations in ≥2 languages across
+    ≥2 branches with gloss agreement and adapted by the ordinary pipeline.
+    Their `analyses` carry a single `raw-intl:<langs>l<branches>b` tag,
+    ranking evidence says `borrowed: true`, and `probability` is null (no
+    calibrator for this path — fail closed).
 - **Any non-null generated probability is still a suggestion, never
-  verification.** Generated lemmas (both kinds) have NO inflection records on
+  verification.** Generated lemmas (all kinds) have NO inflection records on
   purpose: an inflected form of a
   wrong lemma is confidently wrong. A missing key means "unknown to Slovowiki",
   not "wrong".
