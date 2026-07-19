@@ -469,7 +469,8 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   `fnv1a32(utf8(key)) % 256`. Records are ranked candidate objects with lemma,
   entry id, official id, POS, gloss, status/trust, match reason, aspect
   partners, semantic warnings, and a `form_lookup` pointer into
-  `api/forms/<n>.json` for inflection/analysis.
+  `api/forms/<n>.json` for inflection/analysis. `api/en/selftest.json` holds
+  frozen `[raw_query, normalized_key, shard]` samples for client verification.
 - `api/aspect-pairs.json` — the production pair model's official endpoints,
   linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
   present stems where applicable.

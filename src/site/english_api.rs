@@ -14,29 +14,38 @@ use super::model::SiteEntryMeta;
 pub(super) const EN_SCHEMA_VERSION: u32 = 1;
 pub(super) const EN_SHARDS: u32 = 256;
 
-const STOPWORDS: &[&str] = &[
-    "a",
-    "an",
-    "and",
+/// Canonical raw queries shipped in `api/en/selftest.json`. Chosen to exercise
+/// every normalization rule: case + whitespace, punctuation folding (hyphen,
+/// apostrophe), the leading `to ` strip, and non-ASCII UTF-8 hashing.
+const EN_SELFTEST_SAMPLES: &[&str] = &[
+    " To   Save! ",
+    "Coat-of-Arms",
+    "to be",
+    "don't",
+    "naïve café",
+    "game",
+];
+
+/// Function words: never a lookup key, not even as an exact gloss head.
+const HEAD_STOPWORDS: &[&str] = &["a", "an", "and", "etc", "in", "of", "or", "the", "to"];
+
+/// Grammatical-note noise, filtered from token extraction only. A gloss whose
+/// entire head is one of these ("one", "form", "plural") is a real English
+/// word and must stay findable.
+const TOKEN_STOPWORDS: &[&str] = &[
     "archaic",
     "dative",
-    "etc",
     "form",
     "genitive",
-    "in",
     "instrumental",
     "locative",
     "nominative",
     "obsolete",
-    "of",
     "one",
-    "or",
     "plural",
     "singular",
     "someone",
     "something",
-    "the",
-    "to",
     "used",
     "variant",
 ];
@@ -125,16 +134,20 @@ pub(super) fn english_shard_of(key: &str) -> u32 {
     forms::fnv1a32(key) % EN_SHARDS
 }
 
-fn is_stopword(key: &str) -> bool {
-    STOPWORDS.contains(&key)
-}
-
-fn usable_key(key: &str) -> bool {
+fn usable_key_shape(key: &str) -> bool {
     let n = key.chars().count();
     (2..=48).contains(&n)
-        && !is_stopword(key)
+        && !HEAD_STOPWORDS.contains(&key)
         && !key.ends_with(" etc")
         && !key.starts_with("used ")
+}
+
+fn usable_head_key(key: &str) -> bool {
+    usable_key_shape(key)
+}
+
+fn usable_token_key(key: &str) -> bool {
+    usable_key_shape(key) && !TOKEN_STOPWORDS.contains(&key)
 }
 
 pub(super) fn gloss_keys(gloss: &str) -> Vec<(String, String)> {
@@ -182,10 +195,17 @@ fn split_gloss_segments(gloss: &str) -> Vec<&str> {
 
 fn split_parenthetical(segment: &str) -> (&str, Option<&str>) {
     match (segment.find('('), segment.rfind(')')) {
-        (Some(open), Some(close)) if open < close => (
-            segment[..open].trim(),
-            Some(segment[open + 1..close].trim()),
-        ),
+        (Some(open), Some(close)) if open < close => {
+            let before = segment[..open].trim();
+            let after = segment[close + 1..].trim();
+            if before.is_empty() && !after.is_empty() {
+                // Leading register label, e.g. "(formal) day": the head follows
+                // the note, and the label itself is not a lookup key.
+                (after, None)
+            } else {
+                (before, Some(segment[open + 1..close].trim()))
+            }
+        }
         _ => (segment.trim(), None),
     }
 }
@@ -194,7 +214,7 @@ fn push_gloss_head_keys(out: &mut Vec<(String, String)>, raw: &str) {
     let normalized_head = raw.replace(" or ", ",");
     for part in normalized_head.split(',') {
         let key = normalize_english_query(part);
-        if !usable_key(&key) {
+        if !usable_head_key(&key) {
             continue;
         }
         let match_kind = if key.contains(' ') {
@@ -227,15 +247,33 @@ fn push_parenthetical_keys(out: &mut Vec<(String, String)>, raw: &str) {
 
 fn push_token_keys(out: &mut Vec<(String, String)>, key: &str) {
     for token in key.split_whitespace() {
-        if usable_key(token) {
+        if usable_token_key(token) {
             push_key(out, token.to_string(), "gloss-token");
         }
     }
 }
 
+/// Rank contribution of the match kind. `phrase` and `exact-gloss-head` never
+/// compete on one key (a key with a space is always a phrase match, a key
+/// without one never is) — the weights only order them against `gloss-token`.
+fn match_rank(match_kind: &str) -> i32 {
+    match match_kind {
+        "phrase" => 120,
+        "exact-gloss-head" => 100,
+        "gloss-token" => 40,
+        _ => 20,
+    }
+}
+
 fn push_key(out: &mut Vec<(String, String)>, key: String, match_kind: &str) {
-    if !out.iter().any(|(seen, _)| seen == &key) {
-        out.push((key, match_kind.to_string()));
+    match out.iter_mut().find(|(seen, _)| seen == &key) {
+        // Upgrade, e.g. a token of an earlier phrase segment reappearing as
+        // its own exact segment: "up until, before, until".
+        Some((_, existing)) if match_rank(match_kind) > match_rank(existing) => {
+            *existing = match_kind.to_string();
+        }
+        Some(_) => {}
+        None => out.push((key, match_kind.to_string())),
     }
 }
 
@@ -243,12 +281,7 @@ fn key_matches(gloss: &str) -> Vec<KeyMatch> {
     gloss_keys(gloss)
         .into_iter()
         .map(|(key, match_kind)| {
-            let match_rank = match match_kind.as_str() {
-                "phrase" => 120,
-                "exact-gloss-head" => 100,
-                "gloss-token" => 40,
-                _ => 20,
-            };
+            let match_rank = match_rank(&match_kind);
             KeyMatch {
                 key,
                 match_kind,
@@ -276,18 +309,25 @@ fn status_rank(status: &str) -> i32 {
 }
 
 fn semantic_notes() -> BTreeMap<String, crate::check::SemanticNote> {
-    std::fs::read_to_string(crate::check::SEMANTIC_NOTES)
-        .ok()
+    let parsed = std::fs::read_to_string(crate::check::SEMANTIC_NOTES)
+        .map_err(|err| err.to_string())
         .and_then(|raw| {
-            serde_json::from_str::<BTreeMap<String, crate::check::SemanticNote>>(&raw).ok()
-        })
-        .map(|notes| {
-            notes
-                .into_iter()
-                .map(|(key, note)| (forms::form_key(&key), note))
-                .collect()
-        })
-        .unwrap_or_default()
+            serde_json::from_str::<BTreeMap<String, crate::check::SemanticNote>>(&raw)
+                .map_err(|err| err.to_string())
+        });
+    match parsed {
+        Ok(notes) => notes
+            .into_iter()
+            .map(|(key, note)| (forms::form_key(&key), note))
+            .collect(),
+        Err(err) => {
+            println!(
+                "warning: english api built without semantic warnings ({}: {err})",
+                crate::check::SEMANTIC_NOTES
+            );
+            BTreeMap::new()
+        }
+    }
 }
 
 pub(super) fn build_english_index(
@@ -438,6 +478,27 @@ pub(super) fn write_en_api(
         std::fs::write(en_dir.join(format!("{shard}.json")), json)?;
     }
 
+    // Selftest mirror of api/router-selftest.json: canonical
+    // (raw query → normalized key → shard) samples so a client's independent
+    // normalization + router implementation fails loudly instead of silently
+    // fetching the wrong shard.
+    let samples: Vec<serde_json::Value> = EN_SELFTEST_SAMPLES
+        .iter()
+        .map(|raw| {
+            let key = normalize_english_query(raw);
+            let shard = english_shard_of(&key);
+            serde_json::json!([raw, key, shard])
+        })
+        .collect();
+    let selftest = serde_json::json!({
+        "schema_version": EN_SCHEMA_VERSION,
+        "shards": EN_SHARDS,
+        "samples": samples,
+    });
+    let selftest_json = serde_json::to_string(&selftest)? + "\n";
+    bytes += selftest_json.len();
+    std::fs::write(en_dir.join("selftest.json"), selftest_json)?;
+
     let meta = serde_json::json!({
         "schema_version": EN_SCHEMA_VERSION,
         "git": git,
@@ -445,6 +506,7 @@ pub(super) fn write_en_api(
         "shards": EN_SHARDS,
         "router": "fnv1a32(utf8(normalized_query)) % shards",
         "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; trim; strip leading verb marker `to `",
+        "selftest": "api/en/selftest.json samples are [raw_query, normalized_key, shard]; verify your normalization + router reproduces them before first use",
         "english_keys": key_count,
         "candidate_records": candidate_count,
         "largest_shard_bytes": largest_shard,
@@ -467,6 +529,7 @@ pub(super) fn write_en_api(
         },
         "files": {
             "shards": "api/en/<n>.json",
+            "selftest": "api/en/selftest.json",
             "forms": "api/forms/<n>.json",
             "guide": "api/agent-guide.md"
         }
@@ -547,6 +610,26 @@ mod tests {
     }
 
     #[test]
+    fn en_selftest_samples_are_frozen() {
+        // These exact values ship in api/en/selftest.json; clients verify
+        // their normalization + router against them. Changing either the fold
+        // or the router breaks the published contract — bump EN_SCHEMA_VERSION.
+        let expected: &[(&str, &str, u32)] = &[
+            (" To   Save! ", "save", 72),
+            ("Coat-of-Arms", "coat of arms", 18),
+            ("to be", "be", 128),
+            ("don't", "don t", 58),
+            ("naïve café", "naïve café", 21),
+            ("game", "game", 7),
+        ];
+        assert_eq!(EN_SELFTEST_SAMPLES.len(), expected.len());
+        for (raw, key, shard) in expected {
+            assert_eq!(normalize_english_query(raw), *key, "fold of {raw:?}");
+            assert_eq!(english_shard_of(key), *shard, "shard of {key:?}");
+        }
+    }
+
+    #[test]
     fn extracts_gloss_keys_without_parenthetical_noise_or_stopwords() {
         assert_eq!(
             gloss_keys("to save, rescue"),
@@ -589,6 +672,56 @@ mod tests {
             vec![("abkhazia".to_string(), "exact-gloss-head".to_string())]
         );
         assert!(gloss_keys("the, a, of").is_empty());
+    }
+
+    #[test]
+    fn token_stopwords_stay_findable_as_exact_gloss_heads() {
+        // "one" (jedin), "form" (forma), "plural" (množina) are real English
+        // headwords in the official data; the token stoplist must not hide them.
+        assert_eq!(
+            gloss_keys("one"),
+            vec![("one".to_string(), "exact-gloss-head".to_string())]
+        );
+        assert_eq!(
+            gloss_keys("form, shape"),
+            vec![
+                ("form".to_string(), "exact-gloss-head".to_string()),
+                ("shape".to_string(), "exact-gloss-head".to_string())
+            ]
+        );
+        // ... while grammatical-note tokens are still filtered.
+        assert_eq!(
+            gloss_keys("plural form of oko"),
+            vec![
+                ("plural form of oko".to_string(), "phrase".to_string()),
+                ("oko".to_string(), "gloss-token".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn later_exact_segment_upgrades_earlier_token_match() {
+        // dopŕva-style gloss: "until" first appears as a token of "up until",
+        // then as its own exact segment — the exact match must win.
+        assert_eq!(
+            gloss_keys("up until, before, until"),
+            vec![
+                ("up until".to_string(), "phrase".to_string()),
+                ("up".to_string(), "gloss-token".to_string()),
+                ("until".to_string(), "exact-gloss-head".to_string()),
+                ("before".to_string(), "exact-gloss-head".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn leading_parenthetical_is_a_label_not_a_key() {
+        // denonočje-style segment "(formal) day": head follows the label and
+        // the label itself is not indexed.
+        assert_eq!(
+            gloss_keys("(formal) day"),
+            vec![("day".to_string(), "exact-gloss-head".to_string())]
+        );
     }
 
     #[test]
@@ -668,6 +801,23 @@ mod tests {
             .exists());
         assert!(counts.keys >= 2);
         assert!(counts.candidates >= 2);
+        let selftest: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(tmp.join("api/en/selftest.json")).expect("selftest file"),
+        )
+        .expect("selftest json");
+        let samples = selftest["samples"].as_array().expect("samples array");
+        assert_eq!(samples.len(), EN_SELFTEST_SAMPLES.len());
+        for sample in samples {
+            let raw = sample[0].as_str().expect("raw query");
+            assert_eq!(
+                sample[1].as_str(),
+                Some(normalize_english_query(raw).as_str())
+            );
+            assert_eq!(
+                sample[2].as_u64(),
+                Some(u64::from(english_shard_of(sample[1].as_str().unwrap())))
+            );
+        }
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }
