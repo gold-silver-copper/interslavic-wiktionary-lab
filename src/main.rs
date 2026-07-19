@@ -88,6 +88,20 @@ enum Command {
         #[arg(long, default_value = "target/eval")]
         out: PathBuf,
     },
+    /// English → Interslavic lookup against the exported static API
+    /// (`site/api/en`), using the exact normalization, FNV routing, and retry
+    /// ladder the API documents — the reference client, so agents need not
+    /// reimplement the router. Requires a prior `export`.
+    En {
+        /// The English word or phrase to look up.
+        query: String,
+        /// Emit machine-readable JSON instead of the human table.
+        #[arg(long)]
+        json: bool,
+        /// Directory of a previous `export --out` run.
+        #[arg(long, default_value = "site")]
+        site: PathBuf,
+    },
     /// Explain the generator's output for one word or gloss (manual spot-check).
     Explain {
         /// A gloss (English) or an official Interslavic lemma to look up.
@@ -269,6 +283,7 @@ fn main() -> Result<()> {
             enrich::extract(&dir, &wanted, &out)
         }
         Command::Coverage { out } => site::run_coverage(&out),
+        Command::En { query, json, site } => site::run_en_lookup(&site, &query, json),
         Command::Explain { query, official } => eval::explain(&official, &query),
         Command::ProtoEval { official, out } => eval::run_proto_engine(&official, &out),
         Command::CorpusEval { official } => eval::run_corpus_eval(&official),

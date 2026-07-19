@@ -1065,8 +1065,9 @@ collapsing whitespace, trimming, and stripping a leading verb marker `to `.
 Route the normalized key with
 `fnv1a32(utf8(key)) % 256`, then fetch `api/en/<n>.json` and read
 `records[key]`.
-Normalization strips only the verb marker `to `; on a miss, walk the retry
-ladder documented in `api/en/meta.json`: (1) drop a leading article
+Normalization strips only the verb marker `to `; then walk the retry ladder
+documented in `api/en/meta.json` **until a verified candidate surfaces** (keep
+generated-only hits, but keep walking): (1) drop a leading article
 ("the game" → "game"); (2) retry each content word of a multiword query;
 (3) **de-suffix** the key and retry, longest suffix first — `-ibility→-ible`,
 `-ability→-able`, `-iness→-y`, `-ness→∅`, `-ation→∅/-ate`, `-ition→∅/-e/-ite`,

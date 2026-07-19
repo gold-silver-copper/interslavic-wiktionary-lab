@@ -137,7 +137,7 @@ fn normalize_english_text(raw: &str) -> String {
     out.trim().to_string()
 }
 
-pub(super) fn normalize_english_query(raw: &str) -> String {
+pub fn normalize_english_query(raw: &str) -> String {
     let key = normalize_english_text(raw);
     key.strip_prefix("to ")
         .map(str::trim)
@@ -146,7 +146,7 @@ pub(super) fn normalize_english_query(raw: &str) -> String {
         .to_string()
 }
 
-pub(super) fn english_shard_of(key: &str) -> u32 {
+pub fn english_shard_of(key: &str) -> u32 {
     forms::fnv1a32(key) % EN_SHARDS
 }
 
@@ -445,6 +445,210 @@ pub fn desuffix_variants(key: &str) -> Vec<String> {
     out
 }
 
+// ---------------------------------------------------------------------------
+// `en` CLI (issue: agents reimplement the router by hand; every
+// reimplementation is error surface). The CLI reads the exporter's OWN emitted
+// artifacts (`site/api/en/`) and routes with the SAME functions the exporter
+// used to build them — normalize_english_query / english_shard_of /
+// desuffix_variants — so CLI and static API cannot drift. Like the site's JS,
+// it verifies itself against the shipped selftest before trusting any lookup.
+// ---------------------------------------------------------------------------
+
+/// One ladder hit: which retry step produced it and under which key.
+#[derive(Debug, Serialize)]
+struct EnLookupHit {
+    step: &'static str,
+    key: String,
+    shard: u32,
+    candidates: Vec<serde_json::Value>,
+}
+
+fn en_shard_records(
+    en_dir: &Path,
+    key: &str,
+    cache: &mut HashMap<u32, serde_json::Value>,
+) -> anyhow::Result<Vec<serde_json::Value>> {
+    let shard = english_shard_of(key);
+    if !cache.contains_key(&shard) {
+        let raw = std::fs::read_to_string(en_dir.join(format!("{shard}.json")))?;
+        cache.insert(shard, serde_json::from_str(&raw)?);
+    }
+    Ok(cache[&shard]["records"][key]
+        .as_array()
+        .cloned()
+        .unwrap_or_default())
+}
+
+/// Verify this binary's normalization + router + ladder against the exported
+/// selftest — the same discipline the site's JS applies before any lookup.
+fn en_selftest(en_dir: &Path) -> anyhow::Result<()> {
+    let raw = std::fs::read_to_string(en_dir.join("selftest.json"))?;
+    let st: serde_json::Value = serde_json::from_str(&raw)?;
+    for sample in st["samples"].as_array().into_iter().flatten() {
+        let (raw_q, key, shard) = (
+            sample[0].as_str().unwrap_or_default(),
+            sample[1].as_str().unwrap_or_default(),
+            sample[2].as_u64().unwrap_or(u64::MAX) as u32,
+        );
+        anyhow::ensure!(
+            normalize_english_query(raw_q) == key && english_shard_of(key) == shard,
+            "en selftest mismatch on {raw_q:?}: this binary disagrees with the exported API \
+             (stale site/? rebuild with `export`)"
+        );
+    }
+    for sample in st["desuffix_samples"].as_array().into_iter().flatten() {
+        let key = sample[0].as_str().unwrap_or_default();
+        let want: Vec<String> = sample[1]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect();
+        anyhow::ensure!(
+            desuffix_variants(key) == want,
+            "en desuffix selftest mismatch on {key:?} (stale site/? rebuild with `export`)"
+        );
+    }
+    Ok(())
+}
+
+/// The full documented retry ladder over the exported static API. Stops at the
+/// first ladder level that yields any candidates.
+pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result<()> {
+    let en_dir = site_dir.join("api").join("en");
+    anyhow::ensure!(
+        en_dir.join("meta.json").exists(),
+        "no exported English API at {} — run `cargo run --release -- export --out {}` first",
+        en_dir.display(),
+        site_dir.display()
+    );
+    en_selftest(&en_dir)?;
+
+    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+    let normalized = normalize_english_query(query);
+    anyhow::ensure!(!normalized.is_empty(), "empty query after normalization");
+
+    // Ladder levels, in documented order. Each level is a set of keys tried
+    // together; the first level with hits wins.
+    let mut levels: Vec<(&'static str, Vec<String>)> =
+        vec![("normalized", vec![normalized.clone()])];
+    for article in ["a ", "an ", "the "] {
+        if let Some(rest) = normalized.strip_prefix(article) {
+            levels.push(("article-strip", vec![rest.trim().to_string()]));
+        }
+    }
+    if normalized.contains(' ') {
+        let words: Vec<String> = normalized
+            .split_whitespace()
+            .filter(|w| usable_token_key(w))
+            .map(str::to_string)
+            .collect();
+        if !words.is_empty() {
+            levels.push(("content-word", words));
+        }
+    }
+    let single_word_keys: Vec<String> = levels
+        .iter()
+        .flat_map(|(_, keys)| keys.iter())
+        .filter(|k| !k.contains(' '))
+        .cloned()
+        .collect();
+    let mut desuffixed: Vec<String> = Vec::new();
+    for k in &single_word_keys {
+        for v in desuffix_variants(k) {
+            if !desuffixed.contains(&v) {
+                desuffixed.push(v);
+            }
+        }
+    }
+    if !desuffixed.is_empty() {
+        levels.push(("desuffix", desuffixed));
+    }
+
+    // Walk the ladder until a VERIFIED candidate surfaces (a generated-only
+    // hit is kept but does not stop the walk): 'healing' both hits its
+    // derived-english generated record AND still reaches verified lěčiti via
+    // the de-suffixed 'heal'.
+    let mut hits: Vec<EnLookupHit> = Vec::new();
+    let mut seen_keys: std::collections::HashSet<String> = Default::default();
+    'ladder: for (step, keys) in levels {
+        for key in keys {
+            if !seen_keys.insert(key.clone()) {
+                continue;
+            }
+            let candidates = en_shard_records(&en_dir, &key, &mut cache)?;
+            if !candidates.is_empty() {
+                let verified = candidates
+                    .iter()
+                    .any(|c| matches!(c["status"].as_str(), Some("official" | "official-only")));
+                hits.push(EnLookupHit {
+                    step,
+                    shard: english_shard_of(&key),
+                    key,
+                    candidates,
+                });
+                if verified {
+                    break 'ladder;
+                }
+            }
+        }
+    }
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "query": query,
+                "normalized": normalized,
+                "hits": hits,
+            }))?
+        );
+        return Ok(());
+    }
+    if hits.is_empty() {
+        println!("{query}: no candidates (full ladder exhausted).");
+        return Ok(());
+    }
+    for hit in &hits {
+        println!("[{}] key '{}' (shard {}):", hit.step, hit.key, hit.shard);
+        for c in hit.candidates.iter().take(8) {
+            let s = |f: &str| c[f].as_str().unwrap_or("").to_string();
+            let warn = if c["warnings"].as_array().is_some_and(|w| !w.is_empty()) {
+                "  ⚠"
+            } else {
+                ""
+            };
+            let prefer = c["prefer"]
+                .as_array()
+                .filter(|p| !p.is_empty())
+                .map(|p| {
+                    format!(
+                        "  prefer: {}",
+                        p.iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                })
+                .unwrap_or_default();
+            println!(
+                "  {:<20} {:<5} {:<22} {:<16} {}{}{}",
+                s("lemma"),
+                s("pos"),
+                s("trust"),
+                s("match"),
+                s("gloss").chars().take(60).collect::<String>(),
+                warn,
+                prefer,
+            );
+        }
+        if hit.candidates.len() > 8 {
+            println!("  … {} more (use --json for all)", hit.candidates.len() - 8);
+        }
+    }
+    Ok(())
+}
+
 fn trust(status: &str) -> &'static str {
     match status {
         "official" => "verified-official",
@@ -673,7 +877,7 @@ pub(super) fn write_en_api(
         "shards": EN_SHARDS,
         "router": "fnv1a32(utf8(normalized_query)) % shards",
         "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; trim; strip leading verb marker `to `",
-        "retry_ladder": "on a miss: (1) retry without a leading article; (2) retry each content word of a multiword query; (3) de-suffix and retry, longest suffix first: -ibility→-ible, -ability→-able, -iness→-y, -ness→∅, -ation→∅/-ate, -ition→∅/-e/-ite, -ity→∅/-e, -ing→∅/-e (and undouble a doubled final consonant), -ies→-y, -es→∅, -s→∅; keep stems of ≥3 chars",
+        "retry_ladder": "walk until a verified (official/official-only) candidate surfaces — a generated-only hit is kept but does not stop the walk: (1) the normalized key; (2) retry without a leading article; (3) retry each content word of a multiword query; (4) de-suffix and retry, longest suffix first: -ibility→-ible, -ability→-able, -iness→-y, -ness→∅, -ation→∅/-ate, -ition→∅/-e/-ite, -ity→∅/-e, -ing→∅/-e (and undouble a doubled final consonant), -ies→-y, -es→∅, -s→∅; keep stems of ≥3 chars. The `en` CLI subcommand is the reference implementation",
         "selftest": "api/en/selftest.json samples are [raw_query, normalized_key, shard] and desuffix_samples are [key, [variants…]]; verify your normalization + router + ladder reproduce them before first use",
         "english_keys": key_count,
         "candidate_records": candidate_count,
