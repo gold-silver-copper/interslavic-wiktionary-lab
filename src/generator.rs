@@ -31,6 +31,29 @@ impl Generation {
     }
 }
 
+fn official_status_and_display(
+    candidates: &[Candidate],
+    official_forms: &[&str],
+) -> (MatchStatus, Option<String>) {
+    let matched_official = candidates.first().and_then(|candidate| {
+        official_forms
+            .iter()
+            .find(|official| ortho::normalized_match(&candidate.form, official))
+            .copied()
+    });
+    let match_status = if official_forms.is_empty() {
+        MatchStatus::NoOfficialEntry
+    } else if matched_official.is_some() {
+        MatchStatus::OfficialMatch
+    } else {
+        MatchStatus::DiffersFromOfficial
+    };
+    let display = matched_official
+        .or_else(|| official_forms.first().copied())
+        .map(str::to_string);
+    (match_status, display)
+}
+
 /// Generate ranked candidates for one meaning.
 ///
 /// * `official_isv` — the official lemma, used only for status/display.
@@ -42,24 +65,34 @@ pub fn generate(
     cfg: &ConsensusConfig,
     overrides: &Overrides,
 ) -> Generation {
+    match official_isv {
+        Some(official_isv) => {
+            generate_with_official_byforms(input, [official_isv], proto, cfg, overrides)
+        }
+        None => {
+            generate_with_official_byforms(input, std::iter::empty::<&str>(), proto, cfg, overrides)
+        }
+    }
+}
+
+pub fn generate_with_official_byforms<'a>(
+    input: &MeaningInput,
+    official_byforms: impl IntoIterator<Item = &'a str>,
+    proto: Option<&ProtoIndex>,
+    cfg: &ConsensusConfig,
+    overrides: &Overrides,
+) -> Generation {
     let (mut candidates, reconstruction) = crate::pipeline::generate(input, proto, cfg);
+    let official_forms: Vec<&str> = official_byforms
+        .into_iter()
+        .map(str::trim)
+        .filter(|form| !form.is_empty())
+        .collect();
 
     // Status is computed from the *generated* top candidate vs the official form,
     // before overrides are applied, so overrides never inflate accuracy.
-    let match_status = match official_isv {
-        None => MatchStatus::NoOfficialEntry,
-        Some(off) => {
-            if candidates
-                .first()
-                .map(|c| ortho::normalized_match(&c.form, off))
-                .unwrap_or(false)
-            {
-                MatchStatus::OfficialMatch
-            } else {
-                MatchStatus::DiffersFromOfficial
-            }
-        }
-    };
+    let (match_status, official_display) =
+        official_status_and_display(&candidates, &official_forms);
 
     // Manual override (site-only; excluded from pure-algorithm accuracy).
     let mut overridden = false;
@@ -80,9 +113,26 @@ pub fn generate(
 
     Generation {
         candidates,
-        official: official_isv.map(|s| s.to_string()),
+        official: official_display,
         match_status,
         overridden,
         reconstruction,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn official_byform_display_prefers_matched_top_candidate() {
+        let candidates = vec![Candidate::new(
+            "imati".to_string(),
+            CandidateSource::BranchConsensus,
+            0.9,
+        )];
+        let (status, display) = official_status_and_display(&candidates, &["iměti", "imati"]);
+        assert_eq!(status, MatchStatus::OfficialMatch);
+        assert_eq!(display.as_deref(), Some("imati"));
     }
 }

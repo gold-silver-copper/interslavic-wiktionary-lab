@@ -72,33 +72,39 @@ impl Thesaurus {
             pos: &'static str,
             gloss: HashSet<String>,
         }
-        let mut info: HashMap<String, Info> = HashMap::new();
-        // (lang, translation-key) -> the set of lemma keys that translate to it.
-        let mut by_trans: HashMap<(String, String), BTreeSet<String>> = HashMap::new();
+        let mut info: HashMap<(usize, String), Info> = HashMap::new();
+        let mut lemma_orig: HashMap<String, String> = HashMap::new();
+        // (lang, translation-key) -> the set of (source-row, lemma-key) members
+        // that translate to it. Row identity keeps citation byforms from the
+        // same official sense out of the synonym graph.
+        let mut by_trans: HashMap<(String, String), BTreeSet<(usize, String)>> = HashMap::new();
 
-        for e in official {
-            let isv = e.isv.trim();
-            if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
-                continue;
-            }
-            let k = key(isv);
-            let pos = pos_class(e.pos);
-            let gloss: HashSet<String> =
-                crate::dump::gloss_tokens(&e.english).into_iter().collect();
-            info.entry(k.clone()).or_insert(Info {
-                orig: isv.to_string(),
-                pos,
-                gloss,
-            });
-            for &lang in SLAV {
-                if let Some(cell) = e.cells.get(lang) {
-                    for (form, _) in crate::normalize::split_cell(cell) {
-                        let tk = trans_key(&form);
-                        if tk.chars().count() >= 3 {
-                            by_trans
-                                .entry((lang.to_string(), tk))
-                                .or_default()
-                                .insert(k.clone());
+        for (row, e) in official.iter().enumerate() {
+            for byform in e.citation_byforms() {
+                let isv = byform.form;
+                if isv.contains(' ') {
+                    continue;
+                }
+                let k = key(&isv);
+                let pos = pos_class(e.pos);
+                let gloss: HashSet<String> =
+                    crate::dump::gloss_tokens(&e.english).into_iter().collect();
+                info.entry((row, k.clone())).or_insert(Info {
+                    orig: isv.to_string(),
+                    pos,
+                    gloss,
+                });
+                lemma_orig.entry(k.clone()).or_insert(isv.to_string());
+                for &lang in SLAV {
+                    if let Some(cell) = e.cells.get(lang) {
+                        for (form, _) in crate::normalize::split_cell(cell) {
+                            let tk = trans_key(&form);
+                            if tk.chars().count() >= 3 {
+                                by_trans
+                                    .entry((lang.to_string(), tk))
+                                    .or_default()
+                                    .insert((row, k.clone()));
+                            }
                         }
                     }
                 }
@@ -111,13 +117,25 @@ impl Thesaurus {
             if members.len() < 2 {
                 continue;
             }
-            let v: Vec<&String> = members.iter().collect();
+            let v: Vec<&(usize, String)> = members.iter().collect();
             for i in 0..v.len() {
                 for j in (i + 1)..v.len() {
-                    let (ia, ib) = (&info[v[i]], &info[v[j]]);
+                    let (row_a, key_a) = (&v[i].0, &v[i].1);
+                    let (row_b, key_b) = (&v[j].0, &v[j].1);
+                    if row_a == row_b || key_a == key_b {
+                        continue;
+                    }
+                    let (ia, ib) = (
+                        &info[&(*row_a, key_a.clone())],
+                        &info[&(*row_b, key_b.clone())],
+                    );
                     if ia.pos == ib.pos && ia.pos != "x" && !ia.gloss.is_disjoint(&ib.gloss) {
-                        syn.entry(v[i].clone()).or_default().insert(ib.orig.clone());
-                        syn.entry(v[j].clone()).or_default().insert(ia.orig.clone());
+                        syn.entry(key_a.clone())
+                            .or_default()
+                            .insert(ib.orig.clone());
+                        syn.entry(key_b.clone())
+                            .or_default()
+                            .insert(ia.orig.clone());
                     }
                 }
             }
@@ -126,7 +144,7 @@ impl Thesaurus {
         let mut entries: Vec<ThesaurusEntry> = syn
             .into_iter()
             .map(|(k, set)| ThesaurusEntry {
-                isv: info[&k].orig.clone(),
+                isv: lemma_orig[&k].clone(),
                 synonyms: set.into_iter().collect(),
             })
             .collect();
@@ -187,5 +205,37 @@ mod tests {
         assert!(t.are_synonyms("krasny", "krasivy"));
         assert!(!t.are_synonyms("govoriti", "krasny"));
         assert!(t.get("nonesuch").is_empty());
+    }
+
+    #[test]
+    fn citation_byforms_do_not_become_self_synonyms() {
+        let entry = |id: &str, isv: &str| {
+            let mut cells = HashMap::new();
+            cells.insert("ru".to_string(), "primer".to_string());
+            OfficialEntry {
+                id: id.to_string(),
+                isv: isv.to_string(),
+                addition: String::new(),
+                pos_raw: "adj.".to_string(),
+                pos: Pos::Adjective,
+                noun_traits: crate::model::NounTraits::default(),
+                english: "sample gloss".to_string(),
+                same_in: String::new(),
+                genesis: String::new(),
+                cells,
+                frequency: None,
+                de: String::new(),
+                nl: String::new(),
+                eo: String::new(),
+                intelligibility: String::new(),
+                using_example: String::new(),
+            }
+        };
+        let entries = vec![entry("1", "foo, bar"), entry("2", "baz")];
+        let t = Thesaurus::build(&entries);
+
+        assert!(!t.are_synonyms("foo", "bar"));
+        assert!(t.are_synonyms("foo", "baz"));
+        assert!(t.are_synonyms("bar", "baz"));
     }
 }

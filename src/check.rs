@@ -74,10 +74,9 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
     for e in entries {
         // ~230 rows list byform variants in one cell ("iměti, imati",
         // "srědnji, srědny") — each variant is its own lemma.
-        for isv in e.isv.split(',').map(str::trim) {
-            if isv.is_empty() || isv.contains('#') || isv.contains('!') {
-                continue;
-            }
+        for byform in e.citation_byforms() {
+            let e = byform.entry;
+            let isv = byform.form.as_str();
             // Strip government hints ("pozirati (na)") and reject raw
             // notation, same as the site API.
             let Some(clean) = forms::citation(isv) else {
@@ -991,30 +990,39 @@ mod tests {
         let index = build_index(&entries, None);
         let mut checked = 0usize;
         for e in &entries {
-            let isv = e.isv.trim();
-            if isv.is_empty() || isv.contains('#') || isv.contains('!') || isv.contains(' ') {
-                continue;
+            for byform in e.citation_byforms() {
+                let isv = byform.form;
+                let toks = tokenize(&isv);
+                if toks.len() > 2 || isv.contains("...") {
+                    continue;
+                }
+                let reps = check_tokens(&index, &toks);
+                assert!(
+                    reps.iter()
+                        .all(|r| r.status == "known-lemma" || r.status == "known-form"),
+                    "official lemma '{isv}' not recognized: {:?}",
+                    reps.iter().map(|r| r.status).collect::<Vec<_>>()
+                );
+                checked += 1;
             }
-            let toks = tokenize(isv);
-            let reps = check_tokens(&index, &toks);
-            assert!(
-                reps.iter()
-                    .all(|r| r.status == "known-lemma" || r.status == "known-form"),
-                "official lemma '{isv}' not recognized: {:?}",
-                reps.iter().map(|r| r.status).collect::<Vec<_>>()
-            );
-            checked += 1;
         }
         assert!(checked > 300, "sample too small: {checked}");
 
         // Sampled paradigm cells resolve as known forms.
         for e in entries.iter().filter(|e| e.pos == Pos::Noun).take(30) {
-            let isv = e.isv.trim();
-            if isv.is_empty() || isv.contains(' ') || isv.contains('#') {
+            let Some(isv) = e
+                .citation_byforms()
+                .into_iter()
+                .map(|byform| byform.form)
+                .find(|isv| !isv.contains(' '))
+            else {
                 continue;
-            }
-            let gen =
-                crate::forms::noun_cell(isv, interslavic::Case::Gen, interslavic::Number::Singular);
+            };
+            let gen = crate::forms::noun_cell(
+                &isv,
+                interslavic::Case::Gen,
+                interslavic::Number::Singular,
+            );
             for v in gen.split('/') {
                 let v = v.trim();
                 if v.is_empty() || v == "—" {
@@ -1125,6 +1133,20 @@ mod tests {
             synthetic_index.noun_gender.get(&forms::form_key("testova")),
             Some(&' ')
         );
+    }
+
+    #[test]
+    fn official_comma_byforms_are_known_lemmas() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None);
+        for isv in ["iměti", "imati", "poslědnji", "poslědny"] {
+            let reps = check_tokens(&index, &tokenize(isv));
+            assert!(
+                reps.iter().any(|r| r.status == "known-lemma"),
+                "official byform '{isv}' not recognized: {:?}",
+                reps.iter().map(|r| r.status).collect::<Vec<_>>()
+            );
+        }
     }
 
     #[test]

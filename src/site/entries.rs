@@ -1423,7 +1423,8 @@ pub(super) fn entry_page(
         esc(&entry.english),
     );
 
-    let banner = status_banner(status, top, entry.isv.as_str());
+    let official = g.official.as_deref().unwrap_or(entry.isv.as_str());
+    let banner = status_banner(status, top, official);
     let etymology = etymology_block(g);
     let inflection = inflection_table_g(&top.form, pos_code, entry.noun_traits.gender);
     let evidence_html = evidence_block(evidence);
