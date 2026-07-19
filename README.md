@@ -62,7 +62,7 @@ committed and the site build stays self-contained.
   by a generated word (of ~26.4k), with same-spelling homographs kept as separate sense
   pages and duplicate generated sets deduped, without dictionary leakage into generation.
 - `cargo run -- corpus-eval` scores this site path against the dictionary directly:
-  **58.31% exact / 62.84% normalized** on 7,398 entries with a known ancestor.
+  **58.95% exact / 62.84% normalized** on 7,400 entries with a known ancestor.
 - `data/novel-words.tsv` — the novel-vocabulary proposal artifact regenerated
   by every `export`. It currently contains only its header: issue #89 found that
   the official-row pipeline calibrator had been applied to the corpus path's
@@ -96,7 +96,7 @@ the official dictionary, **without ever showing the generator the answer**
 | mean normalized edit distance | 0.252 | **0.224** | −0.028 |
 
 The **site's** cognate-set path (`corpus::generate_set`) is benchmarked separately
-(`cargo run -- corpus-eval`): **58.31% exact / 62.84% normalized** on 7,398 entries
+(`cargo run -- corpus-eval`): **58.95% exact / 62.84% normalized** on 7,400 entries
 where a Proto-Slavic ancestor or internationalism is known — higher than the pipeline
 headline because it only scores words the site actually derives from a known ancestor.
 
