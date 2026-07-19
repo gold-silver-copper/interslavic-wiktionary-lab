@@ -1806,6 +1806,21 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 .map(|a| (m.id, (a.clone(), m.aspect_partners.clone())))
         })
         .collect();
+    let english_counts = english_api::write_en_api(
+        out_dir,
+        &lemma_records,
+        &metas,
+        &aspect_api,
+        &build_meta.git,
+    )?;
+    println!(
+        "english api: {} keys / {} candidate records across {} shards ({} KB total, largest shard {} KB)",
+        english_counts.keys,
+        english_counts.candidates,
+        english_api::EN_SHARDS,
+        english_counts.bytes / 1024,
+        english_counts.largest_shard / 1024,
+    );
     let mut pair_json = String::from("{\"schema_version\":3,\"pairs\":[\n");
     for (n, (ipf_oid, pf_oid, ipf_page, pf_page, ipf, pf, prediction)) in
         aspect_pair_exports.iter().enumerate()
@@ -1850,7 +1865,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &form_records,
         &lemma_records,
         &aspect_api,
-        pair_json.len() + suggest_bytes,
+        pair_json.len() + suggest_bytes + english_counts.bytes,
         &build_meta.git,
         &crate::forms::agent_guide(),
     )?;
@@ -1926,6 +1941,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
 
 mod assets;
 mod coverage;
+mod english_api;
 mod entries;
 mod layout;
 mod model;

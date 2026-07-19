@@ -950,7 +950,7 @@ pub fn write_api(
     std::fs::write(api.join("router-selftest.json"), st)?;
 
     let meta = format!(
-        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"aspect_pairs\": \"api/aspect-pairs.json\",\n    \"suggestions\": \"api/suggest/<n>.json\",\n    \"suggestion_selftest\": \"api/suggest-selftest.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
+        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"english_lookup_meta\": \"api/en/meta.json\",\n    \"english_lookup\": \"api/en/<n>.json\",\n    \"aspect_pairs\": \"api/aspect-pairs.json\",\n    \"suggestions\": \"api/suggest/<n>.json\",\n    \"suggestion_selftest\": \"api/suggest-selftest.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
         json_str(git),
         json_str(LICENSE),
         records.len(),
@@ -1019,6 +1019,22 @@ Rust and the browser must pass it before displaying suggestions.
 `api/aspect-pairs.json` contains the production pair model output: both official
 endpoints/page IDs, shared-anchor generated forms, the fired rule, and
 `-ovati/-uje` present stems where applicable.
+
+## English lookup API
+
+`api/en/meta.json` documents the static English-to-Interslavic lookup contract.
+Normalize an English query by lowercasing it, replacing punctuation with spaces,
+collapsing whitespace, and trimming. Route the normalized key with
+`fnv1a32(utf8(key)) % 256`, then fetch `api/en/<n>.json` and read
+`records[key]`.
+
+Each English candidate is an object with the Interslavic `lemma`, `entry_id`,
+`official_id`, `pos`, source `gloss`, `status`, `trust`, deterministic `rank`,
+the match reason (`phrase`, `exact-gloss-head`, or `gloss-token`), optional
+verb `aspect` and `aspect_partners`, semantic `warnings`, optional preferred
+alternatives, and `form_lookup` (`key`, `shard`, `path`) for the existing
+`api/forms/<n>.json` inflection/analysis API. The English API is for candidate
+discovery; the form API remains the authority for surface forms.
 
 ## Trust rules
 

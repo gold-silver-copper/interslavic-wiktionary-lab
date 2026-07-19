@@ -72,6 +72,7 @@ counted = [api / "lemmas.json", api / "agent-guide.md", api / "router-selftest.j
            api / "aspect-pairs.json", api / "suggest-selftest.json"]
 counted.extend((api / "forms").glob("*.json"))
 counted.extend((api / "suggest").glob("*.json"))
+counted.extend((api / "en").glob("*.json"))
 actual_bytes = sum(path.stat().st_size for path in counted)
 assert meta["total_bytes"] == actual_bytes, (
     "api total_bytes mismatch", meta["total_bytes"], actual_bytes
