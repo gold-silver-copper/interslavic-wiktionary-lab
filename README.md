@@ -450,7 +450,7 @@ inflection tables and the machine-readable artifacts, so they cannot drift.
 both lookup protocols with their self-tests, the trust rules, and step-by-step
 translation and text-verification workflows. The artifacts:
 
-- `api/forms/<n>.json` — the **sharded form index** (schema 3, ~517k analysis
+- `api/forms/<n>.json` — the **sharded form index** (schema 4, ~517k analysis
   records: every official lemma + full paradigm, **declined participles,
   comparatives/superlatives with adverbs, pronoun & numeral paradigms** from
   the STEEN-G tables, byform variants split, syncretic cells merged). Shard
@@ -476,9 +476,12 @@ translation and text-verification workflows. The artifacts:
   linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
   present stems where applicable.
 - `api/meta.json` — schema version, counts, sizes, license, router spec.
-  **Schema 3 migration:** v2's six-field lemma tuple is now eight fields;
-  consumers must accept trailing `aspect` and `aspect_partners` (an array,
-  empty for unpaired/non-official rows).
+  **Schema 4 migration:** v2's six-field lemma tuple grew to eight fields in
+  v3 (trailing `aspect` and `aspect_partners`) and to twelve in v4 — trailing
+  ranking evidence `frequency` (official CSV column, null for generated rows),
+  `langs` (attesting-language count), `branch_pattern` (`"V+Z+J"` style or
+  null), and `borrowed`. English-API candidates (en schema 2) carry the same
+  four fields.
 - `api/agent-guide.md` — the agent manual: artifact-per-task table, both
   lookup protocols (fold table, English normalization, FNV routing,
   self-tests), trust rules (any non-null generated probability ⇒ suggestion,

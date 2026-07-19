@@ -11,7 +11,7 @@ use std::path::Path;
 
 use super::model::SiteEntryMeta;
 
-pub(super) const EN_SCHEMA_VERSION: u32 = 1;
+pub(super) const EN_SCHEMA_VERSION: u32 = 2;
 pub(super) const EN_SHARDS: u32 = 256;
 
 /// Canonical raw queries shipped in `api/en/selftest.json`. Chosen to exercise
@@ -84,6 +84,13 @@ pub(super) struct EnglishCandidate {
     prefer: Vec<String>,
     form_lookup: FormLookup,
     probability: Option<f64>,
+    // Ranking evidence (en schema 2, issue: synonym choice required joining
+    // three files). For generated derivatives these describe the attested
+    // BASE entry the candidate hangs off.
+    frequency: Option<f32>,
+    langs: usize,
+    branch_pattern: Option<String>,
+    borrowed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -671,8 +678,10 @@ pub(super) fn build_english_index(
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
     notes: &BTreeMap<String, crate::falsefriends::Note>,
+    evidence: &BTreeMap<usize, forms::RankEvidence>,
 ) -> BTreeMap<String, Vec<EnglishCandidate>> {
     let meta_by_id: HashMap<usize, &SiteEntryMeta> = metas.iter().map(|m| (m.id, m)).collect();
+    let no_evidence = forms::RankEvidence::default();
     let mut candidates: BTreeMap<(String, usize, String), EnglishCandidate> = BTreeMap::new();
 
     for record in lemmas {
@@ -773,6 +782,20 @@ pub(super) fn build_english_index(
                     path: format!("api/forms/{form_shard}.json"),
                 },
                 probability: record.probability,
+                frequency: evidence
+                    .get(&record.entry_id)
+                    .unwrap_or(&no_evidence)
+                    .frequency,
+                langs: evidence.get(&record.entry_id).unwrap_or(&no_evidence).langs,
+                branch_pattern: evidence
+                    .get(&record.entry_id)
+                    .unwrap_or(&no_evidence)
+                    .branch_pattern
+                    .clone(),
+                borrowed: evidence
+                    .get(&record.entry_id)
+                    .unwrap_or(&no_evidence)
+                    .borrowed,
             };
             let dedup_key = (key_match.key, record.entry_id, form_key.clone());
             match candidates.get_mut(&dedup_key) {
@@ -807,6 +830,7 @@ pub(super) fn write_en_api(
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
     notes: &BTreeMap<String, crate::falsefriends::Note>,
+    evidence: &BTreeMap<usize, forms::RankEvidence>,
     git: &str,
 ) -> anyhow::Result<EnglishApiCounts> {
     let api = out_dir.join("api");
@@ -814,7 +838,7 @@ pub(super) fn write_en_api(
     let _ = std::fs::remove_dir_all(&en_dir);
     std::fs::create_dir_all(&en_dir)?;
 
-    let index = build_english_index(lemmas, metas, aspect_meta, notes);
+    let index = build_english_index(lemmas, metas, aspect_meta, notes, evidence);
     let key_count = index.len();
     let mut shards: BTreeMap<u32, BTreeMap<String, Vec<EnglishCandidate>>> = BTreeMap::new();
     let mut candidate_count = 0usize;
@@ -898,7 +922,11 @@ pub(super) fn write_en_api(
             "warnings": "computed false-friend warnings (same records as api/notes.json)",
             "prefer": "official lemma(s) covering the divergent sense, computed from gloss overlap",
             "form_lookup": "folded lemma key and api/forms shard for inflection lookup",
-            "probability": "model-specific generated probability when available"
+            "probability": "model-specific generated probability when available",
+            "frequency": "official dictionary frequency column (null for generated rows)",
+            "langs": "attesting-language count of the entry (the BASE entry for derivatives)",
+            "branch_pattern": "attesting branch combination, e.g. V+Z+J (null without branch data)",
+            "borrowed": "entry is a borrowing/internationalism"
         },
         "files": {
             "shards": "api/en/<n>.json",
@@ -1109,8 +1137,13 @@ mod tests {
         );
         vnoun.analyses = vec!["deriv:vnoun".to_string()];
         let metas = vec![meta(7, None), meta(8, None)];
-        let index =
-            build_english_index(&[ost, vnoun], &metas, &AspectMeta::new(), &BTreeMap::new());
+        let index = build_english_index(
+            &[ost, vnoun],
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let inv = index.get("invisibility").expect("invisibility key");
         assert_eq!(inv[0].lemma, "nevidimosť");
         assert_eq!(inv[0].match_kind, "derived-english");
@@ -1119,6 +1152,34 @@ mod tests {
         // The base keys survive untouched.
         assert!(index.get("invisible").is_some());
         assert!(index.get("heal").is_some());
+    }
+
+    #[test]
+    fn candidates_carry_ranking_evidence() {
+        let records = vec![record("spasati", 1, "official", "to save, rescue", None)];
+        let metas = vec![meta(1, Some("official-1"))];
+        let mut evidence = BTreeMap::new();
+        evidence.insert(
+            1usize,
+            forms::RankEvidence {
+                frequency: Some(6017.0),
+                langs: 9,
+                branch_pattern: Some("V+Z+J".to_string()),
+                borrowed: false,
+            },
+        );
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &evidence,
+        );
+        let save = index.get("save").expect("save key");
+        assert_eq!(save[0].frequency, Some(6017.0));
+        assert_eq!(save[0].langs, 9);
+        assert_eq!(save[0].branch_pattern.as_deref(), Some("V+Z+J"));
+        assert!(!save[0].borrowed);
     }
 
     #[test]
@@ -1184,7 +1245,13 @@ mod tests {
             record("save-machine", 2, "generated", "save", Some(0.9)),
         ];
         let metas = vec![meta(1, Some("official-1")), meta(2, None)];
-        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let save = index.get("save").expect("save key");
         assert_eq!(save[0].lemma, "spasati");
         assert_eq!(save[0].status, "official");
@@ -1199,7 +1266,13 @@ mod tests {
             record("divina", 2, "official-only", "game, wildfowl", None),
         ];
         let metas = vec![meta(1, Some("bridge-1")), meta(2, Some("game-2"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let game = index.get("game").expect("game key");
         assert_eq!(game[0].lemma, "divina");
         assert_eq!(game[0].match_kind, "exact-gloss-head");
@@ -1211,7 +1284,13 @@ mod tests {
     fn indexes_of_phrases_and_tokens() {
         let records = vec![record("gerb", 1, "official", "coat of arms", None)];
         let metas = vec![meta(1, Some("arms-1"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         assert_eq!(
             index.get("coat of arms").expect("phrase key")[0].lemma,
             "gerb"
@@ -1228,7 +1307,13 @@ mod tests {
             record("imati", 10, "official", "to have", None),
         ];
         let metas = vec![meta(10, Some("have-10"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new(), &BTreeMap::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let have = index.get("have").expect("have key");
         let lemmas: Vec<&str> = have.iter().map(|c| c.lemma.as_str()).collect();
         assert!(lemmas.contains(&"iměti"));
@@ -1251,6 +1336,7 @@ mod tests {
             &records,
             &metas,
             &AspectMeta::new(),
+            &BTreeMap::new(),
             &BTreeMap::new(),
             "test",
         )

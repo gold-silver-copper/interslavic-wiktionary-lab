@@ -1791,12 +1791,37 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 .map(|a| (m.id, (a.clone(), m.aspect_partners.clone())))
         })
         .collect();
+    // Ranking evidence per entry id (schema-4 / en-schema-2 plumbing): the
+    // official CSV frequency joined via the entry's official sense id, plus
+    // the attestation metadata already on SiteEntryMeta.
+    let freq_by_sense: std::collections::HashMap<&str, f32> = official_entries
+        .iter()
+        .filter_map(|e| e.frequency.map(|f| (e.id.as_str(), f)))
+        .collect();
+    let rank_evidence: std::collections::BTreeMap<usize, crate::forms::RankEvidence> = metas
+        .iter()
+        .map(|m| {
+            (
+                m.id,
+                crate::forms::RankEvidence {
+                    frequency: m
+                        .official_sense_id
+                        .as_deref()
+                        .and_then(|sid| freq_by_sense.get(sid).copied()),
+                    langs: m.n_langs,
+                    branch_pattern: navigation::branch_pattern(&m.languages),
+                    borrowed: m.borrowed,
+                },
+            )
+        })
+        .collect();
     let english_counts = english_api::write_en_api(
         out_dir,
         &lemma_records,
         &metas,
         &aspect_api,
         &ff_notes,
+        &rank_evidence,
         &build_meta.git,
     )?;
     println!(
@@ -1852,6 +1877,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &form_records,
         &lemma_records,
         &aspect_api,
+        &rank_evidence,
         ff_notes.len(),
         pair_json.len() + suggest_bytes + english_counts.bytes + notes_json.len(),
         &build_meta.git,
