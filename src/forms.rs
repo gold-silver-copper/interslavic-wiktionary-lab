@@ -1024,7 +1024,8 @@ endpoints/page IDs, shared-anchor generated forms, the fired rule, and
 
 `api/en/meta.json` documents the static English-to-Interslavic lookup contract.
 Normalize an English query by lowercasing it, replacing punctuation with spaces,
-collapsing whitespace, and trimming. Route the normalized key with
+collapsing whitespace, trimming, and stripping a leading verb marker `to `.
+Route the normalized key with
 `fnv1a32(utf8(key)) % 256`, then fetch `api/en/<n>.json` and read
 `records[key]`.
 

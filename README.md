@@ -465,10 +465,11 @@ inflection tables and the machine-readable artifacts, so they cannot drift:
   an inflected form of a wrong reconstruction is confidently wrong.
 - `api/en/meta.json` + `api/en/<n>.json` — a static English→Interslavic lookup
   API for translation agents. English keys are lowercased, punctuation-folded,
-  whitespace-collapsed, then routed by `fnv1a32(utf8(key)) % 256`. Records are
-  ranked candidate objects with lemma, entry id, official id, POS, gloss,
-  status/trust, match reason, aspect partners, semantic warnings, and a
-  `form_lookup` pointer into `api/forms/<n>.json` for inflection/analysis.
+  whitespace-collapsed, stripped of a leading verb marker `to `, then routed by
+  `fnv1a32(utf8(key)) % 256`. Records are ranked candidate objects with lemma,
+  entry id, official id, POS, gloss, status/trust, match reason, aspect
+  partners, semantic warnings, and a `form_lookup` pointer into
+  `api/forms/<n>.json` for inflection/analysis.
 - `api/aspect-pairs.json` — the production pair model's official endpoints,
   linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
   present stems where applicable.

@@ -97,7 +97,7 @@ struct ShardFile {
     records: BTreeMap<String, Vec<EnglishCandidate>>,
 }
 
-pub(super) fn normalize_english_query(raw: &str) -> String {
+fn normalize_english_text(raw: &str) -> String {
     let mut out = String::new();
     let mut last_space = true;
     for ch in raw.to_lowercase().chars() {
@@ -112,6 +112,15 @@ pub(super) fn normalize_english_query(raw: &str) -> String {
     out.trim().to_string()
 }
 
+pub(super) fn normalize_english_query(raw: &str) -> String {
+    let key = normalize_english_text(raw);
+    key.strip_prefix("to ")
+        .map(str::trim)
+        .filter(|rest| !rest.is_empty())
+        .unwrap_or(&key)
+        .to_string()
+}
+
 pub(super) fn english_shard_of(key: &str) -> u32 {
     forms::fnv1a32(key) % EN_SHARDS
 }
@@ -124,7 +133,6 @@ fn usable_key(key: &str) -> bool {
     let n = key.chars().count();
     (2..=48).contains(&n)
         && !is_stopword(key)
-        && !key.contains(" of ")
         && !key.ends_with(" etc")
         && !key.starts_with("used ")
 }
@@ -185,10 +193,7 @@ fn split_parenthetical(segment: &str) -> (&str, Option<&str>) {
 fn push_gloss_head_keys(out: &mut Vec<(String, String)>, raw: &str) {
     let normalized_head = raw.replace(" or ", ",");
     for part in normalized_head.split(',') {
-        let mut key = normalize_english_query(part);
-        if let Some(rest) = key.strip_prefix("to ") {
-            key = rest.trim().to_string();
-        }
+        let key = normalize_english_query(part);
         if !usable_key(&key) {
             continue;
         }
@@ -439,7 +444,7 @@ pub(super) fn write_en_api(
         "license": forms::LICENSE,
         "shards": EN_SHARDS,
         "router": "fnv1a32(utf8(normalized_query)) % shards",
-        "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; strip leading verb marker `to ` for gloss heads",
+        "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; trim; strip leading verb marker `to `",
         "english_keys": key_count,
         "candidate_records": candidate_count,
         "largest_shard_bytes": largest_shard,
@@ -533,6 +538,11 @@ mod tests {
     #[test]
     fn normalizes_english_query_and_routes_deterministically() {
         assert_eq!(normalize_english_query(" Save   Game! "), "save game");
+        assert_eq!(normalize_english_query(" To   Save! "), "save");
+        assert_eq!(
+            english_shard_of(&normalize_english_query("to save")),
+            english_shard_of("save")
+        );
         assert_eq!(english_shard_of("save"), forms::fnv1a32("save") % EN_SHARDS);
     }
 
@@ -551,6 +561,14 @@ mod tests {
                 ("save game".to_string(), "phrase".to_string()),
                 ("save".to_string(), "gloss-token".to_string()),
                 ("game".to_string(), "gloss-token".to_string())
+            ]
+        );
+        assert_eq!(
+            gloss_keys("coat of arms"),
+            vec![
+                ("coat of arms".to_string(), "phrase".to_string()),
+                ("coat".to_string(), "gloss-token".to_string()),
+                ("arms".to_string(), "gloss-token".to_string())
             ]
         );
         assert_eq!(
@@ -601,6 +619,20 @@ mod tests {
         assert_eq!(game[0].match_kind, "exact-gloss-head");
         assert_eq!(game[1].lemma, "bridž");
         assert_eq!(game[1].match_kind, "gloss-token");
+    }
+
+    #[test]
+    fn indexes_of_phrases_and_tokens() {
+        let records = vec![record("gerb", 1, "official", "coat of arms", None)];
+        let metas = vec![meta(1, Some("arms-1"))];
+        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        assert_eq!(
+            index.get("coat of arms").expect("phrase key")[0].lemma,
+            "gerb"
+        );
+        assert_eq!(index.get("coat").expect("coat token")[0].lemma, "gerb");
+        assert_eq!(index.get("arms").expect("arms token")[0].lemma, "gerb");
+        assert!(!index.contains_key("of"));
     }
 
     #[test]
