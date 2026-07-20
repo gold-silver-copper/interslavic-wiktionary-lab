@@ -338,7 +338,7 @@ pub fn compute(
         }
         let collisions: Vec<CacheWord> = merged.into_values().collect();
 
-        let (isv_display, gloss_display) = &official_display[key];
+        let (_, gloss_display) = &official_display[key];
         let mut warning = format!("Official meaning: '{}'.", gloss_display.join("' / '"));
         let mut warned_langs: Vec<usize> = Vec::new();
         for w in &collisions {
@@ -405,7 +405,6 @@ pub fn compute(
         }
         let prefer: Vec<String> = best.map(|(_, _, lemma)| vec![lemma]).unwrap_or_default();
 
-        let _ = isv_display; // display lemma is implicit in the key for consumers
         notes.insert(
             key.clone(),
             Note {
@@ -425,11 +424,23 @@ pub fn compute(
     notes
 }
 
-/// Load both caches and compute notes; either cache may be absent (degrades to
-/// fewer/no notes, never an error) so `check-text` stays usable without them.
+/// Load both caches and compute notes; an ABSENT cache degrades silently to
+/// fewer/no notes so `check-text` stays usable without them, but a cache
+/// that exists and fails to load (corrupt/stale schema) warns loudly —
+/// silently dropping every warning would look identical to a clean text.
 pub fn compute_from_default_caches(official: &[OfficialEntry]) -> BTreeMap<String, Note> {
+    fn warn_if_unreadable(name: &str, path: &str, loaded: bool) {
+        if !loaded && std::path::Path::new(path).exists() {
+            eprintln!(
+                "warning: {name} cache at {path} exists but failed to load — \
+                 false-friend warnings will be incomplete (re-run the extractor?)"
+            );
+        }
+    }
     let evidence = LemmaCorpus::load(std::path::Path::new(crate::DEFAULT_LEMMA_CACHE)).ok();
+    warn_if_unreadable("lemma", crate::DEFAULT_LEMMA_CACHE, evidence.is_some());
     let raw = RawSlavicCorpus::load(std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
+    warn_if_unreadable("raw-lemma", crate::DEFAULT_RAW_LEMMA_CACHE, raw.is_some());
     compute(official, evidence.as_ref(), raw.as_ref())
 }
 

@@ -76,6 +76,24 @@ pub struct RankEvidence {
     pub branch_pattern: Option<String>,
     pub borrowed: bool,
 }
+
+/// Ranking evidence carried inline by a raw-intl record's provenance tag
+/// (`raw-intl:<langs>l:<branch-pattern>`). These records use the `entry_id 0`
+/// "no entry page" sentinel, so the per-entry evidence map cannot describe
+/// them; the tag does.
+pub fn raw_intl_evidence(record: &FormRecord) -> Option<RankEvidence> {
+    let tag = record
+        .analyses
+        .iter()
+        .find_map(|a| a.strip_prefix("raw-intl:"))?;
+    let (langs, pattern) = tag.split_once("l:")?;
+    Some(RankEvidence {
+        frequency: None,
+        langs: langs.parse().ok()?,
+        branch_pattern: Some(pattern.to_string()),
+        borrowed: true,
+    })
+}
 pub const LICENSE: &str =
     "CC BY-SA 4.0 (derives from Wiktionary and interslavic-dictionary.com; see /about.html)";
 
@@ -927,7 +945,11 @@ pub fn write_api(
             .map(|p| format!("{:.3}", p))
             .unwrap_or_else(|| "null".into());
         let (aspect, partner) = lemma_aspect_fields(r, aspect_meta);
-        let ev = evidence.get(&r.entry_id).unwrap_or(&no_evidence);
+        let tag_ev = raw_intl_evidence(r);
+        let ev = tag_ev
+            .as_ref()
+            .or_else(|| evidence.get(&r.entry_id))
+            .unwrap_or(&no_evidence);
         let _ = write!(
             ls,
             "[{},{},{},{},{},{},{},{},{},{},{},{}]",
@@ -1104,7 +1126,8 @@ Normalization strips only the verb marker `to `; then walk the retry ladder
 documented in `api/en/meta.json` **until a verified candidate surfaces** (keep
 generated-only hits, but keep walking): (1) drop a leading article
 ("the game" → "game"); (2) retry each content word of a multiword query;
-(3) **de-suffix** the key and retry, longest suffix first — `-ibility→-ible`,
+(3) **de-suffix** the key and retry — apply EVERY rule whose suffix matches,
+collecting all variants (rules listed longest-suffix first) — `-ibility→-ible`,
 `-ability→-able`, `-iness→-y`, `-ness→∅`, `-ation→∅/-ate`, `-ition→∅/-e/-ite`,
 `-ity→∅/-e`, `-ing→∅/-e` (undoubling a doubled final consonant:
 "mapping"→"map"), `-ies→-y`, `-es→∅`, `-s→∅`, keeping stems of ≥3 chars.
@@ -1169,10 +1192,12 @@ English key — never across keys; across keys compare `trust`/`status`. A
   - **raw-attested borrowed internationalisms** — cognate sets the evidence
     gate never saw (no etymology section on any Wiktionary member, e.g. the
     teleport family), recovered from raw attestations in ≥2 languages across
-    ≥2 branches with gloss agreement and adapted by the ordinary pipeline.
-    Their `analyses` carry a single `raw-intl:<langs>l<branches>b` tag,
-    ranking evidence says `borrowed: true`, and `probability` is null (no
-    calibrator for this path — fail closed).
+    ≥2 branches with gloss agreement, flavorized and adapted by the ordinary
+    pipeline. Their `analyses` carry a single
+    `raw-intl:<langs>l:<branch-pattern>` tag (e.g. `raw-intl:2l:Z+J`), which
+    also feeds their ranking evidence (`borrowed: true`); `probability` is
+    null (no calibrator for this path — fail closed), and `entry_id` is the
+    `0` "no entry page" sentinel — do not fetch `entry/0.html`.
 - **Any non-null generated probability is still a suggestion, never
   verification.** Generated lemmas (all kinds) have NO inflection records on
   purpose: an inflected form of a

@@ -184,6 +184,10 @@ enum Command {
         /// (default 0).
         #[arg(long, default_value_t = 0)]
         max_agreement: usize,
+        /// Skip computed false-friend warnings (skips loading the evidence
+        /// caches; faster for pure classification/CI gating).
+        #[arg(long)]
+        no_warnings: bool,
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
     },
@@ -312,6 +316,7 @@ fn main() -> Result<()> {
             summary,
             max_unknown,
             max_agreement,
+            no_warnings,
             official,
         } => check::run(
             &official,
@@ -321,6 +326,7 @@ fn main() -> Result<()> {
                 max_unknown,
                 max_agreement,
             }),
+            !no_warnings,
         ),
         Command::ChecktextEval { official, out } => check::run_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),

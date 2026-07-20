@@ -464,10 +464,9 @@ pub(super) struct RawIntlCandidate {
     pub(super) gloss: String,
     /// Attesting language codes, sorted and deduped.
     pub(super) langs: Vec<String>,
-    pub(super) n_branches: usize,
-    /// Raw page id of the first member with an unambiguous raw-page link
-    /// (0 when none resolves — no page link, records still emitted).
-    pub(super) entry_id: usize,
+    /// `"V+Z"`-style attesting branch combination (≥2 branches by
+    /// construction, so always present).
+    pub(super) branch_pattern: String,
 }
 
 /// Group raw lemmas into borrowed-internationalism cognate sets by
@@ -480,7 +479,6 @@ pub(super) struct RawIntlCandidate {
 /// (official lemma, inflected form, reconstruction, or derivative).
 pub(super) fn raw_intl_candidates(
     lemmas: &[crate::dump::RawSlavicLemma],
-    raw_xref: &crate::enrich::Xref,
     taken: &mut std::collections::HashSet<String>,
 ) -> Vec<RawIntlCandidate> {
     use crate::model::Pos;
@@ -584,13 +582,22 @@ pub(super) fn raw_intl_candidates(
             "v" => Pos::Verb,
             _ => Pos::Adjective,
         };
+        // Feed the consensus FLAVORIZED surfaces (the raw-attestation pages'
+        // own national→ISV orthography pass, measured at 2/179k residue), so
+        // a thin 2-member vote can't keep a national spelling like pl
+        // `niedoskonały` as the representative.
+        let pos_str = match pc {
+            "n" => "noun",
+            "v" => "verb",
+            _ => "adj",
+        };
         let mut cells: HashMap<String, String> = HashMap::new();
         for (lang, word, _) in &members {
             let cell = cells.entry(lang.clone()).or_default();
             if !cell.is_empty() {
                 cell.push_str(", ");
             }
-            cell.push_str(word);
+            cell.push_str(&crate::flavorize::flavorize_word(lang, pos_str, word));
         }
         let forms = crate::consensus::source_forms_from_cells(&cells, |_, _| String::new());
         let forms = crate::consensus::lemma_forms(forms, pos);
@@ -610,27 +617,27 @@ pub(super) fn raw_intl_candidates(
             continue;
         };
         let form = top.form.trim().to_string();
-        if form.is_empty() || form.contains(' ') {
+        // Word-final -ie is a national surface ISV never uses (ru развитие →
+        // ISV razvitije; la -ia → ISV -ija): a thin vote that kept it kept a
+        // wrong surface, so drop the candidate — an honest miss beats a
+        // confidently wrong suggestion.
+        if form.is_empty() || form.contains(' ') || form.ends_with("ie") {
             continue;
         }
         let key = crate::forms::form_key(&form);
         if key.is_empty() || !taken.insert(key) {
             continue;
         }
-        let entry_id = members
-            .iter()
-            .find_map(|(lang, word, _)| match raw_xref.lookup(lang, word) {
-                crate::enrich::XrefMatch::Unique(id) => Some(id),
-                _ => None,
-            })
-            .unwrap_or(0);
+        let langs: Vec<String> = langs.iter().map(|l| l.to_string()).collect();
+        let Some(branch_pattern) = super::navigation::branch_pattern(&langs) else {
+            continue;
+        };
         out.push(RawIntlCandidate {
             form,
             pos,
             gloss: gloss.to_string(),
-            langs: langs.iter().map(|l| l.to_string()).collect(),
-            n_branches: branches.len(),
-            entry_id,
+            langs,
+            branch_pattern,
         });
     }
     out.sort_by(|a, b| a.form.cmp(&b.form));

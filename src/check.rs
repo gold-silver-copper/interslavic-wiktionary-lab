@@ -804,14 +804,21 @@ pub fn summarize(reports: &[TokenReport], gate: SummaryGate) -> Summary {
 
 /// The `check-text` CLI entry point. With `gate` set (`--summary`), a summary
 /// is emitted and the process exits nonzero when the text fails the gate.
+/// `warnings: false` skips the false-friend computation entirely (it loads
+/// both evidence caches, ~2-3s — pure classification gates don't need it).
 pub fn run(
     official_path: &Path,
     text_path: &Path,
     json: bool,
     gate: Option<SummaryGate>,
+    warnings: bool,
 ) -> Result<()> {
     let entries = official::load(official_path)?;
-    let notes = crate::falsefriends::compute_from_default_caches(&entries);
+    let notes = if warnings {
+        crate::falsefriends::compute_from_default_caches(&entries)
+    } else {
+        BTreeMap::new()
+    };
     let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
     let text = std::fs::read_to_string(text_path)?;
     let reports = check_text(&index, &text);

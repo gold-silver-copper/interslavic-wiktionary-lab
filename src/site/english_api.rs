@@ -345,6 +345,19 @@ fn deriv_pattern(record: &FormRecord) -> Option<&str> {
 /// normalization (issue: `heal` resolved but `healing` didn't; `nevidimy` was
 /// indexed under `invisible` but its `-osť` derivative not under
 /// `invisibility`). String transforms only; no exception dictionaries.
+/// A crude but deterministic "could this English word be an adjective"
+/// check by suffix shape, gating the un-/in- negation keys: adjective bases
+/// with no recognizable suffix ("dark") still take -ness/-ly, but negating
+/// a noun-looking base gloss ("lion" on a denominal adjective's gloss head)
+/// produced junk keys like "unlion".
+fn adjective_like(w: &str) -> bool {
+    const ADJ_SUFFIXES: &[&str] = &[
+        "y", "ic", "al", "ous", "ive", "able", "ible", "ful", "less", "ant", "ent", "ed", "ing",
+        "ile", "ish", "ory", "ar",
+    ];
+    ADJ_SUFFIXES.iter().any(|suf| w.ends_with(suf))
+}
+
 fn derived_english_forms(pattern: &str, w: &str) -> Vec<String> {
     let mut out = Vec::new();
     if w.chars().count() < 3 || !w.chars().all(|c| c.is_ascii_alphabetic()) {
@@ -353,10 +366,12 @@ fn derived_english_forms(pattern: &str, w: &str) -> Vec<String> {
     match pattern {
         // -osť: abstract-quality noun → -ness / -ity.
         "ost" => {
+            let mut ility = false;
             if let Some(stem) = w.strip_suffix("le") {
                 // invisible → invisibility, able → ability
                 if w.ends_with("ible") || w.ends_with("able") {
                     out.push(format!("{stem}ility"));
+                    ility = true;
                 }
             }
             if let Some(stem) = w.strip_suffix('y') {
@@ -364,8 +379,10 @@ fn derived_english_forms(pattern: &str, w: &str) -> Vec<String> {
             } else {
                 out.push(format!("{w}ness"));
             }
-            if let Some(stem) = w.strip_suffix('e') {
-                out.push(format!("{stem}ity")); // scarce → scarcity
+            if !ility {
+                if let Some(stem) = w.strip_suffix('e') {
+                    out.push(format!("{stem}ity")); // scarce → scarcity
+                }
             }
         }
         // adverb: -ly family.
@@ -403,8 +420,9 @@ fn derived_english_forms(pattern: &str, w: &str) -> Vec<String> {
                 out.push(format!("{stem}ation")); // translate → translation
             }
         }
-        // ne-: negated adjective → un- / in-.
-        "ne" => {
+        // ne-: negated adjective → un- / in-, only for adjective-shaped
+        // base words (see `adjective_like`).
+        "ne" if adjective_like(w) => {
             out.push(format!("un{w}"));
             out.push(format!("in{w}"));
         }
@@ -727,6 +745,13 @@ pub(super) fn build_english_index(
         let warnings = note.map(|n| vec![n.warning.clone()]).unwrap_or_default();
         let prefer = note.map(|n| n.prefer.clone()).unwrap_or_default();
 
+        // Raw-intl records carry their evidence inline (entry_id 0 sentinel);
+        // everything else joins the per-entry evidence map.
+        let tag_ev = forms::raw_intl_evidence(record);
+        let ev = tag_ev
+            .as_ref()
+            .or_else(|| evidence.get(&record.entry_id))
+            .unwrap_or(&no_evidence);
         let official_id = if matches!(record.status, "official" | "official-only") {
             meta_by_id
                 .get(&record.entry_id)
@@ -782,20 +807,10 @@ pub(super) fn build_english_index(
                     path: format!("api/forms/{form_shard}.json"),
                 },
                 probability: record.probability,
-                frequency: evidence
-                    .get(&record.entry_id)
-                    .unwrap_or(&no_evidence)
-                    .frequency,
-                langs: evidence.get(&record.entry_id).unwrap_or(&no_evidence).langs,
-                branch_pattern: evidence
-                    .get(&record.entry_id)
-                    .unwrap_or(&no_evidence)
-                    .branch_pattern
-                    .clone(),
-                borrowed: evidence
-                    .get(&record.entry_id)
-                    .unwrap_or(&no_evidence)
-                    .borrowed,
+                frequency: ev.frequency,
+                langs: ev.langs,
+                branch_pattern: ev.branch_pattern.clone(),
+                borrowed: ev.borrowed,
             };
             let dedup_key = (key_match.key, record.entry_id, form_key.clone());
             match candidates.get_mut(&dedup_key) {
@@ -901,7 +916,7 @@ pub(super) fn write_en_api(
         "shards": EN_SHARDS,
         "router": "fnv1a32(utf8(normalized_query)) % shards",
         "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; trim; strip leading verb marker `to `",
-        "retry_ladder": "walk until a verified (official/official-only) candidate surfaces — a generated-only hit is kept but does not stop the walk: (1) the normalized key; (2) retry without a leading article; (3) retry each content word of a multiword query; (4) de-suffix and retry, longest suffix first: -ibility→-ible, -ability→-able, -iness→-y, -ness→∅, -ation→∅/-ate, -ition→∅/-e/-ite, -ity→∅/-e, -ing→∅/-e (and undouble a doubled final consonant), -ies→-y, -es→∅, -s→∅; keep stems of ≥3 chars. The `en` CLI subcommand is the reference implementation",
+        "retry_ladder": "walk until a verified (official/official-only) candidate surfaces — a generated-only hit is kept but does not stop the walk: (1) the normalized key; (2) retry without a leading article; (3) retry each content word of a multiword query; (4) de-suffix and retry (rules listed longest-suffix first; apply EVERY rule whose suffix matches, collecting all variants): -ibility→-ible, -ability→-able, -iness→-y, -ness→∅, -ation→∅/-ate, -ition→∅/-e/-ite, -ity→∅/-e, -ing→∅/-e (and undouble a doubled final consonant), -ies→-y, -es→∅, -s→∅; keep stems of ≥3 chars. The `en` CLI subcommand is the reference implementation",
         "selftest": "api/en/selftest.json samples are [raw_query, normalized_key, shard] and desuffix_samples are [key, [variants…]]; verify your normalization + router + ladder reproduce them before first use",
         "english_keys": key_count,
         "candidate_records": candidate_count,

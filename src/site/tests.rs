@@ -1027,9 +1027,8 @@ fn raw_intl_recovers_the_teleport_family() {
         mk("pl", "granat", "noun", "grenade"),
         mk("ru", "гранат", "noun", "pomegranate"),
     ];
-    let xref = crate::enrich::Xref::new();
     let mut taken = std::collections::HashSet::new();
-    let out = super::coverage::raw_intl_candidates(&lemmas, &xref, &mut taken);
+    let out = super::coverage::raw_intl_candidates(&lemmas, &mut taken);
     let noun = out
         .iter()
         .find(|c| c.pos == Pos::Noun && c.gloss == "teleportation")
@@ -1040,7 +1039,7 @@ fn raw_intl_recovers_the_teleport_family() {
         noun.form
     );
     assert_eq!(noun.langs, vec!["mk".to_string(), "pl".to_string()]);
-    assert_eq!(noun.n_branches, 2);
+    assert_eq!(noun.branch_pattern, "Z+J");
     assert!(
         !out.iter().any(|c| c.gloss.contains("grenade")),
         "gloss-divergent same-shape words must not merge"

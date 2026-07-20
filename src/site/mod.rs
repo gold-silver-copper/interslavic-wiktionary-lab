@@ -1784,16 +1784,21 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // fed to build_sets or any benchmark.
     let raw_intl = raw_corpus
         .as_ref()
-        .map(|rc| raw_intl_candidates(&rc.lemmas, &raw_plan.xref, &mut taken))
+        .map(|rc| raw_intl_candidates(&rc.lemmas, &mut taken))
         .unwrap_or_default();
     for c in &raw_intl {
-        let feats = format!("raw-intl:{}l{}b", c.langs.len(), c.n_branches);
+        // entry_id 0 is the established "no entry page" sentinel (the raw
+        // pages that attest these words are not entries.json rows, and the
+        // linguistic-logic CI guard requires nonzero ids to resolve there).
+        // The attestation evidence rides in the provenance tag, which the
+        // English API parses back out.
+        let feats = format!("raw-intl:{}l:{}", c.langs.len(), c.branch_pattern);
         for sink in [&mut lemma_sink, &mut form_sink] {
             sink.add(
                 &c.form,
                 &feats,
                 &c.form,
-                c.entry_id,
+                0,
                 c.pos.code(),
                 "lemma",
                 "generated",
@@ -1829,7 +1834,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         .iter()
         .filter_map(|e| e.frequency.map(|f| (e.id.as_str(), f)))
         .collect();
-    let mut rank_evidence: std::collections::BTreeMap<usize, crate::forms::RankEvidence> = metas
+    let rank_evidence: std::collections::BTreeMap<usize, crate::forms::RankEvidence> = metas
         .iter()
         .map(|m| {
             (
@@ -1846,18 +1851,6 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             )
         })
         .collect();
-    // Raw-intl candidates hang off raw pages (or id 0), which have no meta
-    // row — attach their own attestation evidence, always borrowed.
-    for c in &raw_intl {
-        rank_evidence
-            .entry(c.entry_id)
-            .or_insert_with(|| crate::forms::RankEvidence {
-                frequency: None,
-                langs: c.langs.len(),
-                branch_pattern: navigation::branch_pattern(&c.langs),
-                borrowed: true,
-            });
-    }
     let english_counts = english_api::write_en_api(
         out_dir,
         &lemma_records,
