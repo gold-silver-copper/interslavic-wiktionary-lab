@@ -1148,9 +1148,17 @@ for candidate discovery; the form API remains the authority for surface forms.
 
 Ranking semantics: candidates under one key are sorted best-first, and verified
 records always precede generated ones. `rank` is comparable only WITHIN one
-English key — never across keys; across keys compare `trust`/`status`. A
-`gloss-token` match means the word appeared inside a longer gloss phrase — read
-`gloss` before trusting it as a direct translation.
+English key — never across keys; across keys compare `trust`/`status`. Within
+one rank, ties break deterministically by higher `frequency`, then more
+`langs`, then lexicographically. A `gloss-token` match means the word appeared
+inside a longer gloss phrase — read `gloss` before trusting it as a direct
+translation. **Sense-note rule** (derive it client-side; the `en` CLI is the
+reference): when the FIRST verified candidate's match is `gloss-token` and an
+`exact-gloss-head`/`phrase` candidate exists anywhere in the list, the
+verified hit is likely a phrase/derived sense ('staff' → verified `načeľnik
+štaba` "chief-of-staff" above the semantically right generated `posoh`) —
+present the exact-head candidates alongside it, never take the first verified
+row blindly.
 
 ## Translation workflow (English → Interslavic)
 
