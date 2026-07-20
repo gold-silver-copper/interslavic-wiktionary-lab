@@ -321,6 +321,23 @@ fn push_key(out: &mut Vec<(String, String)>, key: String, match_kind: &str) {
     }
 }
 
+/// Deterministic content-token set of an English gloss — the SAME key
+/// extraction and stopword discipline the English index build uses
+/// ([`gloss_keys`]), flattened to single tokens. This is the overlap test
+/// behind `check-text`'s project-lexicon consistency warning (V13 item 1):
+/// two glosses "overlap" iff their token sets intersect.
+pub fn english_gloss_tokens(gloss: &str) -> std::collections::BTreeSet<String> {
+    let mut out = std::collections::BTreeSet::new();
+    for (key, _) in gloss_keys(gloss) {
+        for token in key.split_whitespace() {
+            if usable_token_key(token) {
+                out.insert(token.to_string());
+            }
+        }
+    }
+    out
+}
+
 fn key_matches(gloss: &str) -> Vec<KeyMatch> {
     gloss_keys(gloss)
         .into_iter()

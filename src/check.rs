@@ -50,6 +50,9 @@ pub struct Index {
     /// interslavic crate's curated `prepositions::PREPOSITIONS` table (which
     /// encodes the community dictionary's `(+N)` government, instrumental = +5).
     pub prep_cases: HashMap<String, Vec<&'static str>>,
+    /// Project-lexicon rows (V13 item 1), in file order; empty when no
+    /// `--lexicon` was supplied. Drives the consistency check.
+    pub lexicon: Vec<LexiconRow>,
 }
 
 /// Build the verification index from the official dictionary (lemmas + full
@@ -204,13 +207,292 @@ pub fn build_index(
         notes,
         noun_gender,
         prep_cases,
+        lexicon: Vec::new(),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Project lexicon (V13 item 1): a translation project's sanctioned coinages.
+// ---------------------------------------------------------------------------
+
+/// The documented column order of a project-lexicon TSV row.
+pub const LEXICON_COLUMNS: &str = "lemma\tpos\tgender\tanimacy\tgloss";
+
+/// One sanctioned project word: a coinage that passed `coin-check`, or an
+/// official word the project pins for a source concept. `coin-check
+/// --lexicon-row` emits exactly this row shape, so the coinage workflow
+/// chains mechanically: `coin-check → append row → check-text --lexicon`.
+#[derive(Debug, Clone)]
+pub struct LexiconRow {
+    pub lemma: String,
+    /// Folded lookup key of `lemma` ([`forms::form_key`]).
+    pub lemma_key: String,
+    /// noun | adj | verb only — the POS classes the paradigm machinery
+    /// declines in full.
+    pub pos: Pos,
+    /// Required for nouns (explicit `ISV::noun_with` control), forbidden
+    /// otherwise.
+    pub gender: Option<crate::model::Gender>,
+    pub animate: bool,
+    /// English gloss of the source concept — drives the consistency check.
+    pub gloss: String,
+    /// Content tokens of `gloss`, normalized exactly as the English API
+    /// normalizes gloss keys ([`crate::site::english_gloss_tokens`]).
+    pub gloss_tokens: std::collections::BTreeSet<String>,
+}
+
+/// Parse a project-lexicon TSV (`lemma  pos  gender  animacy  gloss`; blank
+/// lines and `#` comments skipped). Syntax errors are hard errors — a broken
+/// lexicon must not silently weaken the `check-text` gate.
+pub fn parse_lexicon(text: &str) -> Result<Vec<LexiconRow>> {
+    let mut rows: Vec<LexiconRow> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    for (idx, raw) in text.lines().enumerate() {
+        let n = idx + 1;
+        let line = raw.trim_end_matches('\r');
+        if line.trim().is_empty() || line.trim_start().starts_with('#') {
+            continue;
+        }
+        let cols: Vec<&str> = line.split('\t').collect();
+        anyhow::ensure!(
+            cols.len() == 5,
+            "lexicon line {n}: expected 5 tab-separated columns ({}), got {}",
+            LEXICON_COLUMNS.replace('\t', " "),
+            cols.len()
+        );
+        let (lemma, pos_raw, gender_raw, animacy_raw, gloss) = (
+            cols[0].trim(),
+            cols[1].trim(),
+            cols[2].trim(),
+            cols[3].trim(),
+            cols[4].trim(),
+        );
+        anyhow::ensure!(
+            !lemma.is_empty() && !lemma.contains(' '),
+            "lexicon line {n}: lemma must be one non-empty token, got '{lemma}'"
+        );
+        let pos = match pos_raw {
+            "noun" => Pos::Noun,
+            "adj" => Pos::Adjective,
+            "verb" => Pos::Verb,
+            other => anyhow::bail!("lexicon line {n}: pos must be noun|adj|verb, got '{other}'"),
+        };
+        let gender = match gender_raw {
+            "" => None,
+            "m" => Some(crate::model::Gender::Masculine),
+            "f" => Some(crate::model::Gender::Feminine),
+            "n" => Some(crate::model::Gender::Neuter),
+            other => {
+                anyhow::bail!("lexicon line {n}: gender must be m|f|n or blank, got '{other}'")
+            }
+        };
+        let animate = match animacy_raw {
+            "" => None,
+            "anim" => Some(true),
+            "inanim" => Some(false),
+            other => {
+                anyhow::bail!(
+                    "lexicon line {n}: animacy must be anim|inanim or blank, got '{other}'"
+                )
+            }
+        };
+        if pos == Pos::Noun {
+            // A project lexicon exists to control the paradigm explicitly
+            // (`ISV::noun_with`); a guessed gender would silently weaken it.
+            anyhow::ensure!(
+                gender.is_some(),
+                "lexicon line {n}: nouns must declare gender (m|f|n)"
+            );
+            anyhow::ensure!(
+                animate.is_some(),
+                "lexicon line {n}: nouns must declare animacy (anim|inanim)"
+            );
+        } else {
+            anyhow::ensure!(
+                gender.is_none() && animate.is_none(),
+                "lexicon line {n}: gender/animacy apply to nouns only"
+            );
+        }
+        anyhow::ensure!(
+            !gloss.is_empty(),
+            "lexicon line {n}: gloss must be non-empty (it drives the consistency check)"
+        );
+        let lemma_key = forms::form_key(lemma);
+        anyhow::ensure!(
+            !lemma_key.is_empty(),
+            "lexicon line {n}: lemma folds to nothing"
+        );
+        anyhow::ensure!(
+            seen.insert(lemma_key.clone()),
+            "lexicon line {n}: duplicate lemma '{lemma}' (folded '{lemma_key}')"
+        );
+        rows.push(LexiconRow {
+            lemma: lemma.to_string(),
+            lemma_key,
+            pos,
+            gender,
+            animate: animate.unwrap_or(false),
+            gloss: gloss.to_string(),
+            gloss_tokens: crate::site::english_gloss_tokens(gloss),
+        });
+    }
+    Ok(rows)
+}
+
+/// Validate one lexicon row against the built index: the row must pass
+/// coin-check's collision axis (no existing lemma or inflected form under its
+/// key) OR pin an official lemma whose POS/gender agree with the declaration.
+/// The crate's citation-form requirements (verbs cite `-ti`, adjectives
+/// `-y`/`-i`, nouns must be declinable) are enforced too. Returns `true` when
+/// the row pins an official word (its paradigm is already indexed).
+pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<bool> {
+    match row.pos {
+        Pos::Verb => {
+            anyhow::ensure!(
+                row.lemma_key.ends_with("ti"),
+                "lexicon lemma '{}': verbs must cite the -ti infinitive",
+                row.lemma
+            );
+            anyhow::ensure!(
+                forms::verb_cells(&row.lemma, false).is_some(),
+                "lexicon lemma '{}': the inflector cannot conjugate this stem",
+                row.lemma
+            );
+        }
+        Pos::Adjective => {
+            anyhow::ensure!(
+                row.lemma_key.ends_with(['y', 'i']),
+                "lexicon lemma '{}': adjectives must cite the -y/-i masculine form",
+                row.lemma
+            );
+        }
+        Pos::Noun => {
+            let declinable = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                forms::noun_paradigm_forms_with_animacy(&row.lemma, row.gender, row.animate)
+            }))
+            .is_ok();
+            anyhow::ensure!(
+                declinable,
+                "lexicon lemma '{}': the inflector cannot decline this noun",
+                row.lemma
+            );
+        }
+        _ => anyhow::bail!("lexicon lemma '{}': unsupported POS", row.lemma),
+    }
+    let Some(recs) = index.by_key.get(&row.lemma_key) else {
+        return Ok(false); // clean coinage: no collision
+    };
+    let pins: Vec<&FormRecord> = recs
+        .iter()
+        .filter(|r| {
+            matches!(r.status, "official" | "official-only" | "grammar")
+                && r.source == "lemma"
+                && forms::form_key(&r.lemma) == row.lemma_key
+        })
+        .collect();
+    if pins.is_empty() {
+        let c = &recs[0];
+        anyhow::bail!(
+            "lexicon lemma '{}' collides with existing {} {} of '{}' ({}) — run coin-check and choose another surface",
+            row.lemma,
+            c.status,
+            if c.source == "lemma" { "lemma" } else { "inflected form" },
+            c.lemma,
+            c.pos
+        );
+    }
+    // Official pin: declared metadata must not contradict the dictionary.
+    anyhow::ensure!(
+        pins.iter().any(|r| r.pos == row.pos.code()),
+        "lexicon lemma '{}' pins official '{}' but declares pos '{}' while the official word is '{}'",
+        row.lemma,
+        pins[0].lemma,
+        row.pos.code(),
+        pins[0].pos
+    );
+    if row.pos == Pos::Noun {
+        if let Some(&dict) = index.noun_gender.get(&row.lemma_key) {
+            let declared = gender_char(row.gender);
+            anyhow::ensure!(
+                dict == ' ' || declared == dict,
+                "lexicon lemma '{}' declares gender '{declared}' but the dictionary says '{dict}'",
+                row.lemma
+            );
+        }
+    }
+    Ok(true)
+}
+
+fn gender_char(g: Option<crate::model::Gender>) -> char {
+    match g {
+        Some(crate::model::Gender::Masculine) => 'm',
+        Some(crate::model::Gender::Feminine) => 'f',
+        Some(crate::model::Gender::Neuter) => 'n',
+        _ => ' ',
+    }
+}
+
+/// Validate every row and index the coinages' full paradigms (status
+/// `project`), exactly as the official paradigms are indexed — so inflected
+/// sanctioned coinages (`žabervoka`, `žabervokom`) classify instead of
+/// drowning the `--max-unknown` gate. Any invalid row is a hard error.
+pub fn apply_lexicon(index: &mut Index, rows: Vec<LexiconRow>) -> Result<()> {
+    for row in &rows {
+        let pinned = validate_lexicon_row(index, row)?;
+        if pinned {
+            continue; // the official paradigm is already indexed
+        }
+        let mut sink = RecordSink::default();
+        sink.add(
+            &row.lemma,
+            "",
+            &row.lemma,
+            0,
+            row.pos.code(),
+            "lemma",
+            "project",
+            None,
+            &row.gloss,
+        );
+        forms::project_paradigm_records(
+            &mut sink,
+            &row.lemma,
+            row.pos,
+            row.gender,
+            row.animate,
+            "project",
+            &row.gloss,
+        );
+        for r in sink.into_records() {
+            if r.source == "lemma" && r.key == row.lemma_key {
+                index.lemma_keys.push((r.key.clone(), r.lemma.clone()));
+            }
+            index.by_key.entry(r.key.clone()).or_default().push(r);
+        }
+        // Declared gender feeds the agreement checker like a dictionary
+        // gender does (same absorbing homograph logic).
+        let c = gender_char(row.gender);
+        if row.pos == Pos::Noun && c != ' ' {
+            index
+                .noun_gender
+                .entry(row.lemma_key.clone())
+                .and_modify(|known| {
+                    if *known != ' ' && *known != c {
+                        *known = ' ';
+                    }
+                })
+                .or_insert(c);
+        }
+    }
+    index.lemma_keys.sort();
+    index.lexicon = rows;
+    Ok(())
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct TokenReport {
     pub token: String,
-    /// known-lemma | known-form | generated | unknown
+    /// known-lemma | known-form | project | generated | unknown
     pub status: &'static str,
     /// Distinct lemmas this surface can belong to.
     pub lemmas: Vec<String>,
@@ -230,6 +512,10 @@ pub struct TokenReport {
     /// Grammar-agreement warning (issue #13 §3): set when NO combination of
     /// this token's analyses is compatible with its neighbour.
     pub agreement: Option<String>,
+    /// Project-lexicon consistency warning (V13 item 1): this token is a
+    /// verification-grade official word whose gloss overlaps a lexicon row
+    /// that maps the concept to a DIFFERENT lemma — register drift.
+    pub consistency: Option<String>,
 }
 
 /// Tokenize: maximal runs of letters (flavored letters are alphabetic).
@@ -357,6 +643,7 @@ fn check_tokens_impl(
                 let mut analyses: Vec<String> = Vec::new();
                 let mut is_lemma = false;
                 let mut official = false;
+                let mut project = false;
                 let mut probability: Option<f64> = None;
                 for r in rs {
                     if !lemmas.contains(&r.lemma) {
@@ -370,27 +657,40 @@ fn check_tokens_impl(
                     if r.source == "lemma" {
                         is_lemma = true;
                     }
-                    if r.status != "generated" {
-                        official = true;
-                    } else if probability.is_none() {
-                        probability = r.probability;
+                    match r.status {
+                        "generated" => {
+                            if probability.is_none() {
+                                probability = r.probability;
+                            }
+                        }
+                        "project" => project = true,
+                        _ => official = true,
                     }
                 }
-                let status = if !official {
-                    "generated"
-                } else if is_lemma {
-                    "known-lemma"
+                let status = if official {
+                    if is_lemma {
+                        "known-lemma"
+                    } else {
+                        "known-form"
+                    }
+                } else if project {
+                    "project"
                 } else {
-                    "known-form"
+                    "generated"
                 };
                 let note = index.notes.get(&matched_key);
                 TokenReport {
+                    consistency: consistency_warning(index, rs, &display),
                     token: display,
                     status,
                     ambiguous: lemmas.len() > 1,
                     lemmas,
                     analyses,
-                    probability: if official { None } else { probability },
+                    probability: if official || project {
+                        None
+                    } else {
+                        probability
+                    },
                     suggestions: Vec::new(),
                     warning: note.map(|n| n.warning.clone()),
                     severity: note.map(|n| n.severity.to_string()),
@@ -410,6 +710,7 @@ fn check_tokens_impl(
                 severity: None,
                 prefer: Vec::new(),
                 agreement: None,
+                consistency: None,
             },
         };
         grammar.push(match recs {
@@ -422,6 +723,48 @@ fn check_tokens_impl(
     }
     agreement_pass(index, &grammar, &report_breaks, &mut reports);
     reports
+}
+
+/// The project-lexicon consistency check (V13 item 1): when a token resolves
+/// to a verification-grade OFFICIAL word whose English gloss overlaps the
+/// gloss of some lexicon row, but the token's lemma is not that row's lemma,
+/// the same source concept is being rendered by two different target words —
+/// register drift across a large text. Deterministic gloss-token overlap,
+/// same normalization as the English API; fires on the first matching row in
+/// file order.
+fn consistency_warning(index: &Index, rs: &[FormRecord], display: &str) -> Option<String> {
+    if index.lexicon.is_empty() {
+        return None;
+    }
+    let official: Vec<&FormRecord> = rs
+        .iter()
+        .filter(|r| matches!(r.status, "official" | "official-only"))
+        .collect();
+    if official.is_empty() {
+        return None;
+    }
+    let lemma_keys: HashSet<String> = official.iter().map(|r| forms::form_key(&r.lemma)).collect();
+    for row in &index.lexicon {
+        if lemma_keys.contains(&row.lemma_key) {
+            continue; // the token IS the project's choice for this concept
+        }
+        for r in &official {
+            let tokens = crate::site::english_gloss_tokens(&r.gloss);
+            let shared: Vec<&str> = tokens
+                .intersection(&row.gloss_tokens)
+                .map(String::as_str)
+                .collect();
+            if !shared.is_empty() {
+                return Some(format!(
+                    "text uses '{display}' (official '{}'), but the project lexicon maps '{}' to '{}'",
+                    r.lemma,
+                    shared.join("', '"),
+                    row.lemma
+                ));
+            }
+        }
+    }
+    None
 }
 
 /// One parsed analysis: case, number ('j'=sg 'm'=pl), gender ('m','f','n',
@@ -780,6 +1123,9 @@ pub struct SummaryGate {
     /// `high` or `medium` — the word's primary sense diverges) before a
     /// nonzero exit. None = false-friend warnings never gate.
     pub max_severe_warnings: Option<usize>,
+    /// When set, maximum allowed project-lexicon consistency warnings
+    /// (V13 item 1) before a nonzero exit. None = never gate.
+    pub max_consistency: Option<usize>,
 }
 
 /// Deterministic summary of one check-text run.
@@ -789,11 +1135,16 @@ pub struct Summary {
     pub known_lemma: usize,
     pub known_form: usize,
     pub generated: usize,
+    /// Sanctioned project-lexicon words and their inflections (V13 item 1) —
+    /// counted separately, never against `--max-unknown`.
+    pub project: usize,
     pub unknown: usize,
     pub agreement_errors: usize,
     pub false_friend_warnings: usize,
     /// Warnings with severity `high`/`medium` (primary-sense traps).
     pub severe_warnings: usize,
+    /// Project-lexicon consistency warnings (register drift).
+    pub consistency_warnings: usize,
     pub passed: bool,
 }
 
@@ -805,20 +1156,26 @@ pub fn summarize(reports: &[TokenReport], gate: SummaryGate) -> Summary {
         .iter()
         .filter(|r| matches!(r.severity.as_deref(), Some("high" | "medium")))
         .count();
+    let consistency_warnings = reports.iter().filter(|r| r.consistency.is_some()).count();
     Summary {
         tokens: reports.len(),
         known_lemma: count("known-lemma"),
         known_form: count("known-form"),
         generated: count("generated"),
+        project: count("project"),
         unknown,
         agreement_errors,
         false_friend_warnings: reports.iter().filter(|r| r.warning.is_some()).count(),
         severe_warnings,
+        consistency_warnings,
         passed: unknown <= gate.max_unknown
             && agreement_errors <= gate.max_agreement
             && gate
                 .max_severe_warnings
-                .is_none_or(|max| severe_warnings <= max),
+                .is_none_or(|max| severe_warnings <= max)
+            && gate
+                .max_consistency
+                .is_none_or(|max| consistency_warnings <= max),
     }
 }
 
@@ -829,6 +1186,7 @@ pub fn summarize(reports: &[TokenReport], gate: SummaryGate) -> Summary {
 pub fn run(
     official_path: &Path,
     text_path: &Path,
+    lexicon: Option<&Path>,
     json: bool,
     gate: Option<SummaryGate>,
     warnings: bool,
@@ -839,7 +1197,12 @@ pub fn run(
     } else {
         BTreeMap::new()
     };
-    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
+    let mut index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
+    if let Some(path) = lexicon {
+        let rows = parse_lexicon(&std::fs::read_to_string(path)?)?;
+        apply_lexicon(&mut index, rows)?;
+    }
+    let index = index;
     let text = std::fs::read_to_string(text_path)?;
     let reports = check_text(&index, &text);
     let summary = gate.map(|g| summarize(&reports, g));
@@ -869,9 +1232,10 @@ pub fn run(
     let n = reports.len();
     let count = |st: &str| reports.iter().filter(|r| r.status == st).count();
     println!(
-        "check-text: {n} tokens — {} known-lemma, {} known-form, {} generated, {} unknown",
+        "check-text: {n} tokens — {} known-lemma, {} known-form, {} project, {} generated, {} unknown",
         count("known-lemma"),
         count("known-form"),
+        count("project"),
         count("generated"),
         count("unknown")
     );
@@ -897,10 +1261,20 @@ pub fn run(
                         .unwrap_or_else(|| "?".into())
                 );
             }
+            "project" => {
+                println!(
+                    "  + {:<20} project lexicon ({})",
+                    r.token,
+                    r.lemmas.join(", ")
+                );
+            }
             _ => {}
         }
         if let Some(w) = &r.agreement {
             println!("  ⚠ {:<20} {}", r.token, w);
+        }
+        if let Some(w) = &r.consistency {
+            println!("  ⇄ {:<20} {}", r.token, w);
         }
         if let Some(w) = &r.warning {
             println!(
@@ -920,13 +1294,25 @@ pub fn run(
             Some(max) => format!(", {} severe warnings (max {max})", s.severe_warnings),
             None => format!(", {} severe warnings (not gated)", s.severe_warnings),
         };
+        let consistency = match gate.unwrap().max_consistency {
+            Some(max) => format!(
+                ", {} consistency warnings (max {max})",
+                s.consistency_warnings
+            ),
+            None if !index.lexicon.is_empty() => format!(
+                ", {} consistency warnings (not gated)",
+                s.consistency_warnings
+            ),
+            None => String::new(),
+        };
         println!(
-            "summary: {} — {} unknown (max {}), {} agreement errors (max {}){severe}",
+            "summary: {} — {} unknown (max {}), {} agreement errors (max {}), {} project{severe}{consistency}",
             if s.passed { "PASS" } else { "FAIL" },
             s.unknown,
             gate.unwrap().max_unknown,
             s.agreement_errors,
             gate.unwrap().max_agreement,
+            s.project,
         );
     }
     let _ = json_escape("");
@@ -938,10 +1324,11 @@ pub fn run(
 fn fail_gate_if_needed(summary: Option<Summary>) -> Result<()> {
     match summary {
         Some(s) if !s.passed => anyhow::bail!(
-            "check-text gate failed: {} unknown token(s), {} agreement error(s), {} severe warning(s)",
+            "check-text gate failed: {} unknown token(s), {} agreement error(s), {} severe warning(s), {} consistency warning(s)",
             s.unknown,
             s.agreement_errors,
-            s.severe_warnings
+            s.severe_warnings,
+            s.consistency_warnings
         ),
         _ => Ok(()),
     }
@@ -964,6 +1351,7 @@ mod summary_tests {
             severity: None,
             prefer: Vec::new(),
             agreement: agreement.map(str::to_string),
+            consistency: None,
         }
     }
 
@@ -980,6 +1368,7 @@ mod summary_tests {
                 max_unknown: 0,
                 max_agreement: 0,
                 max_severe_warnings: None,
+                max_consistency: None,
             },
         );
         assert_eq!((strict.unknown, strict.agreement_errors), (1, 1));
@@ -990,6 +1379,7 @@ mod summary_tests {
                 max_unknown: 1,
                 max_agreement: 1,
                 max_severe_warnings: None,
+                max_consistency: None,
             },
         );
         assert!(lenient.passed);
@@ -1011,6 +1401,7 @@ mod summary_tests {
                 max_unknown: 0,
                 max_agreement: 0,
                 max_severe_warnings: None,
+                max_consistency: None,
             },
         );
         assert_eq!(ungated.severe_warnings, 1);
@@ -1021,6 +1412,7 @@ mod summary_tests {
                 max_unknown: 0,
                 max_agreement: 0,
                 max_severe_warnings: Some(0),
+                max_consistency: None,
             },
         );
         assert!(!gated.passed);
@@ -1348,6 +1740,7 @@ mod tests {
             notes: BTreeMap::new(),
             noun_gender: HashMap::new(),
             prep_cases: government,
+            lexicon: Vec::new(),
         };
         assert_eq!(suggest(&index, "domm"), vec!["dom", "doma"]);
         let dir = std::env::temp_dir().join(format!(
@@ -1396,6 +1789,144 @@ mod tests {
         assert_eq!(multi.len(), 2, "{multi:?}");
         let prez = parse_prez(&["prez.3mn.".to_string()]);
         assert_eq!(prez, vec![('3', 'm')]);
+    }
+
+    /// V13 item 1 acceptance: the committed game-text/lexicon fixture pair.
+    /// Without the lexicon the sanctioned coinage's inflections drown the
+    /// gate as `unknown`; with it they classify `project`, the pinned
+    /// official synonym raises exactly one consistency warning, and the
+    /// `--max-unknown 0` gate passes (consistency gating stays opt-in).
+    #[test]
+    fn project_lexicon_end_to_end() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let mut index = build_index(&entries, None, Default::default());
+        let text = std::fs::read_to_string("data/game-text-fixture.txt").expect("fixture");
+
+        let without: Vec<String> = check_text(&index, &text)
+            .into_iter()
+            .filter(|r| r.status == "unknown")
+            .map(|r| r.token)
+            .collect();
+        assert_eq!(
+            without,
+            ["žabervoka", "žabervoka", "Žabervok", "žabervokom"],
+            "coinage inflections must be unknown without the lexicon"
+        );
+
+        let rows = parse_lexicon(
+            &std::fs::read_to_string("data/project-lexicon-fixture.tsv").expect("lexicon"),
+        )
+        .expect("lexicon parses");
+        assert_eq!(rows.len(), 4);
+        apply_lexicon(&mut index, rows).expect("lexicon validates");
+
+        let reps = check_text(&index, &text);
+        for tok in ["žabervoka", "Žabervok", "žabervokom"] {
+            let rep = reps.iter().find(|r| r.token == tok).unwrap();
+            assert_eq!(rep.status, "project", "{tok}");
+            assert_eq!(rep.lemmas, ["žabervok"]);
+            assert!(!rep.analyses.is_empty(), "{tok} carries analyses");
+        }
+        // Masc-ANIMATE accusative: the declared animacy must reach the
+        // inflector (žabervoka = gen-shaped accusative).
+        let acc = reps.iter().find(|r| r.token == "žabervoka").unwrap();
+        assert!(
+            acc.analyses.iter().any(|a| a.contains("akuz.jd.")),
+            "animate accusative missing: {:?}",
+            acc.analyses
+        );
+        assert!(reps.iter().all(|r| r.status != "unknown"));
+
+        let consistency: Vec<&TokenReport> =
+            reps.iter().filter(|r| r.consistency.is_some()).collect();
+        assert_eq!(consistency.len(), 1, "exactly the praksa token drifts");
+        assert_eq!(consistency[0].token, "praksa");
+        let msg = consistency[0].consistency.as_deref().unwrap();
+        assert!(
+            msg.contains("praktika") && msg.contains("practice"),
+            "{msg}"
+        );
+
+        let gate = SummaryGate {
+            max_unknown: 0,
+            max_agreement: 0,
+            max_severe_warnings: None,
+            max_consistency: None,
+        };
+        let s = summarize(&reps, gate);
+        assert!(s.passed, "{s:?}");
+        assert_eq!((s.project, s.unknown, s.consistency_warnings), (4, 0, 1));
+        let gated = summarize(
+            &reps,
+            SummaryGate {
+                max_consistency: Some(0),
+                ..gate
+            },
+        );
+        assert!(!gated.passed, "consistency gate must fire when requested");
+    }
+
+    /// V13 item 1: a broken lexicon is a hard error, never a silent
+    /// weakening of the gate — syntax, crate-requirement, collision, and
+    /// official-pin contradictions all reject.
+    #[test]
+    fn lexicon_validation_rejects_broken_rows() {
+        // Syntax layer.
+        for (row, why) in [
+            ("žabervok\tnoun\tm\tanim", "4 columns"),
+            ("žabervok\tpron\tm\tanim\tjabberwock", "unsupported pos"),
+            ("žabervok\tnoun\t\tanim\tjabberwock", "noun without gender"),
+            ("žabervok\tnoun\tm\t\tjabberwock", "noun without animacy"),
+            ("žabervočiti\tverb\tm\t\tto jabberwock", "gender on a verb"),
+            ("žabervok\tnoun\tm\tanim\t", "empty gloss"),
+            (
+                "žabervok\tnoun\tm\tanim\tjabberwock\nžabervok\tnoun\tm\tanim\tjabberwock",
+                "duplicate lemma",
+            ),
+        ] {
+            assert!(parse_lexicon(row).is_err(), "must reject: {why}");
+        }
+        // Valid adj/verb coinage rows parse and validate (no gender columns).
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None, Default::default());
+        let ok = parse_lexicon(
+            "žabervočny\tadj\t\t\tjabberwockian\nžabervočiti\tverb\t\t\tto jabberwock",
+        )
+        .expect("valid rows");
+        for row in &ok {
+            assert!(!validate_lexicon_row(&index, row).expect("validates"));
+        }
+        // Semantic layer, against the real index.
+        for semantic in [
+            (
+                "vodami\tnoun\tf\tinanim\twater",
+                "collides with an official inflected form",
+            ),
+            (
+                "pravy\tnoun\tm\tinanim\tright",
+                "pins official 'pravy' with a contradictory POS",
+            ),
+            (
+                "voda\tnoun\tm\tinanim\twater",
+                "pins official 'voda' with a contradictory gender",
+            ),
+            (
+                "krva\tverb\t\t\tto bleed",
+                "verb must cite the -ti infinitive",
+            ),
+            ("žabervok\tadj\t\t\tjabberwocky", "adjective must end -y/-i"),
+        ] {
+            let rows = parse_lexicon(semantic.0).expect("syntax ok");
+            assert!(
+                validate_lexicon_row(&index, &rows[0]).is_err(),
+                "must reject: {}",
+                semantic.1
+            );
+        }
+        // The official PIN path: voda with the dictionary's own gender is
+        // accepted and marked pinned (no project paradigm re-indexed).
+        let pin = parse_lexicon("voda\tnoun\tf\tinanim\twater").unwrap();
+        assert!(validate_lexicon_row(&index, &pin[0]).expect("pin validates"));
     }
 
     #[test]

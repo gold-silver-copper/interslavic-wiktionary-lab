@@ -215,6 +215,16 @@ enum Command {
         /// (severity high/medium) exceed this count.
         #[arg(long)]
         max_severe_warnings: Option<usize>,
+        /// Project-lexicon TSV (lemma pos gender animacy gloss): sanctioned
+        /// coinages classify as `project` (full paradigms, so their inflected
+        /// forms stop drowning --max-unknown), and official synonyms of a
+        /// row's gloss trigger consistency warnings (V13 item 1).
+        #[arg(long)]
+        lexicon: Option<PathBuf>,
+        /// With --summary: fail when project-lexicon consistency warnings
+        /// exceed this count (requires --lexicon).
+        #[arg(long)]
+        max_consistency: Option<usize>,
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
     },
@@ -362,6 +372,8 @@ fn main() -> Result<()> {
             max_agreement,
             no_warnings,
             max_severe_warnings,
+            lexicon,
+            max_consistency,
             official,
         } => {
             // A severity gate over warnings that were never computed would
@@ -371,14 +383,23 @@ fn main() -> Result<()> {
                 !(no_warnings && max_severe_warnings.is_some()),
                 "--max-severe-warnings needs the false-friend computation; drop --no-warnings"
             );
+            // Same fail-closed rule: a consistency gate without a lexicon
+            // would pass vacuously.
+            anyhow::ensure!(
+                !(max_consistency.is_some() && lexicon.is_none()),
+                "--max-consistency needs a project lexicon; pass --lexicon <file>"
+            );
+            forms::install_cli_quiet_inflection_hook();
             check::run(
                 &official,
                 &file,
+                lexicon.as_deref(),
                 json,
                 summary.then_some(check::SummaryGate {
                     max_unknown,
                     max_agreement,
                     max_severe_warnings,
+                    max_consistency,
                 }),
                 !no_warnings,
             )

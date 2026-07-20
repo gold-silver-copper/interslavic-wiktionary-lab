@@ -455,6 +455,14 @@ cargo run --release -- check-text tekst.txt --json
 # CI gate: summary + nonzero exit when unknown tokens / agreement errors
 # exceed the (default 0) thresholds:
 cargo run --release -- check-text tekst.txt --summary --max-unknown 0
+# Translation-project mode (V13): a project-lexicon TSV
+# (lemma  pos  gender  animacy  gloss; see the agent guide) declines each
+# sanctioned coinage in full and classifies its tokens `project`, so game
+# text full of runtime-inflected coinages still gates on --max-unknown 0;
+# official synonyms of a row's gloss raise `consistency` warnings
+# (register drift), gate them with --max-consistency N:
+cargo run --release -- check-text tekst.txt --summary --max-unknown 0 \
+  --lexicon project-lexicon.tsv
 
 # English → Interslavic lookup against a prior export's static API — the
 # reference client for the documented normalization/routing/retry ladder:
