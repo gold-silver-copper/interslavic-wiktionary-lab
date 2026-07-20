@@ -731,7 +731,7 @@ pub(super) struct ProposalRow {
 /// data/novel-words.tsv; the page shows the propose bucket plus counts.
 pub(super) fn proposals_page(
     proposals: &[ProposalRow],
-    calibration: Option<&crate::calibrate::Calibration>,
+    calibration: Option<&crate::calibrate::CorpusCalibration>,
     curation: &std::collections::HashMap<String, String>,
 ) -> String {
     let propose_t = crate::calibrate::PROPOSE_T;

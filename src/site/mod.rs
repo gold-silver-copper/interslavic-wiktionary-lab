@@ -470,10 +470,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // by `corpus-eval --fit` on the dev split and holdout-validated), loaded
     // with a machine-checked score domain. Absent file → the V10 fail-closed
     // posture (null probabilities, proposals paused) remains.
-    let calibration: Option<crate::calibrate::Calibration> =
-        crate::calibrate::Calibration::load_for_domain(
+    let calibration: Option<crate::calibrate::CorpusCalibration> =
+        crate::calibrate::CorpusCalibration::load_for_domain(
             Path::new(crate::calibrate::CORPUS_CALIBRATION_PATH),
-            crate::calibrate::CORPUS_COVERAGE_SCORE_DOMAIN,
+            crate::calibrate::CORPUS_BANDED_DOMAIN,
         )?;
     match &calibration {
         Some(cal) => println!(
@@ -790,7 +790,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         // (`prob` = None, like official-only pages — entries.json emits null,
         // matching the API posture). The calibrated PRIOR is kept separately
         // for the provenance transparency line only (issue #86).
-        let prior = calibration.as_ref().map(|c| c.probability(p.g.score));
+        let prior = calibration
+            .as_ref()
+            .map(|c| c.probability(p.g.score, p.g.n_langs));
         let mut meta = entry_meta(SiteEntryInput {
             id: p.id,
             title: &p.display,
@@ -1549,7 +1551,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         let Some(cal) = calibration.as_ref() else {
             continue;
         };
-        let prob = cal.probability(p.g.score);
+        let prob = cal.probability(p.g.score, p.g.n_langs);
         if prob >= crate::calibrate::REVIEW_T {
             // V12 item 3: a proposal one edit away from a gloss+POS-matched
             // official byform is a reconstruction near-miss, not a novel
@@ -1660,7 +1662,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             ),
         };
         let prob = if status == "generated" {
-            calibration.as_ref().map(|c| c.probability(p.g.score))
+            calibration
+                .as_ref()
+                .map(|c| c.probability(p.g.score, p.g.n_langs))
         } else {
             None
         };
@@ -2070,7 +2074,16 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     )?;
     std::fs::write(
         out_dir.join("metrics.html"),
-        metrics_page(calibration.as_ref()),
+        // The metrics page documents the PIPELINE calibrator
+        // (score-calibration.json) — not the corpus one (a V11 wiring slip
+        // had it rendering corpus fit stats under the pipeline heading).
+        metrics_page(
+            crate::calibrate::Calibration::load_for_domain(
+                Path::new(crate::calibrate::PATH),
+                crate::calibrate::PIPELINE_SCORE_DOMAIN,
+            )?
+            .as_ref(),
+        ),
     )?;
 
     // Dataset-coverage page (issue #35): documents which Slavic-Wiktionary datasets

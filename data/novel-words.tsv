@@ -1,287 +1,165 @@
 form	pos	probability	bucket	ancestor	n_langs	n_branches	gloss	classification	official
-Dunav	proper_noun	0.428	pregled	*Dunavь	8	3	Danube (a river in Europe; flowing 2,850 kilometers from the confluence of the B	novel	
-jabluko	noun	0.428	pregled	*ablъko	9	3	apple	near-official	jablȯko
-blha	noun	0.428	pregled	*blъxa	11	3	flea	near-official	blȯha
-bogyni	noun	0.428	pregled	*bogyni	8	3	goddess	near-official	bogynja
-bojati	verb	0.428	pregled	*bojati	7	3	to fear, to be afraid	novel	
-brånj	noun	0.428	pregled	*bornь	7	3	defence, defense	near-official	obråna
-bry	noun	0.428	pregled	*bry	9	3	eyebrow	near-official	brȯv
-cŕky	noun	0.428	pregled	*cьrky	9	3	church	near-official	crkva
-dynja	noun	0.428	pregled	*dyňa	7	3	melon	novel	
-deska	noun	0.428	pregled	*dъska	7	3	board, plank	near-official	dȯska
-dći	noun	0.428	pregled	*dъ̏ťi	7	3	daughter	near-official	dȯći
-gať	noun	0.428	pregled	*gatь	8	3	a causeway through swamps, made from logs or brushwood, a corduroy road	novel	
-glytati	verb	0.428	pregled	*glъtati	7	3	to swallow	near-official	gȯltati
-godina	noun	0.428	pregled	*godina	11	3	hour	novel	
-grånostaj	noun	0.428	pregled	*gornostajь	7	3	stoat, ermine (Mustela erminea)	near-official	gronostaj
-gorny	adj	0.428	pregled	*gorьnъ	7	3	upper, top	novel	
-greby	noun	0.428	pregled	*greby	7	3	ridge	novel	
-gręda	noun	0.428	pregled	*gręda	7	3	beam	novel	
-jako	conj	0.428	pregled	*jako	9	3	if	novel	
-juha	noun	0.428	pregled	*juxa	8	3	soup	near-official	supa
-istaba	noun	0.428	pregled	*jьstъba	8	3	room	novel	
-iti	verb	0.428	pregled	*jьti	10	3	to go	novel	
-kamy	noun	0.428	pregled	*kamy	11	3	stone	novel	
-kašȯlj	noun	0.428	pregled	*kaš(ь)ľь	7	3	cough	near-official	kašelj
-kašȯljati	verb	0.428	pregled	*kašьľati	7	3	to cough	near-official	kašljati
-kory	noun	0.428	pregled	*kory	10	3	root	novel	
-košara	noun	0.428	pregled	*košara	7	3	sheepfold	novel	
-kremy	noun	0.428	pregled	*kremy	9	3	flint	novel	
-knęgyni	noun	0.428	pregled	*kъnęgyni	7	3	princess	near-official	knęgynja
-leći	verb	0.428	pregled	*leťi	9	3	to lie down	near-official	legti
-ličiti	verb	0.428	pregled	*ličiti	8	3	to count (to recite numbers in sequence)	novel	
-lųg	noun	0.428	pregled	*lǫgъ	8	3	meadow	near-official	lųka
-majati	verb	0.428	pregled	*majati	7	3	to exhaust, to harass	near-official	umarjati
-mrěti	verb	0.428	pregled	*merti	9	3	to die	near-official	umrěti
-moliti	verb	0.428	pregled	*modliti	8	3	to pray	novel	
-mråv	noun	0.428	pregled	*morvъ	12	3	ant	near-official	mråvka
-moći	verb	0.428	pregled	*moťi	9	3	can, be able to	near-official	mogti
-mrky	noun	0.428	pregled	*mъrky	11	3	carrot	near-official	mrkva
-najiti	verb	0.428	pregled	*najьti	7	3	to find	near-official	najdti
-obuti	verb	0.428	pregled	*obuti	7	3	to put on (socks, stockings, footwear)	novel	
-ognj	noun	0.428	pregled	*ogňь	12	3	fire	near-official	ogȯnj
-låbųď	noun	0.428	pregled	*olbǫdь	7	3	swan	near-official	labęď
-låni	adv	0.428	pregled	*olni	8	3	last year	near-official	lanji
-låčny	adj	0.428	pregled	*òlčьnъ	7	3	greedy	novel	
-oloha	noun	0.428	pregled	*olьxa	9	3	alder	near-official	oljha
-råť	noun	0.428	pregled	*ortь	7	3	war	novel	
-otava	noun	0.428	pregled	*otava	10	3	aftergrass, aftermath; grass that comes up after mowing	near-official	trava
-ovoće	noun	0.428	pregled	*ovoťe	9	3	fruit	near-official	ovoć
-palica	noun	0.428	pregled	*palica	9	3	mace (weapon)	near-official	palka
-pastyrj	noun	0.428	pregled	*pastyřь	9	3	shepherd	near-official	pastyŕ
-pazduha	noun	0.428	pregled	*pazduxa	7	3	armpit	novel	
-plěn	noun	0.428	pregled	*pelnъ	7	3	captivity, custody	novel	
-prěpel	noun	0.428	pregled	*perpelъ	8	3	quail	novel	
-pečať	noun	0.428	pregled	*pečatь	7	3	seal (an official pattern)	novel	
-peći	verb	0.428	pregled	*peťi	9	3	to bake	near-official	pekti
-pitje	noun	0.428	pregled	*pitьje	8	3	drink, beverage	novel	
-pleće	noun	0.428	pregled	*pleťe	9	3	shoulder	novel	
-plyti	verb	0.428	pregled	*plyti	7	3	to swim	near-official	plyvti
-plåmy	noun	0.428	pregled	*polmy	9	3	flame	novel	
-plånina	noun	0.428	pregled	*polnina	7	3	mountain	novel	
-post	noun	0.428	pregled	*postъ	7	3	fast (period of restricted eating)	novel	
-prijti	verb	0.428	pregled	*prijьti	7	3	to come (to), to arrive (at)	near-official	prijdti
-pustyni	noun	0.428	pregled	*pustyni	8	3	desert	near-official	pustynja
-pěsnj	noun	0.428	pregled	*pěsnь	10	3	song	near-official	pěsnja
-pěti	verb	0.428	pregled	*pěti	8	3	to sing	near-official	pěvati
-papėr	noun	0.428	pregled	*pьpьrь	10	3	pepper (including sweet peppers, chilis as well as black pepper)	novel	
-pŕsty	noun	0.428	pregled	*pьrsty	11	3	ring	novel	
-remy	noun	0.428	pregled	*remy	9	3	belt; strap	novel	
-reći	verb	0.428	pregled	*reťi	7	3	to say	near-official	rěkti
-rȯt	noun	0.428	pregled	*rъtъ	7	3	mouth	novel	
-rzati	verb	0.428	pregled	*rъzati	8	3	to neigh	novel	
-rȯž	noun	0.428	pregled	*rъžь	11	3	rye	novel	
-slověnin	noun	0.428	pregled	*slověninъ	11	3	Slav	near-official	Slovjanin
-slza	noun	0.428	pregled	*slьza	11	3	tear	near-official	sȯlza
-smijati	verb	0.428	pregled	*smьjati	11	3	to laugh	novel	
-snop	noun	0.428	pregled	*snopъ	8	3	sheaf (bundle of grain or straw)	novel	
-som	noun	0.428	pregled	*somъ	9	3	catfish	novel	
-sråka	noun	0.428	pregled	*sorka	8	3	magpie	novel	
-soha	noun	0.428	pregled	*soxa	7	3	branching tree	novel	
-stegno	noun	0.428	pregled	*stegno	7	3	thigh	novel	
-strići	verb	0.428	pregled	*striťi	10	3	to cut (hair, fur, grass, etc.), to shear, to clip, to trim	near-official	strigti
-strųk	noun	0.428	pregled	*strǫkъ	7	3	waist	novel	
-sukno	noun	0.428	pregled	*sukno	8	3	cloth, broadcloth (a dense, smooth woolen or (rarely) cotton fabric)	novel	
-svŕč	noun	0.428	pregled	*svьrčь	7	3	cricket (insect)	near-official	svŕček
-sypati	verb	0.428	pregled	*sypati	7	3	to sprinkle a granular substance	near-official	nasypati
-sěnj	noun	0.428	pregled	*sěnь	8	3	shadow	near-official	stěnj
-sěsti	verb	0.428	pregled	*sěsti	9	3	to sit down	near-official	snesti
-sěći	verb	0.428	pregled	*sěťi	9	3	to cut, chop, chip, hew	near-official	sěkti
-sųdi	noun	0.428	pregled	*sǫdì	8	3	judge	near-official	sųďja
-sŕdece	noun	0.428	pregled	*sьrdьce	10	3	heart	near-official	sŕdce
-sŕhy	noun	0.428	pregled	*sьrxy	9	3	hornet	novel	
-sčava	noun	0.428	pregled	*sьčava	9	3	tanning liquor	novel	
-tlěći	verb	0.428	pregled	*telťi	7	3	to beat, thrash	novel	
-tesla	noun	0.428	pregled	*tesla	7	3	adze (cutting tool)	novel	
-teta	noun	0.428	pregled	*teta	7	3	aunt	near-official	tetka
-teći	verb	0.428	pregled	*teťi	9	3	to flow, to run, to stream, to move	near-official	tekti
-togyda	adv	0.428	pregled	*togъda	7	3	then, at that time	near-official	tȯgda
-topolj	noun	0.428	pregled	*topolь	7	3	poplar, any tree of the genus Populus	near-official	topolja
-topor	noun	0.428	pregled	*toporъ	9	3	axe	novel	
-trųt	noun	0.428	pregled	*trǫtъ	8	3	drone (male bee)	novel	
-tur	noun	0.428	pregled	*tȗrъ	7	3	aurochs	novel	
-tvar	noun	0.428	pregled	*tvarь	8	3	face	novel	
-tyky	noun	0.428	pregled	*tyky	7	3	pumpkin	near-official	tykva
-těmę	noun	0.428	pregled	*těmę	7	3	crown of the head	novel	
-tkač	noun	0.428	pregled	*tъkačь	7	3	weaver	novel	
-strčati	verb	0.428	pregled	*(s)tъrčati	7	3	to run	novel	
-ulij	noun	0.428	pregled	*ulьjь	8	3	hive, beehive	near-official	ulja
-upȯvati	verb	0.428	pregled	*upъvati	7	3	to hope	novel	
-vaditi	verb	0.428	pregled	*vaditi	7	3	to take out, draw (something from somewhere)	near-official	naliti
-var	noun	0.428	pregled	*vȃrъ	9	3	heat	near-official	žar
-vlěći	verb	0.428	pregled	*velťi	10	3	to drag, to haul, to draw	near-official	vlěkti
-vlåh	noun	0.428	pregled	*volxъ	9	3	Italian (person)	novel	
-věđa	noun	0.428	pregled	*věďa	7	3	eyelid	novel	
-vśųdu	adv	0.428	pregled	*vьśǫdu	8	3	everywhere	novel	
-hrbėt	noun	0.428	pregled	*xrьbьtъ	12	3	spine, backbone	near-official	hrebet
-zelje	noun	0.428	pregled	*zelьje	7	3	cabbage	novel	
-zmij	noun	0.428	pregled	*zmьjь	8	3	dragon	novel	
-zråk	noun	0.428	pregled	*zorkъ	8	3	air	novel	
-čapja	noun	0.428	pregled	*čapľa	10	3	heron	near-official	čaplja
-črěšnja	noun	0.428	pregled	*čèršьňa	10	3	sweet cherry (fruit and tree)	near-official	čerešnja
-četa	noun	0.428	pregled	*četa	7	3	troop, squad, host	novel	
-čųbėr	noun	0.428	pregled	*čǫbьrъ	7	3	savory (Satureja gen. et spp.)	novel	
-čolověk	noun	0.428	pregled	*čьlověkъ	8	3	man, person	novel	
-jęčmy	noun	0.428	pregled	*ęčьmy	10	3	barley	novel	
-rjuti	verb	0.428	pregled	*řuti	7	3	to roar	near-official	revti
-šilo	noun	0.428	pregled	*šidlo	8	3	awl	novel	
-ščuka	noun	0.428	pregled	*ščùka	8	3	pike (fish)	novel	
-žrělo	noun	0.428	pregled	*žerdlo	9	3	pharynx	novel	
-žȯlna	noun	0.428	pregled	*žьlna	9	3	green woodpecker (Picus viridis)	novel	
-žvati	verb	0.428	pregled	*žьvati	7	3	to chew	near-official	žuvati
-vųglj	noun	0.428	pregled	*ǫglь	8	3	coal, charcoal	near-official	vųgȯlj
-vųgorj	noun	0.428	pregled	*ǫgořь	9	3	eel	near-official	vųgoŕ
-vųs	noun	0.428	pregled	*ǫsъ	8	3	moustache	near-official	vųsy
-vųtroba	noun	0.428	pregled	*ǫtroba	10	3	liver	near-official	vųtråba
-kit	noun	0.428	pregled	grc κῆτος	7	3	whale	near-official	kyt
-aleksandr	proper_noun	0.428	pregled	grc Ἀλέξανδρος	8	3	a female given name from Ancient Greek, equivalent to English Alexandra	novel	
-bant	noun	0.428	pregled	en band	7	3	band (group of musicians)	novel	
-basejn	noun	0.428	pregled	fr bassin	7	3	swimming pool	near-official	basen
-blųg	noun	0.428	pregled	en blog	7	3	blog	near-official	blog
-bula	noun	0.428	pregled	la bulla	7	3	a Muslim woman in harem pants or covered with a headscarf	novel	
-bulon	noun	0.428	pregled	fr bouillon	7	3	bouillon	near-official	buljon
-cebula	noun	0.428	pregled	la-lat cepulla	8	3	onion (Allium cepa)	near-official	cibulja
-ceh	noun	0.428	pregled	gmh zeichen	8	3	guild	novel	
-cil	noun	0.428	pregled	gmh zil	7	3	aim, goal, purpose	near-official	cělj
-dajk	noun	0.428	pregled	grc διάκος	8	3	pupil (in school)	novel	
-egipet	proper_noun	0.428	pregled	la Aegyptus	7	3	Egypt (a country in North Africa and West Asia)	novel	
-ivan	proper_noun	0.428	pregled	grc Ἰωάννης	8	3	a male given name, Ivan, equivalent to English John	novel	
-jura	proper_noun	0.428	pregled	la Geōrgius	7	3	Jura (a mountain range on the border of France and Switzerland, extending into G	novel	
-kabel	noun	0.428	pregled	la capulum	7	3	cable	near-official	kabelj
-klaster	noun	0.428	pregled	en cluster	8	3	cluster	novel	
-kana	noun	0.428	pregled	ota قنا	7	3	henna (Lawsonia inermis) (shrub; dye)	novel	
-kula	noun	0.428	pregled	ota قله	7	3	tower	novel	
-lidr	noun	0.428	pregled	en leader	7	3	leader	near-official	lider
-lira	noun	0.428	pregled	la lībra	7	3	lira	novel	
-madar	noun	0.428	pregled	hu magyar	8	3	Hungarian (person)	near-official	Madjar
-miting	noun	0.428	pregled	en meeting	7	3	rally, mass-meeting (a demonstration; an event where people gather together to p	novel	
-nika	proper_noun	0.428	pregled	grc Νίκη	7	3	Nike	novel	
-paštet	noun	0.428	pregled	de Pastete	8	3	pâté	novel	
-racija	noun	0.428	pregled	la ratiō	8	3	police raid	novel	
-sos	noun	0.428	pregled	la salsus	7	3	sauce	novel	
-sendvič	noun	0.428	pregled	en sandwich	7	3	sandwich	novel	
-spirt	noun	0.428	pregled	la spīritus	7	3	alcohol, spirits	novel	
-sura	noun	0.428	pregled	ar سُورَة	7	3	sura (any of the 114 chapters of the Quran)	novel	
-tur	noun	0.428	pregled	la turris	8	3	prison, jail	novel	
-Bogdan	proper_noun	0.360	pregled	*Bogъdanъ	6	3	a male given name, Bogdan	novel	
-Mokoš	proper_noun	0.360	pregled	*Mokošь	9	2	Mokosh	novel	
-Vlådiměr	proper_noun	0.360	pregled	*Voldiměrъ	6	3	a male given name	novel	
-jagnėc	noun	0.360	pregled	*agnьcь	6	3	lamb	near-official	jagnę
-javiti	verb	0.360	pregled	*aviti	6	3	to inform, notify, let know	novel	
-bråv	noun	0.360	pregled	*borvъ	6	3	male sheep or goat	novel	
-bråšno	noun	0.360	pregled	*boršьno	6	3	flour	novel	
-běžati	verb	0.360	pregled	*běžati	6	3	to flee, run away	near-official	běgati
-divizna	noun	0.360	pregled	*divizna	6	3	mullein (Verbascum gen. et spp.)	novel	
-dvorėc	noun	0.360	pregled	*dvorьcь	6	3	castle	novel	
-drati	verb	0.360	pregled	*dьràti	6	3	to tear, pull apart	near-official	drěti
-goditi	verb	0.360	pregled	*goditi	6	3	to shoot (from a gun)	novel	
-gråditi	verb	0.360	pregled	*gorditi	6	3	to build	novel	
-geslo	noun	0.360	pregled	*gъslo	6	3	password	novel	
-jisty	adj	0.360	pregled	*jistъ	6	3	same	novel	
-ivȯlga	noun	0.360	pregled	*jьvьlga	6	3	oriole	near-official	vȯlga
-klepati	verb	0.360	pregled	*klepati	6	3	to rivet	novel	
-kråp	noun	0.360	pregled	*korpъ	6	3	carp	near-official	karaś
-kotiti	verb	0.360	pregled	*kotiti	6	3	to roll, to push (some object with wheels)	novel	
-kruh	noun	0.360	pregled	*kruxъ	6	3	bread	novel	
-kųdr	noun	0.360	pregled	*kǫdrь	6	3	curl (lock of curling hair)	near-official	kųdeŕ
-kudunja	noun	0.360	pregled	*kъduňa	6	3	quince (tree and fruit)	novel	
-matka	noun	0.360	pregled	*matъka	6	3	mother	near-official	mati
-měniti	verb	0.360	pregled	*měniti	6	3	to consider, to regard (something as something else)	novel	
-nevod	noun	0.360	pregled	*nevodъ	6	3	seine	novel	
-něga	noun	0.360	pregled	*něga	6	3	care, nursing	novel	
-obćina	noun	0.360	pregled	*obьťina	6	3	county district, commune	novel	
-obėći	adj	0.360	pregled	*obьťь	6	3	common	near-official	obći
-odr	noun	0.360	pregled	*odrъ	6	3	bed	novel	
-paųčina	noun	0.360	pregled	*paǫčina	6	3	cobweb	novel	
-pelyn	noun	0.360	pregled	*pelynъ	6	3	artemisia (Artemisia gen. et spp.), especially	novel	
-piščalj	noun	0.360	pregled	*piščalь	6	3	shepherd's pipe	novel	
-plaviti	verb	0.360	pregled	*plaviti	6	3	to melt, to fuse	novel	
-pliska	noun	0.360	pregled	*pliska	6	3	wagtail (any bird of the genus Motacilla)	novel	
-pobratim	noun	0.360	pregled	*pobratimъ	6	3	blood brother	novel	
-pråm	noun	0.360	pregled	*pormъ	6	3	ferry	novel	
-prěsny	adj	0.360	pregled	*prěsnъ	6	3	raw (of food)	novel	
-pųto	noun	0.360	pregled	*pǫto	6	3	fetter	novel	
-pȯlsť	noun	0.360	pregled	*pьlstь	6	3	felt (textile material)	novel	
-pŕga	noun	0.360	pregled	*pьrga	6	3	beebread	novel	
-rinųti	verb	0.360	pregled	*rinǫti	6	3	to push	near-official	phnųti
-ręditi	verb	0.360	pregled	*ręditi	6	3	to ordain (that), to lay down the law	near-official	rušiti
-rųgati	verb	0.360	pregled	*rǫgati	6	3	to mock, make fun of	novel	
-sanj	noun	0.360	pregled	*sanь	6	3	sledge, sleigh, sled (a vehicle on runners, used for conveying loads over the sn	near-official	sanje
-slånina	noun	0.360	pregled	*solnina	6	3	bacon	novel	
-spěti	verb	0.360	pregled	*spěti	6	3	to have time, to find time	near-official	iměti
-stepy	noun	0.360	pregled	*stepy	6	3	degree	novel	
-strup	noun	0.360	pregled	*strupъ	6	3	scab	novel	
-svętyni	noun	0.360	pregled	*svętyni	6	3	shrine	novel	
-svěćnik	noun	0.360	pregled	*svěťьnikъ	6	3	candlestick, candelabrum	novel	
-syry	adj	0.360	pregled	*syrъ	6	3	damp, moist	novel	
-syjėm	noun	0.360	pregled	*sъjьmъ	6	3	fair, exhibition, market	novel	
-snęti	verb	0.360	pregled	*sъnęti	6	3	to take off, to take away, to take down	near-official	sjęti
-trěbiti	verb	0.360	pregled	*terbiti	6	3	to shell, husk	novel	
-tetrěv	noun	0.360	pregled	*tetervь	6	3	grouse	novel	
-tis	noun	0.360	pregled	*tisъ	6	3	yew (tree or wood)	near-official	lěs
-tysųti	noun	0.360	pregled	*tysǫti	6	3	thousand	novel	
-utěha	noun	0.360	pregled	*utěxa	6	3	fun, amusement	novel	
-vir	noun	0.360	pregled	*virъ	6	3	whirlpool	novel	
-volny	adj	0.360	pregled	*volьnъ	6	3	willing	novel	
-vråny	adj	0.360	pregled	*vornъ	6	3	black, raven-colored	near-official	črny
-vråžda	noun	0.360	pregled	*voržьda	6	3	enmity, hostility	novel	
-vyknųti	verb	0.360	pregled	*vyknǫti	6	3	to get used to	near-official	moknųti
-vyś	noun	0.360	pregled	*vysь	6	3	height	novel	
-vȯlčiji	adj	0.360	pregled	*vьlčьjь	6	3	wolfish, wolf's, lupine	novel	
-vŕšiti	verb	0.360	pregled	*vьršiti	6	3	to manage, to control, to direct, to do, to accomplish	near-official	sȯvŕšiti
-hlåp	noun	0.360	pregled	*xolpъ	7	2	serf, bondman, kholop	novel	
-hvråst	noun	0.360	pregled	*xvorstъ	6	3	oak (tree)	novel	
-hyža	noun	0.360	pregled	*xyža	6	3	pantry, larder, storeroom, cellar	novel	
-zob	noun	0.360	pregled	*zobь	6	3	oat	novel	
-zloděj	noun	0.360	pregled	*zъlodějь	6	3	thief	novel	
-šip	noun	0.360	pregled	*šipъ	6	3	thorn, spine	novel	
-ščir	noun	0.360	pregled	*ščirъ	6	3	amaranth (Amaranthus gen. et spp.)	novel	
-žezl	noun	0.360	pregled	*žezlъ	6	3	sceptre	novel	
-čao	intj	0.360	pregled	it ciao	6	3	bye	novel	
-pop	noun	0.360	pregled	grc πάπας	6	3	priest	novel	
-rom	noun	0.360	pregled	rom rrom	6	3	rum	near-official	rum
-oleg	proper_noun	0.360	pregled	non Helgi	6	3	a male given name	novel	
-aleksej	proper_noun	0.360	pregled	grc Ἀλέξιος	6	3	a male given name from Ancient Greek, equivalent to English Alexius	novel	
-aljaska	proper_noun	0.360	pregled	ale alaxsxaq	6	3	Alaska (a state of the United States, formerly a territory)	novel	
-ansambl	noun	0.360	pregled	fr ensemble	6	3	ensemble	novel	
-aristotel	proper_noun	0.360	pregled	grc Ἀριστοτέλης	6	3	Aristotle	novel	
-atelje	noun	0.360	pregled	fr atelier	6	3	studio, atelier	novel	
-barka	noun	0.360	pregled	la-lat barca	6	3	launch (a big rowing boat)	novel	
-beži	adj	0.360	pregled	fr beige	6	3	beige	novel	
-brigada	noun	0.360	pregled	fr brigade	6	3	part-time job	novel	
-brindza	noun	0.360	pregled	ro brânză	6	3	bryndza	novel	
-bordel	noun	0.360	pregled	la-med bordellum	6	3	brothel	near-official	bordelj
-buro	noun	0.360	pregled	fr bureau	6	3	office, bureau, agency	novel	
-debut	noun	0.360	pregled	fr début	6	3	debut	near-official	debjut
-depo	noun	0.360	pregled	fr dépôt	6	3	depot	novel	
-žanr	noun	0.360	pregled	fr genre	6	3	genre	novel	
-irena	proper_noun	0.360	pregled	grc Εἰρήνη	6	3	a female given name, Irina, from Ancient Greek, equivalent to English Irene	novel	
-flauta	noun	0.360	pregled	it flauto	6	3	flute	near-official	flejta
-fotelj	noun	0.360	pregled	fr fauteuil	6	3	armchair	novel	
-guru	noun	0.360	pregled	sa गुरु	6	3	guru	novel	
-adam	proper_noun	0.360	pregled	he אָדָם	6	3	Adam (the first man and the progenitor of the human race)	novel	
-kostol	noun	0.360	pregled	la castellum	6	3	château	novel	
-ketčup	noun	0.360	pregled	en ketchup	6	3	ketchup	novel	
-kombajn	noun	0.360	pregled	en combine	6	3	food processor, processor	novel	
-kran	noun	0.360	pregled	de Kran	6	3	crane	novel	
-kristian	proper_noun	0.360	pregled	la Chrīstiānus	6	3	a male given name from Ancient Greek, equivalent to English Christian	novel	
-lagr	noun	0.360	pregled	de Lager	6	3	camp	near-official	lageŕ
-maler	noun	0.360	pregled	la malus	6	3	painter	near-official	maljaŕ
-ombudsman	noun	0.360	pregled	sv ombudsman	6	3	ombudsman	novel	
-parol	noun	0.360	pregled	la parabola	6	3	password	near-official	parola
-partizan	noun	0.360	pregled	fr partisan	6	3	partisan, guerrilla	novel	
-pasažir	noun	0.360	pregled	fr passager	6	3	passenger	near-official	pasažer
-paviljon	noun	0.360	pregled	fr pavillon	6	3	pavilion	novel	
-paša	noun	0.360	pregled	ota پاشا	6	3	pasha (title)	novel	
-pederast	noun	0.360	pregled	grc παιδεραστής	6	3	pederast	novel	
-pik	noun	0.360	pregled	de Pik	6	3	♠, spades in card- and boardgames	near-official	piky
-post	noun	0.360	pregled	fr poste	6	3	post, office, appointment, position, job	near-official	pošta
-režisor	noun	0.360	pregled	fr régisseur	6	3	director	near-official	režiser
-ragbi	noun	0.360	pregled	en rugby	6	3	rugby	novel	
-saga	noun	0.360	pregled	non saga	6	3	saga	novel	
-sinagoga	noun	0.360	pregled	grc σῠνᾰγωγή	6	3	synagogue	novel	
-spageti	noun	0.360	pregled	it spaghetti	6	3	spaghetti	novel	
-štab	noun	0.360	pregled	de Stab	6	3	headquarters, staff	novel	
-tanc	noun	0.360	pregled	de Tanz	6	3	dance	near-official	tanec
-štuka	noun	0.360	pregled	de Stück	6	3	piece, each (in counting items)	novel	
-šturm	noun	0.360	pregled	de Sturm	6	3	storm, storming of something, assault (fast, violent, often frontal attack)	novel	
+Dunav	proper_noun	0.396	pregled	*Dunavь	8	3	Danube (a river in Europe; flowing 2,850 kilometers from the confluence of the B	novel	
+jabluko	noun	0.396	pregled	*ablъko	9	3	apple	near-official	jablȯko
+blha	noun	0.396	pregled	*blъxa	11	3	flea	near-official	blȯha
+bogyni	noun	0.396	pregled	*bogyni	8	3	goddess	near-official	bogynja
+bojati	verb	0.396	pregled	*bojati	7	3	to fear, to be afraid	novel	
+brånj	noun	0.396	pregled	*bornь	7	3	defence, defense	near-official	obråna
+bry	noun	0.396	pregled	*bry	9	3	eyebrow	near-official	brȯv
+cŕky	noun	0.396	pregled	*cьrky	9	3	church	near-official	crkva
+dynja	noun	0.396	pregled	*dyňa	7	3	melon	novel	
+deska	noun	0.396	pregled	*dъska	7	3	board, plank	near-official	dȯska
+dći	noun	0.396	pregled	*dъ̏ťi	7	3	daughter	near-official	dȯći
+gať	noun	0.396	pregled	*gatь	8	3	a causeway through swamps, made from logs or brushwood, a corduroy road	novel	
+glytati	verb	0.396	pregled	*glъtati	7	3	to swallow	near-official	gȯltati
+godina	noun	0.396	pregled	*godina	11	3	hour	novel	
+grånostaj	noun	0.396	pregled	*gornostajь	7	3	stoat, ermine (Mustela erminea)	near-official	gronostaj
+gorny	adj	0.396	pregled	*gorьnъ	7	3	upper, top	novel	
+greby	noun	0.396	pregled	*greby	7	3	ridge	novel	
+gręda	noun	0.396	pregled	*gręda	7	3	beam	novel	
+jako	conj	0.396	pregled	*jako	9	3	if	novel	
+juha	noun	0.396	pregled	*juxa	8	3	soup	near-official	supa
+istaba	noun	0.396	pregled	*jьstъba	8	3	room	novel	
+iti	verb	0.396	pregled	*jьti	10	3	to go	novel	
+kamy	noun	0.396	pregled	*kamy	11	3	stone	novel	
+kašȯlj	noun	0.396	pregled	*kaš(ь)ľь	7	3	cough	near-official	kašelj
+kašȯljati	verb	0.396	pregled	*kašьľati	7	3	to cough	near-official	kašljati
+kory	noun	0.396	pregled	*kory	10	3	root	novel	
+košara	noun	0.396	pregled	*košara	7	3	sheepfold	novel	
+kremy	noun	0.396	pregled	*kremy	9	3	flint	novel	
+knęgyni	noun	0.396	pregled	*kъnęgyni	7	3	princess	near-official	knęgynja
+leći	verb	0.396	pregled	*leťi	9	3	to lie down	near-official	legti
+ličiti	verb	0.396	pregled	*ličiti	8	3	to count (to recite numbers in sequence)	novel	
+lųg	noun	0.396	pregled	*lǫgъ	8	3	meadow	near-official	lųka
+majati	verb	0.396	pregled	*majati	7	3	to exhaust, to harass	near-official	umarjati
+mrěti	verb	0.396	pregled	*merti	9	3	to die	near-official	umrěti
+moliti	verb	0.396	pregled	*modliti	8	3	to pray	novel	
+mråv	noun	0.396	pregled	*morvъ	12	3	ant	near-official	mråvka
+moći	verb	0.396	pregled	*moťi	9	3	can, be able to	near-official	mogti
+mrky	noun	0.396	pregled	*mъrky	11	3	carrot	near-official	mrkva
+najiti	verb	0.396	pregled	*najьti	7	3	to find	near-official	najdti
+obuti	verb	0.396	pregled	*obuti	7	3	to put on (socks, stockings, footwear)	novel	
+ognj	noun	0.396	pregled	*ogňь	12	3	fire	near-official	ogȯnj
+låbųď	noun	0.396	pregled	*olbǫdь	7	3	swan	near-official	labęď
+låni	adv	0.396	pregled	*olni	8	3	last year	near-official	lanji
+låčny	adj	0.396	pregled	*òlčьnъ	7	3	greedy	novel	
+oloha	noun	0.396	pregled	*olьxa	9	3	alder	near-official	oljha
+råť	noun	0.396	pregled	*ortь	7	3	war	novel	
+otava	noun	0.396	pregled	*otava	10	3	aftergrass, aftermath; grass that comes up after mowing	near-official	trava
+ovoće	noun	0.396	pregled	*ovoťe	9	3	fruit	near-official	ovoć
+palica	noun	0.396	pregled	*palica	9	3	mace (weapon)	near-official	palka
+pastyrj	noun	0.396	pregled	*pastyřь	9	3	shepherd	near-official	pastyŕ
+pazduha	noun	0.396	pregled	*pazduxa	7	3	armpit	novel	
+plěn	noun	0.396	pregled	*pelnъ	7	3	captivity, custody	novel	
+prěpel	noun	0.396	pregled	*perpelъ	8	3	quail	novel	
+pečať	noun	0.396	pregled	*pečatь	7	3	seal (an official pattern)	novel	
+peći	verb	0.396	pregled	*peťi	9	3	to bake	near-official	pekti
+pitje	noun	0.396	pregled	*pitьje	8	3	drink, beverage	novel	
+pleće	noun	0.396	pregled	*pleťe	9	3	shoulder	novel	
+plyti	verb	0.396	pregled	*plyti	7	3	to swim	near-official	plyvti
+plåmy	noun	0.396	pregled	*polmy	9	3	flame	novel	
+plånina	noun	0.396	pregled	*polnina	7	3	mountain	novel	
+post	noun	0.396	pregled	*postъ	7	3	fast (period of restricted eating)	novel	
+prijti	verb	0.396	pregled	*prijьti	7	3	to come (to), to arrive (at)	near-official	prijdti
+pustyni	noun	0.396	pregled	*pustyni	8	3	desert	near-official	pustynja
+pěsnj	noun	0.396	pregled	*pěsnь	10	3	song	near-official	pěsnja
+pěti	verb	0.396	pregled	*pěti	8	3	to sing	near-official	pěvati
+papėr	noun	0.396	pregled	*pьpьrь	10	3	pepper (including sweet peppers, chilis as well as black pepper)	novel	
+pŕsty	noun	0.396	pregled	*pьrsty	11	3	ring	novel	
+remy	noun	0.396	pregled	*remy	9	3	belt; strap	novel	
+reći	verb	0.396	pregled	*reťi	7	3	to say	near-official	rěkti
+rȯt	noun	0.396	pregled	*rъtъ	7	3	mouth	novel	
+rzati	verb	0.396	pregled	*rъzati	8	3	to neigh	novel	
+rȯž	noun	0.396	pregled	*rъžь	11	3	rye	novel	
+slověnin	noun	0.396	pregled	*slověninъ	11	3	Slav	near-official	Slovjanin
+slza	noun	0.396	pregled	*slьza	11	3	tear	near-official	sȯlza
+smijati	verb	0.396	pregled	*smьjati	11	3	to laugh	novel	
+snop	noun	0.396	pregled	*snopъ	8	3	sheaf (bundle of grain or straw)	novel	
+som	noun	0.396	pregled	*somъ	9	3	catfish	novel	
+sråka	noun	0.396	pregled	*sorka	8	3	magpie	novel	
+soha	noun	0.396	pregled	*soxa	7	3	branching tree	novel	
+stegno	noun	0.396	pregled	*stegno	7	3	thigh	novel	
+strići	verb	0.396	pregled	*striťi	10	3	to cut (hair, fur, grass, etc.), to shear, to clip, to trim	near-official	strigti
+strųk	noun	0.396	pregled	*strǫkъ	7	3	waist	novel	
+sukno	noun	0.396	pregled	*sukno	8	3	cloth, broadcloth (a dense, smooth woolen or (rarely) cotton fabric)	novel	
+svŕč	noun	0.396	pregled	*svьrčь	7	3	cricket (insect)	near-official	svŕček
+sypati	verb	0.396	pregled	*sypati	7	3	to sprinkle a granular substance	near-official	nasypati
+sěnj	noun	0.396	pregled	*sěnь	8	3	shadow	near-official	stěnj
+sěsti	verb	0.396	pregled	*sěsti	9	3	to sit down	near-official	snesti
+sěći	verb	0.396	pregled	*sěťi	9	3	to cut, chop, chip, hew	near-official	sěkti
+sųdi	noun	0.396	pregled	*sǫdì	8	3	judge	near-official	sųďja
+sŕdece	noun	0.396	pregled	*sьrdьce	10	3	heart	near-official	sŕdce
+sŕhy	noun	0.396	pregled	*sьrxy	9	3	hornet	novel	
+sčava	noun	0.396	pregled	*sьčava	9	3	tanning liquor	novel	
+tlěći	verb	0.396	pregled	*telťi	7	3	to beat, thrash	novel	
+tesla	noun	0.396	pregled	*tesla	7	3	adze (cutting tool)	novel	
+teta	noun	0.396	pregled	*teta	7	3	aunt	near-official	tetka
+teći	verb	0.396	pregled	*teťi	9	3	to flow, to run, to stream, to move	near-official	tekti
+togyda	adv	0.396	pregled	*togъda	7	3	then, at that time	near-official	tȯgda
+topolj	noun	0.396	pregled	*topolь	7	3	poplar, any tree of the genus Populus	near-official	topolja
+topor	noun	0.396	pregled	*toporъ	9	3	axe	novel	
+trųt	noun	0.396	pregled	*trǫtъ	8	3	drone (male bee)	novel	
+tur	noun	0.396	pregled	*tȗrъ	7	3	aurochs	novel	
+tvar	noun	0.396	pregled	*tvarь	8	3	face	novel	
+tyky	noun	0.396	pregled	*tyky	7	3	pumpkin	near-official	tykva
+těmę	noun	0.396	pregled	*těmę	7	3	crown of the head	novel	
+tkač	noun	0.396	pregled	*tъkačь	7	3	weaver	novel	
+strčati	verb	0.396	pregled	*(s)tъrčati	7	3	to run	novel	
+ulij	noun	0.396	pregled	*ulьjь	8	3	hive, beehive	near-official	ulja
+upȯvati	verb	0.396	pregled	*upъvati	7	3	to hope	novel	
+vaditi	verb	0.396	pregled	*vaditi	7	3	to take out, draw (something from somewhere)	near-official	naliti
+var	noun	0.396	pregled	*vȃrъ	9	3	heat	near-official	žar
+vlěći	verb	0.396	pregled	*velťi	10	3	to drag, to haul, to draw	near-official	vlěkti
+vlåh	noun	0.396	pregled	*volxъ	9	3	Italian (person)	novel	
+věđa	noun	0.396	pregled	*věďa	7	3	eyelid	novel	
+vśųdu	adv	0.396	pregled	*vьśǫdu	8	3	everywhere	novel	
+hrbėt	noun	0.396	pregled	*xrьbьtъ	12	3	spine, backbone	near-official	hrebet
+zelje	noun	0.396	pregled	*zelьje	7	3	cabbage	novel	
+zmij	noun	0.396	pregled	*zmьjь	8	3	dragon	novel	
+zråk	noun	0.396	pregled	*zorkъ	8	3	air	novel	
+čapja	noun	0.396	pregled	*čapľa	10	3	heron	near-official	čaplja
+črěšnja	noun	0.396	pregled	*čèršьňa	10	3	sweet cherry (fruit and tree)	near-official	čerešnja
+četa	noun	0.396	pregled	*četa	7	3	troop, squad, host	novel	
+čųbėr	noun	0.396	pregled	*čǫbьrъ	7	3	savory (Satureja gen. et spp.)	novel	
+čolověk	noun	0.396	pregled	*čьlověkъ	8	3	man, person	novel	
+jęčmy	noun	0.396	pregled	*ęčьmy	10	3	barley	novel	
+rjuti	verb	0.396	pregled	*řuti	7	3	to roar	near-official	revti
+šilo	noun	0.396	pregled	*šidlo	8	3	awl	novel	
+ščuka	noun	0.396	pregled	*ščùka	8	3	pike (fish)	novel	
+žrělo	noun	0.396	pregled	*žerdlo	9	3	pharynx	novel	
+žȯlna	noun	0.396	pregled	*žьlna	9	3	green woodpecker (Picus viridis)	novel	
+žvati	verb	0.396	pregled	*žьvati	7	3	to chew	near-official	žuvati
+vųglj	noun	0.396	pregled	*ǫglь	8	3	coal, charcoal	near-official	vųgȯlj
+vųgorj	noun	0.396	pregled	*ǫgořь	9	3	eel	near-official	vųgoŕ
+vųs	noun	0.396	pregled	*ǫsъ	8	3	moustache	near-official	vųsy
+vųtroba	noun	0.396	pregled	*ǫtroba	10	3	liver	near-official	vųtråba
+kit	noun	0.396	pregled	grc κῆτος	7	3	whale	near-official	kyt
+aleksandr	proper_noun	0.396	pregled	grc Ἀλέξανδρος	8	3	a female given name from Ancient Greek, equivalent to English Alexandra	novel	
+bant	noun	0.396	pregled	en band	7	3	band (group of musicians)	novel	
+basejn	noun	0.396	pregled	fr bassin	7	3	swimming pool	near-official	basen
+blųg	noun	0.396	pregled	en blog	7	3	blog	near-official	blog
+bula	noun	0.396	pregled	la bulla	7	3	a Muslim woman in harem pants or covered with a headscarf	novel	
+bulon	noun	0.396	pregled	fr bouillon	7	3	bouillon	near-official	buljon
+cebula	noun	0.396	pregled	la-lat cepulla	8	3	onion (Allium cepa)	near-official	cibulja
+ceh	noun	0.396	pregled	gmh zeichen	8	3	guild	novel	
+cil	noun	0.396	pregled	gmh zil	7	3	aim, goal, purpose	near-official	cělj
+dajk	noun	0.396	pregled	grc διάκος	8	3	pupil (in school)	novel	
+egipet	proper_noun	0.396	pregled	la Aegyptus	7	3	Egypt (a country in North Africa and West Asia)	novel	
+ivan	proper_noun	0.396	pregled	grc Ἰωάννης	8	3	a male given name, Ivan, equivalent to English John	novel	
+jura	proper_noun	0.396	pregled	la Geōrgius	7	3	Jura (a mountain range on the border of France and Switzerland, extending into G	novel	
+kabel	noun	0.396	pregled	la capulum	7	3	cable	near-official	kabelj
+klaster	noun	0.396	pregled	en cluster	8	3	cluster	novel	
+kana	noun	0.396	pregled	ota قنا	7	3	henna (Lawsonia inermis) (shrub; dye)	novel	
+kula	noun	0.396	pregled	ota قله	7	3	tower	novel	
+lidr	noun	0.396	pregled	en leader	7	3	leader	near-official	lider
+lira	noun	0.396	pregled	la lībra	7	3	lira	novel	
+madar	noun	0.396	pregled	hu magyar	8	3	Hungarian (person)	near-official	Madjar
+miting	noun	0.396	pregled	en meeting	7	3	rally, mass-meeting (a demonstration; an event where people gather together to p	novel	
+nika	proper_noun	0.396	pregled	grc Νίκη	7	3	Nike	novel	
+paštet	noun	0.396	pregled	de Pastete	8	3	pâté	novel	
+racija	noun	0.396	pregled	la ratiō	8	3	police raid	novel	
+sos	noun	0.396	pregled	la salsus	7	3	sauce	novel	
+sendvič	noun	0.396	pregled	en sandwich	7	3	sandwich	novel	
+spirt	noun	0.396	pregled	la spīritus	7	3	alcohol, spirits	novel	
+sura	noun	0.396	pregled	ar سُورَة	7	3	sura (any of the 114 chapters of the Quran)	novel	
+tur	noun	0.396	pregled	la turris	8	3	prison, jail	novel	

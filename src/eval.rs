@@ -326,9 +326,15 @@ pub fn run_corpus_eval(official_path: &Path, fit: bool) -> Result<()> {
                 by_token.entry(t).or_default().push(i);
             }
         }
-        let mut samples: Vec<(String, f32, bool)> = Vec::new();
+        let mut samples: Vec<(String, f32, usize, bool)> = Vec::new();
         for set in sets {
             let (set_gloss, set_pos) = (set.gloss.clone(), set.pos);
+            let set_langs = {
+                let mut l: Vec<&str> = set.members.iter().map(|m| m.lang.as_str()).collect();
+                l.sort_unstable();
+                l.dedup();
+                l.len()
+            };
             let g = corpus::generate_set(set, &cfg);
             let form = g.form().to_string();
             if form.is_empty() {
@@ -369,62 +375,101 @@ pub fn run_corpus_eval(official_path: &Path, fit: bool) -> Result<()> {
                 .citation_byforms()
                 .iter()
                 .any(|b| ortho::normalized_match(&form, &b.form));
-            samples.push((entries[i].id.clone(), g.score, hit));
+            samples.push((entries[i].id.clone(), g.score, set_langs, hit));
         }
-        let dev: Vec<(f32, bool)> = samples
-            .iter()
-            .filter(|(id, _, _)| !is_holdout_id(id))
-            .map(|(_, s, h)| (*s, *h))
-            .collect();
-        let held: Vec<(f32, bool)> = samples
-            .iter()
-            .filter(|(id, _, _)| is_holdout_id(id))
-            .map(|(_, s, h)| (*s, *h))
-            .collect();
-        anyhow::ensure!(
-            dev.len() >= 500 && held.len() >= 100,
-            "too few corpus-path samples to fit ({} dev / {} holdout)",
-            dev.len(),
-            held.len()
-        );
-        let iso = crate::calibrate::fit_isotonic_deciles(&dev);
-        let (ece_raw, brier_raw) = crate::calibrate::ece_brier(&held, None);
-        let (ece_cal, brier_cal) = crate::calibrate::ece_brier(&held, Some(&iso));
-        let calibrate = |score: f32| iso[((score.clamp(0.0, 1.0) * 10.0) as usize).min(9)];
+        // V12 item 4: BANDED fit — coverage-decile × langs-band with
+        // per-decile Wilson-95 lower bounds, PAVA within each band. One flat
+        // map saturated (a single score can't separate a 9-language set from
+        // a 4-language one; every proposal shipped at 0.428).
+        let mut bands: std::collections::BTreeMap<&'static str, crate::calibrate::BandFit> =
+            Default::default();
+        let mut pooled_held: Vec<(f64, bool)> = Vec::new(); // (calibrated p, hit)
+        for band in crate::calibrate::LANGS_BANDS {
+            let in_band = |l: &usize| crate::calibrate::langs_band(*l) == *band;
+            let dev: Vec<(f32, bool)> = samples
+                .iter()
+                .filter(|(id, _, l, _)| !is_holdout_id(id) && in_band(l))
+                .map(|(_, s, _, h)| (*s, *h))
+                .collect();
+            let held: Vec<(f32, bool)> = samples
+                .iter()
+                .filter(|(id, _, l, _)| is_holdout_id(id) && in_band(l))
+                .map(|(_, s, _, h)| (*s, *h))
+                .collect();
+            anyhow::ensure!(
+                dev.len() >= 100 && held.len() >= 30,
+                "band {band}: too few corpus-path samples ({} dev / {} holdout)",
+                dev.len(),
+                held.len()
+            );
+            let iso = crate::calibrate::fit_wilson_isotonic_deciles(&dev);
+            let (band_ece, _) = crate::calibrate::ece_brier(&held, Some(&iso));
+            for (sc, h) in &held {
+                pooled_held.push((iso[((sc.clamp(0.0, 1.0) * 10.0) as usize).min(9)], *h));
+            }
+            println!(
+                "  band {band}: {} dev / {} holdout, holdout ECE {band_ece:.4}, deciles {:?}",
+                dev.len(),
+                held.len(),
+                iso.iter()
+                    .map(|v| (v * 1000.0).round() / 1000.0)
+                    .collect::<Vec<_>>(),
+            );
+            bands.insert(
+                band,
+                crate::calibrate::BandFit {
+                    deciles: iso,
+                    dev_n: dev.len(),
+                    holdout_n: held.len(),
+                    holdout_ece: band_ece,
+                },
+            );
+        }
+        // Pooled holdout diagnostics over the calibrated probabilities.
+        let n = pooled_held.len().max(1) as f64;
+        let mut b10 = [(0usize, 0.0f64, 0usize); 10];
+        for (pcal, h) in &pooled_held {
+            let b = ((pcal * 10.0) as usize).min(9);
+            b10[b].0 += 1;
+            b10[b].1 += pcal;
+            b10[b].2 += *h as usize;
+        }
+        let mut ece_cal = 0.0f64;
+        for (bn, sp, hits) in &b10 {
+            if *bn == 0 {
+                continue;
+            }
+            ece_cal += (*bn as f64 / n) * (sp / *bn as f64 - *hits as f64 / *bn as f64).abs();
+        }
         let pr_at = |t: f64| -> (f64, f64) {
-            let sel: Vec<&(f32, bool)> = held.iter().filter(|(s, _)| calibrate(*s) >= t).collect();
+            let sel: Vec<&(f64, bool)> = pooled_held.iter().filter(|(pc, _)| *pc >= t).collect();
             let hits = sel.iter().filter(|(_, h)| *h).count();
-            let total = held.iter().filter(|(_, h)| *h).count().max(1);
+            let total = pooled_held.iter().filter(|(_, h)| *h).count().max(1);
             (
                 hits as f64 / sel.len().max(1) as f64,
                 hits as f64 / total as f64,
             )
         };
-        let cal = crate::calibrate::Calibration {
-            score_domain: crate::calibrate::CORPUS_COVERAGE_SCORE_DOMAIN.to_string(),
+        let cal = crate::calibrate::CorpusCalibration {
+            score_domain: crate::calibrate::CORPUS_BANDED_DOMAIN.to_string(),
             fitted_on: format!(
-                "cache cognate sets gloss+POS-matched to official rows, dev split ({} sets; {} holdout), generate_set coverage score",
-                dev.len(),
-                held.len()
+                "cache cognate sets gloss+POS-matched to official rows, banded by attesting languages, {} samples ({} holdout), generate_set coverage score",
+                samples.len(),
+                pooled_held.len(),
             ),
             holdout_ece: ece_cal,
             propose_pr: pr_at(crate::calibrate::PROPOSE_T),
             review_pr: pr_at(crate::calibrate::REVIEW_T),
-            deciles: iso,
+            bands: bands.into_iter().map(|(k, v)| (k.to_string(), v)).collect(),
         };
         std::fs::write(
             crate::calibrate::CORPUS_CALIBRATION_PATH,
-            serde_json::to_string_pretty(&cal)?
-                + "
-",
+            serde_json::to_string_pretty(&cal)? + "\n",
         )?;
         println!(
-            "corpus calibrator fitted → {} (holdout ECE {:.4} raw → {:.4} calibrated, Brier {:.4} → {:.4}; propose P/R {:.3}/{:.3}, review P/R {:.3}/{:.3})",
+            "corpus calibrator fitted → {} (pooled holdout ECE {:.4}; propose P/R {:.3}/{:.3}, review P/R {:.3}/{:.3})",
             crate::calibrate::CORPUS_CALIBRATION_PATH,
-            ece_raw,
-            ece_cal,
-            brier_raw,
-            brier_cal,
+            cal.holdout_ece,
             cal.propose_pr.0,
             cal.propose_pr.1,
             cal.review_pr.0,
@@ -3382,43 +3427,11 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
         .iter()
         .filter(|r| is_holdout_id(&r.id))
         .collect();
-    let mut dev_bins = vec![(0usize, 0usize); 10]; // (n, hits) per score decile
-    for r in &dev {
-        let b = ((r.score.clamp(0.0, 1.0) * 10.0) as usize).min(9);
-        dev_bins[b].0 += 1;
-        dev_bins[b].1 += r.normalized as usize;
-    }
-    // PAVA: pool adjacent bins that violate monotonicity (weighted means).
-    let mut pools: Vec<(f64, f64)> = Vec::new(); // (weight, mean)
-    for (n, hits) in &dev_bins {
-        if *n == 0 {
-            continue;
-        }
-        pools.push((*n as f64, *hits as f64 / *n as f64));
-        while pools.len() >= 2 && pools[pools.len() - 2].1 > pools[pools.len() - 1].1 {
-            let (w2, m2) = pools.pop().unwrap();
-            let (w1, m1) = pools.pop().unwrap();
-            pools.push((w1 + w2, (w1 * m1 + w2 * m2) / (w1 + w2)));
-        }
-    }
-    // Expand the pooled means back onto the 10 deciles.
-    let mut iso = [0.0f64; 10];
-    {
-        let mut pi = 0usize;
-        let mut left = pools.first().map(|p| p.0).unwrap_or(0.0);
-        for (b, (n, _)) in dev_bins.iter().enumerate() {
-            if *n == 0 {
-                iso[b] = pools.get(pi).map(|p| p.1).unwrap_or(0.0);
-                continue;
-            }
-            iso[b] = pools[pi].1;
-            left -= *n as f64;
-            if left <= 0.0 && pi + 1 < pools.len() {
-                pi += 1;
-                left = pools[pi].0;
-            }
-        }
-    }
+    // Decile histogram + PAVA, via the shared helper (V12 item 4 cleanup —
+    // the helper is a faithful extraction of the block that lived here, so
+    // the fitted deciles and every downstream report byte are unchanged).
+    let dev_samples: Vec<(f32, bool)> = dev.iter().map(|r| (r.score, r.normalized)).collect();
+    let iso = crate::calibrate::fit_isotonic_deciles(&dev_samples);
     let calibrate = |score: f32| iso[((score.clamp(0.0, 1.0) * 10.0) as usize).min(9)];
     let eval_split = |rs: &[&EntryResult], use_cal: bool| -> (f64, f64) {
         // (ECE, Brier) binning by the (possibly calibrated) probability.

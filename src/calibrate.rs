@@ -19,6 +19,119 @@ pub const PATH: &str = "data/score-calibration.json";
 /// Committed location of the corpus-coverage calibrator (V11 item 5 /
 /// issue #90), fitted by `corpus-eval --fit` and only READ by `export`.
 pub const CORPUS_CALIBRATION_PATH: &str = "data/corpus-calibration.json";
+/// V12 item 4: the corpus calibrator is BANDED — a single decile map
+/// saturated (every proposal at 0.428) because one coverage score cannot
+/// separate a 9-language set from a 4-language one. New domain string so an
+/// old flat-map consumer rejects the banded file instead of misreading it.
+pub const CORPUS_BANDED_DOMAIN: &str = "corpus-coverage-banded-v2";
+
+/// Attesting-language bands for the corpus calibrator.
+pub const LANGS_BANDS: &[&str] = &["2-3", "4-6", "7+"];
+
+pub fn langs_band(n_langs: usize) -> &'static str {
+    match n_langs {
+        0..=3 => "2-3",
+        4..=6 => "4-6",
+        _ => "7+",
+    }
+}
+
+/// One band's fitted decile map plus its own holdout diagnostics.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BandFit {
+    pub deciles: [f64; 10],
+    pub dev_n: usize,
+    pub holdout_n: usize,
+    pub holdout_ece: f64,
+}
+
+/// The banded corpus-coverage calibrator (V12 item 4).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CorpusCalibration {
+    pub score_domain: String,
+    pub fitted_on: String,
+    /// Pooled holdout ECE across bands.
+    pub holdout_ece: f64,
+    /// Holdout precision/recall at the propose/review thresholds, pooled.
+    pub propose_pr: (f64, f64),
+    pub review_pr: (f64, f64),
+    pub bands: std::collections::BTreeMap<String, BandFit>,
+}
+
+impl CorpusCalibration {
+    pub fn load_for_domain(path: &Path, expected_domain: &str) -> anyhow::Result<Option<Self>> {
+        if !path.exists() {
+            return Ok(None);
+        }
+        let raw = std::fs::read_to_string(path)?;
+        let cal: Self = serde_json::from_str(&raw)
+            .map_err(|e| anyhow::anyhow!("parse corpus calibration {}: {e}", path.display()))?;
+        anyhow::ensure!(
+            cal.score_domain == expected_domain,
+            "corpus calibration {} has score domain {:?}, expected {:?}",
+            path.display(),
+            cal.score_domain,
+            expected_domain
+        );
+        Ok(Some(cal))
+    }
+
+    /// Calibrated P(reproduces an official decision) for a coverage score in
+    /// a given attesting-language band.
+    pub fn probability(&self, score: f32, n_langs: usize) -> f64 {
+        let band = langs_band(n_langs);
+        let fit = self
+            .bands
+            .get(band)
+            .or_else(|| self.bands.values().next())
+            .expect("corpus calibration has at least one band");
+        fit.deciles[((score.clamp(0.0, 1.0) * 10.0) as usize).min(9)]
+    }
+}
+
+/// Per-decile Wilson-95 lower bounds pooled monotone by PAVA — the banded
+/// fit's per-band recipe. The Wilson bound shrinks thin deciles toward 0
+/// (a thinly-observed bucket ships a conservative probability), and the
+/// clamp keeps every shipped value a proper open-interval probability.
+pub fn fit_wilson_isotonic_deciles(samples: &[(f32, bool)]) -> [f64; 10] {
+    let mut bins = [(0usize, 0usize); 10];
+    for (score, hit) in samples {
+        let b = ((score.clamp(0.0, 1.0) * 10.0) as usize).min(9);
+        bins[b].0 += 1;
+        bins[b].1 += *hit as usize;
+    }
+    let mut pools: Vec<(f64, f64)> = Vec::new();
+    for (n, hits) in &bins {
+        if *n == 0 {
+            continue;
+        }
+        pools.push((*n as f64, crate::derive::wilson_lower(*hits, *n)));
+        while pools.len() >= 2 && pools[pools.len() - 2].1 > pools[pools.len() - 1].1 {
+            let (w2, m2) = pools.pop().unwrap();
+            let (w1, m1) = pools.pop().unwrap();
+            pools.push((w1 + w2, (w1 * m1 + w2 * m2) / (w1 + w2)));
+        }
+    }
+    let mut iso = [0.0f64; 10];
+    let mut pi = 0usize;
+    let mut left = pools.first().map(|p| p.0).unwrap_or(0.0);
+    for (b, (n, _)) in bins.iter().enumerate() {
+        if *n == 0 {
+            iso[b] = pools.get(pi).map(|p| p.1).unwrap_or(0.0);
+            continue;
+        }
+        iso[b] = pools[pi].1;
+        left -= *n as f64;
+        if left <= 0.0 && pi + 1 < pools.len() {
+            pi += 1;
+            left = pools[pi].0;
+        }
+    }
+    for v in iso.iter_mut() {
+        *v = v.clamp(0.005, 0.995);
+    }
+    iso
+}
 /// Score semantics accepted by the official-row pipeline calibrator.
 pub const PIPELINE_SCORE_DOMAIN: &str = "pipeline-candidate-score-v1";
 /// Reserved domain for a future calibrator fitted on cognate-set coverage

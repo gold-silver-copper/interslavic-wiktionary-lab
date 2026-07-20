@@ -1188,12 +1188,13 @@ row blindly.
   model-specific and may be null:
   - **cognate-set reconstructions** — `probability` is
     P(reproduces an official lemma, normalized) from the committed
-    corpus-coverage calibrator (`data/corpus-calibration.json`): an isotonic
-    decile map fitted on cache sets gloss+POS-matched to official dev rows
-    and holdout-validated (ECE ≈0.014). The separate official-row pipeline
-    calibrator is still deliberately rejected as incompatible. Top-decile
-    coverage calibrates to only ≈0.43 — even the best-attested
-    reconstruction is closer to a coin flip than to verification;
+    corpus-coverage calibrator (`data/corpus-calibration.json`), BANDED by
+    attesting languages (2-3 / 4-6 / 7+) with per-decile Wilson-95 lower
+    bounds, PAVA within each band, holdout-validated (pooled ECE ≈0.020).
+    The separate official-row pipeline calibrator is still deliberately
+    rejected as incompatible. Band ceilings on current data: ≈0.16 /
+    ≈0.30 / ≈0.40 — even the best-attested reconstruction is closer to a
+    coin flip than to verification;
   - **regular derivatives off attested bases** (the site's "Slovotvorstvo"
     families) — a base lemma's productive family (`-osť`, adverb, `-ńje`,
     `-telj`, `-ny`/`-sky`, `-ka`/`-ica`, `ne-`), restricted to members ABSENT

@@ -66,13 +66,20 @@ committed and the site build stays self-contained.
 - `data/novel-words.tsv` — the novel-vocabulary proposal artifact regenerated
   by every `export`. Live again since V11: the corpus path has its own
   committed calibrator (`data/corpus-calibration.json`, fitted by
-  `corpus-eval --fit` on the dev split, holdout ECE ≈0.014), replacing the
-  issue-#89 fail-closed pause. Since V12, each row also carries a
-  `classification`: **near-official** rows (103 of 286) are reconstruction
-  near-misses of an existing official lemma (`jabluko` vs official
-  `jablȯko`, one vowel grade apart) — diagnostics for tuning sound rules,
-  cited against their official form, never proposed words; 183 rows remain
-  truly novel.
+  `corpus-eval --fit` on the dev split), replacing the issue-#89
+  fail-closed pause. Since V12 the calibrator is **banded by attesting
+  languages** (2-3 / 4-6 / 7+, per-decile Wilson-95 lower bounds, PAVA
+  within each band, pooled holdout ECE ≈0.020): a 9-language set no longer
+  shares one saturated probability with a 4-language one. The honest
+  numbers: even 7+-language top-decile reconstructions bound at ≈0.40 —
+  reproducing an official committee decision is closer to a coin flip than
+  to certainty, so nothing reaches the 0.6 propose threshold and the
+  worklist is exactly the best-attested band (164 rows at p=0.396). Each
+  row carries a `classification`: **near-official** rows (74 of 164) are
+  reconstruction near-misses of an existing official lemma (`jabluko` vs
+  official `jablȯko`, one vowel grade apart) — diagnostics for tuning
+  sound rules, cited against their official form, never proposed words;
+  90 rows remain truly novel.
 
 The **benchmark below** still measures generation accuracy against the official dictionary
 (a separate, leakage-free evaluation of the engine).
