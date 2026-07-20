@@ -183,6 +183,27 @@ pub fn gloss_tokens(gloss: &str) -> BTreeSet<String> {
     out
 }
 
+/// Order-preserving variant of [`gloss_tokens`] for positional rules (the
+/// `X or Y` closure needs the token ADJACENT to the `or`, and a BTreeSet
+/// iterator would hand back the alphabetical extreme instead — which minted
+/// phantom pairs like evil≈event from unrelated glosses).
+fn ordered_tokens(text: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for raw in strip_parens(text)
+        .to_lowercase()
+        .split(|c: char| !c.is_alphabetic())
+    {
+        if raw.is_empty() || STOPWORDS.contains(&raw) {
+            continue;
+        }
+        let t = light_stem(raw);
+        if t.chars().count() >= 2 && !STOPWORDS.contains(&t.as_str()) && !out.contains(&t) {
+            out.push(t);
+        }
+    }
+    out
+}
+
 fn light_stem(t: &str) -> String {
     let n = t.chars().count();
     for (suf, min_len) in [("ing", 6), ("ed", 5), ("es", 5), ("s", 4)] {
@@ -325,8 +346,8 @@ impl SynonymMates {
                 let lower = segment.to_lowercase();
                 let parts: Vec<&str> = lower.split(" or ").collect();
                 for pair in parts.windows(2) {
-                    let left = gloss_tokens(pair[0]).into_iter().next_back();
-                    let right = gloss_tokens(pair[1]).into_iter().next();
+                    let left = ordered_tokens(pair[0]).pop();
+                    let right = ordered_tokens(pair[1]).into_iter().next();
                     if let (Some(l), Some(r)) = (left, right) {
                         Self::insert_pair(&mut symmetric, &l, &r);
                     }
@@ -652,24 +673,59 @@ pub fn compute(
             continue;
         }
 
-        // `prefer`: the official lemma whose gloss best covers the divergent
-        // sense — the algorithmic replacement for the curated field. Score by
-        // *collision coverage* (the fraction of each colliding word's sense
-        // tokens the lemma's gloss covers, summed in integer ppm so the result
-        // is deterministic): urok → lekcija fully covers bg урок 'lesson',
-        // while oči 'eyes' only grazes the multi-token 'evil eye' senses.
+        // `prefer` (V11 item 2): the official lemma that covers the divergent
+        // sense — or NOTHING. A wrong suggestion actively misleads a
+        // translator (staja → stabiľny via English 'stable' polysemy), so:
+        // (a) the preferred lemma's POS must match a divergent record's POS
+        //     it draws coverage from (kills adjective 'stable' for a noun
+        //     sense, noun smŕť for verb 'execute');
+        // (b) coverage counts closure-aware matches (exact / near / mates),
+        //     scored per collision in integer ppm as before;
+        // (c) a best score under PREFER_MIN_COVERAGE (half of one collision's
+        //     sense fully covered) emits an EMPTY prefer — expected and
+        //     accepted for most notes.
+        const PREFER_MIN_COVERAGE: usize = 500_000;
+        let pos_class = |p: crate::model::Pos| match p {
+            crate::model::Pos::Noun | crate::model::Pos::ProperNoun => "noun",
+            crate::model::Pos::Verb => "verb",
+            crate::model::Pos::Adjective => "adj",
+            crate::model::Pos::Adverb => "adv",
+            _ => "other",
+        };
         let mut scores: BTreeMap<usize, usize> = BTreeMap::new();
+        // Candidate discovery stays exact-token (the by_token index); the
+        // discovered candidates are then scored with the full closure-aware
+        // overlap against each POS-compatible collision.
+        let mut candidate_entries: BTreeSet<usize> = BTreeSet::new();
         for c in &collisions {
-            let mut per_entry: BTreeMap<usize, usize> = BTreeMap::new();
             for t in &c.tokens {
                 if let Some(eis) = by_token.get(t) {
-                    for &ei in eis {
-                        *per_entry.entry(ei).or_default() += 1;
-                    }
+                    candidate_entries.extend(eis.iter().copied());
                 }
             }
-            for (ei, o) in per_entry {
-                *scores.entry(ei).or_default() += o * 1_000_000 / c.tokens.len();
+        }
+        for &ei in &candidate_entries {
+            let e = &official[ei];
+            let entry_pos = pos_class(e.pos);
+            let entry_tokens = gloss_tokens(&e.english);
+            let mut total = 0usize;
+            for c in &collisions {
+                if !c.poses.iter().any(|p| p == entry_pos) {
+                    continue;
+                }
+                let covered = c
+                    .tokens
+                    .iter()
+                    .filter(|t| {
+                        entry_tokens
+                            .iter()
+                            .any(|y| *t == y || near_match(t, y) || mates.are_mates(t, y))
+                    })
+                    .count();
+                total += covered * 1_000_000 / c.tokens.len();
+            }
+            if total > 0 {
+                scores.insert(ei, total);
             }
         }
         let mut best: Option<(usize, f32, String)> = None; // (coverage, freq, lemma)
@@ -691,7 +747,10 @@ pub fn compute(
                 best = Some((overlap, freq, lemma));
             }
         }
-        let prefer: Vec<String> = best.map(|(_, _, lemma)| vec![lemma]).unwrap_or_default();
+        let prefer: Vec<String> = best
+            .filter(|(coverage, _, _)| *coverage >= PREFER_MIN_COVERAGE)
+            .map(|(_, _, lemma)| vec![lemma])
+            .unwrap_or_default();
 
         notes.insert(
             key.clone(),
@@ -823,6 +882,28 @@ mod tests {
 
     /// V11 item 1: the observed false-positive classes must not fire (or
     /// must be downgraded to colloquial/low severity).
+    /// V11 item 2: prefer must be POS-compatible and coverage-thresholded —
+    /// the observed misleading suggestions must be gone (empty is fine;
+    /// wrong is not).
+    #[test]
+    fn bad_prefers_are_fixed_or_empty() {
+        let notes = notes();
+        let not_prefers = |key: &str, bad: &str| {
+            if let Some(n) = notes.get(key) {
+                assert!(
+                    !n.prefer.iter().any(|p| p == bad),
+                    "{key} still prefers {bad}: {:?}",
+                    n.prefer
+                );
+            }
+        };
+        not_prefers("staja", "stabiľny"); // adjective for a noun sense
+        not_prefers("banan", "dětę"); // one grazed token of a slang sense
+        not_prefers("cvrkot", "mrdati"); // verb for a noun sense
+        not_prefers("kazniti", "smŕť"); // noun for a verb sense
+        not_prefers("gojiti", "vaga"); // noun for a verb sense
+    }
+
     #[test]
     fn observed_false_positives_are_fixed() {
         let notes = notes();
