@@ -204,7 +204,8 @@ for proto_path in sorted((root / "proto").glob("*.html")):
         )
 
 proposal_lines = (root / "novel-words.tsv").read_text().splitlines()
-proposal_header = "form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss"
+proposal_header = ("form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss"
+                   "\tclassification\tofficial")
 assert proposal_lines and proposal_lines[0] == proposal_header, (
     "malformed novel-word proposal header", proposal_lines[:1]
 )
@@ -213,11 +214,22 @@ assert proposal_lines and proposal_lines[0] == proposal_header, (
 # band or above, and the bucket must agree with the probability.
 for line in proposal_lines[1:]:
     cols = line.split("\t")
-    assert len(cols) == 8, ("malformed proposal row", line)
+    assert len(cols) == 10, ("malformed proposal row", line)
     prob = float(cols[2])
     assert 0.3 <= prob < 1.0, ("proposal probability out of band", line)
     assert cols[3] == ("predlog" if prob >= 0.6 else "pregled"), (
         "proposal bucket disagrees with probability", line
+    )
+    # V12 item 3 + issue #99 invariant: a proposal is never an official
+    # byform spelling, and near-official rows must cite their lemma.
+    assert cols[8] in ("novel", "near-official"), ("bad classification", line)
+    assert (cols[8] == "near-official") == bool(cols[9]), (
+        "classification/official-lemma mismatch", line
+    )
+    # (Exact-spelling level here; the exporter's own filter additionally
+    # excludes FOLD-level duplicates before rows are ever written.)
+    assert cols[0].lower() not in official_spellings, (
+        "proposal duplicates an official byform (issue #99 invariant)", line
     )
 
 print(

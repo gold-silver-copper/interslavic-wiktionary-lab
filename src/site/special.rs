@@ -719,6 +719,11 @@ pub(super) struct ProposalRow {
     /// (issue #79). Display-only; NOT written to novel-words.tsv.
     pub(super) langs: Vec<String>,
     pub(super) gloss: String,
+    /// `novel` or `near-official` (V12 item 3 reconciliation).
+    pub(super) classification: &'static str,
+    /// The official byform a near-official proposal reconstructs (empty for
+    /// truly novel rows).
+    pub(super) official_lemma: String,
 }
 
 /// The Predloženja page: ranked novel-word proposals with the calibrated
@@ -731,10 +736,17 @@ pub(super) fn proposals_page(
 ) -> String {
     let propose_t = crate::calibrate::PROPOSE_T;
     let review_t = crate::calibrate::REVIEW_T;
-    let n_propose = proposals.iter().filter(|r| r.prob >= propose_t).count();
-    let n_review = proposals.len() - n_propose;
+    // Near-official rows are reconstruction diagnostics (V12 item 3), not
+    // proposed words — counted separately, never listed in the propose table.
+    let novel: Vec<&ProposalRow> = proposals
+        .iter()
+        .filter(|r| r.classification == "novel")
+        .collect();
+    let n_near = proposals.len() - novel.len();
+    let n_propose = novel.iter().filter(|r| r.prob >= propose_t).count();
+    let n_review = novel.len() - n_propose;
     let mut rows = String::new();
-    for r in proposals.iter().filter(|r| r.prob >= propose_t).take(600) {
+    for r in novel.iter().filter(|r| r.prob >= propose_t).take(600) {
         // Curation-note keys follow the site-wide convention: standard
         // orthography, lowercase (see data/curation-notes.example.json).
         let note = curation
@@ -771,7 +783,7 @@ pub(super) fn proposals_page(
     };
     let summary = if calibration.is_some() {
         format!(
-            "<b>{n_propose}</b> predloženj (p≥{propose_t:.1}) + <b>{n_review}</b> k pregledu (p≥{review_t:.1}); polny spisok: <a href='novel-words.tsv'>novel-words.tsv</a>."
+            "<b>{n_propose}</b> predloženj (p≥{propose_t:.1}) + <b>{n_review}</b> k pregledu (p≥{review_t:.1}) + <b>{n_near}</b> počti-oficialnyh (rekonstrukcija se razhodi s oficialnoju formoju o 1–2 bukvy — diagnostika zvųkovyh pravil, ne predlog); polny spisok: <a href='novel-words.tsv'>novel-words.tsv</a>."
         )
     } else {
         "Spisok jest prazdny do holdout-validovanoj kalibracije ocěny pokryća korpusa; <a href='novel-words.tsv'>novel-words.tsv</a> zato sadrži samo zaglavje.".to_string()

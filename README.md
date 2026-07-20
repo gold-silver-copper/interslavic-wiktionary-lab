@@ -67,9 +67,12 @@ committed and the site build stays self-contained.
   by every `export`. Live again since V11: the corpus path has its own
   committed calibrator (`data/corpus-calibration.json`, fitted by
   `corpus-eval --fit` on the dev split, holdout ECE ≈0.014), replacing the
-  issue-#89 fail-closed pause. Honest ceiling: top-decile coverage calibrates
-  to ≈0.43, so every current proposal sits in the review band (`pregled`) —
-  none reach the propose threshold.
+  issue-#89 fail-closed pause. Since V12, each row also carries a
+  `classification`: **near-official** rows (103 of 286) are reconstruction
+  near-misses of an existing official lemma (`jabluko` vs official
+  `jablȯko`, one vowel grade apart) — diagnostics for tuning sound rules,
+  cited against their official form, never proposed words; 183 rows remain
+  truly novel.
 
 The **benchmark below** still measures generation accuracy against the official dictionary
 (a separate, leakage-free evaluation of the engine).

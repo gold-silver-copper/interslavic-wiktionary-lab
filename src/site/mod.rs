@@ -8,9 +8,9 @@
 
 use self::assets::css;
 use self::coverage::{
-    inject_generated_derivatives, insert_official_byform_aliases, official_surface_maps,
-    plan_raw_pages, raw_intl_candidates, raw_intl_probabilities, select_official_surface,
-    OfficialSurface,
+    inject_generated_derivatives, insert_official_byform_aliases, near_official_match,
+    official_surface_maps, plan_raw_pages, raw_intl_candidates, raw_intl_probabilities,
+    select_official_surface, OfficialSurface,
 };
 use self::entries::{
     branch_evidence, build_input, corpus_about, corpus_entry_page, corpus_home, derivation_block,
@@ -1551,6 +1551,10 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         };
         let prob = cal.probability(p.g.score);
         if prob >= crate::calibrate::REVIEW_T {
+            // V12 item 3: a proposal one edit away from a gloss+POS-matched
+            // official byform is a reconstruction near-miss, not a novel
+            // word — reclassify with the official lemma cited.
+            let near = near_official_match(form, p.g.set.pos, &p.g.set.gloss, &official_entries);
             proposals.push(ProposalRow {
                 id: p.id,
                 form: form.to_string(),
@@ -1567,12 +1571,28 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                     l
                 },
                 gloss: p.g.set.gloss.clone(),
+                classification: if near.is_some() {
+                    "near-official"
+                } else {
+                    "novel"
+                },
+                official_lemma: near.unwrap_or_default(),
             });
         }
     }
     proposals.sort_by(|a, b| b.prob.total_cmp(&a.prob).then(a.id.cmp(&b.id)));
-    let mut tsv =
-        String::from("form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\n");
+    let n_near = proposals
+        .iter()
+        .filter(|r| r.classification == "near-official")
+        .count();
+    println!(
+        "proposals: {} rows ({} truly novel, {n_near} near-official reconstruction diagnostics)",
+        proposals.len(),
+        proposals.len() - n_near,
+    );
+    let mut tsv = String::from(
+        "form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\tclassification\tofficial\n",
+    );
     for r in &proposals {
         // Buckets are only meaningful in calibrated-probability space.
         let bucket = if r.prob >= crate::calibrate::PROPOSE_T {
@@ -1582,7 +1602,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         };
         let _ = writeln!(
             tsv,
-            "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             r.form,
             r.pos,
             r.prob,
@@ -1591,6 +1611,8 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
             r.n_langs,
             r.n_branches,
             r.gloss.replace(['\t', '\n'], " "),
+            r.classification,
+            r.official_lemma,
         );
     }
     // Committed data artifact AND a served copy, so the page's download link

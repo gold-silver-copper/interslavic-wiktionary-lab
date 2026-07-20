@@ -836,6 +836,55 @@ pub(super) fn raw_intl_candidates(
     out
 }
 
+/// Near-official reconciliation for a novel-word proposal (V12 item 3): a
+/// proposal whose gloss matches an official row (gloss tokens + POS, the
+/// same machinery the corpus calibrator's holdout uses) and whose folded
+/// form is within edit distance 2 of that row's lemma or any comma-separated
+/// byform is NOT a novel word — it is a reconstruction near-miss of an
+/// official lemma (jabluko vs jablȯko), valuable for tuning sound rules but
+/// wrong to propose. Returns the closest matched official byform.
+pub(super) fn near_official_match(
+    form: &str,
+    pos: crate::model::Pos,
+    gloss: &str,
+    official_entries: &[OfficialEntry],
+) -> Option<String> {
+    const MAX_DISTANCE: usize = 2;
+    let folded = crate::orthography::to_standard(&form.trim().to_lowercase());
+    let toks = crate::dump::gloss_tokens(gloss);
+    if folded.is_empty() || toks.is_empty() {
+        return None;
+    }
+    let mut best: Option<(usize, String)> = None; // (distance, byform)
+    for e in official_entries {
+        if e.pos != pos {
+            continue;
+        }
+        let overlap = crate::dump::gloss_tokens(&e.english)
+            .iter()
+            .filter(|t| toks.contains(t))
+            .count();
+        if overlap == 0 {
+            continue;
+        }
+        for byform in e.citation_byforms() {
+            let bf = crate::orthography::to_standard(&byform.form.trim().to_lowercase());
+            if bf.is_empty() {
+                continue;
+            }
+            let d = crate::orthography::levenshtein(&folded, &bf);
+            if d <= MAX_DISTANCE
+                && best
+                    .as_ref()
+                    .is_none_or(|(bd, bl)| (d, &byform.form) < (*bd, bl))
+            {
+                best = Some((d, byform.form.clone()));
+            }
+        }
+    }
+    best.map(|(_, lemma)| lemma)
+}
+
 /// Classify every raw lemma once (via [`raw_lemma_fate`] — still the single
 /// dedup rule shared with `coverage`), assigning sequential ids from
 /// `next_id + 1` to the rendered ones in corpus order — the same ids the old

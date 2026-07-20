@@ -1004,6 +1004,47 @@ fn word_chip_prefers_generated_then_raw_then_external() {
     assert!(!ambiguous.contains("999.html"), "{ambiguous}");
 }
 
+/// V12 item 3: jabluko (9 langs, 3 branches) is NOT a novel word — it is a
+/// reconstruction near-miss of official jablȯko and must reconcile.
+#[test]
+fn jabluko_reconciles_as_near_official() {
+    let official = crate::official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
+    let hit = super::coverage::near_official_match("jabluko", Pos::Noun, "apple", &official);
+    assert_eq!(hit.as_deref(), Some("jablȯko"));
+    // A form far from every gloss-matched official lemma stays novel.
+    assert_eq!(
+        super::coverage::near_official_match("zvězdoplavba", Pos::Noun, "astronautics", &official),
+        None
+    );
+}
+
+/// Issue #99 regression: comma-separated official byforms are individual
+/// official identities everywhere spelling identity is built.
+#[test]
+fn comma_separated_byforms_are_official_identities() {
+    let official = crate::official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
+    let index = crate::check::build_index(&official, None, Default::default());
+    for byform in ["iměti", "imati", "poslědnji", "poslědny"] {
+        let key = crate::forms::form_key(byform);
+        let recs = index
+            .by_key
+            .get(&key)
+            .unwrap_or_else(|| panic!("{byform} missing"));
+        assert!(
+            recs.iter()
+                .any(|r| r.source == "lemma" && r.status == "official"),
+            "{byform} must be an official lemma identity"
+        );
+    }
+    let (by_exact, _) = super::coverage::official_surface_maps(&official);
+    for byform in ["iměti", "imati", "poslědnji", "poslědny"] {
+        assert!(
+            by_exact.contains_key(&byform.to_lowercase()),
+            "{byform} missing from official surface map"
+        );
+    }
+}
+
 #[test]
 fn raw_intl_recovers_the_teleport_family() {
     // 2e: pl/mk attest the borrowed family with NO etymology sections, so it
