@@ -599,9 +599,8 @@ fn en_selftest(en_dir: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// The full documented retry ladder over the exported static API. Stops at the
-/// first ladder level that yields any candidates.
-pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result<()> {
+/// Open the exported English API directory, verifying its selftests.
+fn en_api_dir(site_dir: &Path) -> anyhow::Result<std::path::PathBuf> {
     let en_dir = site_dir.join("api").join("en");
     anyhow::ensure!(
         en_dir.join("meta.json").exists(),
@@ -610,13 +609,22 @@ pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result
         site_dir.display()
     );
     en_selftest(&en_dir)?;
+    Ok(en_dir)
+}
 
-    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+/// One query's full documented retry ladder over the exported static API,
+/// sharing `cache` across calls (the workhorse for `--batch`). Walks until a
+/// VERIFIED candidate surfaces; generated-only hits are kept but don't stop
+/// the walk.
+fn en_ladder(
+    en_dir: &Path,
+    cache: &mut HashMap<u32, serde_json::Value>,
+    query: &str,
+) -> anyhow::Result<(String, Vec<EnLookupHit>)> {
     let normalized = normalize_english_query(query);
     anyhow::ensure!(!normalized.is_empty(), "empty query after normalization");
 
-    // Ladder levels, in documented order. Each level is a set of keys tried
-    // together; the first level with hits wins.
+    // Ladder levels, in documented order.
     let mut levels: Vec<(&'static str, Vec<String>)> =
         vec![("normalized", vec![normalized.clone()])];
     for article in ["a ", "an ", "the "] {
@@ -652,10 +660,6 @@ pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result
         levels.push(("desuffix", desuffixed));
     }
 
-    // Walk the ladder until a VERIFIED candidate surfaces (a generated-only
-    // hit is kept but does not stop the walk): 'healing' both hits its
-    // derived-english generated record AND still reaches verified lěčiti via
-    // the de-suffixed 'heal'.
     let mut hits: Vec<EnLookupHit> = Vec::new();
     let mut seen_keys: std::collections::HashSet<String> = Default::default();
     'ladder: for (step, keys) in levels {
@@ -663,7 +667,7 @@ pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result
             if !seen_keys.insert(key.clone()) {
                 continue;
             }
-            let candidates = en_shard_records(&en_dir, &key, &mut cache)?;
+            let candidates = en_shard_records(en_dir, &key, cache)?;
             if !candidates.is_empty() {
                 let verified = candidates
                     .iter()
@@ -681,6 +685,117 @@ pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result
             }
         }
     }
+    Ok((normalized, hits))
+}
+
+/// First candidate in ladder order matching `pred`, tagged with its hit's
+/// step and key.
+fn first_candidate(
+    hits: &[EnLookupHit],
+    pred: impl Fn(&serde_json::Value) -> bool,
+) -> Option<serde_json::Value> {
+    for h in hits {
+        if let Some(c) = h.candidates.iter().find(|c| pred(c)) {
+            let mut c = c.clone();
+            c["step"] = serde_json::json!(h.step);
+            c["key"] = serde_json::json!(h.key);
+            return Some(c);
+        }
+    }
+    None
+}
+
+/// `en --batch <file>`: one query per line (blank lines and #-comments
+/// skipped), ONE selftest pass, the shard cache reused across queries,
+/// output strictly in input order (V11 item 7). JSON per query: status
+/// (verified/generated/miss), best_verified, best_generated, sense_note.
+pub fn run_en_batch(site_dir: &Path, file: &Path, json: bool) -> anyhow::Result<()> {
+    let en_dir = en_api_dir(site_dir)?;
+    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+    let text = std::fs::read_to_string(file)?;
+    let mut rows: Vec<serde_json::Value> = Vec::new();
+    let mut counts = (0usize, 0usize, 0usize); // verified / generated / miss
+    for line in text.lines() {
+        let query = line.trim();
+        if query.is_empty() || query.starts_with('#') {
+            continue;
+        }
+        let (normalized, hits) = en_ladder(&en_dir, &mut cache, query)?;
+        let verified = first_candidate(&hits, |c| {
+            matches!(c["status"].as_str(), Some("official" | "official-only"))
+        });
+        let generated = first_candidate(&hits, |c| c["status"].as_str() == Some("generated"));
+        let status = if verified.is_some() {
+            counts.0 += 1;
+            "verified"
+        } else if generated.is_some() {
+            counts.1 += 1;
+            "generated"
+        } else {
+            counts.2 += 1;
+            "miss"
+        };
+        let sense_note = hits.iter().find_map(|h| h.sense_note.clone());
+        if !json {
+            let show = |c: &Option<serde_json::Value>| {
+                c.as_ref()
+                    .map(|c| {
+                        format!(
+                            "{} [{} via {}]",
+                            c["lemma"].as_str().unwrap_or(""),
+                            c["trust"].as_str().unwrap_or(""),
+                            c["step"].as_str().unwrap_or(""),
+                        )
+                    })
+                    .unwrap_or_else(|| "—".into())
+            };
+            println!(
+                "{query}	{status}	{}	{}{}",
+                show(&verified),
+                show(&generated),
+                if sense_note.is_some() {
+                    "	⚠ sense-note"
+                } else {
+                    ""
+                },
+            );
+        }
+        rows.push(serde_json::json!({
+            "query": query,
+            "normalized": normalized,
+            "status": status,
+            "best_verified": verified,
+            "best_generated": generated,
+            "sense_note": sense_note,
+        }));
+    }
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "queries": rows,
+                "summary": {
+                    "verified": counts.0,
+                    "generated_only": counts.1,
+                    "miss": counts.2,
+                },
+            }))?
+        );
+    } else {
+        println!(
+            "batch: {} verified / {} generated-only / {} miss",
+            counts.0, counts.1, counts.2
+        );
+    }
+    Ok(())
+}
+
+/// The full documented retry ladder over the exported static API, for one
+/// query (see [`en_ladder`]).
+pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result<()> {
+    let en_dir = en_api_dir(site_dir)?;
+    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+    let (normalized, hits) = en_ladder(&en_dir, &mut cache, query)?;
 
     if json {
         println!(

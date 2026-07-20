@@ -2083,7 +2083,7 @@ mod search;
 mod special;
 
 pub use self::coverage::run_coverage;
-pub use self::english_api::run_en_lookup;
+pub use self::english_api::{run_en_batch, run_en_lookup};
 
 #[cfg(test)]
 mod tests;
