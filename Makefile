@@ -6,7 +6,7 @@ OUT ?= target/eval
 
 .PHONY: extract-proto extract-lemmas extract-raw-slavic extract-enrich extract-all \
 	eval proto-eval corpus-eval aspect-eval audit export serve explain coverage check fmt test clean \
-	search-perf
+	search-perf probe
 
 # One-time: stream the 23GB dump into the Proto-Slavic cache (enables +proto-derived).
 extract-proto:
@@ -63,6 +63,11 @@ serve: export
 # search client under Node (tools/search-perf.mjs; issue #71).
 search-perf:
 	node tools/search-perf.mjs "$(SITE)" --out "$(OUT)/search-performance.md" --label "$$(git rev-parse --short HEAD)"
+
+# The tracked 219-word translation probe (V13) against a prior export —
+# a reported metric, never a gate. Writes target/eval/translation-probe.md.
+probe:
+	cargo run --release -- translation-probe --site "$(SITE)" --out "$(OUT)"
 
 # Spot-check one word/gloss with a full rule trace, e.g. `make explain W=duša`.
 explain:

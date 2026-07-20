@@ -141,6 +141,20 @@ enum Command {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
     },
+    /// Run the committed 219-word translation probe (tools/translation-probe.txt,
+    /// the mrzavec / Rogue-5.4.5 vocabulary) through the exported English API
+    /// and report verified/generated-only/miss counts against the recorded
+    /// baseline. A reported metric, never a gate (V13 item 3).
+    TranslationProbe {
+        /// Directory of a previous `export --out` run.
+        #[arg(long, default_value = "site")]
+        site: PathBuf,
+        /// The probe file (one query per line, #-comment category headers).
+        #[arg(long, default_value = "tools/translation-probe.txt")]
+        probe: PathBuf,
+        #[arg(long, default_value = "target/eval")]
+        out: PathBuf,
+    },
     /// Explain the generator's output for one word or gloss (manual spot-check).
     Explain {
         /// A gloss (English) or an official Interslavic lemma to look up.
@@ -375,6 +389,9 @@ fn main() -> Result<()> {
                 lexicon_row,
             )?;
             coincheck::run(&official, &word, json, &overrides)
+        }
+        Command::TranslationProbe { site, probe, out } => {
+            site::run_translation_probe(&site, &probe, &out)
         }
         Command::En {
             query,

@@ -481,6 +481,12 @@ cargo run --release -- coin-check "jabberwok" --json
 # workflow chains: coin-check -> append row -> check-text --lexicon:
 cargo run --release -- coin-check "Å¾abervok" --gender m --animacy anim \
   --gloss jabberwock --lexicon-row
+
+# Tracked translation probe (V13): the committed 219-word Rogue-5.4.5 game
+# vocabulary (tools/translation-probe.txt) through the exported English API.
+# A reported metric, never a gate; baseline 147 verified / 44 generated-only
+# / 28 miss. Writes target/eval/translation-probe.md:
+cargo run --release -- translation-probe
 ```
 
 ## Lexical verification API (for humans and AI agents)
@@ -633,6 +639,7 @@ target/eval/inflection-report.md                 inflection census + RULE_SPEC Â
 target/eval/synonym-accuracy.md                  synonym-inclusive accuracy (thesaurus-based)
 target/eval/rep-selection.md                     representative-selection probe (medoid vs oracle)
 target/eval/cluster-selection.md                 cluster-selection probe (blind rules vs oracle)
+target/eval/translation-probe.md                 tracked 219-word game-vocabulary probe (reported, not gated)
 ```
 
 The V7 full-pipeline review (stage-attribution histogram, oracle ladder, and the

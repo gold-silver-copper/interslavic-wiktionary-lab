@@ -1,0 +1,246 @@
+# The mrzavec translation probe: the 219-word Rogue 5.4.5 game vocabulary
+# that steered releases V10-V12. One `en --batch` query per line;
+# category headers are comments (skipped by the batch reader).
+
+# Potions (14)
+confusion
+hallucination
+poison
+gain strength
+see invisible
+healing
+monster detection
+magic detection
+raise level
+extra healing
+haste self
+restore strength
+blindness
+levitation
+
+# Scrolls (18)
+monster confusion
+magic mapping
+hold monster
+sleep
+enchant armor
+identify potion
+identify scroll
+identify weapon
+identify armor
+identify ring, wand or staff
+scare monster
+food detection
+teleportation
+enchant weapon
+create monster
+remove curse
+aggravate monsters
+protect armor
+
+# Rings (14)
+protection
+add strength
+sustain strength
+searching
+see invisible
+adornment
+aggravate monster
+dexterity
+increase damage
+regeneration
+slow digestion
+teleportation
+stealth
+maintain armor
+
+# Sticks (wands/staffs) (14)
+light
+invisibility
+lightning
+fire
+cold
+polymorph
+magic missile
+haste monster
+slow monster
+drain life
+nothing
+teleport away
+teleport to
+cancellation
+
+# Weapons (9)
+mace
+long sword
+short bow
+arrow
+dagger
+two handed sword
+dart
+shuriken
+spear
+
+# Armor (8)
+leather armor
+ring mail
+studded leather armor
+scale mail
+chain mail
+splint mail
+banded mail
+plate mail
+
+# Monsters (26)
+aquator
+bat
+centaur
+dragon
+emu
+venus flytrap
+griffin
+hobgoblin
+ice monster
+jabberwock
+kestrel
+leprechaun
+medusa
+nymph
+orc
+phantom
+quagga
+rattlesnake
+snake
+troll
+black unicorn
+vampire
+wraith
+xeroc
+yeti
+zombie
+
+# Traps (8)
+trapdoor
+arrow trap
+sleeping gas trap
+bear trap
+teleport trap
+poison dart trap
+rust trap
+mysterious trap
+
+# Colors (potion appearances) (27)
+amber
+aquamarine
+black
+blue
+brown
+clear
+crimson
+cyan
+ecru
+gold
+green
+grey
+magenta
+orange
+pink
+plaid
+purple
+red
+silver
+tan
+tangerine
+topaz
+turquoise
+vermilion
+violet
+white
+yellow
+
+# Stones (ring appearances) (26)
+agate
+alexandrite
+amethyst
+carnelian
+diamond
+emerald
+germanium
+granite
+garnet
+jade
+kryptonite
+lapis lazuli
+moonstone
+obsidian
+onyx
+opal
+pearl
+peridot
+ruby
+sapphire
+stibiotantalite
+tiger eye
+topaz
+turquoise
+taaffeite
+zircon
+
+# Woods (staff materials) (33)
+avocado wood
+balsa
+bamboo
+banyan
+birch
+cedar
+cherry
+cinnabar
+cypress
+dogwood
+driftwood
+ebony
+elm
+eucalyptus
+fall
+hemlock
+holly
+ironwood
+kukui wood
+mahogany
+manzanita
+maple
+oaken
+persimmon wood
+pecan
+pine
+poplar
+redwood
+rosewood
+spruce
+teak
+walnut
+zebrawood
+
+# Metals (wand materials) (22)
+aluminum
+beryllium
+bone
+brass
+bronze
+copper
+electrum
+gold
+iron
+lead
+magnesium
+mercury
+nickel
+pewter
+platinum
+steel
+silver
+silicon
+tin
+titanium
+tungsten
+zinc
