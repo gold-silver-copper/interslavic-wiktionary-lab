@@ -484,9 +484,10 @@ pub(super) fn raw_intl_candidates(
     taken: &mut std::collections::HashSet<String>,
 ) -> Vec<RawIntlCandidate> {
     use crate::model::Pos;
-    // (intl skeleton, pos class) → members (lang, word, gloss list).
-    let mut groups: BTreeMap<(String, &'static str), Vec<(String, String, Vec<String>)>> =
-        BTreeMap::new();
+    // (lang, word, gloss list) of one raw member.
+    type Member = (String, String, Vec<String>);
+    // (intl skeleton, pos class) → members.
+    let mut groups: BTreeMap<(String, &'static str), Vec<Member>> = BTreeMap::new();
     for l in lemmas {
         let word = l.word.trim();
         let modern = crate::lang::lang_info(&l.lang).is_some_and(|i| i.modern);

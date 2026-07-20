@@ -476,9 +476,9 @@ fn en_shard_records(
     cache: &mut HashMap<u32, serde_json::Value>,
 ) -> anyhow::Result<Vec<serde_json::Value>> {
     let shard = english_shard_of(key);
-    if !cache.contains_key(&shard) {
+    if let std::collections::hash_map::Entry::Vacant(slot) = cache.entry(shard) {
         let raw = std::fs::read_to_string(en_dir.join(format!("{shard}.json")))?;
-        cache.insert(shard, serde_json::from_str(&raw)?);
+        slot.insert(serde_json::from_str(&raw)?);
     }
     Ok(cache[&shard]["records"][key]
         .as_array()
@@ -1150,8 +1150,8 @@ mod tests {
         let heal = index.get("healing").expect("healing key");
         assert_eq!(heal[0].lemma, "lěčeńje");
         // The base keys survive untouched.
-        assert!(index.get("invisible").is_some());
-        assert!(index.get("heal").is_some());
+        assert!(index.contains_key("invisible"));
+        assert!(index.contains_key("heal"));
     }
 
     #[test]

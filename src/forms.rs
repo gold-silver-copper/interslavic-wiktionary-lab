@@ -848,6 +848,7 @@ pub struct ApiCounts {
 
 /// Write `api/meta.json`, `api/lemmas.json` and the `api/forms/<n>.json`
 /// shards. Deterministic: BTreeMap ordering everywhere, no timestamps.
+#[allow(clippy::too_many_arguments)]
 pub fn write_api(
     out_dir: &Path,
     records: &[FormRecord],
