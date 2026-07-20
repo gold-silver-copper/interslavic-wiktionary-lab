@@ -1786,7 +1786,7 @@ pub(super) fn verb_table(word: &str, reflexive: bool) -> String {
 pub(super) fn source_class(s: CandidateSource) -> &'static str {
     match s {
         CandidateSource::ProtoSlavicRule => "src-proto",
-        CandidateSource::ManualOverride | CandidateSource::OfficialDictionary => "src-official",
+        CandidateSource::OfficialDictionary => "src-official",
         _ => "src-consensus",
     }
 }

@@ -62,7 +62,38 @@ pub fn reset_inflection_panic_count() {
 /// Shard count for the form index. Changing it is a schema break: bump
 /// [`SCHEMA_VERSION`] and regenerate `api/agent-guide.md`.
 pub const SHARDS: u32 = 2048;
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
+
+/// Ranking evidence shared by `api/lemmas.json` rows and English-API
+/// candidates (issue: choosing between synonyms required joining three
+/// files). All four fields already exist in the pipeline — this is plumbing:
+/// `frequency` from the official CSV, `langs`/`branch_pattern`/`borrowed`
+/// from the entry's attestation metadata. Keyed by site entry id.
+#[derive(Debug, Clone, Default)]
+pub struct RankEvidence {
+    pub frequency: Option<f32>,
+    pub langs: usize,
+    pub branch_pattern: Option<String>,
+    pub borrowed: bool,
+}
+
+/// Ranking evidence carried inline by a raw-intl record's provenance tag
+/// (`raw-intl:<langs>l:<branch-pattern>`). These records use the `entry_id 0`
+/// "no entry page" sentinel, so the per-entry evidence map cannot describe
+/// them; the tag does.
+pub fn raw_intl_evidence(record: &FormRecord) -> Option<RankEvidence> {
+    let tag = record
+        .analyses
+        .iter()
+        .find_map(|a| a.strip_prefix("raw-intl:"))?;
+    let (langs, pattern) = tag.split_once("l:")?;
+    Some(RankEvidence {
+        frequency: None,
+        langs: langs.parse().ok()?,
+        branch_pattern: Some(pattern.to_string()),
+        borrowed: true,
+    })
+}
 pub const LICENSE: &str =
     "CC BY-SA 4.0 (derives from Wiktionary and interslavic-dictionary.com; see /about.html)";
 
@@ -835,11 +866,14 @@ pub struct ApiCounts {
 
 /// Write `api/meta.json`, `api/lemmas.json` and the `api/forms/<n>.json`
 /// shards. Deterministic: BTreeMap ordering everywhere, no timestamps.
+#[allow(clippy::too_many_arguments)]
 pub fn write_api(
     out_dir: &Path,
     records: &[FormRecord],
     lemmas: &[FormRecord],
     aspect_meta: &AspectMeta,
+    evidence: &BTreeMap<usize, RankEvidence>,
+    notes_count: usize,
     extra_artifact_bytes: usize,
     git: &str,
     agent_guide: &str,
@@ -891,13 +925,17 @@ pub fn write_api(
         std::fs::write(forms_dir.join(format!("{n}.json")), s)?;
     }
 
-    // lemmas.json schema 3: compact array
+    // lemmas.json schema 4: compact array
     // [lemma, pos, status, probability, entry_id, gloss, aspect,
-    //  aspect_partners]. Each partner is [entry_id, lemma].
+    //  aspect_partners, frequency, langs, branch_pattern, borrowed].
+    // Each partner is [entry_id, lemma]; the last four are the ranking
+    // evidence (schema-4 addition — consumers must accept the trailing
+    // fields).
     let mut ls = format!(
         "{{\"schema_version\":{SCHEMA_VERSION},\"license\":{},\"lemmas\":[\n",
         json_str(LICENSE)
     );
+    let no_evidence = RankEvidence::default();
     for (i, r) in lemmas.iter().enumerate() {
         if i > 0 {
             ls.push_str(",\n");
@@ -907,9 +945,14 @@ pub fn write_api(
             .map(|p| format!("{:.3}", p))
             .unwrap_or_else(|| "null".into());
         let (aspect, partner) = lemma_aspect_fields(r, aspect_meta);
+        let tag_ev = raw_intl_evidence(r);
+        let ev = tag_ev
+            .as_ref()
+            .or_else(|| evidence.get(&r.entry_id))
+            .unwrap_or(&no_evidence);
         let _ = write!(
             ls,
-            "[{},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{},{},{},{},{},{}]",
             json_str(&r.form),
             json_str(r.pos),
             json_str(r.status),
@@ -918,6 +961,15 @@ pub fn write_api(
             json_str(&r.gloss),
             aspect,
             partner,
+            ev.frequency
+                .map(|f| format!("{f}"))
+                .unwrap_or_else(|| "null".into()),
+            ev.langs,
+            ev.branch_pattern
+                .as_deref()
+                .map(json_str)
+                .unwrap_or_else(|| "null".into()),
+            ev.borrowed,
         );
     }
     ls.push_str("\n]}\n");
@@ -950,12 +1002,13 @@ pub fn write_api(
     std::fs::write(api.join("router-selftest.json"), st)?;
 
     let meta = format!(
-        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"english_lookup_meta\": \"api/en/meta.json\",\n    \"english_lookup\": \"api/en/<n>.json\",\n    \"english_selftest\": \"api/en/selftest.json\",\n    \"aspect_pairs\": \"api/aspect-pairs.json\",\n    \"suggestions\": \"api/suggest/<n>.json\",\n    \"suggestion_selftest\": \"api/suggest-selftest.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
+        "{{\n  \"schema_version\": {SCHEMA_VERSION},\n  \"git\": {},\n  \"license\": {},\n  \"shards\": {SHARDS},\n  \"router\": \"fnv1a32(utf8(key)) % shards; key = to_standard(lowercase(form)) — see agent-guide.md for the fold table\",\n  \"form_records\": {},\n  \"distinct_keys\": {},\n  \"lemmas\": {},\n  \"notes\": {},\n  \"total_bytes\": {},\n  \"largest_shard_bytes\": {},\n  \"files\": {{\n    \"forms\": \"api/forms/<n>.json\",\n    \"lemmas\": \"api/lemmas.json\",\n    \"english_lookup_meta\": \"api/en/meta.json\",\n    \"english_lookup\": \"api/en/<n>.json\",\n    \"english_selftest\": \"api/en/selftest.json\",\n    \"aspect_pairs\": \"api/aspect-pairs.json\",\n    \"notes\": \"api/notes.json\",\n    \"suggestions\": \"api/suggest/<n>.json\",\n    \"suggestion_selftest\": \"api/suggest-selftest.json\",\n    \"guide\": \"api/agent-guide.md\"\n  }}\n}}\n",
         json_str(git),
         json_str(LICENSE),
         records.len(),
         keyset.len(),
         lemmas.len(),
+        notes_count,
         bytes,
         largest,
     );
@@ -991,7 +1044,7 @@ License: {LICENSE}.
 | Verify/analyse an Interslavic token (real word? case/number/person?) | `api/forms/<n>.json` (sharded) |
 | Enumerate all lemmas; filter by status/POS/aspect | `api/lemmas.json` |
 | Verb aspect partners and the pair model | `api/aspect-pairs.json` |
-| False-friend warnings for a folded Interslavic key | `api/notes.json` |
+| False-friend warnings for a folded Interslavic key (computed from cache evidence) | `api/notes.json` |
 | Typo suggestions for an unknown Interslavic token | `api/suggest/<n>.json` |
 | Entry metadata: attestation languages, confidence, categories | `entries.json` (site root) |
 | Human-checkable citation for a lemma | `entry/<entry_id>.html` |
@@ -1048,9 +1101,15 @@ lexical tie-break, at most three. `api/suggest-selftest.json` is generated by
 Rust and the browser must pass it before displaying suggestions.
 
 `api/lemmas.json` uses
-`[lemma, pos, status, probability, entry_id, gloss, aspect, aspect_partners]`;
+`[lemma, pos, status, probability, entry_id, gloss, aspect, aspect_partners,
+frequency, langs, branch_pattern, borrowed]`;
 `aspect` is `ipf`, `pf`, `ipf/pf`, or null; `aspect_partners` is an array of
-`[partner_entry_id, partner_lemma]` rows (schema 3, issue #75).
+`[partner_entry_id, partner_lemma]` rows. **Schema 4 migration:** schema 3's
+eight-field row gained four trailing ranking-evidence fields — `frequency`
+(official CSV column, null for generated rows), `langs` (attesting-language
+count), `branch_pattern` (`"V+Z+J"`-style combination or null), `borrowed`
+(bool). English-API candidates (en schema 2) carry the same four fields, so
+choosing between synonyms no longer requires joining three files.
 `api/aspect-pairs.json` contains the production pair model output: both official
 endpoints/page IDs, shared-anchor generated forms, the fired rule, and
 `-ovati/-uje` present stems where applicable.
@@ -1063,12 +1122,25 @@ collapsing whitespace, trimming, and stripping a leading verb marker `to `.
 Route the normalized key with
 `fnv1a32(utf8(key)) % 256`, then fetch `api/en/<n>.json` and read
 `records[key]`.
-Normalization strips only the verb marker `to `; on a multiword miss, retry
-without a leading article ("the game" → "game") and then per content word.
+Normalization strips only the verb marker `to `; then walk the retry ladder
+documented in `api/en/meta.json` **until a verified candidate surfaces** (keep
+generated-only hits, but keep walking): (1) drop a leading article
+("the game" → "game"); (2) retry each content word of a multiword query;
+(3) **de-suffix** the key and retry — apply EVERY rule whose suffix matches,
+collecting all variants (rules listed longest-suffix first) — `-ibility→-ible`,
+`-ability→-able`, `-iness→-y`, `-ness→∅`, `-ation→∅/-ate`, `-ition→∅/-e/-ite`,
+`-ity→∅/-e`, `-ing→∅/-e` (undoubling a doubled final consonant:
+"mapping"→"map"), `-ies→-y`, `-es→∅`, `-s→∅`, keeping stems of ≥3 chars.
+`api/en/selftest.json` freezes `desuffix_samples` (`[key, [variants…]]`) so you
+can verify your ladder implementation. The reverse direction is built in:
+generated derivatives are indexed under mechanically derived English keys
+("invisible"→"invisibility", "heal"→"healing") with match reason
+`derived-english`.
 
 Each English candidate is an object with the Interslavic `lemma`, `entry_id`,
 `official_id`, `pos`, source `gloss`, `status`, `trust`, deterministic `rank`,
-the match reason (`phrase`, `exact-gloss-head`, or `gloss-token`), optional
+the match reason (`phrase`, `exact-gloss-head`, `derived-english`, or
+`gloss-token`), optional
 verb `aspect` and `aspect_partners`, semantic `warnings`, optional `prefer`
 alternatives, model-specific `probability` for generated records, and
 `form_lookup` (`key`, `shard`, `path`) into the form API. The English API is
@@ -1116,14 +1188,23 @@ English key — never across keys; across keys compare `trust`/`status`. A
     BASE's page. `probability` is the per-pattern Wilson-95 lower bound of an
     off-official-base holdout's exact-match rate (capped 0.90; see
     `derivation-report.md`) — a form-accuracy proxy that cannot measure whether
-    the derivative is a real word, so treat it as a suggestion.
+    the derivative is a real word, so treat it as a suggestion;
+  - **raw-attested borrowed internationalisms** — cognate sets the evidence
+    gate never saw (no etymology section on any Wiktionary member, e.g. the
+    teleport family), recovered from raw attestations in ≥2 languages across
+    ≥2 branches with gloss agreement, flavorized and adapted by the ordinary
+    pipeline. Their `analyses` carry a single
+    `raw-intl:<langs>l:<branch-pattern>` tag (e.g. `raw-intl:2l:Z+J`), which
+    also feeds their ranking evidence (`borrowed: true`); `probability` is
+    null (no calibrator for this path — fail closed), and `entry_id` is the
+    `0` "no entry page" sentinel — do not fetch `entry/0.html`.
 - **Any non-null generated probability is still a suggestion, never
-  verification.** Generated lemmas (both kinds) have NO inflection records on
+  verification.** Generated lemmas (all kinds) have NO inflection records on
   purpose: an inflected form of a
   wrong lemma is confidently wrong. A missing key means "unknown to Slovowiki",
   not "wrong".
 
-## Coverage (schema 3)
+## Coverage (schema 4)
 
 The index now includes, beyond noun/adjective/verb paradigms: **declined
 participles** (passive and active-present, adjectival paradigms under the verb
@@ -1152,8 +1233,10 @@ compatible and both tokens are POS-unambiguous verification-grade words.
    before falling back to unigrams (three-token official lemmas exist too:
    trigram → bigram → unigram).
 4. Check the `gloss` — do not assume a cognate's meaning from your own Slavic
-   language — and look the folded key up in `api/notes.json` for curated
-   false-friend warnings with `prefer` replacements.
+   language — and look the folded key up in `api/notes.json` for computed
+   false-friend warnings (each record: `warning` sentence, optional `prefer`
+   official lemma covering the divergent sense, and per-language `collisions`
+   evidence).
 5. For unknown tokens, use `api/suggest/<n>.json` (or `cargo run -- check-text`
    locally) to offer nearest known forms.
 6. Cite `entry/<entry_id>.html` when you need a human-checkable source.
@@ -1219,7 +1302,10 @@ mod tests {
             SHARDS, 2048,
             "SHARDS is wire format: bump SCHEMA_VERSION too"
         );
-        assert_eq!(SCHEMA_VERSION, 3);
+        // Schema 4: lemmas.json rows grew four trailing ranking-evidence
+        // fields (frequency, langs, branch_pattern, borrowed); the router and
+        // form-shard record shape are unchanged.
+        assert_eq!(SCHEMA_VERSION, 4);
     }
 
     #[test]

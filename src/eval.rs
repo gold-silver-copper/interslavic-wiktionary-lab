@@ -2437,11 +2437,9 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
     };
 
     let input = build_input(entry);
-    let overrides = crate::overrides::Overrides::load(Path::new(crate::DEFAULT_OVERRIDES));
     let cfg = crate::consensus::ConsensusConfig::production();
     let proto = load_proto_index();
-    let gen =
-        crate::generator::generate(&input, Some(&entry.isv), proto.as_ref(), &cfg, &overrides);
+    let gen = crate::generator::generate(&input, Some(&entry.isv), proto.as_ref(), &cfg);
     if let Some(r) = &gen.reconstruction {
         println!(
             "Reconstruction: *{} (link conf {:.2})",

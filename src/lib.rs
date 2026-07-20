@@ -9,6 +9,7 @@ pub mod derive;
 pub mod dump;
 pub mod enrich;
 pub mod eval;
+pub mod falsefriends;
 pub mod flavorize;
 pub mod forms;
 pub mod generator;
@@ -20,7 +21,6 @@ pub mod morph;
 pub mod normalize;
 pub mod official;
 pub mod orthography;
-pub mod overrides;
 pub mod pipeline;
 pub mod proto;
 pub mod proto_link;
@@ -31,7 +31,6 @@ pub mod thesaurus;
 /// different location should pass `--dump` explicitly.
 pub const DEFAULT_DUMP: &str = "data/raw-wiktextract-data.jsonl";
 pub const DEFAULT_OFFICIAL: &str = "data/official-isv.csv";
-pub const DEFAULT_OVERRIDES: &str = "data/overrides.toml";
 pub const DEFAULT_PROTO_CACHE: &str = "data/proto-slavic.cache.json";
 pub const DEFAULT_LEMMA_CACHE: &str = "data/slavic-lemmas.cache.json";
 /// Evidence-free single-token Slavic lemma cache. This is deliberately

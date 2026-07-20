@@ -11,7 +11,7 @@ use std::path::Path;
 
 use super::model::SiteEntryMeta;
 
-pub(super) const EN_SCHEMA_VERSION: u32 = 1;
+pub(super) const EN_SCHEMA_VERSION: u32 = 2;
 pub(super) const EN_SHARDS: u32 = 256;
 
 /// Canonical raw queries shipped in `api/en/selftest.json`. Chosen to exercise
@@ -24,6 +24,22 @@ const EN_SELFTEST_SAMPLES: &[&str] = &[
     "don't",
     "naïve café",
     "game",
+];
+
+/// Canonical inputs for the frozen de-suffixing ladder samples in
+/// `api/en/selftest.json`. Chosen to exercise every strip rule.
+const EN_DESUFFIX_SAMPLES: &[&str] = &[
+    "healing",
+    "mapping",
+    "searching",
+    "invisibility",
+    "darkness",
+    "happiness",
+    "translation",
+    "definition",
+    "scrolls",
+    "potions",
+    "stories",
 ];
 
 /// Function words: never a lookup key, not even as an exact gloss head.
@@ -68,6 +84,13 @@ pub(super) struct EnglishCandidate {
     prefer: Vec<String>,
     form_lookup: FormLookup,
     probability: Option<f64>,
+    // Ranking evidence (en schema 2, issue: synonym choice required joining
+    // three files). For generated derivatives these describe the attested
+    // BASE entry the candidate hangs off.
+    frequency: Option<f32>,
+    langs: usize,
+    branch_pattern: Option<String>,
+    borrowed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -121,7 +144,7 @@ fn normalize_english_text(raw: &str) -> String {
     out.trim().to_string()
 }
 
-pub(super) fn normalize_english_query(raw: &str) -> String {
+pub fn normalize_english_query(raw: &str) -> String {
     let key = normalize_english_text(raw);
     key.strip_prefix("to ")
         .map(str::trim)
@@ -130,7 +153,7 @@ pub(super) fn normalize_english_query(raw: &str) -> String {
         .to_string()
 }
 
-pub(super) fn english_shard_of(key: &str) -> u32 {
+pub fn english_shard_of(key: &str) -> u32 {
     forms::fnv1a32(key) % EN_SHARDS
 }
 
@@ -274,6 +297,10 @@ fn match_rank(match_kind: &str) -> i32 {
     match match_kind {
         "phrase" => 120,
         "exact-gloss-head" => 100,
+        // Mechanical English derivation of the base's gloss (see
+        // `derived_english_forms`): stronger than an incidental token hit,
+        // weaker than an exact head.
+        "derived-english" => 80,
         "gloss-token" => 40,
         _ => 20,
     }
@@ -305,6 +332,353 @@ fn key_matches(gloss: &str) -> Vec<KeyMatch> {
         .collect()
 }
 
+/// The `deriv:<pattern>` provenance tag of a generated derivative record.
+fn deriv_pattern(record: &FormRecord) -> Option<&str> {
+    record
+        .analyses
+        .iter()
+        .find_map(|a| a.strip_prefix("deriv:"))
+}
+
+/// Purely mechanical English derivations of a base-gloss word for one
+/// Interslavic derivation pattern — the build-side half of the morphological
+/// normalization (issue: `heal` resolved but `healing` didn't; `nevidimy` was
+/// indexed under `invisible` but its `-osť` derivative not under
+/// `invisibility`). String transforms only; no exception dictionaries.
+/// A crude but deterministic "could this English word be an adjective"
+/// check by suffix shape, gating the un-/in- negation keys: adjective bases
+/// with no recognizable suffix ("dark") still take -ness/-ly, but negating
+/// a noun-looking base gloss ("lion" on a denominal adjective's gloss head)
+/// produced junk keys like "unlion".
+fn adjective_like(w: &str) -> bool {
+    const ADJ_SUFFIXES: &[&str] = &[
+        "y", "ic", "al", "ous", "ive", "able", "ible", "ful", "less", "ant", "ent", "ed", "ing",
+        "ile", "ish", "ory", "ar",
+    ];
+    ADJ_SUFFIXES.iter().any(|suf| w.ends_with(suf))
+}
+
+fn derived_english_forms(pattern: &str, w: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    if w.chars().count() < 3 || !w.chars().all(|c| c.is_ascii_alphabetic()) {
+        return out;
+    }
+    match pattern {
+        // -osť: abstract-quality noun → -ness / -ity.
+        "ost" => {
+            let mut ility = false;
+            if let Some(stem) = w.strip_suffix("le") {
+                // invisible → invisibility, able → ability
+                if w.ends_with("ible") || w.ends_with("able") {
+                    out.push(format!("{stem}ility"));
+                    ility = true;
+                }
+            }
+            if let Some(stem) = w.strip_suffix('y') {
+                out.push(format!("{stem}iness")); // happy → happiness
+            } else {
+                out.push(format!("{w}ness"));
+            }
+            if !ility {
+                if let Some(stem) = w.strip_suffix('e') {
+                    out.push(format!("{stem}ity")); // scarce → scarcity
+                }
+            }
+        }
+        // adverb: -ly family.
+        "adv" => {
+            if w.ends_with("ic") {
+                out.push(format!("{w}ally")); // heroic → heroically
+            } else if let Some(stem) = w.strip_suffix("le") {
+                out.push(format!("{stem}ly")); // simple → simply
+            } else if let Some(stem) = w.strip_suffix('y') {
+                out.push(format!("{stem}ily")); // happy → happily
+            } else {
+                out.push(format!("{w}ly"));
+            }
+        }
+        // -ńje: verbal noun → -ing / -(a)tion.
+        "vnoun" => {
+            let chars: Vec<char> = w.chars().collect();
+            let n = chars.len();
+            if w.ends_with('e') && !w.ends_with("ee") {
+                out.push(format!("{}ing", &w[..w.len() - 1])); // make → making
+            } else {
+                out.push(format!("{w}ing")); // heal → healing
+                                             // CVC doubling: map → mapping (approximate, emitted alongside).
+                let vowel = |c: char| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u');
+                if n >= 3
+                    && !vowel(chars[n - 1])
+                    && !matches!(chars[n - 1], 'w' | 'x' | 'y')
+                    && vowel(chars[n - 2])
+                    && !vowel(chars[n - 3])
+                {
+                    out.push(format!("{w}{}ing", chars[n - 1]));
+                }
+            }
+            if let Some(stem) = w.strip_suffix("ate") {
+                out.push(format!("{stem}ation")); // translate → translation
+            }
+        }
+        // ne-: negated adjective → un- / in-, only for adjective-shaped
+        // base words (see `adjective_like`).
+        "ne" if adjective_like(w) => {
+            out.push(format!("un{w}"));
+            out.push(format!("in{w}"));
+        }
+        _ => {}
+    }
+    out
+}
+
+/// Suffixes the documented de-suffixing retry ladder strips, longest first.
+/// Shared by the `en` CLI, the selftest samples, and the meta contract text.
+pub fn desuffix_variants(key: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut push = |cand: String| {
+        if cand.chars().count() >= 3 && cand != key && !out.contains(&cand) {
+            out.push(cand);
+        }
+    };
+    let rules: &[(&str, &[&str])] = &[
+        ("ibility", &["ible"]),
+        ("ability", &["able"]),
+        ("iness", &["y"]),
+        ("ness", &[""]),
+        ("ation", &["", "ate"]),
+        ("ition", &["", "e", "ite"]),
+        ("ity", &["", "e"]),
+        ("ing", &["", "e"]),
+        ("ies", &["y"]),
+        ("es", &[""]),
+        ("s", &[""]),
+    ];
+    for (suf, restores) in rules {
+        if let Some(stem) = key.strip_suffix(suf) {
+            for r in *restores {
+                push(format!("{stem}{r}"));
+            }
+            // -ing after a doubled consonant: running → run. ASCII-gated
+            // (English doubling is ASCII-only), which also keeps the
+            // char-boundary truncation safe for non-ASCII queries.
+            if *suf == "ing" {
+                let cs: Vec<char> = stem.chars().collect();
+                if cs.len() >= 2
+                    && cs[cs.len() - 1] == cs[cs.len() - 2]
+                    && cs[cs.len() - 1].is_ascii_alphabetic()
+                {
+                    push(stem[..stem.len() - 1].to_string());
+                }
+            }
+        }
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------
+// `en` CLI (issue: agents reimplement the router by hand; every
+// reimplementation is error surface). The CLI reads the exporter's OWN emitted
+// artifacts (`site/api/en/`) and routes with the SAME functions the exporter
+// used to build them — normalize_english_query / english_shard_of /
+// desuffix_variants — so CLI and static API cannot drift. Like the site's JS,
+// it verifies itself against the shipped selftest before trusting any lookup.
+// ---------------------------------------------------------------------------
+
+/// One ladder hit: which retry step produced it and under which key.
+#[derive(Debug, Serialize)]
+struct EnLookupHit {
+    step: &'static str,
+    key: String,
+    shard: u32,
+    candidates: Vec<serde_json::Value>,
+}
+
+fn en_shard_records(
+    en_dir: &Path,
+    key: &str,
+    cache: &mut HashMap<u32, serde_json::Value>,
+) -> anyhow::Result<Vec<serde_json::Value>> {
+    let shard = english_shard_of(key);
+    if let std::collections::hash_map::Entry::Vacant(slot) = cache.entry(shard) {
+        let raw = std::fs::read_to_string(en_dir.join(format!("{shard}.json")))?;
+        slot.insert(serde_json::from_str(&raw)?);
+    }
+    Ok(cache[&shard]["records"][key]
+        .as_array()
+        .cloned()
+        .unwrap_or_default())
+}
+
+/// Verify this binary's normalization + router + ladder against the exported
+/// selftest — the same discipline the site's JS applies before any lookup.
+fn en_selftest(en_dir: &Path) -> anyhow::Result<()> {
+    let raw = std::fs::read_to_string(en_dir.join("selftest.json"))?;
+    let st: serde_json::Value = serde_json::from_str(&raw)?;
+    for sample in st["samples"].as_array().into_iter().flatten() {
+        let (raw_q, key, shard) = (
+            sample[0].as_str().unwrap_or_default(),
+            sample[1].as_str().unwrap_or_default(),
+            sample[2].as_u64().unwrap_or(u64::MAX) as u32,
+        );
+        anyhow::ensure!(
+            normalize_english_query(raw_q) == key && english_shard_of(key) == shard,
+            "en selftest mismatch on {raw_q:?}: this binary disagrees with the exported API \
+             (stale site/? rebuild with `export`)"
+        );
+    }
+    for sample in st["desuffix_samples"].as_array().into_iter().flatten() {
+        let key = sample[0].as_str().unwrap_or_default();
+        let want: Vec<String> = sample[1]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect();
+        anyhow::ensure!(
+            desuffix_variants(key) == want,
+            "en desuffix selftest mismatch on {key:?} (stale site/? rebuild with `export`)"
+        );
+    }
+    Ok(())
+}
+
+/// The full documented retry ladder over the exported static API. Stops at the
+/// first ladder level that yields any candidates.
+pub fn run_en_lookup(site_dir: &Path, query: &str, json: bool) -> anyhow::Result<()> {
+    let en_dir = site_dir.join("api").join("en");
+    anyhow::ensure!(
+        en_dir.join("meta.json").exists(),
+        "no exported English API at {} — run `cargo run --release -- export --out {}` first",
+        en_dir.display(),
+        site_dir.display()
+    );
+    en_selftest(&en_dir)?;
+
+    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+    let normalized = normalize_english_query(query);
+    anyhow::ensure!(!normalized.is_empty(), "empty query after normalization");
+
+    // Ladder levels, in documented order. Each level is a set of keys tried
+    // together; the first level with hits wins.
+    let mut levels: Vec<(&'static str, Vec<String>)> =
+        vec![("normalized", vec![normalized.clone()])];
+    for article in ["a ", "an ", "the "] {
+        if let Some(rest) = normalized.strip_prefix(article) {
+            levels.push(("article-strip", vec![rest.trim().to_string()]));
+        }
+    }
+    if normalized.contains(' ') {
+        let words: Vec<String> = normalized
+            .split_whitespace()
+            .filter(|w| usable_token_key(w))
+            .map(str::to_string)
+            .collect();
+        if !words.is_empty() {
+            levels.push(("content-word", words));
+        }
+    }
+    let single_word_keys: Vec<String> = levels
+        .iter()
+        .flat_map(|(_, keys)| keys.iter())
+        .filter(|k| !k.contains(' '))
+        .cloned()
+        .collect();
+    let mut desuffixed: Vec<String> = Vec::new();
+    for k in &single_word_keys {
+        for v in desuffix_variants(k) {
+            if !desuffixed.contains(&v) {
+                desuffixed.push(v);
+            }
+        }
+    }
+    if !desuffixed.is_empty() {
+        levels.push(("desuffix", desuffixed));
+    }
+
+    // Walk the ladder until a VERIFIED candidate surfaces (a generated-only
+    // hit is kept but does not stop the walk): 'healing' both hits its
+    // derived-english generated record AND still reaches verified lěčiti via
+    // the de-suffixed 'heal'.
+    let mut hits: Vec<EnLookupHit> = Vec::new();
+    let mut seen_keys: std::collections::HashSet<String> = Default::default();
+    'ladder: for (step, keys) in levels {
+        for key in keys {
+            if !seen_keys.insert(key.clone()) {
+                continue;
+            }
+            let candidates = en_shard_records(&en_dir, &key, &mut cache)?;
+            if !candidates.is_empty() {
+                let verified = candidates
+                    .iter()
+                    .any(|c| matches!(c["status"].as_str(), Some("official" | "official-only")));
+                hits.push(EnLookupHit {
+                    step,
+                    shard: english_shard_of(&key),
+                    key,
+                    candidates,
+                });
+                if verified {
+                    break 'ladder;
+                }
+            }
+        }
+    }
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "query": query,
+                "normalized": normalized,
+                "hits": hits,
+            }))?
+        );
+        return Ok(());
+    }
+    if hits.is_empty() {
+        println!("{query}: no candidates (full ladder exhausted).");
+        return Ok(());
+    }
+    for hit in &hits {
+        println!("[{}] key '{}' (shard {}):", hit.step, hit.key, hit.shard);
+        for c in hit.candidates.iter().take(8) {
+            let s = |f: &str| c[f].as_str().unwrap_or("").to_string();
+            let warn = if c["warnings"].as_array().is_some_and(|w| !w.is_empty()) {
+                "  ⚠"
+            } else {
+                ""
+            };
+            let prefer = c["prefer"]
+                .as_array()
+                .filter(|p| !p.is_empty())
+                .map(|p| {
+                    format!(
+                        "  prefer: {}",
+                        p.iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                })
+                .unwrap_or_default();
+            println!(
+                "  {:<20} {:<5} {:<22} {:<16} {}{}{}",
+                s("lemma"),
+                s("pos"),
+                s("trust"),
+                s("match"),
+                s("gloss").chars().take(60).collect::<String>(),
+                warn,
+                prefer,
+            );
+        }
+        if hit.candidates.len() > 8 {
+            println!("  … {} more (use --json for all)", hit.candidates.len() - 8);
+        }
+    }
+    Ok(())
+}
+
 fn trust(status: &str) -> &'static str {
     match status {
         "official" => "verified-official",
@@ -322,35 +696,15 @@ fn status_rank(status: &str) -> i32 {
     }
 }
 
-fn semantic_notes() -> BTreeMap<String, crate::check::SemanticNote> {
-    let parsed = std::fs::read_to_string(crate::check::SEMANTIC_NOTES)
-        .map_err(|err| err.to_string())
-        .and_then(|raw| {
-            serde_json::from_str::<BTreeMap<String, crate::check::SemanticNote>>(&raw)
-                .map_err(|err| err.to_string())
-        });
-    match parsed {
-        Ok(notes) => notes
-            .into_iter()
-            .map(|(key, note)| (forms::form_key(&key), note))
-            .collect(),
-        Err(err) => {
-            println!(
-                "warning: english api built without semantic warnings ({}: {err})",
-                crate::check::SEMANTIC_NOTES
-            );
-            BTreeMap::new()
-        }
-    }
-}
-
 pub(super) fn build_english_index(
     lemmas: &[FormRecord],
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
+    notes: &BTreeMap<String, crate::falsefriends::Note>,
+    evidence: &BTreeMap<usize, forms::RankEvidence>,
 ) -> BTreeMap<String, Vec<EnglishCandidate>> {
     let meta_by_id: HashMap<usize, &SiteEntryMeta> = metas.iter().map(|m| (m.id, m)).collect();
-    let notes = semantic_notes();
+    let no_evidence = forms::RankEvidence::default();
     let mut candidates: BTreeMap<(String, usize, String), EnglishCandidate> = BTreeMap::new();
 
     for record in lemmas {
@@ -359,7 +713,33 @@ pub(super) fn build_english_index(
         {
             continue;
         }
-        let keys = key_matches(&record.gloss);
+        let mut keys = key_matches(&record.gloss);
+        // Morphological build-side keys (issue: `healing`/`invisibility`
+        // misses): a generated derivative is additionally indexed under the
+        // mechanical English derivations of its base's single-word gloss keys,
+        // computed from its `deriv:<pattern>` tag.
+        if record.status == "generated" {
+            if let Some(pattern) = deriv_pattern(record) {
+                let mut derived: Vec<KeyMatch> = Vec::new();
+                for km in &keys {
+                    if km.key.contains(' ') {
+                        continue;
+                    }
+                    for form in derived_english_forms(pattern, &km.key) {
+                        if !keys.iter().any(|k| k.key == form)
+                            && !derived.iter().any(|k| k.key == form)
+                        {
+                            derived.push(KeyMatch {
+                                key: form,
+                                match_kind: "derived-english".to_string(),
+                                match_rank: match_rank("derived-english"),
+                            });
+                        }
+                    }
+                }
+                keys.extend(derived);
+            }
+        }
         if keys.is_empty() {
             continue;
         }
@@ -370,6 +750,13 @@ pub(super) fn build_english_index(
         let warnings = note.map(|n| vec![n.warning.clone()]).unwrap_or_default();
         let prefer = note.map(|n| n.prefer.clone()).unwrap_or_default();
 
+        // Raw-intl records carry their evidence inline (entry_id 0 sentinel);
+        // everything else joins the per-entry evidence map.
+        let tag_ev = forms::raw_intl_evidence(record);
+        let ev = tag_ev
+            .as_ref()
+            .or_else(|| evidence.get(&record.entry_id))
+            .unwrap_or(&no_evidence);
         let official_id = if matches!(record.status, "official" | "official-only") {
             meta_by_id
                 .get(&record.entry_id)
@@ -425,6 +812,10 @@ pub(super) fn build_english_index(
                     path: format!("api/forms/{form_shard}.json"),
                 },
                 probability: record.probability,
+                frequency: ev.frequency,
+                langs: ev.langs,
+                branch_pattern: ev.branch_pattern.clone(),
+                borrowed: ev.borrowed,
             };
             let dedup_key = (key_match.key, record.entry_id, form_key.clone());
             match candidates.get_mut(&dedup_key) {
@@ -458,6 +849,8 @@ pub(super) fn write_en_api(
     lemmas: &[FormRecord],
     metas: &[SiteEntryMeta],
     aspect_meta: &AspectMeta,
+    notes: &BTreeMap<String, crate::falsefriends::Note>,
+    evidence: &BTreeMap<usize, forms::RankEvidence>,
     git: &str,
 ) -> anyhow::Result<EnglishApiCounts> {
     let api = out_dir.join("api");
@@ -465,7 +858,7 @@ pub(super) fn write_en_api(
     let _ = std::fs::remove_dir_all(&en_dir);
     std::fs::create_dir_all(&en_dir)?;
 
-    let index = build_english_index(lemmas, metas, aspect_meta);
+    let index = build_english_index(lemmas, metas, aspect_meta, notes, evidence);
     let key_count = index.len();
     let mut shards: BTreeMap<u32, BTreeMap<String, Vec<EnglishCandidate>>> = BTreeMap::new();
     let mut candidate_count = 0usize;
@@ -505,10 +898,17 @@ pub(super) fn write_en_api(
             serde_json::json!([raw, key, shard])
         })
         .collect();
+    // Frozen samples for the de-suffixing retry ladder: [key, [variants…]].
+    // A client implementing the documented ladder must reproduce these.
+    let desuffix_samples: Vec<serde_json::Value> = EN_DESUFFIX_SAMPLES
+        .iter()
+        .map(|key| serde_json::json!([key, desuffix_variants(key)]))
+        .collect();
     let selftest = serde_json::json!({
         "schema_version": EN_SCHEMA_VERSION,
         "shards": EN_SHARDS,
         "samples": samples,
+        "desuffix_samples": desuffix_samples,
     });
     let selftest_json = serde_json::to_string(&selftest)? + "\n";
     bytes += selftest_json.len();
@@ -521,7 +921,8 @@ pub(super) fn write_en_api(
         "shards": EN_SHARDS,
         "router": "fnv1a32(utf8(normalized_query)) % shards",
         "normalization": "lowercase; replace punctuation with spaces; collapse whitespace; trim; strip leading verb marker `to `",
-        "selftest": "api/en/selftest.json samples are [raw_query, normalized_key, shard]; verify your normalization + router reproduces them before first use",
+        "retry_ladder": "walk until a verified (official/official-only) candidate surfaces — a generated-only hit is kept but does not stop the walk: (1) the normalized key; (2) retry without a leading article; (3) retry each content word of a multiword query; (4) de-suffix and retry (rules listed longest-suffix first; apply EVERY rule whose suffix matches, collecting all variants): -ibility→-ible, -ability→-able, -iness→-y, -ness→∅, -ation→∅/-ate, -ition→∅/-e/-ite, -ity→∅/-e, -ing→∅/-e (and undouble a doubled final consonant), -ies→-y, -es→∅, -s→∅; keep stems of ≥3 chars. The `en` CLI subcommand is the reference implementation",
+        "selftest": "api/en/selftest.json samples are [raw_query, normalized_key, shard] and desuffix_samples are [key, [variants…]]; verify your normalization + router + ladder reproduce them before first use",
         "english_keys": key_count,
         "candidate_records": candidate_count,
         "total_shard_bytes": total_shard_bytes,
@@ -538,10 +939,14 @@ pub(super) fn write_en_api(
             "match": "why this candidate is indexed for this English key",
             "aspect": "ipf, pf, ipf/pf, or null",
             "aspect_partners": "known aspect partner entry ids and lemmas",
-            "warnings": "semantic-trap warnings from api/notes.json",
-            "prefer": "preferred alternatives from semantic notes",
+            "warnings": "computed false-friend warnings (same records as api/notes.json)",
+            "prefer": "official lemma(s) covering the divergent sense, computed from gloss overlap",
             "form_lookup": "folded lemma key and api/forms shard for inflection lookup",
-            "probability": "model-specific generated probability when available"
+            "probability": "model-specific generated probability when available",
+            "frequency": "official dictionary frequency column (null for generated rows)",
+            "langs": "attesting-language count of the entry (the BASE entry for derivatives)",
+            "branch_pattern": "attesting branch combination, e.g. V+Z+J (null without branch data)",
+            "borrowed": "entry is a borrowing/internationalism"
         },
         "files": {
             "shards": "api/en/<n>.json",
@@ -731,6 +1136,87 @@ mod tests {
     }
 
     #[test]
+    fn derivatives_index_under_mechanically_derived_english_keys() {
+        // nevidimosť ← nevidimy (invisible): the -osť derivative must be
+        // findable under "invisibility"; healjeńje ← lěčiti (heal) under
+        // "healing"; both were mrzavec dry-run misses.
+        let mut ost = record(
+            "nevidimosť",
+            7,
+            "generated",
+            "abstraktne imę ← nevidimy (invisible)",
+            Some(0.8),
+        );
+        ost.analyses = vec!["deriv:ost".to_string()];
+        let mut vnoun = record(
+            "lěčeńje",
+            8,
+            "generated",
+            "glagoljno imę ← lěčiti (heal, cure)",
+            Some(0.8),
+        );
+        vnoun.analyses = vec!["deriv:vnoun".to_string()];
+        let metas = vec![meta(7, None), meta(8, None)];
+        let index = build_english_index(
+            &[ost, vnoun],
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        let inv = index.get("invisibility").expect("invisibility key");
+        assert_eq!(inv[0].lemma, "nevidimosť");
+        assert_eq!(inv[0].match_kind, "derived-english");
+        let heal = index.get("healing").expect("healing key");
+        assert_eq!(heal[0].lemma, "lěčeńje");
+        // The base keys survive untouched.
+        assert!(index.contains_key("invisible"));
+        assert!(index.contains_key("heal"));
+    }
+
+    #[test]
+    fn candidates_carry_ranking_evidence() {
+        let records = vec![record("spasati", 1, "official", "to save, rescue", None)];
+        let metas = vec![meta(1, Some("official-1"))];
+        let mut evidence = BTreeMap::new();
+        evidence.insert(
+            1usize,
+            forms::RankEvidence {
+                frequency: Some(6017.0),
+                langs: 9,
+                branch_pattern: Some("V+Z+J".to_string()),
+                borrowed: false,
+            },
+        );
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &evidence,
+        );
+        let save = index.get("save").expect("save key");
+        assert_eq!(save[0].frequency, Some(6017.0));
+        assert_eq!(save[0].langs, 9);
+        assert_eq!(save[0].branch_pattern.as_deref(), Some("V+Z+J"));
+        assert!(!save[0].borrowed);
+    }
+
+    #[test]
+    fn desuffix_ladder_recovers_base_keys() {
+        assert!(desuffix_variants("healing").contains(&"heal".to_string()));
+        assert!(desuffix_variants("mapping").contains(&"map".to_string()));
+        assert!(desuffix_variants("searching").contains(&"search".to_string()));
+        assert!(desuffix_variants("invisibility").contains(&"invisible".to_string()));
+        assert!(desuffix_variants("happiness").contains(&"happy".to_string()));
+        assert!(desuffix_variants("translation").contains(&"translate".to_string()));
+        assert!(desuffix_variants("scrolls").contains(&"scroll".to_string()));
+        assert!(desuffix_variants("stories").contains(&"story".to_string()));
+        // Stems below 3 chars never emit.
+        assert!(desuffix_variants("es").is_empty());
+    }
+
+    #[test]
     fn truncated_derivative_segments_are_not_indexed() {
         // coverage.rs truncates the base gloss at 50 chars with a trailing
         // `…`; the cut fragment must not become an English key.
@@ -779,7 +1265,13 @@ mod tests {
             record("save-machine", 2, "generated", "save", Some(0.9)),
         ];
         let metas = vec![meta(1, Some("official-1")), meta(2, None)];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let save = index.get("save").expect("save key");
         assert_eq!(save[0].lemma, "spasati");
         assert_eq!(save[0].status, "official");
@@ -794,7 +1286,13 @@ mod tests {
             record("divina", 2, "official-only", "game, wildfowl", None),
         ];
         let metas = vec![meta(1, Some("bridge-1")), meta(2, Some("game-2"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let game = index.get("game").expect("game key");
         assert_eq!(game[0].lemma, "divina");
         assert_eq!(game[0].match_kind, "exact-gloss-head");
@@ -806,7 +1304,13 @@ mod tests {
     fn indexes_of_phrases_and_tokens() {
         let records = vec![record("gerb", 1, "official", "coat of arms", None)];
         let metas = vec![meta(1, Some("arms-1"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         assert_eq!(
             index.get("coat of arms").expect("phrase key")[0].lemma,
             "gerb"
@@ -823,7 +1327,13 @@ mod tests {
             record("imati", 10, "official", "to have", None),
         ];
         let metas = vec![meta(10, Some("have-10"))];
-        let index = build_english_index(&records, &metas, &AspectMeta::new());
+        let index = build_english_index(
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
         let have = index.get("have").expect("have key");
         let lemmas: Vec<&str> = have.iter().map(|c| c.lemma.as_str()).collect();
         assert!(lemmas.contains(&"iměti"));
@@ -841,8 +1351,16 @@ mod tests {
             official_lemma: Some("igra".to_string()),
             ..meta(42, Some("game-42"))
         }];
-        let counts = write_en_api(&tmp, &records, &metas, &AspectMeta::new(), "test")
-            .expect("write english api");
+        let counts = write_en_api(
+            &tmp,
+            &records,
+            &metas,
+            &AspectMeta::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            "test",
+        )
+        .expect("write english api");
         assert!(tmp.join("api/en/meta.json").exists());
         assert!(tmp
             .join(format!("api/en/{}.json", english_shard_of("game")))

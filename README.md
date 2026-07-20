@@ -62,7 +62,7 @@ committed and the site build stays self-contained.
   by a generated word (of ~26.4k), with same-spelling homographs kept as separate sense
   pages and duplicate generated sets deduped, without dictionary leakage into generation.
 - `cargo run -- corpus-eval` scores this site path against the dictionary directly:
-  **58.31% exact / 62.84% normalized** on 7,398 entries with a known ancestor.
+  **58.95% exact / 62.84% normalized** on 7,400 entries with a known ancestor.
 - `data/novel-words.tsv` — the novel-vocabulary proposal artifact regenerated
   by every `export`. It currently contains only its header: issue #89 found that
   the official-row pipeline calibrator had been applied to the corpus path's
@@ -96,7 +96,7 @@ the official dictionary, **without ever showing the generator the answer**
 | mean normalized edit distance | 0.252 | **0.224** | −0.028 |
 
 The **site's** cognate-set path (`corpus::generate_set`) is benchmarked separately
-(`cargo run -- corpus-eval`): **58.31% exact / 62.84% normalized** on 7,398 entries
+(`cargo run -- corpus-eval`): **58.95% exact / 62.84% normalized** on 7,400 entries
 where a Proto-Slavic ancestor or internationalism is known — higher than the pipeline
 headline because it only scores words the site actually derives from a known ancestor.
 
@@ -332,15 +332,15 @@ src/
   dump.rs          stream the 23 GB dump → Proto-Slavic cache + indexes
   proto_link.rs    leakage-free linker: explicit Wiktionary etymology + 3-signal fuzzy match
   pipeline.rs      two-stage §4.4 merge (consensus root + proto-derived form)
-  overrides.rs     manual curation (TOML), excluded from pure-algorithm accuracy
-  generator.rs     orchestrator: pipeline + overrides + official match status
+  generator.rs     orchestrator: pipeline + official match status
   eval.rs          benchmarks: ablation ladder, holdout split, significance,
                    multiword/aspect + evidence-growth audits, report writers
   calibrate.rs     the persisted isotonic score→probability calibrator
   forms.rs         FormRecord pipeline: paradigm cells (single source for the
                    site's inflection tables AND the sharded static api/)
   inflect_eval.rs  full-corpus inflection evaluation + grammar invariants
-  check.rs         check-text: tokenizer, form lookup, semantic-trap warnings
+  check.rs         check-text: tokenizer, form lookup, agreement + summary gate
+  falsefriends.rs  computed false-friend warnings (surface collision × gloss divergence)
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
   thesaurus.rs     dictionary-derived ISV synonym thesaurus
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
@@ -358,7 +358,6 @@ src/
     special.rs     metrics, datasets, proposals, forms, and scholarly pages
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
-  overrides.toml          manual curation file
   RULE_SPEC.md            authoritative Proto-Slavic → Interslavic rule spec
   FLAVORIZATION_SPEC.md   display flavorization of raw source words (issue #62)
   proto-slavic.cache.json Proto-Slavic reconstructions (built by extract-proto)
@@ -366,7 +365,6 @@ data/
   wiktionary-enrich.cache.json native RU/PL/CS etymology/senses/links (built by extract-enrich)
   novel-words.tsv         paused proposal artifact (header-only until corpus calibration)
   score-calibration.json  official-row pipeline calibrator (domain-checked; refit by evaluate)
-  semantic-notes.json     curated false-friend warnings (applied by check-text)
   curation-notes.example.json  format of the optional human curation notes
 docs/history/
   IMPROVEMENT_PROMPT*.md historical experiment briefs (not contributor instructions)
@@ -437,10 +435,18 @@ cargo run -- explain duša
 cargo run -- explain "computer"
 
 # Verify an Interslavic text against the lexicon (tokens classified as
-# known-lemma / known-form / generated / unknown, false-friend warnings,
-# nearest-lemma suggestions; --json for agents):
+# known-lemma / known-form / generated / unknown, computed false-friend
+# warnings, nearest-lemma suggestions; --json for agents):
 cargo run --release -- check-text tekst.txt
 cargo run --release -- check-text tekst.txt --json
+# CI gate: summary + nonzero exit when unknown tokens / agreement errors
+# exceed the (default 0) thresholds:
+cargo run --release -- check-text tekst.txt --summary --max-unknown 0
+
+# English → Interslavic lookup against a prior export's static API — the
+# reference client for the documented normalization/routing/retry ladder:
+cargo run --release -- en "healing"
+cargo run --release -- en "coat of arms" --json
 ```
 
 ## Lexical verification API (for humans and AI agents)
@@ -453,7 +459,7 @@ inflection tables and the machine-readable artifacts, so they cannot drift.
 both lookup protocols with their self-tests, the trust rules, and step-by-step
 translation and text-verification workflows. The artifacts:
 
-- `api/forms/<n>.json` — the **sharded form index** (schema 3, ~517k analysis
+- `api/forms/<n>.json` — the **sharded form index** (schema 4, ~517k analysis
   records: every official lemma + full paradigm, **declined participles,
   comparatives/superlatives with adverbs, pronoun & numeral paradigms** from
   the STEEN-G tables, byform variants split, syncretic cells merged). Shard
@@ -471,17 +477,33 @@ translation and text-verification workflows. The artifacts:
   API for translation agents. English keys are lowercased, punctuation-folded,
   whitespace-collapsed, stripped of a leading verb marker `to `, then routed by
   `fnv1a32(utf8(key)) % 256`. Records are ranked candidate objects with lemma,
-  entry id, official id, POS, gloss, status/trust, match reason, aspect
-  partners, semantic warnings, and a `form_lookup` pointer into
-  `api/forms/<n>.json` for inflection/analysis. `api/en/selftest.json` holds
-  frozen `[raw_query, normalized_key, shard]` samples for client verification.
+  entry id, official id, POS, gloss, status/trust, match reason (including
+  `derived-english` — generated derivatives indexed under mechanical English
+  derivations of their base gloss: invisible→invisibility, heal→healing),
+  aspect partners, computed false-friend warnings, ranking evidence
+  (`frequency`/`langs`/`branch_pattern`/`borrowed`), and a `form_lookup`
+  pointer into `api/forms/<n>.json` for inflection/analysis. A documented
+  retry ladder (article strip → per-content-word → de-suffixing) walks until
+  a verified candidate surfaces; the `en` CLI subcommand is its reference
+  implementation. `api/en/selftest.json` holds frozen
+  `[raw_query, normalized_key, shard]` and `desuffix_samples` for client
+  verification.
+- `api/notes.json` — **computed false-friend notes** (no curated list): a
+  language's word that folds onto an official lemma's surface but whose
+  English Wiktionary glosses share no content token with the official gloss;
+  each record carries the rendered `warning`, a computed `prefer` (the
+  official lemma best covering the divergent sense), and per-language
+  `collisions` evidence. Counted in `api/meta.json`.
 - `api/aspect-pairs.json` — the production pair model's official endpoints,
   linked entry IDs, jointly reconciled generated forms/rule, and `-ovati/-uje`
   present stems where applicable.
 - `api/meta.json` — schema version, counts, sizes, license, router spec.
-  **Schema 3 migration:** v2's six-field lemma tuple is now eight fields;
-  consumers must accept trailing `aspect` and `aspect_partners` (an array,
-  empty for unpaired/non-official rows).
+  **Schema 4 migration:** v2's six-field lemma tuple grew to eight fields in
+  v3 (trailing `aspect` and `aspect_partners`) and to twelve in v4 — trailing
+  ranking evidence `frequency` (official CSV column, null for generated rows),
+  `langs` (attesting-language count), `branch_pattern` (`"V+Z+J"` style or
+  null), and `borrowed`. English-API candidates (en schema 2) carry the same
+  four fields.
 - `api/agent-guide.md` — the agent manual: artifact-per-task table, both
   lookup protocols (fold table, English normalization, FNV routing,
   self-tests), trust rules (any non-null generated probability ⇒ suggestion,
@@ -508,9 +530,11 @@ adjective–noun case/number/gender — gender in the singular only, preposition
 government parsed from the dictionary's own `(+N)` annotations, pronoun–verb
 person/number; a warning fires only when NO combination of analyses is
 compatible, never across punctuation) and applies
-the curated false-friend notes in `data/semantic-notes.json` (each note
-anchored to the official gloss; the web twin reads the same notes from
-`api/notes.json`). CI-tested: round-trip (rendered table cells appear in the
+**computed false-friend notes** (`src/falsefriends.rs`: a language's word that
+folds onto an official lemma's surface but whose English Wiktionary glosses
+share no content token with the official gloss — detected deterministically
+from the committed caches, no curated list; the web twin reads the same
+records from `api/notes.json`). CI-tested: round-trip (rendered table cells appear in the
 records — unit-scale per POS) and self-verification (sampled official lemmas
 and paradigm cells resolve as known; garbage as unknown). Determinism is
 by construction (no timestamps in `api/`, BTreeMap ordering) and was
@@ -520,8 +544,8 @@ verified by hashing two consecutive exports.
 
 Each entry page shows:
 
-- the **top candidate** headword with a **provenance** pill (proto-derived / consensus /
-  override) and a coverage-based **reliability** badge (not a probability);
+- the **top candidate** headword with a **provenance** pill (proto-derived /
+  consensus) and a coverage-based **reliability** badge (not a probability);
 - the **Proto-Slavic reconstruction** it was derived from, with Balto-Slavic / PIE
   ancestors and the link confidence;
 - **alternative** candidates with scores and branch coverage;

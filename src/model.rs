@@ -11,8 +11,6 @@ use serde::{Deserialize, Serialize};
 /// Where a candidate came from. Ordered loosely by intrinsic trust.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CandidateSource {
-    /// Reproduced from a manual curation/override file.
-    ManualOverride,
     /// The official Interslavic dictionary already lists this form (only used
     /// on the production site, never in the leakage-free benchmark path).
     OfficialDictionary,
@@ -29,7 +27,6 @@ pub enum CandidateSource {
 impl CandidateSource {
     pub fn label(self) -> &'static str {
         match self {
-            CandidateSource::ManualOverride => "ručna korektura",
             CandidateSource::OfficialDictionary => "oficialny slovnik",
             CandidateSource::ProtoSlavicRule => "praslovjansko pravilo",
             CandidateSource::BranchConsensus => "medžuvětvovy konsensus",

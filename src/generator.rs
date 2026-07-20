@@ -1,17 +1,15 @@
 //! Candidate-generation orchestrator (production path).
 //!
 //! Wraps the shared [`crate::pipeline`] (consensus + Proto-Slavic-derived form)
-//! and adds the site-only concerns: manual overrides and the official-dictionary
-//! match status. The **benchmark** never goes through here (it calls the
-//! leakage-free pipeline directly) so the official lemma can never leak into a
-//! candidate; here, on the site, the official form and overrides are allowed as
-//! clearly-labeled extras.
+//! and adds the site-only concern: the official-dictionary match status. The
+//! **benchmark** never goes through here (it calls the leakage-free pipeline
+//! directly) so the official lemma can never leak into a candidate; here, on
+//! the site, the official form is allowed as a clearly-labeled extra.
 
 use crate::consensus::{ConsensusConfig, MeaningInput};
 use crate::dump::ProtoIndex;
-use crate::model::{Candidate, CandidateSource, Confidence, MatchStatus, Reconstruction};
+use crate::model::{Candidate, MatchStatus, Reconstruction};
 use crate::orthography as ortho;
-use crate::overrides::Overrides;
 
 pub struct Generation {
     /// Ranked generated candidates (algorithmic; excludes the official form).
@@ -19,8 +17,6 @@ pub struct Generation {
     /// Optional official form, shown separately as "officially attested".
     pub official: Option<String>,
     pub match_status: MatchStatus,
-    /// True when a manual override supplied the top form.
-    pub overridden: bool,
     /// The linked Proto-Slavic reconstruction, if any.
     pub reconstruction: Option<Reconstruction>,
 }
@@ -63,15 +59,10 @@ pub fn generate(
     official_isv: Option<&str>,
     proto: Option<&ProtoIndex>,
     cfg: &ConsensusConfig,
-    overrides: &Overrides,
 ) -> Generation {
     match official_isv {
-        Some(official_isv) => {
-            generate_with_official_byforms(input, [official_isv], proto, cfg, overrides)
-        }
-        None => {
-            generate_with_official_byforms(input, std::iter::empty::<&str>(), proto, cfg, overrides)
-        }
+        Some(official_isv) => generate_with_official_byforms(input, [official_isv], proto, cfg),
+        None => generate_with_official_byforms(input, std::iter::empty::<&str>(), proto, cfg),
     }
 }
 
@@ -80,42 +71,21 @@ pub fn generate_with_official_byforms<'a>(
     official_byforms: impl IntoIterator<Item = &'a str>,
     proto: Option<&ProtoIndex>,
     cfg: &ConsensusConfig,
-    overrides: &Overrides,
 ) -> Generation {
-    let (mut candidates, reconstruction) = crate::pipeline::generate(input, proto, cfg);
+    let (candidates, reconstruction) = crate::pipeline::generate(input, proto, cfg);
     let official_forms: Vec<&str> = official_byforms
         .into_iter()
         .map(str::trim)
         .filter(|form| !form.is_empty())
         .collect();
 
-    // Status is computed from the *generated* top candidate vs the official form,
-    // before overrides are applied, so overrides never inflate accuracy.
     let (match_status, official_display) =
         official_status_and_display(&candidates, &official_forms);
-
-    // Manual override (site-only; excluded from pure-algorithm accuracy).
-    let mut overridden = false;
-    if let Some(o) = overrides.lookup(&input.gloss) {
-        let mut c = Candidate::new(o.official.clone(), CandidateSource::ManualOverride, 0.99);
-        c.confidence = Confidence::High;
-        // The override rests on the meaning's whole evidence row (issue #79).
-        c.langs = {
-            let mut l: Vec<String> = input.forms.iter().map(|f| f.lang_code.clone()).collect();
-            l.sort();
-            l.dedup();
-            l
-        };
-        c.warnings.push(format!("Ručna korektura: {}", o.reason));
-        candidates.insert(0, c);
-        overridden = true;
-    }
 
     Generation {
         candidates,
         official: official_display,
         match_status,
-        overridden,
         reconstruction,
     }
 }
@@ -123,6 +93,7 @@ pub fn generate_with_official_byforms<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{CandidateSource, Pos};
 
     #[test]
     fn official_byform_display_prefers_matched_top_candidate() {
@@ -134,5 +105,100 @@ mod tests {
         let (status, display) = official_status_and_display(&candidates, &["iměti", "imati"]);
         assert_eq!(status, MatchStatus::OfficialMatch);
         assert_eq!(display.as_deref(), Some("imati"));
+    }
+
+    /// The retired manual-override list (data/overrides.toml, removed) as test
+    /// fixtures: the pipeline must derive each adapted internationalism from
+    /// the Slavic evidence alone, with no curated lookup. Evidence cells are
+    /// copied verbatim from the official CSV rows.
+    fn loanword_top(gloss: &str, intl: bool, cells: &[(&str, &str)]) -> String {
+        let cells: std::collections::HashMap<String, String> = cells
+            .iter()
+            .map(|(l, f)| (l.to_string(), f.to_string()))
+            .collect();
+        let forms = crate::consensus::source_forms_from_cells(&cells, |_, _| String::new());
+        let forms = crate::consensus::lemma_forms(forms, Pos::Noun);
+        let input = MeaningInput {
+            pos: Pos::Noun,
+            gender: None,
+            gloss: gloss.to_string(),
+            forms,
+            is_intl_meaning: intl,
+            reflexive: false,
+        };
+        let (candidates, _) =
+            crate::pipeline::generate(&input, None, &ConsensusConfig::production());
+        candidates
+            .first()
+            .map(|c| c.form.clone())
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn derives_kompjuter_from_evidence() {
+        let top = loanword_top(
+            "computer",
+            true,
+            &[
+                ("ru", "компьютер"),
+                ("be", "камп'ютар, кампутар"),
+                ("uk", "комп'ютер"),
+                ("pl", "komputer"),
+                ("cs", "počítač, komputer"),
+                ("sk", "počítač, komputer"),
+                ("sl", "računalnik"),
+                ("hr", "kompjutor, kompjuter, računalo"),
+                ("sr", "рачунар, компјутер"),
+                ("mk", "компјутер"),
+                ("bg", "компютър"),
+            ],
+        );
+        assert_eq!(top, "kompjuter");
+    }
+
+    #[test]
+    fn derives_futbol_from_evidence() {
+        let top = loanword_top(
+            "football, soccer",
+            false,
+            &[
+                ("ru", "футбол"),
+                ("be", "футбол"),
+                ("uk", "футбол"),
+                ("pl", "piłka nożna"),
+                ("cs", "fotbal"),
+                ("sk", "futbal"),
+                ("sl", "nogomet"),
+                ("hr", "nogomet"),
+                ("sr", "фудбал"),
+                ("mk", "фудбал"),
+                ("bg", "футбол"),
+            ],
+        );
+        assert_eq!(top, "futbol");
+    }
+
+    #[test]
+    fn derives_dzaz_from_evidence() {
+        // Loan [dʒ] must come out as dž (never etymological đ) purely from the
+        // cross-branch evidence vote.
+        let top = loanword_top(
+            "jazz",
+            false,
+            &[
+                ("ru", "джаз"),
+                ("be", "джаз"),
+                ("uk", "джаз"),
+                ("pl", "jazz"),
+                ("cs", "jazz"),
+                ("sk", "džez"),
+                ("sl", "jazz"),
+                ("hr", "jazz, džez"),
+                ("sr", "џез"),
+                ("mk", "џез"),
+                ("bg", "джаз"),
+            ],
+        );
+        assert_eq!(top, "džaz");
     }
 }

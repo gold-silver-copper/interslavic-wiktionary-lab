@@ -448,6 +448,202 @@ pub(super) struct RawPlan {
     pub(super) credit: std::collections::BTreeMap<usize, Vec<(String, String)>>,
 }
 
+/// A borrowed internationalism recovered from RAW attestations (issue: the
+/// `teleport` family exists in pl/mk Wiktionary but has no etymology section,
+/// so the evidence gate excluded it from the lemma cache and NO cognate set
+/// existed; "the whole Slavic world borrowed this word" is itself pan-Slavic
+/// evidence). Display/API only — the raw corpus stays benchmark-forbidden;
+/// this pass feeds the site sinks, never `build_sets` or any eval.
+pub(super) struct RawIntlCandidate {
+    /// The adapted Interslavic form (top candidate of the standard pipeline
+    /// run over the raw cognates with `is_intl_meaning = true`).
+    pub(super) form: String,
+    pub(super) pos: crate::model::Pos,
+    /// Representative English gloss (shortest member gloss carrying a token
+    /// shared across ≥2 languages).
+    pub(super) gloss: String,
+    /// Attesting language codes, sorted and deduped.
+    pub(super) langs: Vec<String>,
+    /// `"V+Z"`-style attesting branch combination (≥2 branches by
+    /// construction, so always present).
+    pub(super) branch_pattern: String,
+}
+
+/// Group raw lemmas into borrowed-internationalism cognate sets by
+/// international shape (the same `intl_key` idea `build_sets` uses for
+/// evidence-cache borrowings), require ≥2 languages across ≥2 branches AND a
+/// gloss token shared by ≥2 languages (shape alone would fuse unrelated
+/// words), then derive the adapted form through the ordinary production
+/// pipeline. Deterministic: BTreeMap grouping, sorted members, alphabetical
+/// output order. Skips any candidate whose folded key is already `taken`
+/// (official lemma, inflected form, reconstruction, or derivative).
+pub(super) fn raw_intl_candidates(
+    lemmas: &[crate::dump::RawSlavicLemma],
+    taken: &mut std::collections::HashSet<String>,
+) -> Vec<RawIntlCandidate> {
+    use crate::model::Pos;
+    // (lang, word, gloss list) of one raw member.
+    type Member = (String, String, Vec<String>);
+    // (intl skeleton, pos class) → members.
+    let mut groups: BTreeMap<(String, &'static str), Vec<Member>> = BTreeMap::new();
+    for l in lemmas {
+        let word = l.word.trim();
+        let modern = crate::lang::lang_info(&l.lang).is_some_and(|i| i.modern);
+        if !modern
+            || crate::lang::branch_of(&l.lang).is_none()
+            || word.contains(' ')
+            || l.glosses.iter().all(|g| g.trim().is_empty())
+        {
+            continue;
+        }
+        let pc: &'static str = match l.pos.as_str() {
+            "noun" => "n",
+            "verb" => "v",
+            "adj" => "a",
+            _ => continue,
+        };
+        let latin = crate::normalize::to_phonemic_latin(&l.lang, word);
+        // Vowel-free consonant key: national loan adaptations differ in
+        // vowels/glides (pl teleportacja vs mk телепортација), which the
+        // stricter `intl_key` keeps apart; without an etymon edge to re-merge
+        // them (this is exactly the no-etymology population), the consonant
+        // fingerprint is the shape signal. Over-merge is contained by the
+        // pos-class split plus the ≥2-language gloss-agreement gate below.
+        let sk = crate::orthography::consonant_key(&latin);
+        // ≥4 consonants: a substantial international shape; shorter keys
+        // collide unrelated short words (see build_sets' node-key note).
+        if sk.chars().count() < 4 {
+            continue;
+        }
+        groups.entry((sk, pc)).or_default().push((
+            l.lang.clone(),
+            word.to_string(),
+            l.glosses.clone(),
+        ));
+    }
+
+    let cfg = ConsensusConfig::production();
+    let mut out: Vec<RawIntlCandidate> = Vec::new();
+    for ((_, pc), mut members) in groups {
+        members.sort();
+        members.dedup();
+        let mut langs: Vec<&str> = members.iter().map(|(l, _, _)| l.as_str()).collect();
+        langs.sort_unstable();
+        langs.dedup();
+        if langs.len() < 2 {
+            continue;
+        }
+        let mut branches = std::collections::BTreeSet::new();
+        for l in &langs {
+            if let Some(b) = crate::lang::branch_of(l) {
+                branches.insert(b.code());
+            }
+        }
+        if branches.len() < 2 {
+            continue;
+        }
+        // Gloss agreement: a content token attested by ≥2 languages.
+        let mut token_langs: BTreeMap<String, std::collections::BTreeSet<&str>> = BTreeMap::new();
+        for (lang, _, glosses) in &members {
+            for g in glosses {
+                for t in crate::falsefriends::gloss_tokens(g) {
+                    token_langs.entry(t).or_default().insert(lang.as_str());
+                }
+            }
+        }
+        let shared: std::collections::BTreeSet<&str> = token_langs
+            .iter()
+            .filter(|(_, ls)| ls.len() >= 2)
+            .map(|(t, _)| t.as_str())
+            .collect();
+        if shared.is_empty() {
+            continue;
+        }
+        // Representative gloss: shortest member gloss carrying a shared
+        // token; alphabetical tie-break keeps it deterministic.
+        let mut gloss: Option<&str> = None;
+        for (_, _, glosses) in &members {
+            for g in glosses {
+                let g = g.trim();
+                if crate::falsefriends::gloss_tokens(g)
+                    .iter()
+                    .any(|t| shared.contains(t.as_str()))
+                    && gloss
+                        .is_none_or(|best| (g.chars().count(), g) < (best.chars().count(), best))
+                {
+                    gloss = Some(g);
+                }
+            }
+        }
+        let Some(gloss) = gloss else { continue };
+
+        let pos = match pc {
+            "n" => Pos::Noun,
+            "v" => Pos::Verb,
+            _ => Pos::Adjective,
+        };
+        // Feed the consensus FLAVORIZED surfaces (the raw-attestation pages'
+        // own national→ISV orthography pass, measured at 2/179k residue), so
+        // a thin 2-member vote can't keep a national spelling like pl
+        // `niedoskonały` as the representative.
+        let pos_str = match pc {
+            "n" => "noun",
+            "v" => "verb",
+            _ => "adj",
+        };
+        let mut cells: HashMap<String, String> = HashMap::new();
+        for (lang, word, _) in &members {
+            let cell = cells.entry(lang.clone()).or_default();
+            if !cell.is_empty() {
+                cell.push_str(", ");
+            }
+            cell.push_str(&crate::flavorize::flavorize_word(lang, pos_str, word));
+        }
+        let forms = crate::consensus::source_forms_from_cells(&cells, |_, _| String::new());
+        let forms = crate::consensus::lemma_forms(forms, pos);
+        if forms.iter().filter(|f| f.modern).count() < 2 {
+            continue;
+        }
+        let input = crate::consensus::MeaningInput {
+            pos,
+            gender: None,
+            gloss: gloss.to_string(),
+            forms,
+            is_intl_meaning: true,
+            reflexive: false,
+        };
+        let (candidates, _) = crate::pipeline::generate(&input, None, &cfg);
+        let Some(top) = candidates.first() else {
+            continue;
+        };
+        let form = top.form.trim().to_string();
+        // Word-final -ie is a national surface ISV never uses (ru развитие →
+        // ISV razvitije; la -ia → ISV -ija): a thin vote that kept it kept a
+        // wrong surface, so drop the candidate — an honest miss beats a
+        // confidently wrong suggestion.
+        if form.is_empty() || form.contains(' ') || form.ends_with("ie") {
+            continue;
+        }
+        let key = crate::forms::form_key(&form);
+        if key.is_empty() || !taken.insert(key) {
+            continue;
+        }
+        let langs: Vec<String> = langs.iter().map(|l| l.to_string()).collect();
+        let Some(branch_pattern) = super::navigation::branch_pattern(&langs) else {
+            continue;
+        };
+        out.push(RawIntlCandidate {
+            form,
+            pos,
+            gloss: gloss.to_string(),
+            langs,
+            branch_pattern,
+        });
+    }
+    out.sort_by(|a, b| a.form.cmp(&b.form));
+    out
+}
+
 /// Classify every raw lemma once (via [`raw_lemma_fate`] — still the single
 /// dedup rule shared with `coverage`), assigning sequential ids from
 /// `next_id + 1` to the rendered ones in corpus order — the same ids the old

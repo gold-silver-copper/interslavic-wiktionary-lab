@@ -9,7 +9,7 @@
 use self::assets::css;
 use self::coverage::{
     inject_generated_derivatives, insert_official_byform_aliases, official_surface_maps,
-    plan_raw_pages, select_official_surface, OfficialSurface,
+    plan_raw_pages, raw_intl_candidates, select_official_surface, OfficialSurface,
 };
 use self::entries::{
     branch_evidence, build_input, corpus_about, corpus_entry_page, corpus_home, derivation_block,
@@ -41,7 +41,6 @@ use crate::consensus::ConsensusConfig;
 use crate::generator;
 use crate::model::{Confidence, MatchStatus};
 use crate::official::{self, OfficialEntry};
-use crate::overrides::Overrides;
 use anyhow::Result;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -72,7 +71,6 @@ fn add_official_byform_keys<'a>(
 /// Generate the whole static site under `out_dir`.
 pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
     let entries = official::load(official_path)?;
-    let overrides = Overrides::load(Path::new(crate::DEFAULT_OVERRIDES));
     let cfg = ConsensusConfig::production();
     let proto_path = Path::new(crate::DEFAULT_PROTO_CACHE);
     let proto_index = crate::dump::load_optional(proto_path, crate::dump::ProtoIndex::load)?;
@@ -120,7 +118,6 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
             official_byforms.iter().map(String::as_str),
             proto,
             &cfg,
-            &overrides,
         );
         // Display badges come from the calibrated probability, never the raw
         // score (issue #77); scores/ordering stay untouched.
@@ -729,6 +726,17 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         .as_ref()
         .map(|rc| plan_raw_pages(&rc.lemmas, &xref, &isv_to_id, entry_ids.max_id()))
         .unwrap_or_default();
+    // Computed false-friend notes (replaces the retired curated
+    // data/semantic-notes.json): detected from the same evidence caches that
+    // are already in memory, then shared by api/notes.json, the English API
+    // candidates, and the checker index below.
+    let ff_notes =
+        crate::falsefriends::compute(&official_entries, Some(&corpus), raw_corpus.as_ref());
+    println!(
+        "false-friends: {} computed notes ({} collisions) from cache surface × gloss divergence.",
+        ff_notes.len(),
+        ff_notes.values().map(|n| n.collisions.len()).sum::<usize>(),
+    );
     // Raw-collision display credit census (issue #86 item 6).
     println!(
         "raw-credit: {} entries show {} fold-deduped raw attestations (display-only, issue #86).",
@@ -1767,37 +1775,50 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &deriv_probs,
     );
     println!("api: added {deriv_added} generated derivative lemmas off attested bases (issue #37)");
-    let form_records = form_sink.into_records();
-    let lemma_records = lemma_sink.into_records();
-    // Semantic-trap notes for the web text-checker (same file the CLI reads),
-    // re-keyed by folded form so the client looks up by key directly.
-    if let Ok(raw) = std::fs::read_to_string(crate::check::SEMANTIC_NOTES) {
-        if let Ok(parsed) = serde_json::from_str::<
-            std::collections::BTreeMap<String, crate::check::SemanticNote>,
-        >(&raw)
-        {
-            let mut js = String::from("{");
-            for (i, (k, v)) in parsed.iter().enumerate() {
-                if i > 0 {
-                    js.push(',');
-                }
-                let _ = write!(
-                    js,
-                    "{}:{{\"warning\":{},\"prefer\":[{}]}}",
-                    serde_json::to_string(&crate::forms::form_key(k))?,
-                    serde_json::to_string(&v.warning)?,
-                    v.prefer
-                        .iter()
-                        .map(|p| serde_json::to_string(p).unwrap_or_default())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                );
-            }
-            js.push_str("}\n");
-            std::fs::create_dir_all(out_dir.join("api"))?;
-            std::fs::write(out_dir.join("api").join("notes.json"), js)?;
+    // ---- Borrowed internationalisms recovered from RAW attestations (2e) ----
+    // Cognate sets the evidence gate never saw (no etymology section on any
+    // member — the teleport family): ≥2 languages / ≥2 branches sharing an
+    // international shape AND a gloss token, run through the ordinary
+    // pipeline with is_intl_meaning. `generated`, `borrowed`, NO paradigm,
+    // NO probability (no calibrator for this path — fail closed), and never
+    // fed to build_sets or any benchmark.
+    let raw_intl = raw_corpus
+        .as_ref()
+        .map(|rc| raw_intl_candidates(&rc.lemmas, &mut taken))
+        .unwrap_or_default();
+    for c in &raw_intl {
+        // entry_id 0 is the established "no entry page" sentinel (the raw
+        // pages that attest these words are not entries.json rows, and the
+        // linguistic-logic CI guard requires nonzero ids to resolve there).
+        // The attestation evidence rides in the provenance tag, which the
+        // English API parses back out.
+        let feats = format!("raw-intl:{}l:{}", c.langs.len(), c.branch_pattern);
+        for sink in [&mut lemma_sink, &mut form_sink] {
+            sink.add(
+                &c.form,
+                &feats,
+                &c.form,
+                0,
+                c.pos.code(),
+                "lemma",
+                "generated",
+                None,
+                &c.gloss,
+            );
         }
     }
+    println!(
+        "raw-intl: {} borrowed internationalism candidates recovered from raw attestations (2e).",
+        raw_intl.len()
+    );
+    let form_records = form_sink.into_records();
+    let lemma_records = lemma_sink.into_records();
+    // Computed false-friend notes for the web text-checker (the CLI computes
+    // the same records), keyed by folded form so the client looks up by key
+    // directly. Deterministic: BTreeMap ordering, serde output.
+    let notes_json = serde_json::to_string(&ff_notes)? + "\n";
+    std::fs::create_dir_all(out_dir.join("api"))?;
+    std::fs::write(out_dir.join("api").join("notes.json"), &notes_json)?;
     let aspect_api: crate::forms::AspectMeta = metas
         .iter()
         .filter_map(|m| {
@@ -1806,11 +1827,37 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 .map(|a| (m.id, (a.clone(), m.aspect_partners.clone())))
         })
         .collect();
+    // Ranking evidence per entry id (schema-4 / en-schema-2 plumbing): the
+    // official CSV frequency joined via the entry's official sense id, plus
+    // the attestation metadata already on SiteEntryMeta.
+    let freq_by_sense: std::collections::HashMap<&str, f32> = official_entries
+        .iter()
+        .filter_map(|e| e.frequency.map(|f| (e.id.as_str(), f)))
+        .collect();
+    let rank_evidence: std::collections::BTreeMap<usize, crate::forms::RankEvidence> = metas
+        .iter()
+        .map(|m| {
+            (
+                m.id,
+                crate::forms::RankEvidence {
+                    frequency: m
+                        .official_sense_id
+                        .as_deref()
+                        .and_then(|sid| freq_by_sense.get(sid).copied()),
+                    langs: m.n_langs,
+                    branch_pattern: navigation::branch_pattern(&m.languages),
+                    borrowed: m.borrowed,
+                },
+            )
+        })
+        .collect();
     let english_counts = english_api::write_en_api(
         out_dir,
         &lemma_records,
         &metas,
         &aspect_api,
+        &ff_notes,
+        &rank_evidence,
         &build_meta.git,
     )?;
     println!(
@@ -1858,6 +1905,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     let checker_index = crate::check::build_index(
         &official_entries,
         Some(std::path::Path::new("data/novel-words.tsv")),
+        ff_notes.clone(),
     );
     let suggest_bytes = crate::check::write_web_suggestions(out_dir, &checker_index)?;
     let api_counts = crate::forms::write_api(
@@ -1865,7 +1913,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         &form_records,
         &lemma_records,
         &aspect_api,
-        pair_json.len() + suggest_bytes + english_counts.bytes,
+        &rank_evidence,
+        ff_notes.len(),
+        pair_json.len() + suggest_bytes + english_counts.bytes + notes_json.len(),
         &build_meta.git,
         &crate::forms::agent_guide(),
     )?;
@@ -1950,6 +2000,7 @@ mod search;
 mod special;
 
 pub use self::coverage::run_coverage;
+pub use self::english_api::run_en_lookup;
 
 #[cfg(test)]
 mod tests;

@@ -30,11 +30,17 @@ api = root / "api"
 meta = json.loads((api / "meta.json").read_text())
 lemmas = json.loads((api / "lemmas.json").read_text())
 pairs = json.loads((api / "aspect-pairs.json").read_text())
-assert meta["schema_version"] == 3
+assert meta["schema_version"] == 4
 assert pairs["schema_version"] == 3 and len(pairs["pairs"]) == 1440
 for row in lemmas["lemmas"]:
-    assert len(row) == 8, ("lemma tuple width", len(row), row[:2])
+    # Schema 4: [lemma, pos, status, probability, entry_id, gloss, aspect,
+    #            aspect_partners, frequency, langs, branch_pattern, borrowed].
+    assert len(row) == 12, ("lemma tuple width", len(row), row[:2])
     assert isinstance(row[7], list), ("aspect_partners is not an array", row[:2])
+    assert row[8] is None or isinstance(row[8], (int, float)), ("frequency type", row[:2], row[8])
+    assert isinstance(row[9], int), ("langs type", row[:2], row[9])
+    assert row[10] is None or isinstance(row[10], str), ("branch_pattern type", row[:2], row[10])
+    assert isinstance(row[11], bool), ("borrowed type", row[:2], row[11])
     is_official_verb = row[1] == "verb" and row[2] in ("official", "official-only")
     if is_official_verb:
         page = by_id.get(row[4])
@@ -83,15 +89,44 @@ def fnv1a32(text):
         h = ((h ^ b) * 16777619) & 0xFFFFFFFF
     return h
 
+def en_desuffix(key):
+    """Independent reimplementation of the documented de-suffix ladder."""
+    out = []
+
+    def push(cand):
+        if len(cand) >= 3 and cand != key and cand not in out:
+            out.append(cand)
+
+    rules = [
+        ("ibility", ["ible"]), ("ability", ["able"]), ("iness", ["y"]),
+        ("ness", [""]), ("ation", ["", "ate"]), ("ition", ["", "e", "ite"]),
+        ("ity", ["", "e"]), ("ing", ["", "e"]), ("ies", ["y"]),
+        ("es", [""]), ("s", [""]),
+    ]
+    for suf, restores in rules:
+        if key.endswith(suf):
+            stem = key[: len(key) - len(suf)]
+            for r in restores:
+                push(stem + r)
+            if (suf == "ing" and len(stem) >= 2 and stem[-1] == stem[-2]
+                    and stem[-1].isascii() and stem[-1].isalpha()):
+                push(stem[:-1])
+    return out
+
 en_selftest = json.loads((api / "en" / "selftest.json").read_text())
 assert en_selftest["samples"], "en selftest has no samples"
 for raw, key, shard in en_selftest["samples"]:
     assert en_normalize(raw) == key, ("en normalization drift", raw, key, en_normalize(raw))
     assert fnv1a32(key) % en_selftest["shards"] == shard, ("en router drift", key, shard)
+assert en_selftest["desuffix_samples"], "en selftest has no desuffix samples"
+for key, variants in en_selftest["desuffix_samples"]:
+    assert en_desuffix(key) == variants, (
+        "en de-suffix ladder drift", key, variants, en_desuffix(key)
+    )
 
 # `total_bytes` is payload bytes and intentionally excludes meta.json itself.
 counted = [api / "lemmas.json", api / "agent-guide.md", api / "router-selftest.json",
-           api / "aspect-pairs.json", api / "suggest-selftest.json"]
+           api / "aspect-pairs.json", api / "suggest-selftest.json", api / "notes.json"]
 counted.extend((api / "forms").glob("*.json"))
 counted.extend((api / "suggest").glob("*.json"))
 counted.extend((api / "en").glob("*.json"))

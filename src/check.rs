@@ -6,8 +6,8 @@
 //! tokenizes the input and classifies every token:
 //!
 //! `known-lemma` / `known-form` / `generated` (carries p when proposals are enabled) / `unknown` (with
-//! nearest-lemma suggestions) — plus curated semantic-trap warnings from
-//! `data/semantic-notes.json`. Two-token keys (reflexive `X sę` verbs and
+//! nearest-lemma suggestions) — plus computed false-friend warnings from
+//! [`crate::falsefriends`]. Two-token keys (reflexive `X sę` verbs and
 //! two-word official lemmas) are found by a general bigram lookup; only
 //! 3+-token phrases are out of tokenized reach (their lemma records still
 //! exist in the index for direct key lookup).
@@ -23,16 +23,6 @@ use anyhow::Result;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::Path;
-
-pub const SEMANTIC_NOTES: &str = "data/semantic-notes.json";
-
-/// A curated semantic-trap note (see `data/semantic-notes.json`).
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct SemanticNote {
-    pub warning: String,
-    #[serde(default)]
-    pub prefer: Vec<String>,
-}
 
 pub const SUGGEST_SHARDS: u32 = 64;
 pub const SUGGEST_SELFTEST_INPUTS: &[&str] = &["domm", "pomocnyy", "rěkaa", "xyzq"];
@@ -51,7 +41,9 @@ pub struct Index {
     pub by_key: HashMap<String, Vec<FormRecord>>,
     /// All lemma keys, for nearest-suggestion search.
     pub lemma_keys: Vec<(String, String)>, // (key, display lemma)
-    pub notes: BTreeMap<String, SemanticNote>,
+    /// Computed false-friend notes, keyed by folded form (see
+    /// [`crate::falsefriends::compute`]).
+    pub notes: BTreeMap<String, crate::falsefriends::Note>,
     /// Noun lemma key → dictionary gender (m/f/n), for agreement checking.
     pub noun_gender: HashMap<String, char>,
     /// Preposition key (folded) → the cases it governs, sourced from the
@@ -62,8 +54,13 @@ pub struct Index {
 
 /// Build the verification index from the official dictionary (lemmas + full
 /// paradigms) and, when present, the committed novel-word proposals (lemma
-/// records with their calibrated probability).
-pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) -> Index {
+/// records with their calibrated probability). `notes` carries the computed
+/// false-friend warnings (empty map to disable them, e.g. in unit tests).
+pub fn build_index(
+    entries: &[OfficialEntry],
+    novel_words_tsv: Option<&Path>,
+    notes: BTreeMap<String, crate::falsefriends::Note>,
+) -> Index {
     let mut sink = RecordSink::default();
     forms::closed_class_records(&mut sink);
     let mut seen: HashSet<String> = HashSet::new();
@@ -201,15 +198,6 @@ pub fn build_index(entries: &[OfficialEntry], novel_words_tsv: Option<&Path>) ->
         by_key.entry(r.key.clone()).or_default().push(r);
     }
     lemma_keys.sort();
-    let notes: BTreeMap<String, SemanticNote> = std::fs::read_to_string(SEMANTIC_NOTES)
-        .ok()
-        .and_then(|raw| serde_json::from_str::<BTreeMap<String, SemanticNote>>(&raw).ok())
-        .map(|m| {
-            m.into_iter()
-                .map(|(k, v)| (forms::form_key(&k), v))
-                .collect()
-        })
-        .unwrap_or_default();
     Index {
         by_key,
         lemma_keys,
@@ -775,12 +763,66 @@ fn json_escape(s: &str) -> String {
     serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into())
 }
 
-/// The `check-text` CLI entry point.
-pub fn run(official_path: &Path, text_path: &Path, json: bool) -> Result<()> {
+/// Gate thresholds for `check-text --summary` (issue: downstream projects
+/// want "all rendered messages verify clean" as a CI test).
+#[derive(Debug, Clone, Copy)]
+pub struct SummaryGate {
+    /// Maximum allowed `unknown` tokens before a nonzero exit.
+    pub max_unknown: usize,
+    /// Maximum allowed agreement warnings before a nonzero exit.
+    pub max_agreement: usize,
+}
+
+/// Deterministic summary of one check-text run.
+#[derive(Debug, serde::Serialize)]
+pub struct Summary {
+    pub tokens: usize,
+    pub known_lemma: usize,
+    pub known_form: usize,
+    pub generated: usize,
+    pub unknown: usize,
+    pub agreement_errors: usize,
+    pub false_friend_warnings: usize,
+    pub passed: bool,
+}
+
+pub fn summarize(reports: &[TokenReport], gate: SummaryGate) -> Summary {
+    let count = |st: &str| reports.iter().filter(|r| r.status == st).count();
+    let unknown = count("unknown");
+    let agreement_errors = reports.iter().filter(|r| r.agreement.is_some()).count();
+    Summary {
+        tokens: reports.len(),
+        known_lemma: count("known-lemma"),
+        known_form: count("known-form"),
+        generated: count("generated"),
+        unknown,
+        agreement_errors,
+        false_friend_warnings: reports.iter().filter(|r| r.warning.is_some()).count(),
+        passed: unknown <= gate.max_unknown && agreement_errors <= gate.max_agreement,
+    }
+}
+
+/// The `check-text` CLI entry point. With `gate` set (`--summary`), a summary
+/// is emitted and the process exits nonzero when the text fails the gate.
+/// `warnings: false` skips the false-friend computation entirely (it loads
+/// both evidence caches, ~2-3s — pure classification gates don't need it).
+pub fn run(
+    official_path: &Path,
+    text_path: &Path,
+    json: bool,
+    gate: Option<SummaryGate>,
+    warnings: bool,
+) -> Result<()> {
     let entries = official::load(official_path)?;
-    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")));
+    let notes = if warnings {
+        crate::falsefriends::compute_from_default_caches(&entries)
+    } else {
+        BTreeMap::new()
+    };
+    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
     let text = std::fs::read_to_string(text_path)?;
     let reports = check_text(&index, &text);
+    let summary = gate.map(|g| summarize(&reports, g));
 
     if json {
         let mut s = String::from("[\n");
@@ -791,8 +833,17 @@ pub fn run(official_path: &Path, text_path: &Path, json: bool) -> Result<()> {
             let _ = write!(s, "{}", serde_json::to_string(r)?);
         }
         s.push_str("\n]\n");
-        println!("{s}");
-        return Ok(());
+        match &summary {
+            // --json --summary: an object with the token array AND the
+            // summary, so agents get both in one parse.
+            Some(summary) => println!(
+                "{{\"tokens\":{},\"summary\":{}}}",
+                s.trim_end(),
+                serde_json::to_string(summary)?
+            ),
+            None => println!("{s}"),
+        }
+        return fail_gate_if_needed(summary);
     }
 
     let n = reports.len();
@@ -844,8 +895,77 @@ pub fn run(official_path: &Path, text_path: &Path, json: bool) -> Result<()> {
             );
         }
     }
+    if let Some(s) = &summary {
+        println!(
+            "summary: {} — {} unknown (max {}), {} agreement errors (max {})",
+            if s.passed { "PASS" } else { "FAIL" },
+            s.unknown,
+            gate.unwrap().max_unknown,
+            s.agreement_errors,
+            gate.unwrap().max_agreement,
+        );
+    }
     let _ = json_escape("");
-    Ok(())
+    fail_gate_if_needed(summary)
+}
+
+/// Nonzero exit for CI gating: a failed gate is an error AFTER all output has
+/// been printed, so agents still receive the full report.
+fn fail_gate_if_needed(summary: Option<Summary>) -> Result<()> {
+    match summary {
+        Some(s) if !s.passed => anyhow::bail!(
+            "check-text gate failed: {} unknown token(s), {} agreement error(s)",
+            s.unknown,
+            s.agreement_errors
+        ),
+        _ => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod summary_tests {
+    use super::*;
+
+    fn report(status: &'static str, agreement: Option<&str>) -> TokenReport {
+        TokenReport {
+            token: "x".into(),
+            status,
+            lemmas: Vec::new(),
+            analyses: Vec::new(),
+            ambiguous: false,
+            probability: None,
+            suggestions: Vec::new(),
+            warning: None,
+            prefer: Vec::new(),
+            agreement: agreement.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn summary_gate_counts_and_thresholds() {
+        let reports = vec![
+            report("known-lemma", None),
+            report("unknown", None),
+            report("known-form", Some("case mismatch")),
+        ];
+        let strict = summarize(
+            &reports,
+            SummaryGate {
+                max_unknown: 0,
+                max_agreement: 0,
+            },
+        );
+        assert_eq!((strict.unknown, strict.agreement_errors), (1, 1));
+        assert!(!strict.passed);
+        let lenient = summarize(
+            &reports,
+            SummaryGate {
+                max_unknown: 1,
+                max_agreement: 1,
+            },
+        );
+        assert!(lenient.passed);
+    }
 }
 
 /// The check-text benchmark (issue #13, `checktext-eval`): classification
@@ -878,7 +998,8 @@ pub const UNKNOWN_PROBE: &str = "On vidita rěku.";
 pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use std::fmt::Write as _;
     let entries = official::load(official_path)?;
-    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")));
+    let notes = crate::falsefriends::compute_from_default_caches(&entries);
+    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
 
     let text = std::fs::read_to_string(FIXTURE)?;
     let reps = check_text(&index, &text);
@@ -974,7 +1095,7 @@ mod tests {
             .into_iter()
             .step_by(20)
             .collect();
-        build_index(&entries, None)
+        build_index(&entries, None, Default::default())
     }
 
     #[test]
@@ -987,7 +1108,7 @@ mod tests {
             .into_iter()
             .step_by(20)
             .collect();
-        let index = build_index(&entries, None);
+        let index = build_index(&entries, None, Default::default());
         let mut checked = 0usize;
         for e in &entries {
             for byform in e.citation_byforms() {
@@ -1050,7 +1171,7 @@ mod tests {
         // flagged. If a change legitimately shifts these numbers, update the
         // fixture/report — that is the change-detector working.
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None);
+        let index = build_index(&entries, None, Default::default());
         let text = std::fs::read_to_string(FIXTURE).expect("fixture");
         let reps = check_text(&index, &text);
         let unknown: Vec<&str> = reps
@@ -1088,7 +1209,7 @@ mod tests {
     #[test]
     fn homographic_noun_genders_abstain_from_agreement() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None);
+        let index = build_index(&entries, None, Default::default());
         // Cover exact/case-folded homographs and genuine standard-orthography
         // collisions (Bělorus/Běloruś, plȯť/plot, spust/spusť).
         for word in ["Bělorus", "dodatȯk", "družba", "led", "plȯť", "spust"] {
@@ -1128,7 +1249,7 @@ mod tests {
             entry
         })
         .collect();
-        let synthetic_index = build_index(&synthetic, None);
+        let synthetic_index = build_index(&synthetic, None, Default::default());
         assert_eq!(
             synthetic_index.noun_gender.get(&forms::form_key("testova")),
             Some(&' ')
@@ -1138,7 +1259,7 @@ mod tests {
     #[test]
     fn official_comma_byforms_are_known_lemmas() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None);
+        let index = build_index(&entries, None, Default::default());
         for isv in ["iměti", "imati", "poslědnji", "poslědny"] {
             let reps = check_tokens(&index, &tokenize(isv));
             assert!(
