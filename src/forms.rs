@@ -210,6 +210,35 @@ pub fn noun_paradigm_forms(
     }
 }
 
+/// Noun paradigm with EXPLICIT animacy (V13): the project-lexicon and
+/// coin-check override path. [`noun_paradigm_forms`] hardcodes inanimate
+/// because the official CSV's animacy tag is unreliable for its own corpus;
+/// a project lexicon or a coin-check `--animacy` flag is an explicit consumer
+/// decision (`ISV::noun_with` semantics), so it must reach the inflector —
+/// masculine-animate accusatives (`žabervoka`) differ from inanimate ones.
+///
+/// CAUTION: with `gender: None` this falls back to the crate's own
+/// gender/animacy inference and `animate` is IGNORED — there is no
+/// `noun_forms` variant taking animacy without gender. Both callers
+/// guarantee a concrete gender for nouns (`parse_lexicon` requires it;
+/// coin-check backfills the guess); a new caller must do the same or accept
+/// the guessed animacy.
+pub fn noun_paradigm_forms_with_animacy(
+    word: &str,
+    gender: Option<crate::model::Gender>,
+    animate: bool,
+) -> interslavic::NounParadigm {
+    let animacy = if animate {
+        IsvAnimacy::Animate
+    } else {
+        IsvAnimacy::Inanimate
+    };
+    match noun_gender(gender) {
+        Some(g) => interslavic::noun_forms_with(word, g, animacy),
+        None => interslavic::noun_forms(word),
+    }
+}
+
 pub fn adj_cell(
     word: &str,
     case: IsvCase,
@@ -484,21 +513,16 @@ pub fn paradigm_records(
             // Build the whole noun paradigm once from the crate (issue #20) —
             // the same struct the site's noun_table renders from.
             let forms = noun_paradigm_forms(bare, gender);
-            for (nf, num) in NUMBERS {
-                for (cf, case) in CASES {
-                    sink.add(
-                        &clean_cell(forms.get(case, num)),
-                        &format!("{cf}.{nf}."),
-                        lemma,
-                        entry_id,
-                        pos.code(),
-                        "inflection",
-                        status,
-                        probability,
-                        gloss,
-                    );
-                }
-            }
+            noun_paradigm_into_sink(
+                sink,
+                &forms,
+                lemma,
+                entry_id,
+                pos,
+                status,
+                probability,
+                gloss,
+            );
         }
         Pos::Adjective => {
             adj_paradigm(
@@ -621,6 +645,63 @@ pub fn paradigm_records(
             }
         }
         _ => {}
+    }
+}
+
+/// Index one pre-built noun paradigm struct into the sink — the shared cell
+/// loop behind [`paradigm_records`] and [`project_paradigm_records`].
+#[allow(clippy::too_many_arguments)]
+fn noun_paradigm_into_sink(
+    sink: &mut RecordSink,
+    forms: &interslavic::NounParadigm,
+    lemma: &str,
+    entry_id: usize,
+    pos: Pos,
+    status: &'static str,
+    probability: Option<f64>,
+    gloss: &str,
+) {
+    for (nf, num) in NUMBERS {
+        for (cf, case) in CASES {
+            sink.add(
+                &clean_cell(forms.get(case, num)),
+                &format!("{cf}.{nf}."),
+                lemma,
+                entry_id,
+                pos.code(),
+                "inflection",
+                status,
+                probability,
+                gloss,
+            );
+        }
+    }
+}
+
+/// Full paradigm for a project-lexicon lemma or a coin-check metadata
+/// override (V13): like [`paradigm_records`] but nouns decline with the
+/// caller's EXPLICIT animacy (the `noun_with` path a real consumer uses).
+/// Adjectives and verbs have no animacy dimension and reuse the ordinary
+/// paradigm builder unchanged.
+pub fn project_paradigm_records(
+    sink: &mut RecordSink,
+    lemma: &str,
+    pos: Pos,
+    gender: Option<crate::model::Gender>,
+    animate: bool,
+    status: &'static str,
+    gloss: &str,
+) {
+    let bare = lemma.trim();
+    if bare.is_empty() || bare.contains(' ') {
+        return;
+    }
+    match pos {
+        Pos::Noun | Pos::ProperNoun => {
+            let forms = noun_paradigm_forms_with_animacy(bare, gender, animate);
+            noun_paradigm_into_sink(sink, &forms, lemma, 0, pos, status, None, gloss);
+        }
+        _ => paradigm_records(sink, lemma, pos, gender, 0, status, None, gloss),
     }
 }
 
@@ -1249,6 +1330,51 @@ existing lemma or inflected form, false-friend readings across the ten
 languages' caches (per-language word + glosses + exact/loose level), and
 the declension paradigm the guessed POS produces. Use it before shipping a
 coinage; adjust the ending to change the paradigm.
+
+The declinability axis reports the crate's guessed gender/animacy for the
+noun reading, and accepts explicit metadata — `--pos <noun|adj|verb>`,
+`--gender <m|f|n>`, `--animacy <anim|inanim>` — rendering the OVERRIDDEN
+paradigm (the `ISV::noun_with` call a real consumer makes; animate
+masculines take genitive-shaped accusatives) while still printing the guess
+and flagging every divergence ("ending suggests gender m; you declared f").
+With `--lexicon-row --gloss <english concept>` it emits the validated
+project-lexicon TSV row (see below; also a `lexicon_row` field in `--json`),
+so the coinage workflow chains mechanically:
+`coin-check → append row → check-text --lexicon`. The row is validated by
+the same rules `check-text --lexicon` applies — an invalid row fails here,
+not later in CI: the full four-axis report still prints (it is the
+diagnostic that explains the rejection; `--json` carries the reason as
+`lexicon_row_error`), then the command exits nonzero.
+
+## Project lexicons (check-text --lexicon)
+
+A translation project's sanctioned coinages live in a project-lexicon TSV:
+one row per word, five tab-separated columns
+
+    lemma	pos	gender	animacy	gloss
+
+with `pos` ∈ `noun|adj|verb`, `gender` ∈ `m|f|n` and `animacy` ∈
+`anim|inanim` (both REQUIRED for nouns — the lexicon exists to control the
+paradigm explicitly — and forbidden otherwise), and a non-empty English
+`gloss` naming the source concept. Blank lines and `#` comments are
+skipped. `check-text --lexicon <file>` then:
+
+- builds each row's full paradigm in memory (same machinery as the official
+  paradigms) and classifies matching tokens with status `project` — so a
+  coinage inflected at runtime (`žabervoka`, `žabervokom`) no longer drowns
+  a `--summary --max-unknown 0` CI gate. Project tokens also participate in
+  the conservative agreement checks like official words (their paradigms and
+  declared genders are explicit project decisions), so a case error in a
+  coinage's usage is caught too;
+- validates the lexicon on load, as HARD errors: rows must parse, verbs must
+  cite `-ti`, adjectives `-y`/`-i`, nouns must be declinable, and every
+  lemma must either collide with nothing (coin-check's collision axis) or
+  pin an official lemma whose POS/gender agree with the declaration;
+- emits `consistency` warnings when a verification-grade official token's
+  gloss overlaps a row's gloss (deterministic token overlap, same
+  normalization as the English API) but the token is NOT that row's lemma —
+  register drift: the same source concept rendered by different target
+  words. Gate optionally with `--max-consistency N`; ungated by default.
 
 ## Agreement warnings (check-text)
 

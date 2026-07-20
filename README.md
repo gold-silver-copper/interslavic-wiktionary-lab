@@ -455,6 +455,14 @@ cargo run --release -- check-text tekst.txt --json
 # CI gate: summary + nonzero exit when unknown tokens / agreement errors
 # exceed the (default 0) thresholds:
 cargo run --release -- check-text tekst.txt --summary --max-unknown 0
+# Translation-project mode (V13): a project-lexicon TSV
+# (lemma  pos  gender  animacy  gloss; see the agent guide) declines each
+# sanctioned coinage in full and classifies its tokens `project`, so game
+# text full of runtime-inflected coinages still gates on --max-unknown 0;
+# official synonyms of a row's gloss raise `consistency` warnings
+# (register drift), gate them with --max-consistency N:
+cargo run --release -- check-text tekst.txt --summary --max-unknown 0 \
+  --lexicon project-lexicon.tsv
 
 # English → Interslavic lookup against a prior export's static API — the
 # reference client for the documented normalization/routing/retry ladder:
@@ -467,6 +475,18 @@ cargo run --release -- en --batch words.txt --json   # lexicon-building mode
 # across ten languages, and the paradigm it would decline with:
 cargo run --release -- coin-check "akvator"
 cargo run --release -- coin-check "jabberwok" --json
+# Declared metadata (V13): render the paradigm the project will actually
+# use (ISV::noun_with semantics) and flag divergence from the ending-based
+# guess; --lexicon-row emits the validated project-lexicon TSV row so the
+# workflow chains: coin-check -> append row -> check-text --lexicon:
+cargo run --release -- coin-check "žabervok" --gender m --animacy anim \
+  --gloss jabberwock --lexicon-row
+
+# Tracked translation probe (V13): the committed 219-word Rogue-5.4.5 game
+# vocabulary (tools/translation-probe.txt) through the exported English API.
+# A reported metric, never a gate; baseline 147 verified / 44 generated-only
+# / 28 miss. Writes target/eval/translation-probe.md:
+cargo run --release -- translation-probe
 ```
 
 ## Lexical verification API (for humans and AI agents)
@@ -619,6 +639,7 @@ target/eval/inflection-report.md                 inflection census + RULE_SPEC �
 target/eval/synonym-accuracy.md                  synonym-inclusive accuracy (thesaurus-based)
 target/eval/rep-selection.md                     representative-selection probe (medoid vs oracle)
 target/eval/cluster-selection.md                 cluster-selection probe (blind rules vs oracle)
+target/eval/translation-probe.md                 tracked 219-word game-vocabulary probe (reported, not gated)
 ```
 
 The V7 full-pipeline review (stage-attribution histogram, oracle ladder, and the

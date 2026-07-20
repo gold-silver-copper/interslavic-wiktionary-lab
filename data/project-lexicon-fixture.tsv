@@ -1,0 +1,10 @@
+# mrzavec project lexicon fixture (V13 item 1) — the committed demo/test
+# lexicon for `check-text --lexicon`. One TSV row per sanctioned word:
+# lemma	pos	gender	animacy	gloss
+# Coinage rows are exactly what `coin-check --lexicon-row` emits; the
+# `praktika` row PINS an official word for a source concept, so official
+# synonyms of "practice" in the text raise consistency warnings.
+žabervok	noun	m	anim	jabberwock
+kserok	noun	m	anim	xeroc
+akvator	noun	m	anim	aquator
+praktika	noun	f	inanim	practice

@@ -49,6 +49,11 @@ jobs:
           git diff --exit-code -- data/novel-words.tsv data/score-calibration.json
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
+      # Tracked translation probe (V13 item 3): a REPORTED metric, never a
+      # gate — the step prints the verified/generated-only/miss counts
+      # against the recorded baseline and always succeeds on movement.
+      - name: Translation probe (reported metric)
+        run: cargo run --release -- translation-probe --site /tmp/slovowiki-aspect-ci
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)
         run: |
           out=$(cargo run --release -- evaluate)

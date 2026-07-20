@@ -321,6 +321,23 @@ fn push_key(out: &mut Vec<(String, String)>, key: String, match_kind: &str) {
     }
 }
 
+/// Deterministic content-token set of an English gloss — the SAME key
+/// extraction and stopword discipline the English index build uses
+/// ([`gloss_keys`]), flattened to single tokens. This is the overlap test
+/// behind `check-text`'s project-lexicon consistency warning (V13 item 1):
+/// two glosses "overlap" iff their token sets intersect.
+pub fn english_gloss_tokens(gloss: &str) -> std::collections::BTreeSet<String> {
+    let mut out = std::collections::BTreeSet::new();
+    for (key, _) in gloss_keys(gloss) {
+        for token in key.split_whitespace() {
+            if usable_token_key(token) {
+                out.insert(token.to_string());
+            }
+        }
+    }
+    out
+}
+
 fn key_matches(gloss: &str) -> Vec<KeyMatch> {
     gloss_keys(gloss)
         .into_iter()
@@ -705,6 +722,44 @@ fn first_candidate(
     None
 }
 
+/// One batch query's classification: the shared workhorse behind
+/// `en --batch` and the tracked translation-probe runner (V13 item 3).
+struct BatchRow {
+    normalized: String,
+    /// "verified" | "generated" | "miss".
+    status: &'static str,
+    verified: Option<serde_json::Value>,
+    generated: Option<serde_json::Value>,
+    sense_note: Option<String>,
+}
+
+fn en_batch_classify(
+    en_dir: &Path,
+    cache: &mut HashMap<u32, serde_json::Value>,
+    query: &str,
+) -> anyhow::Result<BatchRow> {
+    let (normalized, hits) = en_ladder(en_dir, cache, query)?;
+    let verified = first_candidate(&hits, |c| {
+        matches!(c["status"].as_str(), Some("official" | "official-only"))
+    });
+    let generated = first_candidate(&hits, |c| c["status"].as_str() == Some("generated"));
+    let status = if verified.is_some() {
+        "verified"
+    } else if generated.is_some() {
+        "generated"
+    } else {
+        "miss"
+    };
+    let sense_note = hits.iter().find_map(|h| h.sense_note.clone());
+    Ok(BatchRow {
+        normalized,
+        status,
+        verified,
+        generated,
+        sense_note,
+    })
+}
+
 /// `en --batch <file>`: one query per line (blank lines and #-comments
 /// skipped), ONE selftest pass, the shard cache reused across queries,
 /// output strictly in input order (V11 item 7). JSON per query: status
@@ -721,22 +776,15 @@ pub fn run_en_batch(site_dir: &Path, file: &Path, json: bool) -> anyhow::Result<
         if query.is_empty() || query.starts_with('#') {
             continue;
         }
-        let (normalized, hits) = en_ladder(&en_dir, &mut cache, query)?;
-        let verified = first_candidate(&hits, |c| {
-            matches!(c["status"].as_str(), Some("official" | "official-only"))
-        });
-        let generated = first_candidate(&hits, |c| c["status"].as_str() == Some("generated"));
-        let status = if verified.is_some() {
-            counts.0 += 1;
-            "verified"
-        } else if generated.is_some() {
-            counts.1 += 1;
-            "generated"
-        } else {
-            counts.2 += 1;
-            "miss"
-        };
-        let sense_note = hits.iter().find_map(|h| h.sense_note.clone());
+        let row = en_batch_classify(&en_dir, &mut cache, query)?;
+        let (normalized, verified, generated) = (row.normalized, row.verified, row.generated);
+        let status = row.status;
+        match status {
+            "verified" => counts.0 += 1,
+            "generated" => counts.1 += 1,
+            _ => counts.2 += 1,
+        }
+        let sense_note = row.sense_note;
         sense_notes += sense_note.is_some() as usize;
         if !json {
             let show = |c: &Option<serde_json::Value>| {
@@ -792,6 +840,152 @@ pub fn run_en_batch(site_dir: &Path, file: &Path, json: bool) -> anyhow::Result<
             counts.0, counts.1, counts.2
         );
     }
+    Ok(())
+}
+
+/// The recorded baseline of the tracked translation probe (V12 measurement):
+/// verified / generated-only / miss over the committed 219-word list. A
+/// REPORTED metric, not a gate — coverage moves with data, and the report
+/// keeps PRs honest without freezing them.
+pub const PROBE_BASELINE: (usize, usize, usize) = (147, 44, 28);
+
+/// The committed probe file (V13 item 3): the mrzavec / Rogue-5.4.5 game
+/// vocabulary that steered releases V10–V12.
+pub const PROBE_FILE: &str = "tools/translation-probe.txt";
+
+/// `translation-probe`: run the committed probe through the same `en --batch`
+/// machinery, print the headline counts against the recorded baseline, and
+/// write `target/eval/translation-probe.md` with per-category counts and the
+/// full miss list. Always exits 0 — the numbers are reported, never gated.
+pub fn run_translation_probe(site_dir: &Path, probe: &Path, out_dir: &Path) -> anyhow::Result<()> {
+    use std::fmt::Write as _;
+    let en_dir = en_api_dir(site_dir)?;
+    let mut cache: HashMap<u32, serde_json::Value> = HashMap::new();
+    let text = std::fs::read_to_string(probe)?;
+
+    // Category = the last `# Name (n)`-shaped comment above the query.
+    #[derive(Default)]
+    struct CategoryStats {
+        name: String,
+        verified: usize,
+        generated: usize,
+        miss: usize,
+        misses: Vec<String>,
+        generated_words: Vec<String>,
+    }
+    let mut category = "uncategorized".to_string();
+    let mut cats: Vec<CategoryStats> = Vec::new();
+    let mut totals = (0usize, 0usize, 0usize);
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if let Some(comment) = line.strip_prefix('#') {
+            let comment = comment.trim();
+            if comment.ends_with(')') {
+                if let Some((name, _)) = comment.rsplit_once(" (") {
+                    category = name.trim().to_string();
+                }
+            }
+            continue;
+        }
+        let row = en_batch_classify(&en_dir, &mut cache, line)?;
+        if cats.last().map(|c| c.name.as_str()) != Some(category.as_str()) {
+            cats.push(CategoryStats {
+                name: category.clone(),
+                ..Default::default()
+            });
+        }
+        let cat = cats.last_mut().unwrap();
+        match row.status {
+            "verified" => {
+                cat.verified += 1;
+                totals.0 += 1;
+            }
+            "generated" => {
+                cat.generated += 1;
+                totals.1 += 1;
+                cat.generated_words.push(line.to_string());
+            }
+            _ => {
+                cat.miss += 1;
+                totals.2 += 1;
+                cat.misses.push(line.to_string());
+            }
+        }
+    }
+
+    let total = totals.0 + totals.1 + totals.2;
+    let (b0, b1, b2) = PROBE_BASELINE;
+    let moved = totals != PROBE_BASELINE;
+    println!(
+        "translation-probe: {} queries — {} verified / {} generated-only / {} miss (baseline {b0}/{b1}/{b2}{})",
+        total,
+        totals.0,
+        totals.1,
+        totals.2,
+        if moved { " — MOVED" } else { "" }
+    );
+
+    std::fs::create_dir_all(out_dir)?;
+    let mut s = String::new();
+    writeln!(
+        s,
+        "# Translation probe (mrzavec / Rogue 5.4.5 vocabulary)\n"
+    )?;
+    writeln!(
+        s,
+        "**Denominator:** the committed {total}-word probe `{}` (Rogue-5.4.5 \
+         game vocabulary), each query walked through the documented `api/en` retry \
+         ladder by the same code path as `en --batch`. **Reported metric, not a \
+         gate:** coverage moves with data; this report keeps PRs honest without \
+         freezing them. **Leakage story:** the probe is an external vocabulary \
+         list; no accuracy path reads it.\n",
+        probe.display()
+    )?;
+    writeln!(
+        s,
+        "Recorded baseline (V12): **{b0} verified / {b1} generated-only / {b2} miss**. \
+         This run: **{} / {} / {}**{}.\n",
+        totals.0,
+        totals.1,
+        totals.2,
+        if moved {
+            " — moved from the baseline; explain the movement in the PR"
+        } else {
+            " — unchanged"
+        }
+    )?;
+    writeln!(s, "| Category | verified | generated-only | miss |")?;
+    writeln!(s, "|---|---:|---:|---:|")?;
+    for c in &cats {
+        writeln!(
+            s,
+            "| {} | {} | {} | {} |",
+            c.name, c.verified, c.generated, c.miss
+        )?;
+    }
+    writeln!(
+        s,
+        "| **total** | **{}** | **{}** | **{}** |",
+        totals.0, totals.1, totals.2
+    )?;
+    writeln!(s, "\n## Misses\n")?;
+    for c in &cats {
+        if !c.misses.is_empty() {
+            writeln!(s, "- **{}**: {}", c.name, c.misses.join(", "))?;
+        }
+    }
+    writeln!(s, "\n## Generated-only (suggestions needing review)\n")?;
+    for c in &cats {
+        if !c.generated_words.is_empty() {
+            writeln!(s, "- **{}**: {}", c.name, c.generated_words.join(", "))?;
+        }
+    }
+    let report = out_dir.join("translation-probe.md");
+    std::fs::write(&report, s)?;
+    println!("Wrote {}", report.display());
     Ok(())
 }
 
@@ -1164,6 +1358,35 @@ pub(super) fn write_en_api(
 
 #[cfg(test)]
 mod tests {
+    /// V13 item 3: the committed translation probe stays intact — 219
+    /// queries whose per-category comment counts add up. Deliberately NOT a
+    /// coverage gate (the numbers are a reported metric; see
+    /// [`super::PROBE_BASELINE`]).
+    #[test]
+    fn translation_probe_file_is_intact() {
+        let text = std::fs::read_to_string(super::PROBE_FILE).expect("committed probe");
+        let queries = text
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .count();
+        assert_eq!(queries, 219);
+        let mut declared = 0usize;
+        for line in text.lines() {
+            let line = line.trim();
+            if let Some(comment) = line.strip_prefix('#') {
+                if let Some((_, n)) = comment
+                    .trim()
+                    .strip_suffix(')')
+                    .and_then(|c| c.rsplit_once('('))
+                {
+                    declared += n.parse::<usize>().unwrap_or(0);
+                }
+            }
+        }
+        assert_eq!(declared, 219, "category header counts must add up");
+    }
+
     use super::*;
     use crate::model::Confidence;
 

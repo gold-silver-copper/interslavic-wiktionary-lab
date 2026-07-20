@@ -2122,7 +2122,9 @@ mod search;
 mod special;
 
 pub use self::coverage::run_coverage;
-pub use self::english_api::{run_en_batch, run_en_lookup};
+pub use self::english_api::{
+    english_gloss_tokens, run_en_batch, run_en_lookup, run_translation_probe, PROBE_FILE,
+};
 
 #[cfg(test)]
 mod tests;

@@ -97,8 +97,96 @@ fn guess_pos(folded: &str) -> crate::model::Pos {
     }
 }
 
+/// Declared metadata overriding the ending-based guess (V13 item 2): a real
+/// consumer controls gender/animacy explicitly (`ISV::noun_with`), so the
+/// declinability preview must be able to render what the project will
+/// actually do — while still printing the guess and flagging divergence.
+#[derive(Debug, Default)]
+pub struct Overrides {
+    pub pos: Option<crate::model::Pos>,
+    pub gender: Option<crate::model::Gender>,
+    pub animate: Option<bool>,
+    pub gloss: Option<String>,
+    pub lexicon_row: bool,
+}
+
+impl Overrides {
+    pub fn parse(
+        pos: Option<&str>,
+        gender: Option<&str>,
+        animacy: Option<&str>,
+        gloss: Option<String>,
+        lexicon_row: bool,
+    ) -> Result<Self> {
+        let pos = match pos {
+            None => None,
+            Some("noun") => Some(crate::model::Pos::Noun),
+            Some("adj") => Some(crate::model::Pos::Adjective),
+            Some("verb") => Some(crate::model::Pos::Verb),
+            Some(other) => anyhow::bail!("--pos must be noun|adj|verb, got '{other}'"),
+        };
+        let gender = match gender {
+            None => None,
+            Some("m") => Some(crate::model::Gender::Masculine),
+            Some("f") => Some(crate::model::Gender::Feminine),
+            Some("n") => Some(crate::model::Gender::Neuter),
+            Some(other) => anyhow::bail!("--gender must be m|f|n, got '{other}'"),
+        };
+        let animate = match animacy {
+            None => None,
+            Some("anim") => Some(true),
+            Some("inanim") => Some(false),
+            Some(other) => anyhow::bail!("--animacy must be anim|inanim, got '{other}'"),
+        };
+        anyhow::ensure!(
+            !lexicon_row || gloss.as_deref().is_some_and(|g| !g.trim().is_empty()),
+            "--lexicon-row needs --gloss <english concept> (the lexicon's consistency check reads it)"
+        );
+        Ok(Overrides {
+            pos,
+            gender,
+            animate,
+            gloss,
+            lexicon_row,
+        })
+    }
+}
+
+fn gender_label(g: interslavic::Gender) -> &'static str {
+    match g {
+        interslavic::Gender::Masculine => "m",
+        interslavic::Gender::Feminine => "f",
+        interslavic::Gender::Neuter => "n",
+    }
+}
+
+fn model_gender_label(g: crate::model::Gender) -> &'static str {
+    match g {
+        crate::model::Gender::Masculine => "m",
+        crate::model::Gender::Feminine => "f",
+        crate::model::Gender::Neuter => "n",
+        crate::model::Gender::Unknown => "?",
+    }
+}
+
+/// Validate one constructed lexicon-row line through the SAME parse +
+/// semantic rules `check-text --lexicon` applies, returning the row on
+/// success. A `#`-initial word makes the line parse as a lexicon COMMENT
+/// (empty result) — that must be a rejection, never an index panic.
+fn validated_lexicon_row(index: &crate::check::Index, row: String, word: &str) -> Result<String> {
+    crate::check::parse_lexicon(&row)
+        .and_then(|rows| {
+            let parsed = rows.into_iter().next().ok_or_else(|| {
+                anyhow::anyhow!("the word makes the row parse as a lexicon comment, not a row")
+            })?;
+            crate::check::validate_lexicon_row(index, &parsed)
+        })
+        .map(|_pinned| row)
+        .map_err(|e| anyhow::anyhow!("--lexicon-row rejected for '{word}': {e:#}"))
+}
+
 /// The `coin-check` CLI entry point.
-pub fn run(official_path: &Path, word: &str, json: bool) -> Result<()> {
+pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) -> Result<()> {
     let word = word.trim();
     anyhow::ensure!(
         !word.is_empty() && !word.contains(' '),
@@ -142,10 +230,59 @@ pub fn run(official_path: &Path, word: &str, json: bool) -> Result<()> {
     let raw = crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
     let readings = crate::falsefriends::surface_readings(word, evidence.as_ref(), raw.as_ref());
 
-    // Axis 4: declinability — render the paradigm for the guessed POS.
-    let pos = guess_pos(&folded);
+    // Axis 4: declinability. The GUESS comes from the ending (POS) and the
+    // crate's own inference (gender/animacy); declared metadata overrides
+    // the rendered paradigm, and divergence from the guess is flagged.
+    let guessed_pos = guess_pos(&folded);
+    let pos = overrides.pos.unwrap_or(guessed_pos);
+    anyhow::ensure!(
+        pos == crate::model::Pos::Noun
+            || (overrides.gender.is_none() && overrides.animate.is_none()),
+        "--gender/--animacy apply to nouns; '{word}' is being checked as {}",
+        pos.code()
+    );
+    // The crate's guessed gender/animacy for the noun reading (what
+    // `interslavic::noun_forms` would silently do).
+    let guess = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        interslavic::noun_forms(word)
+    }))
+    .ok()
+    .map(|p| {
+        (
+            gender_label(p.gender),
+            p.animacy == interslavic::Animacy::Animate,
+        )
+    });
+    let (guessed_gender, guessed_animate) = match &guess {
+        Some((g, a)) => (Some(*g), Some(*a)),
+        None => (None, None),
+    };
+
+    let overridden = pos == crate::model::Pos::Noun
+        && (overrides.gender.is_some() || overrides.animate.is_some());
     let mut sink = crate::forms::RecordSink::default();
-    crate::forms::paradigm_records(&mut sink, word, pos, None, 0, "generated", None, "");
+    if overridden {
+        // Fall back to the crate's guess for whichever axis was NOT declared,
+        // so the paradigm always reflects one concrete (gender, animacy).
+        let gender = overrides.gender.or(match guessed_gender {
+            Some("m") => Some(crate::model::Gender::Masculine),
+            Some("f") => Some(crate::model::Gender::Feminine),
+            Some("n") => Some(crate::model::Gender::Neuter),
+            _ => None,
+        });
+        let animate = overrides.animate.or(guessed_animate).unwrap_or(false);
+        crate::forms::project_paradigm_records(
+            &mut sink,
+            word,
+            pos,
+            gender,
+            animate,
+            "generated",
+            "",
+        );
+    } else {
+        crate::forms::paradigm_records(&mut sink, word, pos, None, 0, "generated", None, "");
+    }
     let mut paradigm: Vec<(String, String)> = sink
         .into_records()
         .into_iter()
@@ -155,32 +292,111 @@ pub fn run(official_path: &Path, word: &str, json: bool) -> Result<()> {
     paradigm.sort();
     paradigm.dedup();
 
+    // Divergence between declaration and guess, spelled out for the coiner.
+    let mut divergences: Vec<String> = Vec::new();
+    if let Some(declared) = overrides.pos {
+        if declared != guessed_pos {
+            divergences.push(format!(
+                "ending suggests {}; you declared {}",
+                guessed_pos.code(),
+                declared.code()
+            ));
+        }
+    }
+    if pos == crate::model::Pos::Noun {
+        if let (Some(declared), Some(guessed)) = (overrides.gender, guessed_gender) {
+            if model_gender_label(declared) != guessed {
+                divergences.push(format!(
+                    "ending suggests gender {guessed}; you declared {}",
+                    model_gender_label(declared)
+                ));
+            }
+        }
+        if let (Some(declared), Some(guessed)) = (overrides.animate, guessed_animate) {
+            if declared != guessed {
+                let label = |a: bool| if a { "anim" } else { "inanim" };
+                divergences.push(format!(
+                    "crate guesses {}; you declared {}",
+                    label(guessed),
+                    label(declared)
+                ));
+            }
+        }
+    }
+
+    // The project-lexicon hand-off (V13 item 2): emit the exact item-1 TSV
+    // row, validated by the SAME rules `check-text --lexicon` applies — an
+    // invalid row must fail here, not later in CI. The failure surfaces
+    // AFTER the full four-axis report (like check-text's summary gate): the
+    // report is precisely the diagnostic that explains a rejection.
+    let lexicon_row: Option<Result<String>> = if overrides.lexicon_row {
+        let (g, a) = if pos == crate::model::Pos::Noun {
+            (
+                overrides
+                    .gender
+                    .map(model_gender_label)
+                    .or(guessed_gender)
+                    .unwrap_or(""),
+                match overrides.animate.or(guessed_animate) {
+                    Some(true) => "anim",
+                    Some(false) => "inanim",
+                    None => "",
+                },
+            )
+        } else {
+            ("", "")
+        };
+        let row = format!(
+            "{word}\t{}\t{g}\t{a}\t{}",
+            pos.code(),
+            overrides.gloss.as_deref().unwrap_or("").trim()
+        );
+        Some(validated_lexicon_row(&index, row, word))
+    } else {
+        None
+    };
+
     let pass_phono = violations.is_empty();
     let pass_collision = collisions.is_empty();
     let pass_falsefriends = readings.is_empty();
 
     if json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "word": word,
-                "folded_key": folded,
-                "phonotactics": { "pass": pass_phono, "violations": violations },
-                "collision": { "pass": pass_collision, "collides_with": collisions },
-                "false_friends": {
-                    "pass": pass_falsefriends,
-                    "readings": readings,
-                },
-                "declinability": {
-                    "guessed_pos": pos.code(),
-                    "paradigm": paradigm
-                        .iter()
-                        .map(|(a, f)| serde_json::json!([a, f]))
-                        .collect::<Vec<_>>(),
-                },
-            }))?
-        );
-        return Ok(());
+        let mut out = serde_json::json!({
+            "word": word,
+            "folded_key": folded,
+            "phonotactics": { "pass": pass_phono, "violations": violations },
+            "collision": { "pass": pass_collision, "collides_with": collisions },
+            "false_friends": {
+                "pass": pass_falsefriends,
+                "readings": readings,
+            },
+            "declinability": {
+                "guessed_pos": guessed_pos.code(),
+                "effective_pos": pos.code(),
+                "guessed_gender": guessed_gender,
+                "guessed_animacy": guessed_animate.map(|a| if a { "anim" } else { "inanim" }),
+                "declared_pos": overrides.pos.map(|p| p.code()),
+                "declared_gender": overrides.gender.map(model_gender_label),
+                "declared_animacy": overrides.animate.map(|a| if a { "anim" } else { "inanim" }),
+                "divergences": divergences,
+                "paradigm": paradigm
+                    .iter()
+                    .map(|(a, f)| serde_json::json!([a, f]))
+                    .collect::<Vec<_>>(),
+            },
+        });
+        match &lexicon_row {
+            Some(Ok(row)) => out["lexicon_row"] = serde_json::json!(row),
+            // Agents get the rejection in-band too; the nonzero exit below
+            // still fires after the full report is printed.
+            Some(Err(e)) => out["lexicon_row_error"] = serde_json::json!(e.to_string()),
+            None => {}
+        }
+        println!("{}", serde_json::to_string_pretty(&out)?);
+        return match lexicon_row {
+            Some(Err(e)) => Err(e),
+            _ => Ok(()),
+        };
     }
 
     println!("coin-check '{word}' (folded key '{folded}')");
@@ -222,15 +438,58 @@ pub fn run(official_path: &Path, word: &str, json: bool) -> Result<()> {
             }
         }
     }
+    let describe_noun = |gender: Option<&str>, animate: Option<bool>| -> String {
+        match (gender, animate) {
+            (Some(g), Some(a)) => format!(" {g}.{}", if a { "anim" } else { "inanim" }),
+            (Some(g), None) => format!(" {g}."),
+            _ => String::new(),
+        }
+    };
+    let declared = if overridden || overrides.pos.is_some() {
+        format!(
+            ", declared {}{}",
+            pos.code(),
+            if pos == crate::model::Pos::Noun {
+                describe_noun(overrides.gender.map(model_gender_label), overrides.animate)
+            } else {
+                String::new()
+            }
+        )
+    } else {
+        String::new()
+    };
+    let guessed = if pos == crate::model::Pos::Noun || guessed_pos == crate::model::Pos::Noun {
+        format!(
+            "guess: {}{}",
+            guessed_pos.code(),
+            describe_noun(guessed_gender, guessed_animate)
+        )
+    } else {
+        format!("guess: {}", guessed_pos.code())
+    };
     println!(
-        "  declinability: as {} — {} paradigm cells, e.g.:",
+        "  declinability: as {}{declared} ({guessed}) — {} paradigm cells, e.g.:",
         pos.code(),
         paradigm.len()
     );
     for (analyses, form) in paradigm.iter().take(6) {
         println!("                   {form:<20} {analyses}");
     }
-    Ok(())
+    for d in &divergences {
+        println!("  ⚠ divergence : {d}");
+    }
+    match &lexicon_row {
+        Some(Ok(row)) => {
+            println!("  lexicon row  : {}", row.replace('\t', "\\t"));
+            println!("                 (append the raw TSV line to your project lexicon; --json carries it in 'lexicon_row')");
+        }
+        Some(Err(e)) => println!("  lexicon row  : REJECTED — {e}"),
+        None => {}
+    }
+    match lexicon_row {
+        Some(Err(e)) => Err(e),
+        _ => Ok(()),
+    }
 }
 
 #[cfg(test)]
@@ -270,5 +529,80 @@ mod tests {
         assert_eq!(guess_pos("teleportovati"), crate::model::Pos::Verb);
         assert_eq!(guess_pos("zeleny"), crate::model::Pos::Adjective);
         assert_eq!(guess_pos("jabberwok"), crate::model::Pos::Noun);
+    }
+
+    /// V13 item 2: flag parsing fails closed, and the declared animacy
+    /// actually reaches the inflector (animate masculines take
+    /// genitive-shaped accusatives, the whole point of the override).
+    #[test]
+    fn overrides_parse_and_change_the_paradigm() {
+        assert!(Overrides::parse(Some("pron"), None, None, None, false).is_err());
+        assert!(Overrides::parse(None, Some("x"), None, None, false).is_err());
+        assert!(Overrides::parse(None, None, Some("dead"), None, false).is_err());
+        assert!(
+            Overrides::parse(None, None, None, None, true).is_err(),
+            "--lexicon-row without --gloss must fail (the row would be rejected downstream)"
+        );
+        let o = Overrides::parse(
+            Some("noun"),
+            Some("m"),
+            Some("anim"),
+            Some("jabberwock".into()),
+            true,
+        )
+        .expect("valid flags");
+        assert_eq!(o.pos, Some(crate::model::Pos::Noun));
+        assert_eq!(o.animate, Some(true));
+
+        let cell = |animate: bool| -> Vec<String> {
+            let mut sink = crate::forms::RecordSink::default();
+            crate::forms::project_paradigm_records(
+                &mut sink,
+                "žabervok",
+                crate::model::Pos::Noun,
+                Some(crate::model::Gender::Masculine),
+                animate,
+                "generated",
+                "",
+            );
+            sink.into_records()
+                .into_iter()
+                .filter(|r| r.analyses.iter().any(|a| a.contains("akuz.jd.")))
+                .map(|r| r.form)
+                .collect()
+        };
+        assert_eq!(cell(true), ["žabervoka"], "animate acc.sg = gen.sg");
+        assert_eq!(cell(false), ["žabervok"], "inanimate acc.sg = nom.sg");
+    }
+
+    /// Regression: a `#`-initial word makes the constructed TSV line parse
+    /// as a lexicon COMMENT (empty row set) — --lexicon-row must reject it
+    /// with an error, not panic on `rows[0]`.
+    #[test]
+    fn lexicon_row_rejects_comment_shaped_word() {
+        let index = crate::check::build_index(&[], None, Default::default());
+        let err = validated_lexicon_row(&index, "#foo\tnoun\tm\tanim\ttest".to_string(), "#foo")
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("rejected for '#foo'"),
+            "must reject, not panic: {err}"
+        );
+        // The happy path through the same helper still returns the row.
+        let ok = validated_lexicon_row(
+            &index,
+            "žabervok\tnoun\tm\tanim\tjabberwock".to_string(),
+            "žabervok",
+        )
+        .expect("clean coinage validates");
+        assert_eq!(ok, "žabervok\tnoun\tm\tanim\tjabberwock");
+    }
+
+    /// The crate's guess is exposed for the divergence report: 'žabervok'
+    /// reads as a masculine inanimate noun by ending.
+    #[test]
+    fn noun_guess_is_reported() {
+        let p = interslavic::noun_forms("žabervok");
+        assert_eq!(gender_label(p.gender), "m");
+        assert_eq!(p.animacy, interslavic::Animacy::Inanimate);
     }
 }
