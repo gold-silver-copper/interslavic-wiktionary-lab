@@ -2,7 +2,7 @@
 //! pipeline feeding BOTH the website's inflection tables and the agent-facing
 //! static API, so the two can never drift apart.
 //!
-//! - Paradigm builders ([`noun_paradigm_forms`]/`ISV::adj_forms`, issue #20)
+//! - Paradigm builders ([`noun_paradigm_forms`]/`interslavic::adj_forms`, issue #20)
 //!   are the single source: the site's HTML tables and `paradigm_records`
 //!   both build one paradigm struct per lemma and index it, so the rendered
 //!   tables and the exported [`FormRecord`]s cannot drift. The single-cell
@@ -21,7 +21,7 @@
 use crate::model::Pos;
 use crate::orthography as ortho;
 use interslavic::{
-    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber, ISV,
+    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber,
 };
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -183,8 +183,8 @@ pub fn noun_cell_g(
     gender: Option<crate::model::Gender>,
 ) -> String {
     let cell = match noun_gender(gender) {
-        Some(g) => catch(|| ISV::noun_with(word, case, number, g, IsvAnimacy::Inanimate)),
-        None => catch(|| ISV::noun(word, case, number)),
+        Some(g) => catch(|| interslavic::noun_with(word, case, number, g, IsvAnimacy::Inanimate)),
+        None => catch(|| interslavic::noun(word, case, number)),
     };
     clean_cell(&cell)
 }
@@ -205,8 +205,8 @@ pub fn noun_paradigm_forms(
     gender: Option<crate::model::Gender>,
 ) -> interslavic::NounParadigm {
     match noun_gender(gender) {
-        Some(g) => ISV::noun_forms_with(word, g, IsvAnimacy::Inanimate),
-        None => ISV::noun_forms(word),
+        Some(g) => interslavic::noun_forms_with(word, g, IsvAnimacy::Inanimate),
+        None => interslavic::noun_forms(word),
     }
 }
 
@@ -217,7 +217,9 @@ pub fn adj_cell(
     gender: IsvGender,
     animacy: IsvAnimacy,
 ) -> String {
-    clean_cell(&catch(|| ISV::adj(word, case, number, gender, animacy)))
+    clean_cell(&catch(|| {
+        interslavic::adj(word, case, number, gender, animacy)
+    }))
 }
 
 /// All of a verb's cells, reflexive particle already applied — the shared
@@ -256,7 +258,7 @@ pub fn append_reflexive(form: &str, reflexive: bool) -> String {
 }
 
 pub fn verb_cells(word: &str, reflexive: bool) -> Option<VerbCells> {
-    let p = std::panic::catch_unwind(|| ISV::verb_forms(word)).ok()?;
+    let p = std::panic::catch_unwind(|| interslavic::verb_forms(word)).ok()?;
     let fix = |v: Vec<String>| -> Vec<String> {
         v.into_iter()
             .map(|f| append_reflexive(&clean_cell(&f), reflexive))
@@ -437,7 +439,7 @@ fn adj_paradigm(
     // Build the whole adjective paradigm once from the crate (issue #20) and
     // index it, instead of a single-form call per cell. clean_cell normalizes
     // the raw cell exactly as adj_cell did.
-    let forms = ISV::adj_forms(adj);
+    let forms = interslavic::adj_forms(adj);
     for (nf, num) in NUMBERS {
         for (cf, case) in CASES {
             for (gf, g, a) in ADJ_COLS {
@@ -512,7 +514,7 @@ pub fn paradigm_records(
             );
             // Degrees of comparison (issue #13 §1): comparative and superlative
             // are soft adjectives — declined in full — plus their adverbs.
-            if let Some((comp, comp_adv)) = interslavic::ISV::comparative(bare) {
+            if let Some((comp, comp_adv)) = interslavic::comparative(bare) {
                 for (deg, adj_form, adv_form) in [
                     ("komp. ", comp.clone(), comp_adv.clone()),
                     ("superl. ", format!("naj{comp}"), format!("naj{comp_adv}")),
@@ -623,14 +625,14 @@ pub fn paradigm_records(
 }
 
 // ---------------------------------------------------------------------------
-// Pronoun & numeral paradigms — enumerated from the upstream ISV::pronoun /
-// ISV::numeral declension (interslavic 0.4.0), which now covers the toj/moj
+// Pronoun & numeral paradigms — enumerated from the upstream interslavic::pronoun /
+// interslavic::numeral declension (interslavic 0.4.0), which now covers the toj/moj
 // classes, kto/čto, veś, the -koli indefinites, jedin, dva/tri/četyri, the
 // i-stem numerals and the adjectivally-declined determiners and ordinals.
 // ---------------------------------------------------------------------------
 
 /// Enumerate a closed-class paradigm from a single-form decliner (the upstream
-/// `ISV::pronoun` / `ISV::numeral`), emitting inflection records. Labels are
+/// `interslavic::pronoun` / `interslavic::numeral`), emitting inflection records. Labels are
 /// minimal: `number`/`gender` appear only where the form actually varies along
 /// that dimension, and syncretic cells merge in the sink. Returns false when
 /// the decliner recognizes nothing (so an unknown lemma emits no records).
@@ -710,7 +712,7 @@ where
 }
 
 /// Paradigms for closed-class pronouns and numerals, sourced from the upstream
-/// `ISV::pronoun` / `ISV::numeral` declension. Returns true when the lemma was
+/// `interslavic::pronoun` / `interslavic::numeral` declension. Returns true when the lemma was
 /// recognized and its paradigm emitted.
 pub fn pronoun_numeral_records(
     sink: &mut RecordSink,
@@ -733,11 +735,11 @@ pub fn pronoun_numeral_records(
                 return false;
             }
             emit_closed_class(sink, l, "pron", entry_id, status, gloss, |c, n, g, a| {
-                ISV::pronoun(l, c, n, g, a)
+                interslavic::pronoun(l, c, n, g, a)
             })
         }
         Pos::Numeral => emit_closed_class(sink, l, "num", entry_id, status, gloss, |c, n, g, a| {
-            ISV::numeral(l, c, n, g, a)
+            interslavic::numeral(l, c, n, g, a)
         }),
         _ => false,
     }
@@ -1455,13 +1457,13 @@ mod tests {
 
     #[test]
     fn comparative_integration() {
-        // The upstream ISV::comparative is wired in, and the uzky-class fix
+        // The upstream interslavic::comparative is wired in, and the uzky-class fix
         // (root-final-k lexical exception, published in 0.4.0) is in effect.
         assert_eq!(
-            interslavic::ISV::comparative("uzky"),
+            interslavic::comparative("uzky"),
             Some(("uzši".to_string(), "uže".to_string()))
         );
-        assert_eq!(interslavic::ISV::comparative("russky"), None);
+        assert_eq!(interslavic::comparative("russky"), None);
     }
 
     #[test]

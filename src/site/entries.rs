@@ -19,7 +19,7 @@ use crate::generator::Generation;
 use crate::lang::Branch;
 use crate::model::{Candidate, CandidateSource, Confidence, Evidence, MatchStatus};
 use crate::official::OfficialEntry;
-use interslavic::{Case as IsvCase, Number as IsvNumber, ISV};
+use interslavic::{Case as IsvCase, Number as IsvNumber};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
@@ -1674,7 +1674,7 @@ pub(super) fn adj_table(word: &str) -> String {
     // as the API records. The four columns are exactly forms::ADJ_COLS. As in
     // noun_table, a panicking build (none in the official corpus) falls back to
     // the per-cell getters so generated cognate pages degrade to "—", not crash.
-    let forms = std::panic::catch_unwind(|| ISV::adj_forms(word)).ok();
+    let forms = std::panic::catch_unwind(|| interslavic::adj_forms(word)).ok();
     let header = "<table class='wikitable inflection-table'><thead><tr><th>Padež</th><th>M. živ.</th><th>M. neživ.</th><th>Ž.</th><th>Sr.</th></tr></thead><tbody>";
     let number_block = |num: IsvNumber| {
         let mut s = String::new();

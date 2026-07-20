@@ -979,7 +979,7 @@ pub(super) fn suffix_index_page(rows: &[SiteEntryMeta]) -> String {
 /// True when the entry renderer would emit at least one em-dash placeholder in
 /// its inflection table.
 fn has_inflection_issue(word: &str, pos: &str) -> bool {
-    use interslavic::{Number, ISV};
+    use interslavic::Number;
 
     let reflexive = word.ends_with(" sę");
     let bare = word.strip_suffix(" sę").unwrap_or(word);
@@ -998,7 +998,7 @@ fn has_inflection_issue(word: &str, pos: &str) -> bool {
             })
         }
         "adj" => {
-            let forms = std::panic::catch_unwind(|| ISV::adj_forms(bare)).ok();
+            let forms = std::panic::catch_unwind(|| interslavic::adj_forms(bare)).ok();
             cases.into_iter().any(|case| {
                 [Number::Singular, Number::Plural]
                     .into_iter()

@@ -25,7 +25,7 @@ use super::DeterministicEntryIds;
 use crate::consensus::ConsensusConfig;
 use crate::model::{Candidate, CandidateSource, Confidence, MatchStatus, Pos};
 use interslavic::{
-    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber, ISV,
+    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber,
 };
 use std::path::Path;
 
@@ -400,15 +400,15 @@ fn canonical_paradigms_pin_the_inflector_rev() {
     // must fail CI, not silently reshape 30k inflection tables.
     let fold = |x: String| crate::orthography::to_standard(&x.to_lowercase());
     assert_eq!(
-        fold(ISV::noun("žena", IsvCase::Gen, IsvNumber::Singular)),
+        fold(interslavic::noun("žena", IsvCase::Gen, IsvNumber::Singular)),
         "ženy"
     );
     assert_eq!(
-        fold(ISV::noun("grad", IsvCase::Gen, IsvNumber::Singular)),
+        fold(interslavic::noun("grad", IsvCase::Gen, IsvNumber::Singular)),
         "grada"
     );
     assert_eq!(
-        fold(ISV::adj(
+        fold(interslavic::adj(
             "dobry",
             IsvCase::Nom,
             IsvNumber::Singular,

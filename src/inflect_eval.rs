@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use interslavic::{
-    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber, ISV,
+    Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber,
 };
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -157,7 +157,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // Full-corpus guard (issue #20): the AdjParadigm path adj_table
                 // AND the API records render from, compared cell-for-cell to the
                 // panic-guarded getter over every lemma.
-                let struct_forms = std::panic::catch_unwind(|| ISV::adj_forms(bare)).ok();
+                let struct_forms = std::panic::catch_unwind(|| interslavic::adj_forms(bare)).ok();
                 let mut adj_struct_ok = struct_forms.is_some();
                 for (_, case) in crate::forms::CASES {
                     for (g, a) in [
@@ -194,7 +194,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     blank_sample.push(format!("{bare} (adj, {blanks} blank)"));
                 }
                 let m = crate::forms::catch(|| {
-                    ISV::adj(
+                    interslavic::adj(
                         bare,
                         IsvCase::Nom,
                         IsvNumber::Singular,
@@ -208,7 +208,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     fail_sample.push(format!("{bare}: nom.sg.m → {m}"));
                 }
                 let f = crate::forms::catch(|| {
-                    ISV::adj(
+                    interslavic::adj(
                         bare,
                         IsvCase::Nom,
                         IsvNumber::Singular,
@@ -222,7 +222,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     f != "—" && fold(&f).ends_with('a'),
                 );
                 let nt = crate::forms::catch(|| {
-                    ISV::adj(
+                    interslavic::adj(
                         bare,
                         IsvCase::Nom,
                         IsvNumber::Singular,
@@ -238,7 +238,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             }
             Pos::Verb => {
                 n_words += 1;
-                let ok = std::panic::catch_unwind(|| ISV::verb_forms(bare)).is_ok();
+                let ok = std::panic::catch_unwind(|| interslavic::verb_forms(bare)).is_ok();
                 // One "cell" per paradigm: the crate returns the whole set.
                 n_cells += 1;
                 n_blank += !ok as usize;
