@@ -900,6 +900,80 @@ pub fn compute(
     notes
 }
 
+/// How every cached Slavic word reads against ONE coined/queried surface
+/// (V12 item 6, `coin-check`): scan both caches for records whose read-as
+/// key equals the surface's folded key (or loose y→i skeleton), returning
+/// per-language readings with clean glosses. A linear scan — fine for a
+/// single-word CLI query.
+pub fn surface_readings(
+    surface: &str,
+    evidence: Option<&LemmaCorpus>,
+    raw: Option<&RawSlavicCorpus>,
+) -> Vec<Collision> {
+    let lang_idx: HashMap<&str, usize> = LANGS.iter().enumerate().map(|(i, l)| (l.0, i)).collect();
+    let key = crate::forms::form_key(surface);
+    if key.chars().count() < MIN_KEY_CHARS {
+        return Vec::new();
+    }
+    let loose = if key.chars().count() >= LOOSE_MIN_CHARS {
+        Some(loose_key(&key))
+    } else {
+        None
+    };
+    let mut merged: BTreeMap<(usize, String), (Vec<String>, bool)> = BTreeMap::new();
+    let mut scan = |lang: &str, word: &str, pos: &str, glosses: &[String]| {
+        let Some(&li) = lang_idx.get(lang) else {
+            return;
+        };
+        if !eligible_pos(pos) || word.contains(' ') {
+            return;
+        }
+        let k = read_as_key(lang, pos, word);
+        let exact = k == key;
+        let loose_hit = !exact
+            && loose
+                .as_ref()
+                .is_some_and(|l| k.chars().count() >= LOOSE_MIN_CHARS && &loose_key(&k) == l);
+        if !exact && !loose_hit {
+            return;
+        }
+        let entry = merged
+            .entry((li, word.to_string()))
+            .or_insert_with(|| (Vec::new(), false));
+        entry.1 |= exact;
+        for g in glosses {
+            let g = g.trim();
+            if !g.is_empty()
+                && !g.chars().any(|c| c.is_uppercase())
+                && !entry.0.iter().any(|have| have == g)
+            {
+                entry.0.push(g.to_string());
+            }
+        }
+    };
+    if let Some(corpus) = evidence {
+        for e in &corpus.entries {
+            scan(&e.lang, &e.word, &e.pos, std::slice::from_ref(&e.gloss));
+        }
+    }
+    if let Some(corpus) = raw {
+        for e in &corpus.lemmas {
+            scan(&e.lang, &e.word, &e.pos, &e.glosses);
+        }
+    }
+    merged
+        .into_iter()
+        .filter(|(_, (glosses, _))| !glosses.is_empty())
+        .map(|((li, word), (glosses, exact))| Collision {
+            lang: LANGS[li].0.to_string(),
+            word,
+            glosses,
+            primary_agrees: false,
+            level: if exact { "exact" } else { "loose" },
+        })
+        .collect()
+}
+
 /// Load both caches and compute notes; an ABSENT cache degrades silently to
 /// fewer/no notes so `check-text` stays usable without them, but a cache
 /// that exists and fails to load (corrupt/stale schema) warns loudly —

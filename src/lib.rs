@@ -3,6 +3,7 @@
 pub mod aspect;
 pub mod calibrate;
 pub mod check;
+pub mod coincheck;
 pub mod consensus;
 pub mod corpus;
 pub mod derive;

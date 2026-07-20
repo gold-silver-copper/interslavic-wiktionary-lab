@@ -11,8 +11,8 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use interslavic_wiktionary_lab::{
-    check, derive, dump, enrich, eval, forms, inflect_eval, official, site, DEFAULT_DUMP,
-    DEFAULT_ENRICH_CACHE, DEFAULT_LEMMA_CACHE, DEFAULT_OFFICIAL, DEFAULT_PROTO_CACHE,
+    check, coincheck, derive, dump, enrich, eval, forms, inflect_eval, official, site,
+    DEFAULT_DUMP, DEFAULT_ENRICH_CACHE, DEFAULT_LEMMA_CACHE, DEFAULT_OFFICIAL, DEFAULT_PROTO_CACHE,
     DEFAULT_RAW_LEMMA_CACHE, DEFAULT_WIKI_DIR,
 };
 use std::path::PathBuf;
@@ -106,6 +106,19 @@ enum Command {
         /// Directory of a previous `export --out` run.
         #[arg(long, default_value = "site")]
         site: PathBuf,
+    },
+    /// Validate a COINED word against the lexicon's own evidence (V12):
+    /// phonotactics (official-lemma bigram inventory), collision with
+    /// existing lemmas/forms, false-friend readings across ten languages,
+    /// and the paradigm it would decline with.
+    CoinCheck {
+        /// The coined single-token word (standard or flavored spelling).
+        word: String,
+        /// Emit machine-readable JSON instead of the human report.
+        #[arg(long)]
+        json: bool,
+        #[arg(long, default_value = DEFAULT_OFFICIAL)]
+        official: PathBuf,
     },
     /// Explain the generator's output for one word or gloss (manual spot-check).
     Explain {
@@ -312,6 +325,14 @@ fn main() -> Result<()> {
             enrich::extract(&dir, &wanted, &out)
         }
         Command::Coverage { out } => site::run_coverage(&out),
+        Command::CoinCheck {
+            word,
+            json,
+            official,
+        } => {
+            forms::install_cli_quiet_inflection_hook();
+            coincheck::run(&official, &word, json)
+        }
         Command::En {
             query,
             batch,

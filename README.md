@@ -460,6 +460,13 @@ cargo run --release -- check-text tekst.txt --summary --max-unknown 0
 # reference client for the documented normalization/routing/retry ladder:
 cargo run --release -- en "healing"
 cargo run --release -- en "coat of arms" --json
+cargo run --release -- en --batch words.txt --json   # lexicon-building mode
+
+# Validate a COINED word (fantasy names etc.): phonotactics from the
+# official-lemma bigram inventory, collision lookup, false-friend readings
+# across ten languages, and the paradigm it would decline with:
+cargo run --release -- coin-check "akvator"
+cargo run --release -- coin-check "jabberwok" --json
 ```
 
 ## Lexical verification API (for humans and AI agents)

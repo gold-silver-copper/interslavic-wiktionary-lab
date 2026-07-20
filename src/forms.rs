@@ -1238,6 +1238,16 @@ numeral paradigms** (toj-class, moj-class, kto/čto, veś, jedin, dva/tri/
 **3-token official lemmas**
 (try trigram → bigram → unigram when verifying).
 
+## Coinage validation (coin-check)
+
+`coin-check <word> [--json]` validates a coined word (fantasy names and
+other unavoidable neologisms) on four axes: phonotactics (the official
+lemmas' own character-bigram inventory — no hand list), collision with any
+existing lemma or inflected form, false-friend readings across the ten
+languages' caches (per-language word + glosses + exact/loose level), and
+the declension paradigm the guessed POS produces. Use it before shipping a
+coinage; adjust the ending to change the paradigm.
+
 ## Agreement warnings (check-text)
 
 `check-text --json` reports may carry an `agreement` field: a conservative
