@@ -342,17 +342,26 @@ fn main() -> Result<()> {
             no_warnings,
             max_severe_warnings,
             official,
-        } => check::run(
-            &official,
-            &file,
-            json,
-            summary.then_some(check::SummaryGate {
-                max_unknown,
-                max_agreement,
-                max_severe_warnings,
-            }),
-            !no_warnings,
-        ),
+        } => {
+            // A severity gate over warnings that were never computed would
+            // pass vacuously — reject the combination instead of letting a
+            // CI job believe it is gated.
+            anyhow::ensure!(
+                !(no_warnings && max_severe_warnings.is_some()),
+                "--max-severe-warnings needs the false-friend computation; drop --no-warnings"
+            );
+            check::run(
+                &official,
+                &file,
+                json,
+                summary.then_some(check::SummaryGate {
+                    max_unknown,
+                    max_agreement,
+                    max_severe_warnings,
+                }),
+                !no_warnings,
+            )
+        }
         Command::ChecktextEval { official, out } => check::run_eval(&official, &out),
         Command::Audit { official, out } => eval::run_audit(&official, &out),
         Command::Oracle { official, out } => eval::run_oracle(&official, &out),
