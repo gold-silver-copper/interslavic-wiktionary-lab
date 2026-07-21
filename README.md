@@ -499,10 +499,12 @@ inflection tables and the machine-readable artifacts, so they cannot drift.
 both lookup protocols with their self-tests, the trust rules, and step-by-step
 translation and text-verification workflows. The artifacts:
 
-- `api/forms/<n>.json` — the **sharded form index** (schema 4, ~517k analysis
+- `api/forms/<n>.json` — the **sharded form index** (schema 4, ~569k analysis
   records: every official lemma + full paradigm, **declined participles,
   comparatives/superlatives with adverbs, pronoun & numeral paradigms** from
-  the STEEN-G tables, byform variants split, syncretic cells merged). Shard
+  the STEEN-G tables, **personal/reflexive pronouns in all three form series**
+  (full `tebe`, clitic `tę`, prepositional `njego` — interslavic 0.10.0),
+  byform variants split, syncretic cells merged). Shard
   routing: `n = fnv1a32(key) % 2048` over the folded key — mirrored in the
   site's client-side JS, which verifies itself against
   `api/router-selftest.json` before trusting lookups.

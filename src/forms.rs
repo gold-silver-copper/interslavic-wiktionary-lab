@@ -792,6 +792,164 @@ where
     any
 }
 
+/// The fixed (person, number, gender) each personal-pronoun lemma names.
+/// Gender only distinguishes third-person forms; the masculine is passed as
+/// a neutral placeholder elsewhere.
+const PERSONAL_PRONOUNS: &[(&str, interslavic::Person, IsvNumber, IsvGender)] = &[
+    (
+        "ja",
+        interslavic::Person::First,
+        IsvNumber::Singular,
+        IsvGender::Masculine,
+    ),
+    (
+        "ty",
+        interslavic::Person::Second,
+        IsvNumber::Singular,
+        IsvGender::Masculine,
+    ),
+    (
+        "on",
+        interslavic::Person::Third,
+        IsvNumber::Singular,
+        IsvGender::Masculine,
+    ),
+    (
+        "ona",
+        interslavic::Person::Third,
+        IsvNumber::Singular,
+        IsvGender::Feminine,
+    ),
+    (
+        "ono",
+        interslavic::Person::Third,
+        IsvNumber::Singular,
+        IsvGender::Neuter,
+    ),
+    (
+        "my",
+        interslavic::Person::First,
+        IsvNumber::Plural,
+        IsvGender::Masculine,
+    ),
+    (
+        "vy",
+        interslavic::Person::Second,
+        IsvNumber::Plural,
+        IsvGender::Masculine,
+    ),
+    (
+        "oni",
+        interslavic::Person::Third,
+        IsvNumber::Plural,
+        IsvGender::Masculine,
+    ),
+    (
+        "one",
+        interslavic::Person::Third,
+        IsvNumber::Plural,
+        IsvGender::Feminine,
+    ),
+];
+
+/// Personal and reflexive pronoun paradigms from the interslavic crate's
+/// explicit closed-class tables (0.10.0), emitting ALL THREE form series the
+/// standard distinguishes: full forms with bare case labels (`tebe` "gen."),
+/// clitics as `klit.` (`tę` "akuz. klit."), and the third person's
+/// prepositional n- forms as `po predlogu` (`njego` "gen. po predlogu") —
+/// previously unreachable in the form index. Number/gender labels are
+/// omitted: each lemma names exactly one (person, number, gender). Returns
+/// true when `lemma` is a personal or reflexive pronoun.
+fn personal_pronoun_records(
+    sink: &mut RecordSink,
+    lemma: &str,
+    entry_id: usize,
+    status: &'static str,
+    gloss: &str,
+) -> bool {
+    use interslavic::PronounStyle;
+    let mut add_series =
+        |cf: &str, full: Option<String>, clitic: Option<String>, after_prep: Option<String>| {
+            if let Some(f) = &full {
+                sink.add(
+                    f,
+                    &format!("{cf}."),
+                    lemma,
+                    entry_id,
+                    "pron",
+                    "inflection",
+                    status,
+                    None,
+                    gloss,
+                );
+            }
+            // The clitic and n- series only exist where they differ from the
+            // full form; the crate returns the full form for AfterPreposition
+            // outside the third person — skip those duplicates.
+            if let Some(c) = clitic {
+                if full.as_ref() != Some(&c) {
+                    sink.add(
+                        &c,
+                        &format!("{cf}. klit."),
+                        lemma,
+                        entry_id,
+                        "pron",
+                        "inflection",
+                        status,
+                        None,
+                        gloss,
+                    );
+                }
+            }
+            if let Some(np) = after_prep {
+                if full.as_ref() != Some(&np) {
+                    sink.add(
+                        &np,
+                        &format!("{cf}. po predlogu"),
+                        lemma,
+                        entry_id,
+                        "pron",
+                        "inflection",
+                        status,
+                        None,
+                        gloss,
+                    );
+                }
+            }
+        };
+    if lemma == "sebe" {
+        for (cf, case) in CASES {
+            add_series(
+                cf,
+                interslavic::reflexive_pronoun(case, PronounStyle::Full),
+                interslavic::reflexive_pronoun(case, PronounStyle::Clitic),
+                interslavic::reflexive_pronoun(case, PronounStyle::AfterPreposition),
+            );
+        }
+        return true;
+    }
+    let Some((_, person, number, gender)) =
+        PERSONAL_PRONOUNS.iter().find(|(l, _, _, _)| *l == lemma)
+    else {
+        return false;
+    };
+    for (cf, case) in CASES {
+        add_series(
+            cf,
+            interslavic::personal_pronoun(*person, *number, *gender, case, PronounStyle::Full),
+            interslavic::personal_pronoun(*person, *number, *gender, case, PronounStyle::Clitic),
+            interslavic::personal_pronoun(
+                *person,
+                *number,
+                *gender,
+                case,
+                PronounStyle::AfterPreposition,
+            ),
+        );
+    }
+    true
+}
+
 /// Paradigms for closed-class pronouns and numerals, sourced from the upstream
 /// `interslavic::pronoun` / `interslavic::numeral` declension. Returns true when the lemma was
 /// recognized and its paradigm emitted.
@@ -809,6 +967,12 @@ pub fn pronoun_numeral_records(
     }
     match pos {
         Pos::Pronoun => {
+            // Personal and reflexive pronouns use the explicit three-series
+            // tables (full / clitic / n- forms), not the generic declension —
+            // the bare `pronoun()` route only reaches the full series.
+            if personal_pronoun_records(sink, l, entry_id, status, gloss) {
+                return true;
+            }
             // vsi / vse are the plural-only indefinites of veś: keep them
             // lemma-only rather than re-emitting veś's whole paradigm (the
             // upstream declension would otherwise treat them as soft adjectives).
@@ -1317,7 +1481,12 @@ participles** (passive and active-present, adjectival paradigms under the verb
 lemma, features prefixed `part.…`), **comparatives and superlatives**
 (declined, `komp.`/`superl.` prefixes, plus their adverbs), **pronoun and
 numeral paradigms** (toj-class, moj-class, kto/čto, veś, jedin, dva/tri/
-četyri, i-stem numerals — from the interslavic crate's declension), and
+četyri, i-stem numerals — from the interslavic crate's declension),
+**personal and reflexive pronouns in all three form series** (full forms
+with bare case labels, clitics labeled `klit.`, and the third person's
+prepositional n- forms labeled `po predlogu`: `tebe` / `tę` / `njego`),
+**bare l-participles** (reachable through the perfect-tense cells: the
+3rd-person perfect is the bare participle, `pisala` = `perf.3jd.ž.`), and
 **3-token official lemmas**
 (try trigram → bigram → unigram when verifying).
 
@@ -1453,6 +1622,52 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// V14 (interslavic 0.10.0): the personal/reflexive pronouns emit all
+    /// three form series from the crate's explicit tables — full, clitic
+    /// (`klit.`), and the third person's prepositional n- forms
+    /// (`po predlogu`) — and the reflexive has no nominative.
+    #[test]
+    fn personal_pronoun_three_series() {
+        let recs = |lemma: &str| {
+            let mut sink = RecordSink::default();
+            assert!(pronoun_numeral_records(
+                &mut sink,
+                lemma,
+                Pos::Pronoun,
+                0,
+                "official",
+                ""
+            ));
+            sink.into_records()
+        };
+        let analyses = |recs: &[FormRecord], form: &str| -> Vec<String> {
+            recs.iter()
+                .filter(|r| r.form == form)
+                .flat_map(|r| r.analyses.clone())
+                .collect()
+        };
+        let on = recs("on");
+        assert!(analyses(&on, "jego").iter().any(|a| a == "gen."), "{on:?}");
+        assert!(analyses(&on, "njego")
+            .iter()
+            .any(|a| a == "gen. po predlogu"));
+        let ty = recs("ty");
+        assert!(analyses(&ty, "tebe").iter().any(|a| a == "gen."));
+        assert!(analyses(&ty, "tę").iter().any(|a| a == "akuz. klit."));
+        assert!(
+            ty.iter()
+                .all(|r| !r.form.starts_with('n') || r.form == "ne"),
+            "non-3rd-person pronouns have no n- series"
+        );
+        let sebe = recs("sebe");
+        assert!(analyses(&sebe, "sę").iter().any(|a| a == "akuz. klit."));
+        assert!(analyses(&sebe, "sobojų").iter().any(|a| a == "instr."));
+        assert!(
+            sebe.iter().all(|r| r.analyses.iter().all(|a| a != "nom.")),
+            "the reflexive has no nominative"
+        );
     }
 
     #[test]

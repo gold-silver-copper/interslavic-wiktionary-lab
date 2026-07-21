@@ -1717,6 +1717,36 @@ mod tests {
         );
     }
 
+    /// V14 (interslavic 0.10.0): the pronoun series and the fixed
+    /// l-participles resolve in running text — the exact forms a real
+    /// translation exercises ("Ona šla k njemu", "Strěla tę ubila").
+    #[test]
+    fn pronoun_series_and_l_participles_resolve() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None, Default::default());
+        for tok in [
+            "njego", "njej", "njim", "njih", "njejų", "njemu", // n- forms
+            "mę", "tę", "mi", "ti", "sę", "si", // clitics
+            "mnojų", "tobojų", "sobojų", "sobě", // full obliques
+            "pisala", "pisalo", "pisali", "šla", "šli", "viděla", "směli", // l-participles
+        ] {
+            let reps = check_tokens(&index, &tokenize(tok));
+            assert!(
+                reps.iter().all(|r| r.status != "unknown"),
+                "'{tok}' must resolve: {:?}",
+                reps.iter().map(|r| r.status).collect::<Vec<_>>()
+            );
+        }
+        for sentence in ["Ona šla k njemu.", "Strěla tę ubila."] {
+            let reps = check_text(&index, sentence);
+            assert!(
+                reps.iter()
+                    .all(|r| r.status != "unknown" && r.agreement.is_none()),
+                "'{sentence}' must verify clean: {reps:?}"
+            );
+        }
+    }
+
     #[test]
     fn official_comma_byforms_are_known_lemmas() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
