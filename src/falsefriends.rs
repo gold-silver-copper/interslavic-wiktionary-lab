@@ -978,7 +978,9 @@ pub fn surface_readings(
 /// fewer/no notes so `check-text` stays usable without them, but a cache
 /// that exists and fails to load (corrupt/stale schema) warns loudly —
 /// silently dropping every warning would look identical to a clean text.
-pub fn compute_from_default_caches(official: &[OfficialEntry]) -> BTreeMap<String, Note> {
+pub fn compute_from_default_caches(
+    official: &[OfficialEntry],
+) -> anyhow::Result<BTreeMap<String, Note>> {
     fn warn_if_unreadable(name: &str, path: &str, loaded: bool) {
         if !loaded && std::path::Path::new(path).exists() {
             eprintln!(
@@ -987,14 +989,32 @@ pub fn compute_from_default_caches(official: &[OfficialEntry]) -> BTreeMap<Strin
             );
         }
     }
-    let evidence = LemmaCorpus::load(std::path::Path::new(crate::DEFAULT_LEMMA_CACHE)).ok();
+    // load_optional contract (V15 item 2, the worst of the three violations
+    // the audit found): these caches feed the SHIPPED notes shards — a
+    // corrupt cache silently degrading the site's false-friend coverage is
+    // precisely what the schema stamps exist to prevent. Absent stays a
+    // warned degradation; corrupt is now a hard error.
+    let evidence = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_LEMMA_CACHE),
+        LemmaCorpus::load,
+    )?;
     warn_if_unreadable("lemma", crate::DEFAULT_LEMMA_CACHE, evidence.is_some());
-    let raw = RawSlavicCorpus::load(std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
+    let raw = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        RawSlavicCorpus::load,
+    )?;
     warn_if_unreadable("raw-lemma", crate::DEFAULT_RAW_LEMMA_CACHE, raw.is_some());
-    let enrich =
-        crate::enrich::EnrichIndex::load(std::path::Path::new(crate::DEFAULT_ENRICH_CACHE)).ok();
+    let enrich = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_ENRICH_CACHE),
+        crate::enrich::EnrichIndex::load,
+    )?;
     warn_if_unreadable("enrich", crate::DEFAULT_ENRICH_CACHE, enrich.is_some());
-    compute(official, evidence.as_ref(), raw.as_ref(), enrich.as_ref())
+    Ok(compute(
+        official,
+        evidence.as_ref(),
+        raw.as_ref(),
+        enrich.as_ref(),
+    ))
 }
 
 #[cfg(test)]
@@ -1004,7 +1024,7 @@ mod tests {
     fn notes() -> BTreeMap<String, Note> {
         let official =
             crate::official::load(std::path::Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
-        compute_from_default_caches(&official)
+        compute_from_default_caches(&official).expect("caches load")
     }
 
     /// The retired curated notes (data/semantic-notes.json, removed) as a

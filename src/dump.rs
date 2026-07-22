@@ -93,6 +93,30 @@ pub fn load_optional<T>(path: &Path, load: impl FnOnce(&Path) -> Result<T>) -> R
     }
 }
 
+/// The shared stamped-cache load skeleton (V15 item 2): open (gz-aware),
+/// parse, verify the schema stamp, verify the entry-count self-check. The
+/// three cache loaders each keep only their post-load hygiene passes.
+pub(crate) fn load_stamped_cache<T: serde::de::DeserializeOwned>(
+    kind: &str,
+    path: &Path,
+    schema: impl FnOnce(&T) -> u32,
+    expected_schema: u32,
+    counts: impl FnOnce(&T) -> (usize, usize),
+    regen: &str,
+) -> Result<T> {
+    let bytes =
+        read_maybe_gz(path).with_context(|| format!("open {kind} cache {}", path.display()))?;
+    let cache: T = serde_json::from_slice(&bytes).with_context(|| format!("parse {kind} cache"))?;
+    check_cache_schema(kind, path, schema(&cache), expected_schema, regen)?;
+    let (declared, actual) = counts(&cache);
+    anyhow::ensure!(
+        declared == actual,
+        "corrupt {kind} cache {}: entry_count {declared} but {actual} entries",
+        path.display(),
+    );
+    Ok(cache)
+}
+
 /// Loader-side check for the cache schema stamps above. `regen` is the exact
 /// `make` target that rebuilds the cache.
 pub(crate) fn check_cache_schema(
@@ -230,23 +254,14 @@ pub struct LemmaCorpus {
 
 impl LemmaCorpus {
     pub fn load(path: &Path) -> Result<Self> {
-        let bytes =
-            read_maybe_gz(path).with_context(|| format!("open lemma corpus {}", path.display()))?;
-        let mut corpus: Self = serde_json::from_slice(&bytes).context("parse lemma corpus")?;
-        check_cache_schema(
+        let mut corpus: Self = load_stamped_cache(
             "lemma",
             path,
-            corpus.schema,
+            |c: &Self| c.schema,
             LEMMA_CACHE_SCHEMA,
+            |c| (c.entry_count, c.entries.len()),
             "make extract-lemmas",
         )?;
-        anyhow::ensure!(
-            corpus.entry_count == corpus.entries.len(),
-            "corrupt lemma cache {}: entry_count {} but {} entries",
-            path.display(),
-            corpus.entry_count,
-            corpus.entries.len()
-        );
         // Load-time hygiene (issues #66/#89): cached protos can carry Cyrillic
         // lookalikes or URL-escaped UTF-8 copied from a Wiktionary template.
         // Clean them at this single ingress so every downstream consumer sees
@@ -1544,23 +1559,14 @@ pub struct ProtoIndex {
 
 impl ProtoIndex {
     pub fn load(path: &Path) -> Result<Self> {
-        let bytes =
-            read_maybe_gz(path).with_context(|| format!("open proto cache {}", path.display()))?;
-        let mut cache: ProtoCache = serde_json::from_slice(&bytes).context("parse proto cache")?;
-        check_cache_schema(
+        let mut cache: ProtoCache = load_stamped_cache(
             "proto",
             path,
-            cache.schema,
+            |c: &ProtoCache| c.schema,
             PROTO_CACHE_SCHEMA,
+            |c| (c.entry_count, c.entries.len()),
             "make extract-proto",
         )?;
-        anyhow::ensure!(
-            cache.entry_count == cache.entries.len(),
-            "corrupt proto cache {}: entry_count {} but {} entries",
-            path.display(),
-            cache.entry_count,
-            cache.entries.len()
-        );
         // Same load-time homoglyph hygiene as LemmaCorpus::load (issue #66),
         // applied to reconstruction names so `by_word` and the lemma corpus's
         // folded `proto` fields keep matching. Descendants stay verbatim —

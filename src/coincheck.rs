@@ -289,8 +289,17 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
         .unwrap_or_default();
 
     // Axis 3: false-friend readings across the ten languages' caches.
-    let evidence = crate::dump::LemmaCorpus::load(Path::new(crate::DEFAULT_LEMMA_CACHE)).ok();
-    let raw = crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
+    // load_optional contract (V15 item 2): the false-friend axis may run
+    // without the caches, but a corrupt cache must fail loudly — a silently
+    // empty axis would pass coinages it should have flagged.
+    let evidence = crate::dump::load_optional(
+        Path::new(crate::DEFAULT_LEMMA_CACHE),
+        crate::dump::LemmaCorpus::load,
+    )?;
+    let raw = crate::dump::load_optional(
+        Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        crate::dump::RawSlavicCorpus::load,
+    )?;
     let readings = crate::falsefriends::surface_readings(word, evidence.as_ref(), raw.as_ref());
 
     // Axis 4: declinability. The GUESS comes from the ending (POS) and the

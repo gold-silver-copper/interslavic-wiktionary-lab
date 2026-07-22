@@ -1626,7 +1626,7 @@ pub fn run(
 ) -> Result<()> {
     let entries = official::load(official_path)?;
     let notes = if warnings {
-        crate::falsefriends::compute_from_default_caches(&entries)
+        crate::falsefriends::compute_from_default_caches(&entries)?
     } else {
         BTreeMap::new()
     };
@@ -1922,7 +1922,7 @@ pub const UNKNOWN_PROBE: &str = "On vidita rěku.";
 pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use std::fmt::Write as _;
     let entries = official::load(official_path)?;
-    let notes = crate::falsefriends::compute_from_default_caches(&entries);
+    let notes = crate::falsefriends::compute_from_default_caches(&entries)?;
     let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
 
     let text = std::fs::read_to_string(FIXTURE)?;

@@ -384,9 +384,15 @@ fn main() -> Result<()> {
             // Union the RAW low-evidence Slavic lemmas (issue #33) into the wanted
             // set so raw ru/pl/cs words gain native enrichment too. Loaded from the
             // committed cache; absent → empty, extract-enrich still runs.
-            let raw = dump::RawSlavicCorpus::load(std::path::Path::new(DEFAULT_RAW_LEMMA_CACHE))
-                .map(|c| c.lemmas)
-                .unwrap_or_default();
+            // load_optional contract (V15 item 2): absent degrades with the
+            // documented notice; a corrupt or stale-schema cache is a HARD
+            // error, never a silently smaller wanted set.
+            let raw = dump::load_optional(
+                std::path::Path::new(DEFAULT_RAW_LEMMA_CACHE),
+                dump::RawSlavicCorpus::load,
+            )?
+            .map(|c| c.lemmas)
+            .unwrap_or_default();
             let wanted = enrich::build_wanted(&corpus, &official, &raw);
             let total: usize = wanted.values().map(|s| s.len()).sum();
             println!(
