@@ -1023,7 +1023,7 @@ fn jabluko_reconciles_as_near_official() {
 #[test]
 fn comma_separated_byforms_are_official_identities() {
     let official = crate::official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
-    let index = crate::check::build_index(&official, None, Default::default());
+    let index = crate::check::build_index(&official, &[], Default::default());
     for byform in ["iměti", "imati", "poslědnji", "poslědny"] {
         let key = crate::forms::form_key(byform);
         let recs = index

@@ -259,11 +259,8 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
 
     // Axis 2: collision with the existing lexicon (same index as check-text;
     // novel-word proposals included so a coinage can't shadow one).
-    let index = crate::check::build_index(
-        &entries,
-        Some(Path::new("data/novel-words.tsv")),
-        Default::default(),
-    );
+    let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+    let index = crate::check::build_index(&entries, &novel, Default::default());
     let collisions: Vec<serde_json::Value> = index
         .by_key
         .get(&folded)
@@ -615,7 +612,7 @@ mod tests {
         assert!(v.iter().any(|m| m.contains("illegal letter 'x'")), "{v:?}");
         assert!(v.iter().any(|m| m.contains("unattested")), "{v:?}");
         // Deliberate collision: 'voda' exists as an official lemma.
-        let index = crate::check::build_index(&entries, None, Default::default());
+        let index = crate::check::build_index(&entries, &[], Default::default());
         assert!(index
             .by_key
             .get("voda")
@@ -681,7 +678,7 @@ mod tests {
     /// with an error, not panic on `rows[0]`.
     #[test]
     fn lexicon_row_rejects_comment_shaped_word() {
-        let index = crate::check::build_index(&[], None, Default::default());
+        let index = crate::check::build_index(&[], &[], Default::default());
         let err = validated_lexicon_row(&index, "#foo\tnoun\tm\tanim\ttest".to_string(), "#foo")
             .unwrap_err();
         assert!(
@@ -752,11 +749,8 @@ mod tests {
     #[test]
     fn collision_axis_shows_every_homograph_concept() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
-        let index = crate::check::build_index(
-            &entries,
-            Some(Path::new("data/novel-words.tsv")),
-            Default::default(),
-        );
+        let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+        let index = crate::check::build_index(&entries, &novel, Default::default());
         let recs = index.by_key.get("tur").expect("tur proposals");
         let glosses: std::collections::BTreeSet<&str> = recs
             .iter()

@@ -20,6 +20,7 @@ pub mod lang;
 pub mod model;
 pub mod morph;
 pub mod normalize;
+pub mod novel;
 pub mod official;
 pub mod orthography;
 pub mod pipeline;

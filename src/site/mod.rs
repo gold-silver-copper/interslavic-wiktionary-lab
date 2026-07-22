@@ -1592,34 +1592,27 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         proposals.len(),
         proposals.len() - n_near,
     );
-    let mut tsv = String::from(
-        "form\tpos\tprobability\tbucket\tancestor\tn_langs\tn_branches\tgloss\tclassification\tofficial\n",
-    );
-    for r in &proposals {
-        // Buckets are only meaningful in calibrated-probability space.
-        let bucket = if r.prob >= crate::calibrate::PROPOSE_T {
-            "predlog"
-        } else {
-            "pregled"
-        };
-        let _ = writeln!(
-            tsv,
-            "{}\t{}\t{:.3}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-            r.form,
-            r.pos,
-            r.prob,
-            bucket,
-            r.ancestor,
-            r.n_langs,
-            r.n_branches,
-            r.gloss.replace(['\t', '\n'], " "),
-            r.classification,
-            r.official_lemma,
-        );
-    }
+    // Single owner (V15 item 3): rows are built once, serialized by
+    // crate::novel, and handed to build_index below in memory — the checker
+    // index no longer re-reads the file this same run just wrote.
+    let novel_rows: Vec<crate::novel::NovelWordRow> = proposals
+        .iter()
+        .map(|r| crate::novel::NovelWordRow {
+            form: r.form.clone(),
+            pos: r.pos.clone(),
+            prob: Some(r.prob),
+            ancestor: r.ancestor.clone(),
+            n_langs: r.n_langs,
+            n_branches: r.n_branches,
+            gloss: r.gloss.clone(),
+            classification: r.classification.to_string(),
+            official: r.official_lemma.clone(),
+        })
+        .collect();
+    let tsv = crate::novel::write_tsv(&novel_rows);
     // Committed data artifact AND a served copy, so the page's download link
     // works on the static host.
-    std::fs::write("data/novel-words.tsv", &tsv)?;
+    std::fs::write(crate::novel::DEFAULT_NOVEL_WORDS, &tsv)?;
     std::fs::write(out_dir.join("novel-words.tsv"), &tsv)?;
     std::fs::write(
         out_dir.join("proposals.html"),
@@ -2024,11 +2017,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     pair_json.push_str("\n]}\n");
     std::fs::create_dir_all(out_dir.join("api"))?;
     std::fs::write(out_dir.join("api/aspect-pairs.json"), &pair_json)?;
-    let checker_index = crate::check::build_index(
-        &official_entries,
-        Some(std::path::Path::new("data/novel-words.tsv")),
-        ff_notes.clone(),
-    );
+    let checker_index = crate::check::build_index(&official_entries, &novel_rows, ff_notes.clone());
     let suggest_bytes = crate::check::write_web_suggestions(out_dir, &checker_index)?;
     let api_counts = crate::forms::write_api(
         out_dir,
