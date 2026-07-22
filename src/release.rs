@@ -146,20 +146,28 @@ pub fn run_refresh(input: &Path, official: &Path, changelog: &Path) -> Result<()
     let new_entries = crate::official::load(input)?;
     let old_entries = crate::official::load(official)?;
 
+    // Row maps come from the SAME RFC-4180 reader the production loader
+    // uses (V14.1 finding 3) — the previous line-based heuristic glued
+    // multiline quoted cells to the wrong row (BTreeMap max-key, not the
+    // previous row), dropped comma-less continuation lines entirely, and
+    // let a digit-comma continuation clobber an unrelated id. Cells are
+    // re-joined with a non-CSV separator so comparison is content-exact
+    // and quoting-insensitive; duplicate ids mean a corrupt export.
     let raw_rows = |path: &Path| -> Result<BTreeMap<String, String>> {
         let text = std::fs::read_to_string(path)?;
         let mut out = BTreeMap::new();
-        for line in text.lines().skip(1) {
-            if let Some((id, rest)) = line.split_once(',') {
-                if !id.is_empty() && id.chars().all(|c| c.is_ascii_digit()) {
-                    // Multiline quoted cells continue the PREVIOUS row; the
-                    // digit-id guard keeps them glued to it.
-                    out.insert(id.to_string(), rest.to_string());
-                } else if let Some(last) = out.values_mut().last() {
-                    last.push('\n');
-                    last.push_str(line);
-                }
+        for rec in crate::official::read_csv_records(&text).into_iter().skip(1) {
+            let Some((id, rest)) = rec.split_first() else {
+                continue;
+            };
+            if id.is_empty() {
+                continue;
             }
+            anyhow::ensure!(
+                out.insert(id.clone(), rest.join("\u{1f}")).is_none(),
+                "{}: duplicate row id '{id}' — corrupt export, refusing",
+                path.display()
+            );
         }
         Ok(out)
     };
@@ -297,6 +305,49 @@ mod tests {
         let err =
             run_refresh(&a, Path::new("data/official-isv.csv"), &dir.join("cl.md")).unwrap_err();
         assert!(err.to_string().contains("no-op"), "{err}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// V14.1 finding 3: the refresh diff survives the three multiline-CSV
+    /// traps the old heuristic fell into — a quoted multiline cell, a
+    /// comma-less continuation line, and a continuation line that LOOKS
+    /// like a new row (digits + comma). Only the truly-changed id reports.
+    #[test]
+    fn refresh_diff_handles_multiline_cells() {
+        let dir = std::env::temp_dir().join(format!(
+            "slovowiki-refresh-{}-{}",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("t")
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let header = "id,isv,addition,partOfSpeech,type,en\n";
+        // Row 5101 has a quoted multiline cell whose continuations include a
+        // comma-less line AND a '1985,'-shaped line; row 24020 is ordinary.
+        let base = format!(
+            "{header}5101,slovo,,n.,1,\"word\nplain continuation\n1985, pěsnja goda\"\n24020,dom,,m.,1,house\n"
+        );
+        let changed = base.replace("1985, pěsnja goda", "1985, pěsnja lěta");
+        let old_p = dir.join("old.csv");
+        let new_p = dir.join("new.csv");
+        std::fs::write(&old_p, &base).unwrap();
+        std::fs::write(&new_p, &changed).unwrap();
+        let changelog = dir.join("cl.md");
+        run_refresh(&new_p, &old_p, &changelog).expect("refresh applies");
+        let entry = std::fs::read_to_string(&changelog).unwrap();
+        assert!(
+            entry.contains("0 added, 0 removed, 1 changed") && entry.contains("- changed: 5101"),
+            "only the multiline row may report as changed:\n{entry}"
+        );
+        assert!(
+            !entry.contains("1985") && !entry.contains("24020,"),
+            "phantom rows must not appear:\n{entry}"
+        );
+        // Duplicate ids are a corrupt export, not last-wins.
+        let dup = format!("{header}1,a,,n.,1,x\n1,b,,n.,1,y\n");
+        std::fs::write(&new_p, dup).unwrap();
+        let err = run_refresh(&new_p, &old_p, &changelog).unwrap_err();
+        assert!(err.to_string().contains("duplicate row id"), "{err}");
         let _ = std::fs::remove_dir_all(dir);
     }
 }
