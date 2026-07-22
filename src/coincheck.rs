@@ -136,8 +136,20 @@ impl Overrides {
         };
         // Shared vocabulary with parse_lexicon (V14.1 finding 10): the row
         // this tool emits and the row check-text validates cannot disagree.
-        let (animate, indeclinable) = crate::check::parse_animacy(animacy.unwrap_or(""))
-            .map_err(|e| anyhow::anyhow!("--animacy: {e}"))?;
+        // Only ABSENCE means "undeclared" (V14.2 item 4): an explicitly
+        // empty --animacy is the unset-shell-variable trap and must reject
+        // loudly, never fall back to the crate's guess. parse_animacy's
+        // ""-is-blank arm belongs to the TSV column, not to this flag.
+        let (animate, indeclinable) = match animacy {
+            None => (None, false),
+            Some(raw) => {
+                anyhow::ensure!(
+                    !raw.trim().is_empty(),
+                    "--animacy must be anim|inanim|indecl, got an empty value (unset shell variable?)"
+                );
+                crate::check::parse_animacy(raw).map_err(|e| anyhow::anyhow!("--animacy: {e}"))?
+            }
+        };
         anyhow::ensure!(
             !lexicon_row || gloss.as_deref().is_some_and(|g| !g.trim().is_empty()),
             "--lexicon-row needs --gloss <english concept> (the lexicon's consistency check reads it)"
@@ -587,6 +599,9 @@ mod tests {
         assert!(Overrides::parse(Some("pron"), None, None, None, false).is_err());
         assert!(Overrides::parse(None, Some("x"), None, None, false).is_err());
         assert!(Overrides::parse(None, None, Some("dead"), None, false).is_err());
+        // V14.2 item 4: an explicitly EMPTY --animacy rejects (the unset
+        // shell-variable trap); only absence means "guess".
+        assert!(Overrides::parse(None, None, Some(""), None, false).is_err());
         assert!(
             Overrides::parse(None, None, None, None, true).is_err(),
             "--lexicon-row without --gloss must fail (the row would be rejected downstream)"
