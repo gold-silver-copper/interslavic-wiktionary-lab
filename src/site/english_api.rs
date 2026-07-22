@@ -901,7 +901,7 @@ pub(super) fn build_english_index(
             continue;
         }
 
-        let form_key = forms::form_key(&record.lemma);
+        let form_key = record.lemma_key.clone();
         let form_shard = forms::shard_of(&form_key);
         let note = notes.get(&form_key);
         let warnings = note.map(|n| vec![n.warning.clone()]).unwrap_or_default();
@@ -1182,6 +1182,7 @@ mod tests {
             form: lemma.to_string(),
             key: forms::form_key(lemma),
             lemma: lemma.to_string(),
+            lemma_key: forms::form_key(lemma),
             entry_id,
             pos: "verb",
             analyses: Vec::new(),

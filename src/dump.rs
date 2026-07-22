@@ -1558,10 +1558,15 @@ pub struct ProtoIndex {
 }
 
 impl ProtoIndex {
-    pub fn load(path: &Path) -> Result<Self> {
+    /// Load the proto cache; when `lemma_source` is given, attach that
+    /// corpus's explicit (lang, lemma) → ancestor etymology. The lemma-cache
+    /// dependency is EXPLICIT (V15 item 5): `load` used to silently read
+    /// `DEFAULT_LEMMA_CACHE` from the cwd regardless of the caller's path
+    /// argument — the audit's worst nonlinear edge.
+    pub fn load_with_lemmas(proto_path: &Path, lemma_source: Option<&Path>) -> Result<Self> {
         let mut cache: ProtoCache = load_stamped_cache(
             "proto",
-            path,
+            proto_path,
             |c: &ProtoCache| c.schema,
             PROTO_CACHE_SCHEMA,
             |c| (c.entry_count, c.entries.len()),
@@ -1575,14 +1580,13 @@ impl ProtoIndex {
             e.word = crate::normalize::fold_proto_homoglyphs(&e.word);
         }
         let mut idx = Self::build(cache.entries);
-        // Attach Wiktionary's explicit (lang, lemma) -> ancestor etymology if the
-        // lemma corpus is available next to the proto cache. Absent → skip; a
-        // corpus that exists but fails to load is a hard error (a silently
-        // missing etymology map would degrade the linker with no visible cause).
-        if let Some(corpus) =
-            load_optional(Path::new(crate::DEFAULT_LEMMA_CACHE), LemmaCorpus::load)?
-        {
-            idx.attach_etymology(&corpus);
+        // Absent lemma corpus → skip; a corpus that exists but fails to load
+        // is a hard error (a silently missing etymology map would degrade
+        // the linker with no visible cause).
+        if let Some(lemma_path) = lemma_source {
+            if let Some(corpus) = load_optional(lemma_path, LemmaCorpus::load)? {
+                idx.attach_etymology(&corpus);
+            }
         }
         Ok(idx)
     }

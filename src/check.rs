@@ -444,7 +444,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
         .filter(|r| {
             matches!(r.status, "official" | "official-only" | "grammar")
                 && r.source == "lemma"
-                && forms::form_key(&r.lemma) == row.lemma_key
+                && r.lemma_key == row.lemma_key
         })
         .collect();
     if pins.is_empty() {
@@ -458,9 +458,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
         // proposal's, so a data refresh emitting an unrelated same-surface
         // proposal turns into a loud error instead of a silent adoption.
         let all_generated_lemmas = recs.iter().all(|r| {
-            r.status == "generated"
-                && r.source == "lemma"
-                && forms::form_key(&r.lemma) == row.lemma_key
+            r.status == "generated" && r.source == "lemma" && r.lemma_key == row.lemma_key
         });
         if all_generated_lemmas {
             // EVERY same-POS proposal is a candidate (V14.2 item 2 — the
@@ -1024,7 +1022,7 @@ fn consistency_warning(index: &Index, rs: &[FormRecord], display: &str) -> Optio
     if official.is_empty() {
         return None;
     }
-    let lemma_keys: HashSet<String> = official.iter().map(|r| forms::form_key(&r.lemma)).collect();
+    let lemma_keys: HashSet<String> = official.iter().map(|r| r.lemma_key.clone()).collect();
     // Tokenize each official gloss ONCE per token — the sets are row-loop
     // invariant, and a large text × large lexicon multiplies this cost.
     let record_tokens: Vec<std::collections::BTreeSet<String>> = official
@@ -1182,11 +1180,7 @@ fn token_grammar(index: &Index, recs: &[FormRecord], matched_key: &str) -> Token
         if r.pos == "verb" {
             // Valence must hold for EVERY verb lemma this surface can
             // belong to; any lemma without a concrete tag abstains.
-            let v = index
-                .verb_valence
-                .get(&forms::form_key(&r.lemma))
-                .copied()
-                .unwrap_or(' ');
+            let v = index.verb_valence.get(&r.lemma_key).copied().unwrap_or(' ');
             if !valence_lemmas_seen {
                 valence = v;
                 valence_lemmas_seen = true;
@@ -1200,7 +1194,7 @@ fn token_grammar(index: &Index, recs: &[FormRecord], matched_key: &str) -> Token
             "noun" => {
                 noun.extend(feats);
                 if noun_gender == ' ' {
-                    if let Some(g) = index.noun_gender.get(&forms::form_key(&r.lemma)) {
+                    if let Some(g) = index.noun_gender.get(&r.lemma_key) {
                         noun_gender = *g;
                     }
                 }

@@ -344,6 +344,10 @@ pub struct FormRecord {
     /// Folded lookup key (`form_key`).
     pub key: String,
     pub lemma: String,
+    /// Folded lemma key (`form_key(&lemma)`), stored once at sink-add (V15
+    /// item 5) so consumers never re-fold per record. Invariant: equals
+    /// what `form_key(&self.lemma)` would return.
+    pub lemma_key: String,
     pub entry_id: usize,
     pub pos: &'static str,
     /// Compact analyses, e.g. `["gen.jd.", "akuz.jd. m.živ."]` — one record
@@ -401,6 +405,7 @@ impl RecordSink {
     ) {
         // A cell may hold byform variants ("den / denj"): each variant is its
         // own record (its own key), sharing the analysis.
+        let lemma_key = form_key(lemma);
         for variant in cell.split('/') {
             let form = variant.trim();
             if form.is_empty() || form == "—" {
@@ -412,11 +417,12 @@ impl RecordSink {
             }
             let entry = self
                 .map
-                .entry((key.clone(), form_key(lemma), entry_id))
+                .entry((key.clone(), lemma_key.clone(), entry_id))
                 .or_insert_with(|| FormRecord {
                     form: form.to_string(),
                     key,
                     lemma: lemma.to_string(),
+                    lemma_key: lemma_key.clone(),
                     entry_id,
                     pos,
                     analyses: Vec::new(),
@@ -723,7 +729,7 @@ pub fn enrich_animate_accusatives(
         {
             continue;
         }
-        if !masc_animate_keys.contains(&form_key(&r.lemma)) {
+        if !masc_animate_keys.contains(&r.lemma_key) {
             continue;
         }
         for (gen, akuz) in &pairs {
@@ -2128,6 +2134,7 @@ mod tests {
             form: "zapisovati".to_string(),
             key: "zapisovati".to_string(),
             lemma: "zapisovati".to_string(),
+            lemma_key: "zapisovati".to_string(),
             entry_id: 7,
             pos,
             analyses: Vec::new(),

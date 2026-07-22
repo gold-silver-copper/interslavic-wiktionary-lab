@@ -74,7 +74,9 @@ pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
     let entries = official::load(official_path)?;
     let cfg = ConsensusConfig::production();
     let proto_path = Path::new(crate::DEFAULT_PROTO_CACHE);
-    let proto_index = crate::dump::load_optional(proto_path, crate::dump::ProtoIndex::load)?;
+    let proto_index = crate::dump::load_optional(proto_path, |p| {
+        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
+    })?;
     let proto = proto_index.as_ref();
     if proto.is_some() {
         println!("Using Proto-Slavic cache for reconstruction-derived forms.");
@@ -985,10 +987,9 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // ancestor to its full reconstruction (glosses, descendants, pbs/pie,
     // stem class). Same load-optional posture as the other display caches:
     // absent → feature skipped with a note; present-but-bad → hard error.
-    let proto_index = crate::dump::load_optional(
-        Path::new(crate::DEFAULT_PROTO_CACHE),
-        crate::dump::ProtoIndex::load,
-    )?;
+    let proto_index = crate::dump::load_optional(Path::new(crate::DEFAULT_PROTO_CACHE), |p| {
+        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
+    })?;
     if proto_index.is_none() {
         println!(
             "(no {} — skipping proto-lemma reflex pages; run extract-proto to build it)",

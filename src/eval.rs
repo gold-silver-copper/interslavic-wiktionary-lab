@@ -118,8 +118,10 @@ fn load_proto_index() -> Option<crate::dump::ProtoIndex> {
     // that were already right or aren't improvable. Coverage is not the
     // bottleneck; the remaining error is editorial/evidence-gap (see the
     // cluster-selection measurement). Left out.
-    crate::dump::load_optional(path, crate::dump::ProtoIndex::load)
-        .unwrap_or_else(|e| panic!("{}: {e:#}", path.display()))
+    crate::dump::load_optional(path, |p| {
+        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
+    })
+    .unwrap_or_else(|e| panic!("{}: {e:#}", path.display()))
 }
 
 /// Rules that were tried and *rejected*: each is the production config plus one
