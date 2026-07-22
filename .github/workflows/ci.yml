@@ -54,24 +54,40 @@ jobs:
       # against the recorded baseline and always succeeds on movement.
       - name: Translation probe (reported metric)
         run: cargo run --release -- translation-probe --site /tmp/slovowiki-aspect-ci
-      # Pinnable-release guards (V14 item 4 / #74): the committed manifest
-      # must match the tree, and an official-dictionary change must carry a
-      # refresh-changelog entry (docs/DATA-REFRESH.md ceremony).
-      - name: Data release guards
+      # Pinnable-release guard 1 of 2 (V14 item 4 / #74): the committed
+      # manifest must match the tree — every event, hard failure.
+      - name: Verify data manifest
+        run: cargo run --release -- data-manifest
+      # Guard 2 of 2: an official-dictionary change must carry a
+      # refresh-changelog entry (docs/DATA-REFRESH.md). PR-only — on master
+      # pushes FETCH_HEAD == HEAD made it vacuous anyway (direct pushes
+      # bypass by design; the repo merges via PRs). V14.2 hardening: with
+      # pipefail unset a git 128 inside `if !` or behind a pipe still
+      # masqueraded as the policy error, so exit codes are now inspected
+      # explicitly (1 = changed, >1 = git failure AS a git failure), the
+      # name list goes through a file instead of a pipe, and a fetch
+      # failure warns-and-skips — the manifest step above still hard-fails
+      # real drift. Two-dot FETCH_HEAD diff: shallow-safe, refspec-safe.
+      - name: Refresh changelog guard
+        if: github.event_name == 'pull_request'
+        shell: bash
         run: |
-          cargo run --release -- data-manifest
-          # Two-dot TREE diff against FETCH_HEAD on purpose: the shallow PR
-          # checkout (depth-1 merge commit, grafted parents) has no merge
-          # base, so the old three-dot form exited 128 — which, with stderr
-          # suppressed, was misread as "CSV changed" and failed EVERY pull
-          # request. Two-dot needs no merge base, and FETCH_HEAD (unlike
-          # refs/remotes/origin/master) is written by the fetch regardless
-          # of the checkout's restricted refspec. No stderr suppression
-          # either: a git failure must fail this step as itself, never
-          # masquerade as a policy violation.
-          git fetch origin master --depth=1
-          if ! git diff --quiet FETCH_HEAD HEAD -- data/official-isv.csv; then
-            git diff --name-only FETCH_HEAD HEAD | grep -q '^data/refresh-changelog.md$' \
+          set -euo pipefail
+          if ! git fetch origin master --depth=1; then
+            echo "::warning::cannot fetch base master — changelog guard skipped (manifest guard still ran)"
+            exit 0
+          fi
+          set +e
+          git diff --quiet FETCH_HEAD HEAD -- data/official-isv.csv
+          rc=$?
+          set -e
+          if [ "$rc" -gt 1 ]; then
+            echo "::error::git diff failed (exit $rc) — this is a git problem, not a changelog-policy violation"
+            exit "$rc"
+          fi
+          if [ "$rc" -eq 1 ]; then
+            git diff --name-only FETCH_HEAD HEAD > /tmp/changed-files.txt
+            grep -q '^data/refresh-changelog.md$' /tmp/changed-files.txt \
               || { echo "::error::data/official-isv.csv changed without a refresh-changelog entry (see docs/DATA-REFRESH.md)"; exit 1; }
           fi
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)
