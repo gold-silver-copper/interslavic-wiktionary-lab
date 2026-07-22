@@ -1,25 +1,97 @@
 {
-  "schema_version": 1,
   "crate_pin": "=0.13.0",
-  "forms_schema": 4,
-  "probe_baseline": [147, 44, 28],
   "files": [
-    {"path": "data/FLAVORIZATION_SPEC.md", "sha256": "a7f1ead59f7745974ff81bb23ddff4d106126d594d58461939cf2ce8fbb0536d", "bytes": 26172},
-    {"path": "data/RULE_SPEC.md", "sha256": "936ea609c5ff00a9d14d5bff90691f2ef6c241d82ecad64f4fa8a015d0e8232b", "bytes": 32360},
-    {"path": "data/VOTING_MACHINE_NOTES.md", "sha256": "4f0dc810ac7680d638aea1c3542814bbaf4de36296f571d7e1dcfad6f6f685c7", "bytes": 4116},
-    {"path": "data/checktext-fixture.txt", "sha256": "45ef377ec6eef205121fb47296d46fa9b93c4c5eb4282039ed6808aa3d222639", "bytes": 513},
-    {"path": "data/corpus-calibration.json", "sha256": "5c4ec891ed12ff3823a34623c1242a498a69ac9709049da6d8ebf49193de569a", "bytes": 1648},
-    {"path": "data/curation-notes.example.json", "sha256": "21049c7059fb8385beb0adefcca6c0c6e3cb34e2dac78a4ab0718a45fa58eba0", "bytes": 188},
-    {"path": "data/game-text-fixture.txt", "sha256": "5a8ae984b0740f09e1ad872de55f9896ee46a1def19a8c7b62db60cfc22c5c9c", "bytes": 165},
-    {"path": "data/novel-words.tsv", "sha256": "bb147e13a70a9472d18563eb2dad77951c5d53ca6652ba3a4f127c19bbda27ae", "bytes": 11370},
-    {"path": "data/official-isv.csv", "sha256": "5265761404d6bda07df55d1069d26350b2c107731c63913f827054d793d46cff", "bytes": 7164594},
-    {"path": "data/project-lexicon-fixture.tsv", "sha256": "14a5c2b25f66db3dc73ac27caaee8d84f255a5ea4e34129032a566d73e19a1cc", "bytes": 527},
-    {"path": "data/proto-slavic.cache.json", "sha256": "0fa357c6ef4ce335e53cbf4aed4637c6db135fe7f463d9cc8bf82a5066356727", "bytes": 596306},
-    {"path": "data/raw-slavic-coverage.json", "sha256": "0ae91ed14bbdb2b5786997c3aa27081776282038cc64a20514fcf66a7f66e182", "bytes": 603},
-    {"path": "data/raw-slavic-lemmas.cache.json", "sha256": "442fceefff65dedfc008d178f4c8e3b09f6437613dc4464a8ec3160d512df529", "bytes": 14094063},
-    {"path": "data/refresh-changelog.md", "sha256": "44a6719a2c7481e240b77ee753f1a091db9d923bdc1ca60e52a008556f52fa49", "bytes": 681},
-    {"path": "data/score-calibration.json", "sha256": "92fc6387b9fbc7e775e16c99204106c675ebb38b5806e49b98fa072ef70e14e4", "bytes": 595},
-    {"path": "data/slavic-lemmas.cache.json", "sha256": "c9611dd774f8a9a1caee14d53fbef0d4192301676bd4f066466bc92080ba283a", "bytes": 5911578},
-    {"path": "data/wiktionary-enrich.cache.json", "sha256": "1a81ae8829824683d06861660512e4d0d57f24cc0420eb7a4366f9acc4ba54f4", "bytes": 30628028}
-  ]
+    {
+      "bytes": 26172,
+      "path": "data/FLAVORIZATION_SPEC.md",
+      "sha256": "a7f1ead59f7745974ff81bb23ddff4d106126d594d58461939cf2ce8fbb0536d"
+    },
+    {
+      "bytes": 32360,
+      "path": "data/RULE_SPEC.md",
+      "sha256": "936ea609c5ff00a9d14d5bff90691f2ef6c241d82ecad64f4fa8a015d0e8232b"
+    },
+    {
+      "bytes": 4116,
+      "path": "data/VOTING_MACHINE_NOTES.md",
+      "sha256": "4f0dc810ac7680d638aea1c3542814bbaf4de36296f571d7e1dcfad6f6f685c7"
+    },
+    {
+      "bytes": 513,
+      "path": "data/checktext-fixture.txt",
+      "sha256": "45ef377ec6eef205121fb47296d46fa9b93c4c5eb4282039ed6808aa3d222639"
+    },
+    {
+      "bytes": 1648,
+      "path": "data/corpus-calibration.json",
+      "sha256": "5c4ec891ed12ff3823a34623c1242a498a69ac9709049da6d8ebf49193de569a"
+    },
+    {
+      "bytes": 188,
+      "path": "data/curation-notes.example.json",
+      "sha256": "21049c7059fb8385beb0adefcca6c0c6e3cb34e2dac78a4ab0718a45fa58eba0"
+    },
+    {
+      "bytes": 165,
+      "path": "data/game-text-fixture.txt",
+      "sha256": "5a8ae984b0740f09e1ad872de55f9896ee46a1def19a8c7b62db60cfc22c5c9c"
+    },
+    {
+      "bytes": 11370,
+      "path": "data/novel-words.tsv",
+      "sha256": "bb147e13a70a9472d18563eb2dad77951c5d53ca6652ba3a4f127c19bbda27ae"
+    },
+    {
+      "bytes": 7164594,
+      "path": "data/official-isv.csv",
+      "sha256": "5265761404d6bda07df55d1069d26350b2c107731c63913f827054d793d46cff"
+    },
+    {
+      "bytes": 527,
+      "path": "data/project-lexicon-fixture.tsv",
+      "sha256": "14a5c2b25f66db3dc73ac27caaee8d84f255a5ea4e34129032a566d73e19a1cc"
+    },
+    {
+      "bytes": 596306,
+      "path": "data/proto-slavic.cache.json",
+      "sha256": "0fa357c6ef4ce335e53cbf4aed4637c6db135fe7f463d9cc8bf82a5066356727"
+    },
+    {
+      "bytes": 603,
+      "path": "data/raw-slavic-coverage.json",
+      "sha256": "0ae91ed14bbdb2b5786997c3aa27081776282038cc64a20514fcf66a7f66e182"
+    },
+    {
+      "bytes": 14094063,
+      "path": "data/raw-slavic-lemmas.cache.json",
+      "sha256": "442fceefff65dedfc008d178f4c8e3b09f6437613dc4464a8ec3160d512df529"
+    },
+    {
+      "bytes": 681,
+      "path": "data/refresh-changelog.md",
+      "sha256": "44a6719a2c7481e240b77ee753f1a091db9d923bdc1ca60e52a008556f52fa49"
+    },
+    {
+      "bytes": 595,
+      "path": "data/score-calibration.json",
+      "sha256": "92fc6387b9fbc7e775e16c99204106c675ebb38b5806e49b98fa072ef70e14e4"
+    },
+    {
+      "bytes": 5911578,
+      "path": "data/slavic-lemmas.cache.json",
+      "sha256": "c9611dd774f8a9a1caee14d53fbef0d4192301676bd4f066466bc92080ba283a"
+    },
+    {
+      "bytes": 30628028,
+      "path": "data/wiktionary-enrich.cache.json",
+      "sha256": "1a81ae8829824683d06861660512e4d0d57f24cc0420eb7a4366f9acc4ba54f4"
+    }
+  ],
+  "forms_schema": 4,
+  "probe_baseline": [
+    147,
+    44,
+    28
+  ],
+  "schema_version": 1
 }

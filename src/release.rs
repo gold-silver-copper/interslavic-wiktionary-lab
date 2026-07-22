@@ -28,17 +28,6 @@ use std::path::Path;
 pub const MANIFEST_SCHEMA: u32 = 1;
 pub const MANIFEST_PATH: &str = "data/MANIFEST.json";
 
-/// data/ entries NOT covered by the manifest — mirrors `.gitignore` (local
-/// multi-gigabyte source datasets and scratch), plus the manifest itself.
-/// Keep in sync with `.gitignore`.
-const MANIFEST_EXCLUDE: &[&str] = &[
-    "MANIFEST.json",
-    "raw-wiktextract-data.jsonl",
-    "wiktionary",
-    "wiktionary-lab.json",
-    "__pycache__",
-];
-
 fn sha256_file(path: &Path) -> Result<(String, u64)> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
     let mut h = Sha256::new();
@@ -46,56 +35,75 @@ fn sha256_file(path: &Path) -> Result<(String, u64)> {
     Ok((format!("{:x}", h.finalize()), bytes.len() as u64))
 }
 
-/// The covered artifact set: every regular file directly under `data/`,
-/// minus the gitignored exclusions, sorted by name — deterministic.
-fn covered_files(data_dir: &Path) -> Result<Vec<String>> {
-    let mut names: Vec<String> = Vec::new();
-    for entry in std::fs::read_dir(data_dir)? {
-        let entry = entry?;
-        let name = entry.file_name().to_string_lossy().to_string();
-        if !entry.file_type()?.is_file()
-            || name.ends_with(".tmp")
-            || MANIFEST_EXCLUDE.contains(&name.as_str())
-        {
-            continue;
-        }
-        names.push(name);
-    }
+/// The covered artifact set: the TRACKED files under `data/` per git — the
+/// authority the old hand-mirrored `.gitignore` excerpt tried to imitate
+/// (V14.1 finding 7). Stray local files can neither break verification nor
+/// leak into a committed manifest. git is required; this tool is
+/// maintainer/CI-facing and both run in the repository.
+fn tracked_data_files() -> Result<Vec<String>> {
+    let out = std::process::Command::new("git")
+        .args(["ls-files", "-z", "--", "data"])
+        .output()
+        .context("run `git ls-files` (the manifest covers TRACKED data/ files)")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "git ls-files failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let mut names: Vec<String> = String::from_utf8(out.stdout)?
+        .split('\0')
+        .filter(|s| !s.is_empty() && *s != MANIFEST_PATH)
+        .map(str::to_string)
+        .collect();
     names.sort();
+    anyhow::ensure!(
+        !names.is_empty(),
+        "git ls-files returned no data/ files — not at the repository root?"
+    );
     Ok(names)
 }
 
-/// The exact-pin line from Cargo.toml — the manifest records which crate
-/// version produced the release's paradigms.
-fn crate_pin() -> Result<String> {
-    let toml = std::fs::read_to_string("Cargo.toml")?;
-    toml.lines()
-        .find_map(|l| {
-            let l = l.trim();
-            l.strip_prefix("interslavic = ")
-                .map(|v| v.trim_matches('"').to_string())
-        })
-        .context("no interslavic pin in Cargo.toml")
+/// The resolved interslavic version from Cargo.lock — format-stable, and
+/// the truth about what actually built (V14.1 finding 6; the old
+/// Cargo.toml line-trim broke on legal `{ version = \"…\" }` forms).
+fn resolved_pin() -> Result<String> {
+    let lock = std::fs::read_to_string("Cargo.lock").context("read Cargo.lock")?;
+    let mut lines = lock.lines();
+    while let Some(line) = lines.next() {
+        if line.trim() == "name = \"interslavic\"" {
+            if let Some(version) = lines
+                .next()
+                .and_then(|l| l.trim().strip_prefix("version = "))
+            {
+                return Ok(format!("={}", version.trim_matches('"')));
+            }
+        }
+    }
+    anyhow::bail!("interslavic not found in Cargo.lock")
 }
 
-fn render_manifest(data_dir: &Path) -> Result<String> {
-    let (b0, b1, b2) = crate::site::PROBE_BASELINE;
-    let mut s = format!(
-        "{{\n  \"schema_version\": {MANIFEST_SCHEMA},\n  \"crate_pin\": \"{}\",\n  \"forms_schema\": {},\n  \"probe_baseline\": [{b0}, {b1}, {b2}],\n  \"files\": [\n",
-        crate_pin()?,
-        crate::forms::SCHEMA_VERSION,
-    );
-    let names = covered_files(data_dir)?;
-    for (i, name) in names.iter().enumerate() {
-        let (hash, bytes) = sha256_file(&data_dir.join(name))?;
-        let _ = writeln!(
-            s,
-            "    {{\"path\": \"data/{name}\", \"sha256\": \"{hash}\", \"bytes\": {bytes}}}{}",
-            if i + 1 < names.len() { "," } else { "" }
-        );
+/// Render the manifest for an explicit file list — serde_json end to end
+/// (V14.1 finding 6): escaping and well-formedness are structural, and the
+/// byte-exact verification compares canonical serde renderings.
+fn render_manifest(files: &[String]) -> Result<String> {
+    let mut entries: Vec<serde_json::Value> = Vec::new();
+    for path in files {
+        let (sha256, bytes) = sha256_file(Path::new(path))?;
+        entries.push(serde_json::json!({
+            "path": path,
+            "sha256": sha256,
+            "bytes": bytes,
+        }));
     }
-    s.push_str("  ]\n}\n");
-    Ok(s)
+    let (b0, b1, b2) = crate::site::PROBE_BASELINE;
+    let manifest = serde_json::json!({
+        "schema_version": MANIFEST_SCHEMA,
+        "crate_pin": resolved_pin()?,
+        "forms_schema": crate::forms::SCHEMA_VERSION,
+        "probe_baseline": [b0, b1, b2],
+        "files": entries,
+    });
+    Ok(serde_json::to_string_pretty(&manifest)? + "\n")
 }
 
 /// `data-manifest [--write]`: verify (default) or regenerate the manifest.
@@ -103,13 +111,11 @@ fn render_manifest(data_dir: &Path) -> Result<String> {
 /// content, file added, file removed, pin bump, baseline move — fails until
 /// the manifest is regenerated, which is the visible event.
 pub fn run_manifest(write: bool) -> Result<()> {
-    let rendered = render_manifest(Path::new("data"))?;
+    let files = tracked_data_files()?;
+    let rendered = render_manifest(&files)?;
     if write {
         std::fs::write(MANIFEST_PATH, &rendered)?;
-        println!(
-            "Wrote {MANIFEST_PATH} ({} artifacts)",
-            rendered.matches("\"path\"").count()
-        );
+        println!("Wrote {MANIFEST_PATH} ({} artifacts)", files.len());
         return Ok(());
     }
     let on_disk = std::fs::read_to_string(MANIFEST_PATH)
@@ -120,20 +126,8 @@ pub fn run_manifest(write: bool) -> Result<()> {
          pin, or the probe baseline changed. Regenerate with `cargo run --release -- \
          data-manifest --write` and commit the diff (that diff IS the visible event)."
     );
-    println!(
-        "data-manifest: OK — {} artifacts match",
-        rendered.matches("\"path\"").count()
-    );
+    println!("data-manifest: OK — {} artifacts match", files.len());
     Ok(())
-}
-
-/// Verify a manifest rendered for an arbitrary data dir (unit tests).
-pub fn verify_manifest_str(data_dir: &Path, manifest: &str) -> Result<bool> {
-    render_manifest(data_dir).map(|r| r == manifest)
-}
-
-pub fn render_manifest_for(data_dir: &Path) -> Result<String> {
-    render_manifest(data_dir)
 }
 
 /// `refresh-official <input>`: install a freshly downloaded official export
@@ -265,17 +259,25 @@ mod tests {
 
     /// The committed manifest matches the working tree — the release
     /// contract itself, CI-enforced so it cannot rot. On failure: regenerate
-    /// with `cargo run --release -- data-manifest --write` and commit.
+    /// with `cargo run --release -- data-manifest --write` and commit. Also
+    /// pins that the manifest is machine-parseable JSON (finding 6) and
+    /// covers exactly git's tracked data/ files (finding 7).
     #[test]
     fn committed_manifest_matches_tree() {
         let on_disk = std::fs::read_to_string(MANIFEST_PATH).expect(
             "data/MANIFEST.json missing — run `cargo run --release -- data-manifest --write`",
         );
-        assert!(
-            verify_manifest_str(Path::new("data"), &on_disk).expect("render"),
+        let files = tracked_data_files().expect("git ls-files");
+        assert_eq!(
+            on_disk,
+            render_manifest(&files).expect("render"),
             "data/MANIFEST.json is stale — regenerate with `data-manifest --write` and commit \
              the diff (that diff is the visible event)"
         );
+        let parsed: serde_json::Value =
+            serde_json::from_str(&on_disk).expect("manifest must always parse as JSON");
+        assert_eq!(parsed["files"].as_array().unwrap().len(), files.len());
+        assert!(parsed["crate_pin"].as_str().unwrap().starts_with('='));
     }
 
     #[test]
@@ -287,16 +289,19 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("a.tsv"), "x\t1\n").unwrap();
-        let m1 = render_manifest_for(&dir).expect("render");
-        assert!(verify_manifest_str(&dir, &m1).unwrap());
-        std::fs::write(dir.join("a.tsv"), "x\t2\n").unwrap();
-        assert!(
-            !verify_manifest_str(&dir, &m1).unwrap(),
+        let file_a = dir.join("a.tsv").to_string_lossy().to_string();
+        std::fs::write(&file_a, "x\t1\n").unwrap();
+        let m1 = render_manifest(&[file_a.clone()]).expect("render");
+        assert_eq!(m1, render_manifest(&[file_a.clone()]).unwrap());
+        std::fs::write(&file_a, "x\t2\n").unwrap();
+        assert_ne!(
+            m1,
+            render_manifest(&[file_a.clone()]).unwrap(),
             "content change must invalidate"
         );
-        std::fs::write(dir.join("b.tsv"), "y\n").unwrap();
-        let m2 = render_manifest_for(&dir).expect("render");
+        let file_b = dir.join("b.tsv").to_string_lossy().to_string();
+        std::fs::write(&file_b, "y\n").unwrap();
+        let m2 = render_manifest(&[file_a.clone(), file_b]).expect("render");
         assert_ne!(m1, m2, "added file must change the manifest");
 
         // refresh-official refuses a no-op (identical input).
