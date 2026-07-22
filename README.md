@@ -464,6 +464,10 @@ cargo run --release -- check-text tekst.txt --summary --max-unknown 0
 # animacy column marks indeclinable loans (lemma-only, V14):
 cargo run --release -- check-text tekst.txt --summary --max-unknown 0 \
   --lexicon project-lexicon.tsv
+# Every lexicon load reports row dispositions (coinage / official pin /
+# generated adoption): a human summary line, or a `lexicon` field in the
+# --json --summary object; coin-check --json names its row's disposition
+# as `lexicon_row_disposition` (V14.2).
 
 # English → Interslavic lookup against a prior export's static API — the
 # reference client for the documented normalization/routing/retry ladder:
@@ -574,7 +578,9 @@ government parsed from the dictionary's own `(+N)` annotations, pronoun–verb
 person/number, and verb **valence** — an intransitive-only verb per the
 dictionary's own `v.intr.` tag followed by an object-shaped singular
 animate noun form, with `ne` negation and plural/partitive genitives
-abstaining; a warning fires only when NO combination of analyses is
+abstaining; the animate accusative-genitive syncretism is stated once at
+the record layer, in `api/forms` and the CLI alike (`netopyŕa` carries
+gen.jd. AND akuz.jd. readings; surfaces stay inanimate-declined); a warning fires only when NO combination of analyses is
 compatible, never across punctuation) and applies
 **computed false-friend notes** (`src/falsefriends.rs`: a language's word that
 folds onto an official lemma's surface but whose English Wiktionary glosses

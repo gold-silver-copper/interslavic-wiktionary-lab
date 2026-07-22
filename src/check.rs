@@ -710,9 +710,31 @@ pub fn apply_lexicon(index: &mut Index, rows: Vec<LexiconRow>) -> Result<Applied
             None,
             &row.gloss,
         );
-        // Indeclinables get the lemma record ONLY: a wrongly-inflected form
-        // of them must stay `unknown` — that is the point of the flag.
-        if !row.indeclinable {
+        if row.indeclinable {
+            // An indeclinable noun's single surface IS its every case
+            // (V14.2 item 8): the lemma record carries the full case×number
+            // reading set on the one invariant spelling, so adjective
+            // agreement genuinely consults the REQUIRED gender ('zelena
+            // emu' flags, 'zeleny emu' is clean) — while wrongly-inflected
+            // forms ('emua') still have no record and stay unknown. The
+            // all-case readings also keep it out of the valence trigger
+            // (a form with a nominative reading is never object-shaped).
+            for (nf, _) in forms::NUMBERS {
+                for (cf, _) in forms::CASES {
+                    sink.add(
+                        &row.lemma,
+                        &forms::noun_feature_label(cf, nf),
+                        &row.lemma,
+                        0,
+                        row.pos.code(),
+                        "inflection",
+                        "project",
+                        None,
+                        &row.gloss,
+                    );
+                }
+            }
+        } else {
             forms::project_paradigm_records(
                 &mut sink,
                 &row.lemma,
@@ -2545,6 +2567,25 @@ mod tests {
             bad.iter()
                 .any(|r| r.token == "emua" && r.status == "unknown"),
             "a wrongly-inflected indeclinable must stay unknown: {bad:?}"
+        );
+        // V14.2 item 8: the required gender is REAL — the invariant surface
+        // carries every case reading, so adjective agreement consults it.
+        let mismatch = check_text(&index, "Vidiš zelenu emu.");
+        assert!(
+            mismatch.iter().any(|r| r.agreement.is_some()),
+            "gender mismatch with an indeclinable must flag: {mismatch:?}"
+        );
+        let clean = check_text(&index, "Vidiš zelenogo emu.");
+        assert!(
+            clean.iter().all(|r| r.agreement.is_none()),
+            "agreeing adjective + indeclinable must stay clean: {clean:?}"
+        );
+        // And the all-case readings keep indeclinables out of the valence
+        // trigger: a nominative reading is never object-shaped.
+        let valence = check_text(&index, "On spi emu.");
+        assert!(
+            valence.iter().all(|r| r.agreement.is_none()),
+            "indeclinable after an intransitive must not fire valence: {valence:?}"
         );
 
         // Adoption, against a synthetic novel-words file (the committed one

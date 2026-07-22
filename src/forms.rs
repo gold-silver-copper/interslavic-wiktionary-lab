@@ -1590,10 +1590,11 @@ with `pos` ∈ `noun|adj|verb`, `gender` ∈ `m|f|n` and `animacy` ∈
 `anim|inanim|indecl` (both REQUIRED for nouns — the lexicon exists to
 control the paradigm explicitly — and forbidden otherwise), and a non-empty
 English `gloss` naming the source concept. Blank lines and `#` comments are
-skipped. `indecl` marks an indeclinable loan (`emu`, `zombi`): the word gets
-a lemma record ONLY, so a wrongly-inflected form of it stays `unknown` —
-gender is still required because adjective agreement needs it. `check-text
---lexicon <file>` then:
+skipped. `indecl` marks an indeclinable loan (`emu`, `zombi`): its one
+invariant surface carries EVERY case reading (so adjective agreement
+genuinely consults the required gender — `zelena emu` flags, `zeleny emu`
+is clean), while a wrongly-inflected form (`emua`) has no record and stays
+`unknown`. `check-text --lexicon <file>` then:
 
 - builds each row's full paradigm in memory (same machinery as the official
   paradigms) and classifies matching tokens with status `project` — so a
@@ -1610,10 +1611,14 @@ gender is still required because adjective agreement needs it. `check-text
   shared gloss content token, so an unrelated same-surface proposal arriving
   with a data refresh is a loud error, never a silent adoption. The project
   vouches for the reconstruction and supplies the gender/animacy it lacks;
-  its paradigm then indexes as `project`, and every load prints the
-  disposition summary ("lexicon: 5 rows — 3 coinages, 1 official pin,
-  1 adoption (emu ← 'emu bird')"). coin-check's `--lexicon-row` output and
-  `--json` (`lexicon_row_disposition`) name the disposition too;
+  its paradigm then indexes as `project`, and the dispositions are always
+  visible: the human report prints the load summary ("lexicon: 5 rows —
+  3 coinages, 1 official pin, 1 adoption (emu ← 'emu bird')"), while
+  `--json --summary` carries the same data machine-readably in a `lexicon`
+  field ({{rows, coinages, official_pins, adoptions: [{{lemma,
+  adopted_gloss}}]}}) — bare `--json` stays a bare token array. coin-check's
+  `--lexicon-row` output and `--json` (`lexicon_row_disposition`) name the
+  disposition too;
 - emits `consistency` warnings when a verification-grade official token's
   gloss overlaps a row's gloss (deterministic token overlap, same
   normalization as the English API) but the token is NOT that row's lemma —

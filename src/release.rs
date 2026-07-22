@@ -319,7 +319,10 @@ mod tests {
         let file_a = dir.join("a.tsv").to_string_lossy().to_string();
         std::fs::write(&file_a, "x\t1\n").unwrap();
         let m1 = render_manifest(std::slice::from_ref(&file_a), 1).expect("render");
-        assert_eq!(m1, render_manifest(std::slice::from_ref(&file_a), 1).unwrap());
+        assert_eq!(
+            m1,
+            render_manifest(std::slice::from_ref(&file_a), 1).unwrap()
+        );
         std::fs::write(&file_a, "x\t2\n").unwrap();
         assert_ne!(
             m1,
