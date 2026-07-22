@@ -87,8 +87,9 @@ impl Thesaurus {
                 }
                 let k = key(&isv);
                 let pos = pos_class(e.pos);
-                let gloss: HashSet<String> =
-                    crate::dump::gloss_tokens(&e.english).into_iter().collect();
+                let gloss: HashSet<String> = crate::gloss::content_tokens(&e.english)
+                    .into_iter()
+                    .collect();
                 info.entry((row, k.clone())).or_insert(Info {
                     orig: isv.to_string(),
                     pos,

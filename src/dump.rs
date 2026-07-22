@@ -1687,19 +1687,8 @@ impl ProtoIndex {
     }
 }
 
-/// Lowercase content-word gloss tokens (drop stopwords and short tokens).
-pub fn gloss_tokens(gloss: &str) -> Vec<String> {
-    const STOP: &[&str] = &[
-        "the", "a", "an", "to", "of", "and", "or", "in", "on", "for", "with", "be", "is", "as",
-        "at", "by", "that", "this", "it", "one", "some", "any", "esp", "e", "g",
-    ];
-    gloss
-        .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
-        .filter(|t| t.len() >= 3 && !STOP.contains(t))
-        .map(|t| t.to_string())
-        .collect()
-}
+// Moved verbatim to crate::gloss (V15 item 4); the old path stays valid.
+pub use crate::gloss::content_tokens as gloss_tokens;
 
 #[cfg(test)]
 mod tests {

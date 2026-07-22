@@ -507,7 +507,7 @@ pub(super) fn raw_intl_probabilities(
         if e.genesis.trim() != "I" || e.isv.trim().contains(' ') || e.isv.trim().is_empty() {
             continue;
         }
-        for t in crate::falsefriends::gloss_tokens(&e.english) {
+        for t in crate::gloss::stemmed_tokens(&e.english) {
             by_token.entry(t).or_default().push(i);
         }
     }
@@ -517,7 +517,7 @@ pub(super) fn raw_intl_probabilities(
             continue; // derivational completions inherit their noun's bucket
         }
         let mut rows: std::collections::BTreeSet<usize> = Default::default();
-        for t in crate::falsefriends::gloss_tokens(&c.gloss) {
+        for t in crate::gloss::stemmed_tokens(&c.gloss) {
             if let Some(is) = by_token.get(&t) {
                 rows.extend(is.iter().copied());
             }
@@ -656,7 +656,7 @@ pub(super) fn raw_intl_candidates(
         let mut token_langs: BTreeMap<String, std::collections::BTreeSet<&str>> = BTreeMap::new();
         for (lang, _, glosses) in &members {
             for g in glosses {
-                for t in crate::falsefriends::gloss_tokens(g) {
+                for t in crate::gloss::stemmed_tokens(g) {
                     token_langs.entry(t).or_default().insert(lang.as_str());
                 }
             }
@@ -675,7 +675,7 @@ pub(super) fn raw_intl_candidates(
         for (_, _, glosses) in &members {
             for g in glosses {
                 let g = g.trim();
-                if crate::falsefriends::gloss_tokens(g)
+                if crate::gloss::stemmed_tokens(g)
                     .iter()
                     .any(|t| shared.contains(t.as_str()))
                     && gloss

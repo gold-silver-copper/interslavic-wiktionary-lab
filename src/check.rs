@@ -280,7 +280,7 @@ pub struct LexiconRow {
     /// English gloss of the source concept — drives the consistency check.
     pub gloss: String,
     /// Content tokens of `gloss`, normalized exactly as the English API
-    /// normalizes gloss keys ([`crate::site::english_gloss_tokens`]).
+    /// normalizes gloss keys ([`crate::gloss::english_gloss_tokens`]).
     pub gloss_tokens: std::collections::BTreeSet<String>,
 }
 
@@ -373,7 +373,7 @@ pub fn parse_lexicon(text: &str) -> Result<Vec<LexiconRow>> {
             animate: animate.unwrap_or(false),
             indeclinable,
             gloss: gloss.to_string(),
-            gloss_tokens: crate::site::english_gloss_tokens(gloss),
+            gloss_tokens: crate::gloss::english_gloss_tokens(gloss),
         });
     }
     Ok(rows)
@@ -507,7 +507,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
                     .join(" / ")
             );
             for proposal in &spelled {
-                let proposal_tokens = crate::site::english_gloss_tokens(&proposal.gloss);
+                let proposal_tokens = crate::gloss::english_gloss_tokens(&proposal.gloss);
                 if proposal_tokens
                     .intersection(&row.gloss_tokens)
                     .next()
@@ -1044,7 +1044,7 @@ fn consistency_warning(index: &Index, rs: &[FormRecord], display: &str) -> Optio
     // invariant, and a large text × large lexicon multiplies this cost.
     let record_tokens: Vec<std::collections::BTreeSet<String>> = official
         .iter()
-        .map(|r| crate::site::english_gloss_tokens(&r.gloss))
+        .map(|r| crate::gloss::english_gloss_tokens(&r.gloss))
         .collect();
     for row in &index.lexicon {
         if lemma_keys.contains(&row.lemma_key) {

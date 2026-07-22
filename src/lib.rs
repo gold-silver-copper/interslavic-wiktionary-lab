@@ -14,6 +14,7 @@ pub mod falsefriends;
 pub mod flavorize;
 pub mod forms;
 pub mod generator;
+pub mod gloss;
 pub mod glossxref;
 pub mod inflect_eval;
 pub mod lang;
