@@ -3,6 +3,8 @@
 Newest first. Every entry is written by `refresh-official` and completed by
 the docs/DATA-REFRESH.md ceremony.
 
+### data-v1
+
 ## data-v1 baseline — 18,458 rows (no refresh; machinery release, V14 item 4)
 
 The recorded state of the CURRENT data at the first pinnable release, so

@@ -164,6 +164,11 @@ enum Command {
         /// Regenerate data/MANIFEST.json instead of verifying it.
         #[arg(long)]
         write: bool,
+        /// Set the data-vN release number (schema 2). Omitted, --write
+        /// carries the committed manifest's number forward; passing it is
+        /// the release-bump act in docs/DATA-REFRESH.md's ritual.
+        #[arg(long)]
+        release: Option<u32>,
     },
     /// Install a freshly (MANUALLY) downloaded interslavic-dictionary.com
     /// export and prepend the id-keyed row diff to data/refresh-changelog.md.
@@ -426,7 +431,7 @@ fn main() -> Result<()> {
             (Some(q), None) => site::run_en_lookup(&site, &q, json),
             _ => anyhow::bail!("pass exactly one of <QUERY> or --batch <file>"),
         },
-        Command::DataManifest { write } => release::run_manifest(write),
+        Command::DataManifest { write, release } => release::run_manifest(write, release),
         Command::RefreshOfficial {
             input,
             official,

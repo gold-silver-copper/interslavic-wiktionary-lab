@@ -24,8 +24,11 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
-/// Manifest schema; bump on shape change.
-pub const MANIFEST_SCHEMA: u32 = 1;
+/// Manifest schema; bump on shape change. Schema 2 (V14.2 item 6) adds
+/// `data_release`: the data-vN identity, so a checked-out tree — tarball,
+/// vendored copy, no `.git` — can say which release it is, and changelog
+/// entries map to pins.
+pub const MANIFEST_SCHEMA: u32 = 2;
 pub const MANIFEST_PATH: &str = "data/MANIFEST.json";
 
 fn sha256_file(path: &Path) -> Result<(String, u64)> {
@@ -85,7 +88,20 @@ fn resolved_pin() -> Result<String> {
 /// Render the manifest for an explicit file list — serde_json end to end
 /// (V14.1 finding 6): escaping and well-formedness are structural, and the
 /// byte-exact verification compares canonical serde renderings.
-fn render_manifest(files: &[String]) -> Result<String> {
+/// The release number recorded in the committed manifest — carried forward
+/// by `--write` so ordinary data changes don't restate it; only a release
+/// bump passes `--release N` explicitly.
+fn committed_release() -> Result<u32> {
+    let text = std::fs::read_to_string(MANIFEST_PATH)
+        .with_context(|| format!("{MANIFEST_PATH} missing — first write needs --release N"))?;
+    let v: serde_json::Value = serde_json::from_str(&text).context("parse committed manifest")?;
+    v["data_release"]
+        .as_u64()
+        .map(|n| n as u32)
+        .context("committed manifest has no data_release — regenerate with --release N")
+}
+
+fn render_manifest(files: &[String], data_release: u32) -> Result<String> {
     let mut entries: Vec<serde_json::Value> = Vec::new();
     for path in files {
         let (sha256, bytes) = sha256_file(Path::new(path))?;
@@ -98,6 +114,7 @@ fn render_manifest(files: &[String]) -> Result<String> {
     let (b0, b1, b2) = crate::site::PROBE_BASELINE;
     let manifest = serde_json::json!({
         "schema_version": MANIFEST_SCHEMA,
+        "data_release": data_release,
         "crate_pin": resolved_pin()?,
         "forms_schema": crate::forms::SCHEMA_VERSION,
         "probe_baseline": [b0, b1, b2],
@@ -110,9 +127,13 @@ fn render_manifest(files: &[String]) -> Result<String> {
 /// Verification is byte-exact against a re-render, so ANY covered change —
 /// content, file added, file removed, pin bump, baseline move — fails until
 /// the manifest is regenerated, which is the visible event.
-pub fn run_manifest(write: bool) -> Result<()> {
+pub fn run_manifest(write: bool, release: Option<u32>) -> Result<()> {
     let files = tracked_data_files()?;
-    let rendered = render_manifest(&files)?;
+    let n = match release {
+        Some(n) => n,
+        None => committed_release()?,
+    };
+    let rendered = render_manifest(&files, n)?;
     if write {
         std::fs::write(MANIFEST_PATH, &rendered)?;
         println!("Wrote {MANIFEST_PATH} ({} artifacts)", files.len());
@@ -268,9 +289,10 @@ mod tests {
             "data/MANIFEST.json missing — run `cargo run --release -- data-manifest --write`",
         );
         let files = tracked_data_files().expect("git ls-files");
+        let n = committed_release().expect("committed data_release");
         assert_eq!(
             on_disk,
-            render_manifest(&files).expect("render"),
+            render_manifest(&files, n).expect("render"),
             "data/MANIFEST.json is stale — regenerate with `data-manifest --write` and commit \
              the diff (that diff is the visible event)"
         );
@@ -278,6 +300,11 @@ mod tests {
             serde_json::from_str(&on_disk).expect("manifest must always parse as JSON");
         assert_eq!(parsed["files"].as_array().unwrap().len(), files.len());
         assert!(parsed["crate_pin"].as_str().unwrap().starts_with('='));
+        assert_eq!(parsed["schema_version"], MANIFEST_SCHEMA as u64);
+        assert!(
+            parsed["data_release"].as_u64().is_some(),
+            "schema 2: a tree must know which data-vN it is"
+        );
     }
 
     #[test]
@@ -291,17 +318,17 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let file_a = dir.join("a.tsv").to_string_lossy().to_string();
         std::fs::write(&file_a, "x\t1\n").unwrap();
-        let m1 = render_manifest(std::slice::from_ref(&file_a)).expect("render");
-        assert_eq!(m1, render_manifest(std::slice::from_ref(&file_a)).unwrap());
+        let m1 = render_manifest(std::slice::from_ref(&file_a), 1).expect("render");
+        assert_eq!(m1, render_manifest(std::slice::from_ref(&file_a), 1).unwrap());
         std::fs::write(&file_a, "x\t2\n").unwrap();
         assert_ne!(
             m1,
-            render_manifest(std::slice::from_ref(&file_a)).unwrap(),
+            render_manifest(std::slice::from_ref(&file_a), 1).unwrap(),
             "content change must invalidate"
         );
         let file_b = dir.join("b.tsv").to_string_lossy().to_string();
         std::fs::write(&file_b, "y\n").unwrap();
-        let m2 = render_manifest(&[file_a.clone(), file_b]).expect("render");
+        let m2 = render_manifest(&[file_a.clone(), file_b], 1).expect("render");
         assert_ne!(m1, m2, "added file must change the manifest");
 
         // refresh-official refuses a no-op (identical input).

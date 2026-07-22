@@ -1,5 +1,6 @@
 {
   "crate_pin": "=0.13.0",
+  "data_release": 1,
   "files": [
     {
       "bytes": 26172,
@@ -67,9 +68,9 @@
       "sha256": "442fceefff65dedfc008d178f4c8e3b09f6437613dc4464a8ec3160d512df529"
     },
     {
-      "bytes": 681,
+      "bytes": 694,
       "path": "data/refresh-changelog.md",
-      "sha256": "44a6719a2c7481e240b77ee753f1a091db9d923bdc1ca60e52a008556f52fa49"
+      "sha256": "c2077cd671a6b9e953de444b70e3c4c08ada9ac015f0245d875c63ac486b70fd"
     },
     {
       "bytes": 595,
@@ -93,5 +94,5 @@
     44,
     28
   ],
-  "schema_version": 1
+  "schema_version": 2
 }

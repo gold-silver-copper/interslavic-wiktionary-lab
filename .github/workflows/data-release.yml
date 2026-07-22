@@ -1,0 +1,29 @@
+name: Data release verification
+
+# A data-vN tag IS a release claim (V14.2 item 6): the tagged tree must
+# pass its own manifest verification, so a moved, stale, or malformed
+# release tag becomes a red X instead of a silent lie to consumers.
+on:
+  push:
+    tags: ["data-v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Keep in sync with rust-toolchain.toml, same as ci.yml.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.93.1
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify the tagged tree's manifest
+        run: |
+          cargo run --release -- data-manifest
+          # The tag name must match the manifest's own release identity.
+          n=$(python3 -c "import json; print(json.load(open('data/MANIFEST.json'))['data_release'])")
+          [ "data-v${n}" = "${GITHUB_REF_NAME}" ] \
+            || { echo "::error::tag ${GITHUB_REF_NAME} but manifest says data_release=${n}"; exit 1; }
