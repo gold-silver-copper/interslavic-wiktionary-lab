@@ -21,7 +21,6 @@ use crate::official::{self, OfficialEntry};
 use crate::orthography as ortho;
 use anyhow::Result;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::fmt::Write as _;
 use std::path::Path;
 
 pub const SUGGEST_SHARDS: u32 = 64;

@@ -268,15 +268,20 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
         .by_key
         .get(&folded)
         .map(|recs| {
-            let mut seen: BTreeSet<(String, &str, &str)> = BTreeSet::new();
+            // Gloss is part of the dedup key AND the output (V14.3 item 4):
+            // same-surface homograph proposals are distinct CONCEPTS
+            // (tur/aurochs vs tur/prison), and a coiner deciding whether to
+            // adopt or avoid must see every one of them.
+            let mut seen: BTreeSet<(String, &str, &str, String)> = BTreeSet::new();
             recs.iter()
-                .filter(|r| seen.insert((r.lemma.clone(), r.pos, r.status)))
+                .filter(|r| seen.insert((r.lemma.clone(), r.pos, r.status, r.gloss.clone())))
                 .map(|r| {
                     serde_json::json!({
                         "lemma": r.lemma,
                         "pos": r.pos,
                         "status": r.status,
                         "as": if r.source == "lemma" { "lemma" } else { "inflected form" },
+                        "gloss": r.gloss,
                     })
                 })
                 .collect()
@@ -435,6 +440,14 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
             Some(Ok((row, disposition))) => {
                 out["lexicon_row"] = serde_json::json!(row);
                 out["lexicon_row_disposition"] = serde_json::json!(disposition.label());
+                // WHICH concept, not just that adoption happened (V14.3
+                // item 4) — the pre-commit tool must match check-text's
+                // envelope in specificity.
+                if let crate::check::RowDisposition::GeneratedAdoption { adopted_gloss } =
+                    disposition
+                {
+                    out["adopted_gloss"] = serde_json::json!(adopted_gloss);
+                }
             }
             // Agents get the rejection in-band too; the nonzero exit below
             // still fires after the full report is printed.
@@ -463,11 +476,17 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
             println!("  collision    : WARN — {n} existing record(s):");
             for c in collisions.iter().take(5) {
                 println!(
-                    "                   {} ({} {}, as {})",
+                    "                   {} ({} {}, as {}) — {}",
                     c["lemma"].as_str().unwrap_or(""),
                     c["status"].as_str().unwrap_or(""),
                     c["pos"].as_str().unwrap_or(""),
                     c["as"].as_str().unwrap_or(""),
+                    c["gloss"]
+                        .as_str()
+                        .unwrap_or("")
+                        .chars()
+                        .take(40)
+                        .collect::<String>(),
                 );
             }
         }
@@ -542,8 +561,14 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
     match &lexicon_row {
         Some(Ok((row, disposition))) => {
             println!("  lexicon row  : {}", row.replace('\t', "\\t"));
+            let adopts = match disposition {
+                crate::check::RowDisposition::GeneratedAdoption { adopted_gloss } => {
+                    format!(" — adopts the proposal glossed '{adopted_gloss}'")
+                }
+                _ => String::new(),
+            };
             println!(
-                "                 (disposition: {}; append the raw TSV line to your project lexicon; --json carries it in 'lexicon_row')",
+                "                 (disposition: {}{adopts}; append the raw TSV line to your project lexicon; --json carries it in 'lexicon_row')",
                 disposition.label()
             );
         }
@@ -709,6 +734,30 @@ mod tests {
                 Some(false)
             ),
             "emu\tnoun\tm\tindecl\temu"
+        );
+    }
+
+    /// V14.3 item 4: the collision axis lists every same-surface CONCEPT
+    /// (gloss in the dedup key and the output) — a coiner must see both
+    /// tur proposals, not one gloss-less row.
+    #[test]
+    fn collision_axis_shows_every_homograph_concept() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
+        let index = crate::check::build_index(
+            &entries,
+            Some(Path::new("data/novel-words.tsv")),
+            Default::default(),
+        );
+        let recs = index.by_key.get("tur").expect("tur proposals");
+        let glosses: std::collections::BTreeSet<&str> = recs
+            .iter()
+            .filter(|r| r.status == "generated")
+            .map(|r| r.gloss.as_str())
+            .collect();
+        assert!(
+            glosses.iter().any(|g| g.contains("aurochs"))
+                && glosses.iter().any(|g| g.contains("prison")),
+            "both concepts must be distinct records with their glosses: {glosses:?}"
         );
     }
 
