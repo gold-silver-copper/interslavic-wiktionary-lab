@@ -1917,6 +1917,57 @@ mod tests {
         );
     }
 
+    /// interslavic 0.12.0: the full numeral inventory declines. The two
+    /// cells the release CHANGED are pinned with their lemma and analysis
+    /// (a rerouted homograph must not pass silently); the additive classes
+    /// (hundreds, tens, collectives, sedm/osm) are pinned by existence;
+    /// and the dual-archaic dvěma stays unknown (the crate's instrumental
+    /// is dvoma).
+    #[test]
+    fn numeral_inventory_resolves() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None, Default::default());
+        // Changed cells: masculine-animate accusative and the neuter
+        // nom/acc now shared with the feminine — both must belong to dva.
+        for (tok, analysis) in [("dvoh", "akuz. m.živ."), ("dvě", "akuz. sr.")] {
+            let reps = check_tokens(&index, &tokenize(tok));
+            let rep = &reps[0];
+            assert!(
+                rep.lemmas.iter().any(|l| l == "dva"),
+                "'{tok}' must belong to dva: {:?}",
+                rep.lemmas
+            );
+            assert!(
+                rep.analyses.iter().any(|a| a == analysis),
+                "'{tok}' must carry '{analysis}': {:?}",
+                rep.analyses
+            );
+        }
+        for tok in [
+            "trěh",
+            "dvoma",
+            "sedm",
+            "osm",
+            "dvěstě",
+            "devęťsȯt",
+            "pęťdesęt",
+            "dvojih",
+        ] {
+            let reps = check_tokens(&index, &tokenize(tok));
+            assert!(
+                reps.iter().all(|r| r.status != "unknown"),
+                "'{tok}' must resolve: {:?}",
+                reps.iter().map(|r| r.status).collect::<Vec<_>>()
+            );
+        }
+        let dvema = check_tokens(&index, &tokenize("dvěma"));
+        assert!(
+            dvema.iter().all(|r| r.status == "unknown"),
+            "the dual-archaic dvěma must stay unknown (crate instrumental is dvoma): {:?}",
+            dvema.iter().map(|r| r.status).collect::<Vec<_>>()
+        );
+    }
+
     /// V13 item 1: a broken lexicon is a hard error, never a silent
     /// weakening of the gate — syntax, crate-requirement, collision, and
     /// official-pin contradictions all reject.

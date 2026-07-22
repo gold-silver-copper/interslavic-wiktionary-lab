@@ -1480,8 +1480,12 @@ The index now includes, beyond noun/adjective/verb paradigms: **declined
 participles** (passive and active-present, adjectival paradigms under the verb
 lemma, features prefixed `part.…`), **comparatives and superlatives**
 (declined, `komp.`/`superl.` prefixes, plus their adverbs), **pronoun and
-numeral paradigms** (toj-class, moj-class, kto/čto, veś, jedin, dva/tri/
-četyri, i-stem numerals — from the interslavic crate's declension),
+numeral paradigms** (toj-class, moj-class, kto/čto, veś, and — from the
+interslavic crate's full numeral inventory (0.12.0) — jedin, the
+dva/oba/tri/četyri family with masculine-animate accusatives (`dvoh`,
+`trěh`) and the shared feminine/neuter `dvě`, i-stem numerals, sedm/osm,
+the declinable hundreds (`dvěstě`…`devęťsȯt`), the `-desęt` tens,
+collectives (`dvoje` → `dvojih`), and `-ina`/`-ka` fractionals),
 **personal and reflexive pronouns in all three form series** (full forms
 with bare case labels, clitics labeled `klit.`, and the third person's
 prepositional n- forms labeled `po predlogu`: `tebe` / `tę` / `njego`),
