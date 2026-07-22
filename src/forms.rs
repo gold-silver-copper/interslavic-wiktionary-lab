@@ -693,7 +693,9 @@ pub fn noun_feature_label(case: &str, number: &str) -> String {
 /// export's), which is what the module doctrine above promises. The `'m'`
 /// restriction is linguistically required: feminine a-stems have distinct
 /// accusatives (enriching `ženy` would be wrong), and neuter accusatives
-/// are nominative-shaped.
+/// are nominative-shaped. The PLURAL readings serve preposition government
+/// and API consumers (`na vojakov`); the valence check deliberately never
+/// fires on plurals (conceded to the partitive — see the agent guide).
 pub fn enrich_animate_accusatives(
     records: &mut [FormRecord],
     masc_animate_keys: &std::collections::HashSet<String>,
@@ -1626,7 +1628,9 @@ government from the dictionary's own `(+N)` annotations, pronoun–verb
 person/number, and — V14 — verb VALENCE: an intransitive-only verb, per the
 dictionary's own `v.intr.` tag, followed by an unambiguously object-shaped
 SINGULAR noun form, i.e. the animate accusative-genitive syncretism, with
-`ne` negation and plural/partitive genitives abstaining) that fires only
+`ne` negation abstaining — and plural object-shaped forms NEVER firing, a
+deliberate concession: an animate genitive plural after an intransitive is
+indistinguishable from a quantitative/partitive genitive) that fires only
 when NO combination of the tokens' analyses is compatible and both tokens
 are POS-unambiguous verification-grade words. The record layer states the
 masculine animate accusative-genitive syncretism once, EVERYWHERE:

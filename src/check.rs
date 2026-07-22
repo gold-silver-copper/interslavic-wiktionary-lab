@@ -2134,6 +2134,18 @@ mod tests {
                 "seeded valence error NOT flagged: {s}"
             );
         }
+        // CONCEDED CLASS, pinned as a decision (V14.2 item 5): an animate
+        // genitive PLURAL after an intransitive is indistinguishable from a
+        // quantitative genitive — 'Pribyvaje vojakov' carries no numeral to
+        // key on either — so 'On spi žabervokov' (a real error) must stay
+        // silent. Widening the trigger to plurals would convert every
+        // partitive into a false flag; if this assertion ever needs to
+        // flip, that trade-off is being re-made and must be re-argued.
+        let conceded = check_text(&lex_index, "On spi žabervokov.");
+        assert!(
+            conceded.iter().all(|r| r.agreement.is_none()),
+            "the plural-object concession was silently un-conceded: {conceded:?}"
+        );
     }
 
     #[test]
