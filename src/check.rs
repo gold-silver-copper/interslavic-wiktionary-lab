@@ -101,10 +101,15 @@ pub fn build_index(
             // lemma-only.
             let single = !isv.contains(' ') || isv.ends_with(" sę");
             if e.pos == Pos::Verb {
-                let v = valence_char(&e.pos_raw);
-                if v != ' ' {
-                    absorb_insert(&mut verb_valence, forms::form_key(isv), v);
-                }
+                // Untagged/aux senses absorb too (V14.1 finding 5): a
+                // homograph with one tagged and one untagged sense must
+                // read ' ' (abstain), exactly as both doc comments promise
+                // — iměti (v.tr. + v.aux.) is the live case.
+                absorb_insert(
+                    &mut verb_valence,
+                    forms::form_key(isv),
+                    valence_char(&e.pos_raw),
+                );
             }
             if e.pos == Pos::Noun {
                 absorb_insert(
@@ -369,17 +374,8 @@ pub fn parse_lexicon(text: &str) -> Result<Vec<LexiconRow>> {
         };
         // `indecl` is a VALUE of the animacy column, not a sixth column —
         // the 5-column format and the coin-check hand-off stay intact.
-        let (animate, indeclinable) = match animacy_raw {
-            "" => (None, false),
-            "anim" => (Some(true), false),
-            "inanim" => (Some(false), false),
-            "indecl" => (Some(false), true),
-            other => {
-                anyhow::bail!(
-                    "lexicon line {n}: animacy must be anim|inanim|indecl or blank, got '{other}'"
-                )
-            }
-        };
+        let (animate, indeclinable) =
+            parse_animacy(animacy_raw).map_err(|e| anyhow::anyhow!("lexicon line {n}: {e}"))?;
         if pos == Pos::Noun {
             // A project lexicon exists to control the paradigm explicitly
             // (`ISV::noun_with`); a guessed gender would silently weaken it.
@@ -439,6 +435,20 @@ pub enum RowDisposition {
     /// gender/animacy metadata the generated record lacks, so the paradigm
     /// can be indexed as `project`.
     GeneratedAdoption,
+}
+
+/// The animacy-column vocabulary, defined ONCE (V14.1 finding 10) — the
+/// coin-check→check-text row contract cannot drift when both sides parse
+/// through this. Returns (animate, indeclinable); `indecl` implies
+/// inanimate-declension semantics with NO paradigm at all.
+pub fn parse_animacy(raw: &str) -> Result<(Option<bool>, bool)> {
+    match raw {
+        "" => Ok((None, false)),
+        "anim" => Ok((Some(true), false)),
+        "inanim" => Ok((Some(false), false)),
+        "indecl" => Ok((Some(false), true)),
+        other => anyhow::bail!("animacy must be anim|inanim|indecl or blank, got '{other}'"),
+    }
 }
 
 /// Validate one lexicon row against the built index: the row must pass
@@ -2278,6 +2288,28 @@ mod tests {
             "the dual-archaic dvěma must stay unknown (crate instrumental is dvoma): {:?}",
             dvema.iter().map(|r| r.status).collect::<Vec<_>>()
         );
+    }
+
+    /// V14.1 finding 5: the absorb discipline covers untagged/aux senses —
+    /// a homograph with one tagged and one untagged official sense abstains.
+    #[test]
+    fn valence_absorbs_untagged_and_aux_senses() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None, Default::default());
+        assert_eq!(
+            index.verb_valence.get(&forms::form_key("iměti")),
+            Some(&' '),
+            "iměti has v.tr. and v.aux. senses — must abstain"
+        );
+        assert_eq!(
+            index.verb_valence.get(&forms::form_key("hybiti")),
+            Some(&'i'),
+            "a pure v.intr. lemma keeps its concrete valence"
+        );
+        // The shared animacy vocabulary (finding 10): one parser, both sides.
+        assert!(parse_animacy("indecl").unwrap().1);
+        assert_eq!(parse_animacy("anim").unwrap(), (Some(true), false));
+        assert!(parse_animacy("dead").is_err());
     }
 
     /// V14 item 2: indeclinable lexicon nouns get a lemma record ONLY (a

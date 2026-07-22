@@ -134,13 +134,10 @@ impl Overrides {
             Some("n") => Some(crate::model::Gender::Neuter),
             Some(other) => anyhow::bail!("--gender must be m|f|n, got '{other}'"),
         };
-        let (animate, indeclinable) = match animacy {
-            None => (None, false),
-            Some("anim") => (Some(true), false),
-            Some("inanim") => (Some(false), false),
-            Some("indecl") => (Some(false), true),
-            Some(other) => anyhow::bail!("--animacy must be anim|inanim|indecl, got '{other}'"),
-        };
+        // Shared vocabulary with parse_lexicon (V14.1 finding 10): the row
+        // this tool emits and the row check-text validates cannot disagree.
+        let (animate, indeclinable) = crate::check::parse_animacy(animacy.unwrap_or(""))
+            .map_err(|e| anyhow::anyhow!("--animacy: {e}"))?;
         anyhow::ensure!(
             !lexicon_row || gloss.as_deref().is_some_and(|g| !g.trim().is_empty()),
             "--lexicon-row needs --gloss <english concept> (the lexicon's consistency check reads it)"
