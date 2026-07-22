@@ -1917,6 +1917,35 @@ mod tests {
         );
     }
 
+    /// interslavic 0.12.0: the full numeral inventory declines — the
+    /// changed masculine-animate accusatives, the widened additive
+    /// coverage (hundreds, tens, collectives, sedm/osm), and the crate's
+    /// actual instrumental (dvoma, not the dual-archaic dvěma).
+    #[test]
+    fn numeral_inventory_resolves() {
+        let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
+        let index = build_index(&entries, None, Default::default());
+        for tok in [
+            "dvoh",
+            "trěh",
+            "dvě",
+            "dvoma", // dva-family incl. changed cells
+            "sedm",
+            "osm",
+            "dvěstě",
+            "devęťsȯt",
+            "pęťdesęt",
+            "dvojih",
+        ] {
+            let reps = check_tokens(&index, &tokenize(tok));
+            assert!(
+                reps.iter().all(|r| r.status != "unknown"),
+                "'{tok}' must resolve: {:?}",
+                reps.iter().map(|r| r.status).collect::<Vec<_>>()
+            );
+        }
+    }
+
     /// V13 item 1: a broken lexicon is a hard error, never a silent
     /// weakening of the gate — syntax, crate-requirement, collision, and
     /// official-pin contradictions all reject.
