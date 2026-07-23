@@ -17,7 +17,7 @@ use super::special::{
 use crate::consensus::MeaningInput;
 use crate::lang::Branch;
 use crate::model::Confidence;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::Path;
@@ -420,12 +420,19 @@ pub(super) fn homograph_groups(
     groups
 }
 
-pub(super) fn load_curation_notes() -> std::collections::HashMap<String, String> {
+/// Same posture as dump::load_optional (V15 item 10): an absent notes file
+/// is a normal state (empty map), but an existing-but-corrupt one is a hard
+/// error — it used to silently strip every curation note from the site.
+pub(super) fn load_curation_notes() -> anyhow::Result<std::collections::HashMap<String, String>> {
     let path = Path::new("data/curation-notes.json");
-    let Ok(raw) = std::fs::read_to_string(path) else {
-        return std::collections::HashMap::new();
+    let raw = match std::fs::read_to_string(path) {
+        Ok(raw) => raw,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(std::collections::HashMap::new())
+        }
+        Err(e) => return Err(e).context("read data/curation-notes.json"),
     };
-    serde_json::from_str::<std::collections::HashMap<String, String>>(&raw).unwrap_or_default()
+    serde_json::from_str(&raw).context("parse data/curation-notes.json")
 }
 
 pub(super) fn add_edge(

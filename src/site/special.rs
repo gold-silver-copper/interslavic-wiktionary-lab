@@ -6,7 +6,7 @@
 use super::assets::{forms_js, FORMS_PAGE_JS, TEXT_CHECK_JS};
 use super::layout::{compact, esc, json_str, pos_code_label, truncate};
 use super::model::{
-    ancestor_slug, razum_pct, slug, BuildMeta, SiteEntryMeta, RAZUM_TITLE, REPO_URL, SITE_URL,
+    ancestor_slug, razum_pct, slug, BuildMeta, SiteEntryMeta, RAZUM_TITLE, SITE_URL,
 };
 use super::search::search_js;
 use crate::lang::Branch;
@@ -1205,41 +1205,4 @@ pub(super) fn metrics_page(
     );
     let body = format!("{head}\n  {calib}{tail}");
     page("Statistiky točnosti — medžuslovjansky", &body, 0)
-}
-
-pub(super) fn about_page(n: usize, norm_rate: f32, exact_rate: f32, top3: f32) -> String {
-    let body = format!(
-        "<article class='entry'>
-           <h1>O metodě</h1>
-           <p class='lede'>Toj slovnik ne je rųčno napisany — vsaka forma je <b>generovana</b> iz slovjanskyh dokazov i měrjena protiv oficialnogo medžuslovjanskogo slovnika.</p>
-
-           <h2>Dvostupnjovy model</h2>
-           <p>Za vsaky smysl:</p>
-           <ol>
-             <li><b>Konsensus izbira korenj.</b> Iz srodnyh slov v {langs} slovjanskyh językah glasujemo po <i>větvah</i> (izток / zapad / jug), da najveći język ne dominuje. Šest poddialektnyh grup s populacijnym vagom rěša, kotory korenj je najbolje medžuslovjansky.</li>
-             <li><b>Praslovjansko pravilo davaje formu.</b> Kǫda smysl je bez utečki povezany s praslovjanskoju rekonstrukcijeju (*word) črěz naslědnikov + glosų, determinističny stroj izvodi formų s pravilnymi variantnymi znakami (ě, ć/đ, å, ȯ, y), kotoryh moderne refleksy ne mogųt vȯzstanoviti.</li>
-           </ol>
-
-           <h2>Točnost (měrjeno)</h2>
-           <div class='statgrid'>
-             <div class='stat ok'><div class='statnum'>{exact:.1}%</div><div class='statlbl'>povno točno</div></div>
-             <div class='stat'><div class='statnum'>{norm:.1}%</div><div class='statlbl'>normalizovano — pŕvy izbor</div></div>
-             <div class='stat'><div class='statnum'>{top3:.1}%</div><div class='statlbl'>pŕve 3</div></div>
-           </div>
-           <p class='muted'>Testovo množstvo: {n} zapisov s ≥2 modernymi srodnymi slovami. Generator nikǫda ne vidi oficialnų formų — jedino srodne slova + čęsť rěči + glosų — tako da měrjenje je bez propuščanja. Vsako pravilo je zadŕžano jedino ako je izměrjeno pobolšanje (lěstvica odstranjenja).</p>
-
-           <h2>Poznaty prědel</h2>
-           <p>Okolo 38% ostatnyh razlik sųt <i>redakcijne</i> izbory (medžuslovjansky komitet izbral menšinny korenj) kotore se ne mogųt vȯzstanoviti iz modernyh srodnyh slov. Čestny algoritmičny prědel je okolo 45–48% točno.</p>
-
-           <h2>Izvory i licencija</h2>
-           <p>Oficialny slovnik: interslavic-dictionary.com. Praslovjanske rekonstrukcije: Wiktionary (CC BY-SA). Formy prěgibanja: interslavic-rs. Kod: <a href='{repo}'>MIT</a>.</p>
-         </article>",
-        langs = 11,
-        exact = exact_rate,
-        norm = norm_rate,
-        top3 = top3,
-        n = compact(n),
-        repo = REPO_URL,
-    );
-    page("O metodě — medžuslovjansky generator", &body, 0)
 }

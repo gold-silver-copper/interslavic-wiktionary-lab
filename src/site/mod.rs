@@ -13,8 +13,8 @@ use self::coverage::{
     select_official_surface, OfficialSurface,
 };
 use self::entries::{
-    branch_evidence, build_input, corpus_about, corpus_entry_page, corpus_home, derivation_block,
-    entry_page, family_block, official_only_page, raw_lemma_page, synonyms_block, CorpusHomeInput,
+    build_input, corpus_about, corpus_entry_page, corpus_home, derivation_block, family_block,
+    official_only_page, raw_lemma_page, synonyms_block, CorpusHomeInput,
 };
 use self::layout::{json_str, truncate};
 use self::model::{
@@ -29,17 +29,15 @@ use self::navigation::{
     write_wiki_indexes, WikiIndexInput,
 };
 use self::search::{
-    collect_source_aliases, conf_letter, home_page, keys_json, official_cell_pairs, search_keys,
-    search_page, search_row_buckets, source_aliases_json, write_search_index, HomeRow, SearchRow,
-    SourceAlias,
+    collect_source_aliases, conf_letter, keys_json, official_cell_pairs, search_keys, search_page,
+    search_row_buckets, source_aliases_json, write_search_index, HomeRow, SearchRow, SourceAlias,
 };
 use self::special::{
-    about_page, build_proto_reflex_index, build_rule_index, datasets_coverage_section,
-    datasets_page, forms_page, metrics_page, proposals_page, text_check_page, write_deriv_pages,
-    DerivAgg, ProposalRow,
+    build_proto_reflex_index, build_rule_index, datasets_coverage_section, datasets_page,
+    forms_page, metrics_page, proposals_page, text_check_page, write_deriv_pages, DerivAgg,
+    ProposalRow,
 };
 use crate::consensus::ConsensusConfig;
-use crate::generator;
 use crate::model::{Confidence, MatchStatus};
 use crate::official::{self, OfficialEntry};
 use anyhow::Result;
@@ -68,227 +66,6 @@ fn add_official_byform_keys<'a>(
         }
     }
 }
-
-/// Generate the whole static site under `out_dir`.
-pub fn export(official_path: &Path, out_dir: &Path) -> Result<()> {
-    let entries = official::load(official_path)?;
-    let cfg = ConsensusConfig::production();
-    let proto_path = Path::new(crate::DEFAULT_PROTO_CACHE);
-    let proto_index = crate::dump::load_optional(proto_path, |p| {
-        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
-    })?;
-    let proto = proto_index.as_ref();
-    if proto.is_some() {
-        println!("Using Proto-Slavic cache for reconstruction-derived forms.");
-    }
-    // Calibrated confidence for display (issue #77): the legacy candidate
-    // scores are the calibrator's native scale, so badges re-bucket through
-    // the fitted probability map. Absent file → raw-score buckets stand.
-    let calibration = crate::calibrate::Calibration::load_for_domain(
-        Path::new(crate::calibrate::PATH),
-        crate::calibrate::PIPELINE_SCORE_DOMAIN,
-    )?;
-    if calibration.is_none() {
-        println!(
-            "(no {} — run `evaluate` to fit the calibrator; badges fall back to raw-score buckets)",
-            crate::calibrate::PATH
-        );
-    }
-
-    let entry_dir = out_dir.join("entry");
-    std::fs::create_dir_all(&entry_dir)?;
-
-    // Streaming pass: render each entry, accumulate the search index + stats.
-    let mut search_rows: Vec<SearchRow> = Vec::new();
-    let mut top_rows: Vec<HomeRow> = Vec::new();
-    let (mut n, mut n_match, mut n_diff, mut n_none, mut n_exact, mut n_top3) =
-        (0usize, 0, 0, 0, 0, 0);
-
-    let mut id = 0usize;
-    for entry in &entries {
-        let input = build_input(entry);
-        if input.forms.iter().filter(|f| f.modern).count() < 2 || entry.isv.trim().is_empty() {
-            continue;
-        }
-        let official_byforms: Vec<String> = entry
-            .citation_byforms()
-            .into_iter()
-            .filter(|byform| !byform.form.contains(' '))
-            .map(|byform| byform.form)
-            .collect();
-        let mut g = generator::generate_with_official_byforms(
-            &input,
-            official_byforms.iter().map(String::as_str),
-            proto,
-            &cfg,
-        );
-        // Display badges come from the calibrated probability, never the raw
-        // score (issue #77); scores/ordering stay untouched.
-        if let Some(cal) = &calibration {
-            for c in g.candidates.iter_mut() {
-                c.confidence = Confidence::from_probability(cal.probability(c.score));
-            }
-        }
-        let Some(top) = g.candidates.first() else {
-            continue;
-        };
-        id += 1;
-        n += 1;
-        match g.match_status {
-            MatchStatus::OfficialMatch => n_match += 1,
-            MatchStatus::DiffersFromOfficial => n_diff += 1,
-            MatchStatus::NoOfficialEntry => n_none += 1,
-        }
-        if !official_byforms.is_empty() {
-            if official_byforms
-                .iter()
-                .any(|off| crate::orthography::exact_match(&top.form, off))
-            {
-                n_exact += 1;
-            }
-            if g.candidates.iter().take(3).any(|c| {
-                official_byforms
-                    .iter()
-                    .any(|off| crate::orthography::normalized_match(&c.form, off))
-            }) {
-                n_top3 += 1;
-            }
-        }
-        let form = top.form.clone();
-        let evidence = branch_evidence(&input);
-        let html = entry_page(id, entry, &g, &evidence, calibration.as_ref());
-        std::fs::write(entry_dir.join(format!("{id}.html")), html)?;
-
-        // search index row (14-element schema shared with the corpus path).
-        let statuschar = match g.match_status {
-            MatchStatus::OfficialMatch => "O",
-            MatchStatus::DiffersFromOfficial => "D",
-            MatchStatus::NoOfficialEntry => "N",
-        };
-        let mut keys = search_keys(&g.candidates, &form);
-        if !official_byforms.is_empty() {
-            // The official lemma is searchable even when no candidate spells it:
-            // point it at the candidate that agrees (normalized), else the top.
-            let rank = g
-                .candidates
-                .iter()
-                .position(|c| {
-                    official_byforms
-                        .iter()
-                        .any(|off| crate::orthography::normalized_match(&c.form, off))
-                })
-                .map_or(1, |i| i + 1);
-            add_official_byform_keys(
-                &mut keys,
-                official_byforms.iter().map(String::as_str),
-                &form,
-                rank,
-            );
-        }
-        let gloss70 = truncate(&entry.english, 70);
-        // Razumlivost (element 12) from the committee's own sameInLanguages
-        // attestation — the translation cells are filled for every language
-        // and would claim a constant ~99%; null when the column is empty.
-        let razum = {
-            let same_in = entry.same_in_langs();
-            if same_in.is_empty() {
-                "null".to_string()
-            } else {
-                (crate::lang::razumlivost(&same_in).overall.round() as u32).to_string()
-            }
-        };
-        search_rows.push(SearchRow {
-            id,
-            head: format!(
-                "[{},{},{},{},{},{},{},1,1,0,{},{},{}",
-                id,
-                json_str(&form),
-                json_str(&gloss70),
-                json_str(entry.pos.code()),
-                json_str(statuschar),
-                json_str(conf_letter(top.confidence)),
-                keys_json(&keys),
-                json_str(""),
-                json_str(""),
-                razum,
-            ),
-            aliases: "[]".to_string(),
-            core: true,
-            buckets: search_row_buckets(&form, &gloss70, &keys, &[]),
-        });
-        let freq = entry.frequency.unwrap_or(0.0);
-        top_rows.push(HomeRow {
-            freq,
-            id,
-            form,
-            gloss: entry.english.clone(),
-            pos: entry.pos.code().to_string(),
-            status: g.match_status,
-            conf: top.confidence,
-            score: top.score,
-            prob: calibration.as_ref().map(|c| c.probability(top.score)),
-        });
-    }
-    write_search_index(out_dir, &search_rows)?;
-    let _ = std::fs::remove_file(out_dir.join("search.json"));
-    std::fs::write(out_dir.join("wiktionary.css"), css())?;
-    std::fs::write(out_dir.join(".nojekyll"), "")?; // don't run Jekyll on GitHub Pages
-
-    // Home page: stats + client-side search + the most frequent entries.
-    top_rows.sort_by(|a, b| b.freq.total_cmp(&a.freq));
-    let with_official = n_match + n_diff;
-    let rate = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
-    let home = home_page(
-        n,
-        n_match,
-        n_diff,
-        n_none,
-        rate(n_match, with_official),
-        rate(n_exact, with_official),
-        &top_rows,
-    );
-    std::fs::write(out_dir.join("index.html"), home)?;
-    std::fs::write(out_dir.join("search.html"), search_page())?;
-    std::fs::write(out_dir.join("forms.html"), forms_page())?;
-    std::fs::write(out_dir.join("text-check.html"), text_check_page())?;
-    std::fs::write(
-        out_dir.join("about.html"),
-        about_page(
-            n,
-            rate(n_match, with_official),
-            rate(n_exact, with_official),
-            rate(n_top3, with_official),
-        ),
-    )?;
-
-    println!(
-        "wrote {} static pages to {} ({} match official, {} differ, {} no official, {:.1}% normalized match)",
-        n,
-        out_dir.display(),
-        n_match,
-        n_diff,
-        n_none,
-        rate(n_match, with_official)
-    );
-    let panics = crate::forms::inflection_panic_count();
-    if panics > 0 {
-        println!(
-            "note: {panics} inflection cells left blank (stems the bundled inflector can't decline)"
-        );
-    }
-    Ok(())
-}
-
-// ===========================================================================
-// Corpus-driven site: a cognate-set dictionary built from ALL inherited Slavic
-// lemmas in Wiktionary, independent of the official Interslavic dictionary.
-// ===========================================================================
 
 /// Core IDs are assigned from the finalized deterministic export order. They
 /// deliberately do not consult previous output or a compatibility registry:
@@ -958,7 +735,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         out_dir.join("build-info.json"),
         special::build_info_json(&build_meta)?,
     )?;
-    let curation = load_curation_notes();
+    let curation = load_curation_notes()?;
     let edges = build_edges(
         &prepared,
         &families,

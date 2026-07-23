@@ -369,15 +369,17 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Export { official, out } => {
             forms::install_cli_quiet_inflection_hook();
-            // The site is the cognate-set dictionary built from the Wiktionary
-            // Slavic-lemma corpus when it's available; otherwise fall back to the
-            // official-dictionary-seeded site.
+            // The official-only fallback site is gone (V15 item 10): its
+            // renderers had rotted unmaintained beside the real corpus site,
+            // so an absent lemma cache now names the regen command instead
+            // of silently shipping a different, broken site.
             let lemmas = std::path::Path::new(DEFAULT_LEMMA_CACHE);
-            if lemmas.exists() {
-                site::export_corpus(lemmas, &official, &out)
-            } else {
-                site::export(&official, &out)
-            }
+            anyhow::ensure!(
+                lemmas.exists(),
+                "{DEFAULT_LEMMA_CACHE} is missing — run `make extract-lemmas` first \
+                 (the official-only fallback site was removed in V15)"
+            );
+            site::export_corpus(lemmas, &official, &out)
         }
         Command::ExtractProto { dump, out } => dump::extract(&dump, &out),
         Command::ExtractLemmas { dump, out } => dump::extract_lemmas(&dump, &out),

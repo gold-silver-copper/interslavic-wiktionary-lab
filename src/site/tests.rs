@@ -17,7 +17,7 @@ use super::coverage::{
     inject_generated_derivatives, insert_official_byform_aliases, official_surface_maps,
     plan_raw_pages, raw_lemma_fate, select_official_entry, select_official_surface, RawFate,
 };
-use super::entries::{cognate_block, entry_page, noun_table, word_chip};
+use super::entries::{cognate_block, noun_table, word_chip};
 use super::layout::json_str;
 use super::model::{
     format_source_date_epoch, proto_stem, razum_pct, BuildMeta, HeadwordIndex, SiteEntryInput,
@@ -38,7 +38,7 @@ use super::special::{
 };
 use super::DeterministicEntryIds;
 use crate::consensus::ConsensusConfig;
-use crate::model::{Candidate, CandidateSource, Confidence, MatchStatus, Pos};
+use crate::model::{Candidate, CandidateSource, Confidence, Pos};
 use interslavic::{
     Animacy as IsvAnimacy, Case as IsvCase, Gender as IsvGender, Number as IsvNumber,
 };
@@ -67,40 +67,6 @@ fn branch_pattern_renders_the_seven_combinations_canonically() {
     );
     assert_eq!(branch_pattern(&l(&["xx"])), None);
     assert_eq!(branch_pattern(&[]), None);
-}
-
-#[test]
-fn dictionary_seeded_banner_uses_sanitized_official_byform() {
-    let entry = crate::official::OfficialEntry {
-        id: "synthetic".to_string(),
-        isv: "foo, bar".to_string(),
-        addition: String::new(),
-        pos_raw: "adj.".to_string(),
-        pos: Pos::Adjective,
-        noun_traits: crate::model::NounTraits::default(),
-        english: "sample gloss".to_string(),
-        same_in: String::new(),
-        genesis: String::new(),
-        cells: std::collections::HashMap::new(),
-        frequency: None,
-        de: String::new(),
-        nl: String::new(),
-        eo: String::new(),
-        intelligibility: String::new(),
-        using_example: String::new(),
-    };
-    let mut candidate = Candidate::new("bar".to_string(), CandidateSource::BranchConsensus, 0.9);
-    candidate.confidence = Confidence::High;
-    let generation = crate::generator::Generation {
-        candidates: vec![candidate],
-        official: Some("bar".to_string()),
-        match_status: MatchStatus::OfficialMatch,
-        reconstruction: None,
-    };
-
-    let html = entry_page(1, &entry, &generation, &[], None);
-    assert!(html.contains("oficialnomu slovniku: <span class='mention'>bar</span>"));
-    assert!(!html.contains("foo, bar"));
 }
 
 #[test]
