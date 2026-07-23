@@ -93,10 +93,13 @@ never re-sort variants, and must not assume any ordering other than
 ## 5. Build provenance
 
 Every deployed tree carries `build-info.json` at its root: git revision,
-crate name/version, the exact `interslavic` crate pin, the pinned
-`data_release`, and the sha256 of each input cache. Use it to identify what
-produced the artifacts you are consuming; it is generated from committed
-inputs only and is deterministic for a given checkout.
+crate name/version, the RESOLVED `interslavic` version from Cargo.lock
+(field `interslavic`, plain version with no constraint operator — truthful
+even under a `[patch]` override), the pinned `data_release`, and the sha256
+of each input cache (the same digests `data/MANIFEST.json` publishes). Use
+it to identify what produced the artifacts you are consuming; it is
+generated from committed inputs only and is deterministic for a given
+checkout.
 
 ## 6. Never post-process
 

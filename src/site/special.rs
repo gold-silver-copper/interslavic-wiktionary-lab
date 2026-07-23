@@ -926,35 +926,24 @@ pub(super) fn datasets_coverage_section(
     s
 }
 
-/// site/build-info.json (V15 item 8, adopted from reproducible-builds
-/// practice): the machine-readable provenance stamp - git revision, crate
-/// versions, pinned data release, and sha256 of each input cache - closing
-/// the one provenance gap exports had outside the release ritual. All
-/// inputs are committed files or the pinned build env; nothing here can
-/// introduce nondeterminism.
+/// site/build-info.json (V15 item 8, hardened V15.1 item 4): the
+/// machine-readable provenance stamp - git revision, crate versions, the
+/// pinned data release, and sha256 of each input cache. The interslavic
+/// version is the RESOLVED one from Cargo.lock via release::resolved_pin
+/// (V14.1 finding 6 already condemned Cargo.toml line-trimming, which
+/// V15 briefly reintroduced here), so the stamp is truthful even under a
+/// [patch] override; cache hashing reuses release::sha256_file so this
+/// artifact and data/MANIFEST.json can never publish different digests
+/// for the same bytes.
 pub(super) fn build_info_json(build: &BuildMeta) -> anyhow::Result<String> {
     use anyhow::Context as _;
     let manifest: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string("data/MANIFEST.json").context("data/MANIFEST.json")?,
     )
     .context("parse data/MANIFEST.json")?;
-    let interslavic_pin = include_str!("../../Cargo.toml")
-        .lines()
-        .find_map(|l| l.strip_prefix("interslavic = \""))
-        .and_then(|rest| rest.split('"').next())
-        .context("interslavic pin not found in Cargo.toml")?
+    let interslavic = crate::release::resolved_pin()?
+        .trim_start_matches('=')
         .to_string();
-    let cache_hash = |path: &str| -> anyhow::Result<serde_json::Value> {
-        use sha2::Digest as _;
-        match std::fs::read(path) {
-            Ok(bytes) => Ok(serde_json::Value::String(format!(
-                "{:x}",
-                sha2::Sha256::digest(&bytes)
-            ))),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(serde_json::Value::Null),
-            Err(e) => Err(e).with_context(|| format!("hash {path}")),
-        }
-    };
     let mut caches = serde_json::Map::new();
     for path in [
         crate::DEFAULT_LEMMA_CACHE,
@@ -962,13 +951,20 @@ pub(super) fn build_info_json(build: &BuildMeta) -> anyhow::Result<String> {
         crate::DEFAULT_PROTO_CACHE,
         crate::DEFAULT_ENRICH_CACHE,
     ] {
-        caches.insert(path.to_string(), cache_hash(path)?);
+        // Absent optional cache -> null; present -> the same digest the
+        // data manifest publishes.
+        let value = if std::path::Path::new(path).exists() {
+            serde_json::Value::String(crate::release::sha256_file(std::path::Path::new(path))?.0)
+        } else {
+            serde_json::Value::Null
+        };
+        caches.insert(path.to_string(), value);
     }
     let doc = serde_json::json!({
         "git": build.git,
         "generated": build.generated,
         "crate": { "name": env!("CARGO_PKG_NAME"), "version": env!("CARGO_PKG_VERSION") },
-        "interslavic_pin": interslavic_pin,
+        "interslavic": interslavic,
         "data_release": manifest.get("data_release").cloned().unwrap_or(serde_json::Value::Null),
         "caches": caches,
     });

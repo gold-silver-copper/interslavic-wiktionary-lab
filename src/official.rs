@@ -251,7 +251,7 @@ pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
          (got {} header column(s); first cell {:?})",
         path.display(),
         header.len(),
-        header.first().map(String::as_str).unwrap_or("")
+        header.first().map_or("", String::as_str)
     );
 
     let get = |rec: &[String], name: &str| -> String {

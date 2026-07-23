@@ -31,7 +31,7 @@ use std::path::Path;
 pub const MANIFEST_SCHEMA: u32 = 2;
 pub const MANIFEST_PATH: &str = "data/MANIFEST.json";
 
-fn sha256_file(path: &Path) -> Result<(String, u64)> {
+pub(crate) fn sha256_file(path: &Path) -> Result<(String, u64)> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
     let mut h = Sha256::new();
     h.update(&bytes);
@@ -69,7 +69,7 @@ fn tracked_data_files() -> Result<Vec<String>> {
 /// The resolved interslavic version from Cargo.lock — format-stable, and
 /// the truth about what actually built (V14.1 finding 6; the old
 /// Cargo.toml line-trim broke on legal `{ version = \"…\" }` forms).
-fn resolved_pin() -> Result<String> {
+pub(crate) fn resolved_pin() -> Result<String> {
     let lock = std::fs::read_to_string("Cargo.lock").context("read Cargo.lock")?;
     let mut lines = lock.lines();
     while let Some(line) = lines.next() {
