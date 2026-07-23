@@ -1,8 +1,9 @@
 # Slovowiki (Interslavic Wiktionary Lab)
 
-The website is generated **locally** with `cargo run --release -- export --out site`
-(then open `site/index.html`, or serve it with any static server). It is not
-published to GitHub Pages.
+The website is generated with `cargo run --release -- export --out site`
+(then open `site/index.html`, or serve it with any static server) and is
+**deployed to GitHub Pages** by `.github/workflows/pages.yml`, which rebuilds
+the export on every push to master.
 
 An **evidence-based Interslavic (Medžuslovjansky) candidate-generation engine** with a
 reproducible accuracy benchmark against the official Interslavic dictionary, plus a
@@ -124,7 +125,7 @@ list separately.
 
 A data-quality **audit** (`cargo run --release -- audit`) classifies every miss and
 attributes it to the pipeline **stage** that lost the official form (a full
-`RuleStep`-trace replay — see `target/eval/stage-attribution.md`): ~33%
+`RuleStep`-trace replay — see `reports/stage-attribution.md`): ~33%
 *cluster/vote* (a different, usually editorial, root was chosen), ~22%
 *merge/rank* (a correct candidate was generated but demoted — of which only ~1.9%
 of all misses are a genuine same-cluster ranking bug, the rest being synonym
@@ -157,7 +158,7 @@ byforms included). The remaining ~12 failures are the genuine inflector
 worklist (soft `-o` loans like *adadžo*, unmarked indeclinables like *kakao*).
 Canonical paradigm cells are pinned by unit tests so an inflector-crate rev
 bump that reshapes declension fails CI. Report:
-`target/eval/inflection-report.md`.
+`reports/inflection-report.md`.
 
 **Evidence ceiling, measured** (`cargo run --release -- evidence-eval`): the
 ~22% *root-absent* miss bucket was hypothesized to be an extraction gap. It is
@@ -167,7 +168,7 @@ anywhere in the 46k-lemma Wiktionary cache under a gloss-matched lemma — and
 citations (all 51 sit under a language the row already cites with a different
 synonym: the editorial phenomenon again). The conservative augmentation A/B
 measures exactly **+0.00pp, 0 fixed / 0 broke**. The bucket is a genuine
-evidence ceiling. Report: `target/eval/evidence-growth.md`.
+evidence ceiling. Report: `reports/evidence-growth.md`.
 
 **Multi-word & aspect slices** (`cargo run --release -- multiword-eval`): the
 headline benchmark excludes all 1,837 multi-word official lemmas; this scores
@@ -176,7 +177,7 @@ scored them): **25.0% exact / 30.8% normalized**; two-token collocations
 reconstructed per position with gender agreement (886 of 1,083 generatable):
 **11.9% / 17.7%**; and 1,440 morphologically related 1:1 ipf/pf **aspect
 pairs**: both members correct 16.5%, one 32.9%, neither 50.6%. Full report:
-`target/eval/multiword-aspect.md`.
+`reports/multiword-aspect.md`.
 
 **Word-formation layer** (`src/derive.rs`, `cargo run --release -- derive-eval`):
 from one citation form the engine derives its regular family — abstract `-osť`,
@@ -200,7 +201,7 @@ derived from an unmatched reconstruction are flagged as hypothetical.
 | medium | 7,097 | 39% |
 | low | 2,215 | 12% |
 
-Beyond the three-way badge, `target/eval/methodology.md` now carries a full
+Beyond the three-way badge, `reports/methodology.md` now carries a full
 **reliability table** (score decile → empirical match rate), **ECE** and **Brier**
 scores, plus an **isotonic recalibration** fit on the dev split and validated on
 the untouched holdout: holdout ECE drops from 0.195 (raw score, systematically
@@ -209,7 +210,7 @@ official-row pipeline candidate-score domain; the corpus site's distinct
 coverage score must not use it. The raw score remains the ranking key.
 
 Full metrics, POS-specific accuracy, branch-coverage analysis, regression/improvement
-lists and the remaining-error breakdown are regenerated into `target/eval/` (a committed
+lists and the remaining-error breakdown are regenerated into `reports/` (a committed
 snapshot is under version control).
 
 ## What was kept (each improved measured accuracy)
@@ -299,7 +300,7 @@ top-1 drops below a floor** — the floor measures the *shipped* production conf
 `ConsensusConfig::production()`, so a production regression can't slip through.
 
 `evaluate` additionally writes **statistical instruments** to
-`target/eval/methodology.md` (all deterministic/seeded, reproducible
+`reports/methodology.md` (all deterministic/seeded, reproducible
 byte-for-byte):
 
 - **Overfitting guard** — a seeded 75/25 dev/holdout split (stable FNV hash of the
@@ -316,7 +317,7 @@ byte-for-byte):
 - **Calibration** — reliability table (score decile → empirical match rate), ECE
   and Brier, plus a dev-fit / holdout-validated **isotonic recalibration** (see
   the calibration section above).
-- **Full predictions dump** — `target/eval/predictions.csv` (every entry with
+- **Full predictions dump** — `reports/predictions.csv` (every entry with
   prediction, split, score, hit flags) and an uncapped `audit-misses.csv` (every
   miss with per-stage blame), for offline pattern mining; the V8 suffix rules
   were found by mining exactly these residuals.
@@ -334,12 +335,16 @@ src/
   main.rs          thin Clap command parser and library dispatch adapter
   model.rs         Candidate / RuleStep / Evidence / Confidence / MatchStatus / Pos
   lang.rs          Slavic language + branch + script metadata
+  postag.rs        the ONE grammar for the official pos_raw column (all parsers route here)
   normalize.rs     per-language script → common phonemic Latin (keeps ě/ę/ǫ/č/ć/đ)
   orthography.rs   flavored↔standard folding, ASCII skeleton, edit distance
-  official.rs      official dictionary loader (quote-aware CSV / TSV)
+  gloss.rs         every English gloss tokenizer, side by side (deliberately distinct semantics)
+  official.rs      official dictionary loader (quote-aware CSV)
   consensus.rs     branch-balanced modern-Slavic consensus engine (gated rules)
   morph.rs         POS lemma endings, internationalism table, derivational suffixes
-  derive.rs        productive word-formation layer (families) + derive-eval benchmark
+  derive.rs        productive word-formation layer (families)
+  derive_eval.rs   the derivation benchmark writer (eval-side, out of derive.rs)
+  aspect.rs        perfective↔imperfective pairing + conservative pair repair
   proto.rs         Proto-Slavic → Interslavic ordered rule engine (+ tests)
   dump.rs          stream the 23 GB dump → Proto-Slavic cache + indexes
   proto_link.rs    leakage-free linker: explicit Wiktionary etymology + 3-signal fuzzy match
@@ -352,9 +357,13 @@ src/
                    site's inflection tables AND the sharded static api/)
   inflect_eval.rs  full-corpus inflection evaluation + grammar invariants
   check.rs         check-text: tokenizer, form lookup, agreement + summary gate
+  coincheck.rs     coin-check: coined-word validation (phonotactics, collision, paradigm)
+  novel.rs         single owner of data/novel-words.tsv (one row type, writer, parser)
   falsefriends.rs  computed false-friend warnings (surface collision × gloss divergence)
   corpus.rs        Wiktionary-corpus cognate-set dictionary + confidence model
   thesaurus.rs     dictionary-derived ISV synonym thesaurus
+  glossxref.rs     cross-lingual same-meaning reverse index (shared English gloss bridge)
+  release.rs       pinnable data releases (data/MANIFEST.json) + refresh-official tool
   enrich.rs        native RU/PL/CS Wiktionary enrichment (etymology/senses/links)
   flavorize.rs     display flavorization of source words into ISV orthography
                    (winyl→vinyl, дело→dělo) + RU running-text transliteration
@@ -365,9 +374,11 @@ src/
     layout.rs      shared HTML shell and escaping/JSON helpers
     entries.rs     generated, official-only, and raw entry rendering
     search.rs      search models, folding, sharding, UI, and client JavaScript
+    english_api.rs static English→Interslavic lookup API (api/en, translation-probe)
     coverage.rs    raw-corpus dedup planning and coverage reporting
     navigation.rs  categories, portals, backlinks, and graph/index pages
     special.rs     metrics, datasets, proposals, forms, and scholarly pages
+    tests.rs       site-level regression tests (export shapes and invariants)
 data/
   official-isv.csv        the full official dictionary (evidence + gold)
   RULE_SPEC.md            authoritative Proto-Slavic → Interslavic rule spec
@@ -379,8 +390,12 @@ data/
   score-calibration.json  official-row pipeline calibrator (domain-checked; refit by evaluate)
   corpus-calibration.json corpus-coverage calibrator (fitted by corpus-eval --fit, read by export)
   curation-notes.example.json  format of the optional human curation notes
+docs/
+  PIPELINE.md            the stage DAG: each stage's command, declared inputs, owned outputs
+  DATA-REFRESH.md        the data refresh & release ceremony (data-vN tags)
 docs/history/
   IMPROVEMENT_PROMPT*.md historical experiment briefs (not contributor instructions)
+INTEGRATION.md           downstream-consumer contract (check-text schema, pinning, api rows)
 ```
 
 Within `site/`, dependencies flow from shared `model`/`assets` and `layout`
@@ -396,7 +411,7 @@ cycles cannot be hidden by a shared glob namespace.
 cargo run --release -- extract-proto   # dump path defaults to data const; see --dump
 
 # Reproducible benchmark against the official dictionary (fast, no dump needed):
-cargo run --release -- evaluate --official data/official-isv.csv --out target/eval
+cargo run --release -- evaluate --official data/official-isv.csv --out reports
 
 # Proto-engine-only benchmark (isolates the rule engine's accuracy on linked words):
 cargo run --release -- proto-eval
@@ -434,7 +449,8 @@ cargo run --release -- checktext-eval
 # never feeds production):
 cargo run --release -- oracle
 
-# Generate the static website locally (no server; not published anywhere):
+# Generate the static website (no server; pages.yml deploys this same export
+# to GitHub Pages on master):
 cargo run --release -- export --out site
 # Cross-revision byte comparisons can pin the provenance fields and the
 # featured-page seed while leaving normal exports tied to their actual commit:
@@ -492,7 +508,7 @@ cargo run --release -- coin-check "žabervok" --gender m --animacy anim \
 # Tracked translation probe (V13): the committed 219-word Rogue-5.4.5 game
 # vocabulary (tools/translation-probe.txt) through the exported English API.
 # A reported metric, never a gate; baseline 147 verified / 44 generated-only
-# / 28 miss. Writes target/eval/translation-probe.md:
+# / 28 miss. Writes reports/translation-probe.md:
 cargo run --release -- translation-probe
 ```
 
@@ -510,7 +526,8 @@ translation and text-verification workflows. The artifacts:
   records: every official lemma + full paradigm, **declined participles,
   comparatives/superlatives with adverbs, pronoun & numeral paradigms** from
   the STEEN-G tables, **personal/reflexive pronouns in all three form series**
-  (full `tebe`, clitic `tę`, prepositional `njego` — interslavic 0.10.0),
+  (full `tebe`, clitic `tę`, prepositional `njego` — from the pinned
+  interslavic crate, `=0.13.0`),
   byform variants split, syncretic cells merged). Shard
   routing: `n = fnv1a32(key) % 2048` over the folded key — mirrored in the
   site's client-side JS, which verifies itself against
@@ -625,8 +642,10 @@ Site-wide tools beyond the entry pages:
 - **`text-check.html`** — paste Interslavic text; every token is verified
   client-side against the lexicon, with false-friend warnings (the static twin
   of `check-text`);
-- **`proposals.html`** ("Predloženja novyh slov") — an explicitly paused
-  proposal worklist until the corpus coverage model has its own calibrator;
+- **`proposals.html`** ("Predloženja novyh slov") — the live proposal
+  worklist (propose / review / near-official counts from the committed
+  corpus calibrator; live again since V11 — see the `novel-words.tsv`
+  section above), with the full list served as `novel-words.tsv`;
 - **`metrics.html`** ("Statistiky točnosti") — every accuracy metric explained,
   with current numbers;
 - **`datasets.html`** — all machine-readable artifacts (`api/`, `entries.json`,
@@ -635,25 +654,25 @@ Site-wide tools beyond the entry pages:
 ## Benchmark artifacts
 
 ```
-target/eval/candidate-generation-summary.json   per-rung metrics (machine-readable)
-target/eval/candidate-generation-report.md      full human-readable report
-target/eval/stage-attribution.md                 per-stage blame histogram (audit)
-target/eval/oracle-ladder.md                     per-stage upper-bound headroom (oracle)
-target/eval/audit-misses.csv                     misses with stage + stage_detail columns
-target/eval/proto-engine-report.md               proto-engine per-rule error worklist
-target/eval/regressions.csv                      matched before, not after
-target/eval/improvements.csv                     newly matched
-target/eval/errors-sample.csv                    nearest remaining misses
-target/eval/methodology.md                       holdout split, rung significance, bootstrap CIs, calibration
-target/eval/predictions.csv                      every entry's prediction (full dump, for offline mining)
-target/eval/derivation-report.md                 derive-eval: word-family layer vs naive baseline
-target/eval/multiword-aspect.md                  multi-word slices + ipf/pf aspect-pair accuracy
-target/eval/evidence-growth.md                   root-absent recoverability + augmentation A/B
-target/eval/inflection-report.md                 inflection census + RULE_SPEC §3 grammar invariants
-target/eval/synonym-accuracy.md                  synonym-inclusive accuracy (thesaurus-based)
-target/eval/rep-selection.md                     representative-selection probe (medoid vs oracle)
-target/eval/cluster-selection.md                 cluster-selection probe (blind rules vs oracle)
-target/eval/translation-probe.md                 tracked 219-word game-vocabulary probe (reported, not gated)
+reports/candidate-generation-summary.json   per-rung metrics (machine-readable)
+reports/candidate-generation-report.md      full human-readable report
+reports/stage-attribution.md                 per-stage blame histogram (audit)
+reports/oracle-ladder.md                     per-stage upper-bound headroom (oracle)
+reports/audit-misses.csv                     misses with stage + stage_detail columns
+reports/proto-engine-report.md               proto-engine per-rule error worklist
+reports/regressions.csv                      matched before, not after
+reports/improvements.csv                     newly matched
+reports/errors-sample.csv                    nearest remaining misses
+reports/methodology.md                       holdout split, rung significance, bootstrap CIs, calibration
+reports/predictions.csv                      every entry's prediction (full dump, for offline mining)
+reports/derivation-report.md                 derive-eval: word-family layer vs naive baseline
+reports/multiword-aspect.md                  multi-word slices + ipf/pf aspect-pair accuracy
+reports/evidence-growth.md                   root-absent recoverability + augmentation A/B
+reports/inflection-report.md                 inflection census + RULE_SPEC §3 grammar invariants
+reports/synonym-accuracy.md                  synonym-inclusive accuracy (thesaurus-based)
+reports/rep-selection.md                     representative-selection probe (medoid vs oracle)
+reports/cluster-selection.md                 cluster-selection probe (blind rules vs oracle)
+reports/translation-probe.md                 tracked 219-word game-vocabulary probe (reported, not gated)
 ```
 
 ## Pinning slovowiki (data releases)
@@ -666,7 +685,11 @@ happen only through the `refresh-official` tool and the
 [docs/DATA-REFRESH.md](docs/DATA-REFRESH.md) ceremony, each leaving an
 id-keyed row diff and benchmark before/after in
 [data/refresh-changelog.md](data/refresh-changelog.md) — drift is a
-visible, versioned event, never a slow skew.
+visible, versioned event, never a slow skew. The full downstream contract
+(check-text JSON schema 1, manifest verification, the positional `api/forms`
+row schema, byform-order-is-API, the never-post-process rule) is
+**[INTEGRATION.md](INTEGRATION.md)**; the stage DAG every artifact comes from
+is **[docs/PIPELINE.md](docs/PIPELINE.md)**.
 
 The V7 full-pipeline review (stage-attribution histogram, oracle ladder, and the
 ranked list of kept/reverted fixes) is written up in **[IMPROVEMENT_REPORT_V7.md](docs/history/IMPROVEMENT_REPORT_V7.md)**.

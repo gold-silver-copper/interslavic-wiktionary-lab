@@ -1,7 +1,7 @@
 //! Score calibration shared between the benchmark and the site.
 //!
 //! The raw candidate score is a *ranking* key, not a probability — measured
-//! systematically overconfident (ECE 0.185; see `target/eval/methodology.md`).
+//! systematically overconfident (ECE 0.185; see `reports/methodology.md`).
 //! `evaluate` fits an isotonic (monotone) score→probability map on the DEV
 //! split only, validates it on the untouched holdout (ECE 0.195→0.013), and
 //! persists it for consumers of that same official-row pipeline score as

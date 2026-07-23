@@ -1826,7 +1826,7 @@ mod summary_tests {
 /// The check-text benchmark (issue #13, `checktext-eval`): classification
 /// counts on the committed fixture (all-correct Interslavic → must be fully
 /// known with zero agreement flags), plus the agreement gold/error sets.
-/// Report: target/eval/checktext-report.md.
+/// Report: reports/checktext-report.md.
 pub const FIXTURE: &str = "data/checktext-fixture.txt";
 
 /// Grammatically correct sentences: zero agreement warnings expected.

@@ -12,6 +12,7 @@ pub mod dump;
 pub mod enrich;
 pub mod eval;
 pub mod falsefriends;
+pub mod fingerprint;
 pub mod flavorize;
 pub mod forms;
 pub mod generator;

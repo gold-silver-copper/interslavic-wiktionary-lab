@@ -23,7 +23,7 @@ No build or benchmark path ever touches the network — the download in step
    - `cargo run --release -- export --out site` — regenerates
      `data/novel-words.tsv`;
    - `cargo run --release -- aspect-eval` — re-bless
-     `target/eval/aspect-pairs.{md,tsv}` (the frozen-manifest guard exists
+     `reports/aspect-pairs.{md,tsv}` (the frozen-manifest guard exists
      for exactly this moment);
    - `cargo run --release -- translation-probe` — if the counts moved,
      update `PROBE_BASELINE` in `src/site/english_api.rs` (a moved baseline

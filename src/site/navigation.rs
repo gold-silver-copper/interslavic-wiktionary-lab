@@ -1690,7 +1690,7 @@ pub(super) fn entry_infobox(
             .prob
             .map(|p| {
                 format!(
-                    " <span class='score muted' title='kalibrovana věrojętnosť P(odgovara oficialnomu rěšenju); metodologija: target/eval/methodology.md'>p≈{p:.2}</span>"
+                    " <span class='score muted' title='kalibrovana věrojętnosť P(odgovara oficialnomu rěšenju); metodologija: reports/methodology.md'>p≈{p:.2}</span>"
                 )
             })
             .unwrap_or_default();

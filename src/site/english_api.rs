@@ -637,7 +637,7 @@ pub const PROBE_FILE: &str = "tools/translation-probe.txt";
 
 /// `translation-probe`: run the committed probe through the same `en --batch`
 /// machinery, print the headline counts against the recorded baseline, and
-/// write `target/eval/translation-probe.md` with per-category counts and the
+/// write `reports/translation-probe.md` with per-category counts and the
 /// full miss list. Always exits 0 — the numbers are reported, never gated.
 pub fn run_translation_probe(site_dir: &Path, probe: &Path, out_dir: &Path) -> anyhow::Result<()> {
     use std::fmt::Write as _;

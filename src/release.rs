@@ -279,7 +279,7 @@ pub fn run_refresh(input: &Path, official: &Path, changelog: &Path) -> Result<()
         "- evaluate normalized top-1: __% → __%",
         "- corpus-eval exact/normalized: __ → __",
         "- probe verified/generated-only/miss: __/__/__ → __/__/__ (update PROBE_BASELINE)",
-        "- aspect both/either/fingerprint: __ → __ (re-bless target/eval/aspect-pairs.*)",
+        "- aspect both/either/fingerprint: __ → __ (re-bless reports/aspect-pairs.*)",
         "- form index records/keys/lemmas: __ → __",
     ] {
         writeln!(entry, "{line}")?;

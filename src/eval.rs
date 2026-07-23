@@ -10,7 +10,7 @@
 //! cumulatively — so the measured effect of every change is attributable. Rules
 //! are kept on the **primary metric (exact top-1)**; a kept rule may still nudge a
 //! secondary metric (e.g. `+nasals` is ~flat on exact, −0.1pp on normalized). All
-//! metrics and the regression/improvement diffs are written under `target/eval/`.
+//! metrics and the regression/improvement diffs are written under `reports/`.
 
 use crate::consensus::{self, ConsensusConfig, MeaningInput, SourceForm};
 use crate::model::{Candidate, CandidateSource, Confidence, Pos, RuleStep};
@@ -2065,7 +2065,7 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     const EXPECTED_MANIFEST_FNV: u64 = 0x5ab3_e19e_c5d7_58dd;
     anyhow::ensure!(
         pairs.len() == EXPECTED_PAIRS && pair_hash == EXPECTED_MANIFEST_FNV,
-        "aspect-pair benchmark slice drifted: got {} pairs / {pair_hash:016x}, expected {EXPECTED_PAIRS} / {EXPECTED_MANIFEST_FNV:016x}; inspect and explicitly re-register target/eval/aspect-pairs.tsv",
+        "aspect-pair benchmark slice drifted: got {} pairs / {pair_hash:016x}, expected {EXPECTED_PAIRS} / {EXPECTED_MANIFEST_FNV:016x}; inspect and explicitly re-register reports/aspect-pairs.tsv",
         pairs.len(),
     );
     let proto = load_proto_index();

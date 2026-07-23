@@ -11,8 +11,8 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use interslavic_wiktionary_lab::{
-    check, coincheck, derive_eval, dump, enrich, eval, forms, inflect_eval, official, release,
-    site, DEFAULT_DUMP, DEFAULT_ENRICH_CACHE, DEFAULT_LEMMA_CACHE, DEFAULT_OFFICIAL,
+    check, coincheck, derive_eval, dump, enrich, eval, fingerprint, forms, inflect_eval, official,
+    release, site, DEFAULT_DUMP, DEFAULT_ENRICH_CACHE, DEFAULT_LEMMA_CACHE, DEFAULT_OFFICIAL,
     DEFAULT_PROTO_CACHE, DEFAULT_RAW_LEMMA_CACHE, DEFAULT_WIKI_DIR,
 };
 use std::path::PathBuf;
@@ -83,9 +83,9 @@ enum Command {
     /// Slavic path, how many words were included, and how many excluded and why.
     /// Reads the raw cache + its extraction tally, replicates the export dedup to
     /// split kept lemmas into rendered-raw vs deduped, and measures the native
-    /// ru/pl/cs enrichment join. Writes target/eval/raw-coverage.{md,json}.
+    /// ru/pl/cs enrichment join. Writes reports/raw-coverage.{md,json}.
     Coverage {
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// English → Interslavic lookup against the exported static API
@@ -152,9 +152,18 @@ enum Command {
         /// The probe file (one query per line, #-comment category headers).
         #[arg(long, default_value = site::PROBE_FILE)]
         probe: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
+    /// Print (and optionally write) the canonical record dump + FNV-1a
+    /// fingerprint of the checker/API record surface (V15 item 8).
+    DumpOutput {
+        /// Write the full canonical dump to this file.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
+    /// Enumerate record-level differences between two canonical dumps.
+    DiffOutput { before: PathBuf, after: PathBuf },
     /// Verify data/MANIFEST.json against the working tree (default), or
     /// regenerate it with --write. The manifest is the pinnable-release
     /// contract (V14 item 4 / #74): sha256 + size of every committed data/
@@ -194,7 +203,7 @@ enum Command {
     ProtoEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Benchmark the SITE's generation path (corpus::generate_set) against the
@@ -214,7 +223,7 @@ enum Command {
     DeriveEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Multi-word & aspect-pair benchmark: reflexive `X sę`, two-token
@@ -223,7 +232,7 @@ enum Command {
     MultiwordEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Dedicated perfective↔imperfective pair benchmark (issue #75):
@@ -231,7 +240,7 @@ enum Command {
     AspectEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Evidence-growth audit + augmentation A/B vs the root-absent ceiling
@@ -239,7 +248,7 @@ enum Command {
     EvidenceEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Inflection validation: blank-cell census + RULE_SPEC §3 grammar
@@ -247,7 +256,7 @@ enum Command {
     InflectEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Verify an Interslavic text against the lexicon: classify every token
@@ -296,14 +305,14 @@ enum Command {
     ChecktextEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Data-quality / ceiling audit: classify misses and cognate cohesion.
     Audit {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// DIAGNOSTIC-ONLY oracle ladder (V7 §2.4): per-stage headroom upper bounds.
@@ -312,7 +321,7 @@ enum Command {
     Oracle {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Cluster-selection headroom: measure how much of the editorial wrong-cluster
@@ -321,7 +330,7 @@ enum Command {
     SelectEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Representative-selection headroom: measure how much of the +3.7pp
@@ -330,7 +339,7 @@ enum Command {
     RepEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Synonym-aware accuracy: credit a prediction that reproduces ANY official
@@ -340,7 +349,7 @@ enum Command {
     SynonymEval {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
     /// Benchmark the candidate generator against the official Interslavic dictionary.
@@ -350,7 +359,7 @@ enum Command {
         #[arg(long, default_value = DEFAULT_OFFICIAL)]
         official: PathBuf,
         /// Output directory for the report artifacts.
-        #[arg(long, default_value = "target/eval")]
+        #[arg(long, default_value = "reports")]
         out: PathBuf,
     },
 }
@@ -437,6 +446,8 @@ fn main() -> Result<()> {
             (Some(q), None) => site::run_en_lookup(&site, &q, json),
             _ => anyhow::bail!("pass exactly one of <QUERY> or --batch <file>"),
         },
+        Command::DumpOutput { out } => fingerprint::run_dump(out.as_deref()),
+        Command::DiffOutput { before, after } => fingerprint::run_diff(&before, &after),
         Command::DataManifest { write, release } => release::run_manifest(write, release),
         Command::RefreshOfficial {
             input,

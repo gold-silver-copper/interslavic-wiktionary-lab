@@ -953,6 +953,11 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
         metas.iter().map(|m| (m.id, m.clone())).collect();
     let homographs = homograph_groups(&metas);
     let build_meta = BuildMeta::current(metas.len(), lemma_total)?;
+    // Declared additive artifact (V15 item 8): the provenance stamp.
+    std::fs::write(
+        out_dir.join("build-info.json"),
+        special::build_info_json(&build_meta)?,
+    )?;
     let curation = load_curation_notes();
     let edges = build_edges(
         &prepared,
@@ -2079,6 +2084,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
                 crate::calibrate::PIPELINE_SCORE_DOMAIN,
             )?
             .as_ref(),
+            &special::BenchSummary::load()?,
         ),
     )?;
 
