@@ -95,11 +95,14 @@ never re-sort variants, and must not assume any ordering other than
 Every deployed tree carries `build-info.json` at its root: git revision,
 crate name/version, the RESOLVED `interslavic` version from Cargo.lock
 (field `interslavic`, plain version with no constraint operator — truthful
-even under a `[patch]` override), the pinned `data_release`, and the sha256
-of each input cache (the same digests `data/MANIFEST.json` publishes). Use
+even under a `[patch]` override), the official dictionary input path/hash,
+the optional pinned `data_release`, and the sha256 of each input cache (the
+same digests `data/MANIFEST.json` publishes). `data_release` is non-null only
+when the default inputs are used and the full manifest contract verifies
+against the current checkout; custom inputs, edited data, or an incomplete
+checkout leave it null rather than falsely claiming a data-vN identity. Use
 it to identify what produced the artifacts you are consuming; it is
-generated from committed inputs only and is deterministic for a given
-checkout.
+deterministic for a given checkout and exact set of input bytes.
 
 ## 6. Never post-process
 

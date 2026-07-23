@@ -733,7 +733,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // Declared additive artifact (V15 item 8): the provenance stamp.
     std::fs::write(
         out_dir.join("build-info.json"),
-        special::build_info_json(&build_meta)?,
+        special::build_info_json(&build_meta, official_path, lemmas_path)?,
     )?;
     let curation = load_curation_notes()?;
     let edges = build_edges(
@@ -769,7 +769,7 @@ pub fn export_corpus(lemmas_path: &Path, official_path: &Path, out_dir: &Path) -
     // stem class). Same load-optional posture as the other display caches:
     // absent → feature skipped with a note; present-but-bad → hard error.
     let proto_index = crate::dump::load_optional(Path::new(crate::DEFAULT_PROTO_CACHE), |p| {
-        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
+        crate::dump::ProtoIndex::load_with_lemmas(p, Some(lemmas_path))
     })?;
     if proto_index.is_none() {
         println!(

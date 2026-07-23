@@ -836,7 +836,7 @@ pub(super) fn text_check_page() -> String {
 }
 
 pub(super) fn datasets_page(coverage: &str) -> String {
-    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = modelovo-specifična kalibrovana věrojętnosť (null bez sovmestimoj kalibracije i za oficialne/surove zapisy), <code>official_id</code> = id smysla v izvornom oficialnom slovniku (null za neoficialne), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partners</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojętnostju (bucket predlog/pregled) i klasifikacijeju novo/počti-oficialno.</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, opcionalnoju modelovo-specifičnoju věrojetnostju i vidovymi partnerami glagolov i dokazami rangovanja (frequency, langs, branch_pattern, borrowed; schema 4).</td></tr><tr><td><a href='api/en/meta.json'>api/en/meta.json</a> + api/en/&lt;n&gt;.json</td><td>Anglijsko→medžuslovjansky statičny API za prevodne agenty: normalizovany anglijski ključ → rangovane kandidaty s POS, smyslom, statusom, vidom, semantičnymi notami i povezkoju do <code>api/forms</code>.</td></tr><tr><td><a href='api/aspect-pairs.json'>api/aspect-pairs.json</a></td><td>Produkcijny model glagolskyh par: oficialne i generovane ipf↔pf formy, stranice i pravilo.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='api/agent-guide.md'>api/agent-guide.md</a></td><td>Vodič za AI agenty i strojne klienty: protokoly iskanja (formy + anglijsky), samoprověrky routerov, pravila dověrjenja, postupy prevoda i prověrjenja teksta.</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr><tr><td><a href='build-info.json'>build-info.json</a></td><td>Strojno-čitajema provenijencija gradby: git revizija, verzije paketov, pripęty data-release i sha256 vhodnyh kešev.</td></tr></table>{coverage}</article>");
+    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = modelovo-specifična kalibrovana věrojętnosť (null bez sovmestimoj kalibracije i za oficialne/surove zapisy), <code>official_id</code> = id smysla v izvornom oficialnom slovniku (null za neoficialne), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partners</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojętnostju (bucket predlog/pregled) i klasifikacijeju novo/počti-oficialno.</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, opcionalnoju modelovo-specifičnoju věrojetnostju i vidovymi partnerami glagolov i dokazami rangovanja (frequency, langs, branch_pattern, borrowed; schema 4).</td></tr><tr><td><a href='api/en/meta.json'>api/en/meta.json</a> + api/en/&lt;n&gt;.json</td><td>Anglijsko→medžuslovjansky statičny API za prevodne agenty: normalizovany anglijski ključ → rangovane kandidaty s POS, smyslom, statusom, vidom, semantičnymi notami i povezkoju do <code>api/forms</code>.</td></tr><tr><td><a href='api/aspect-pairs.json'>api/aspect-pairs.json</a></td><td>Produkcijny model glagolskyh par: oficialne i generovane ipf↔pf formy, stranice i pravilo.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='api/agent-guide.md'>api/agent-guide.md</a></td><td>Vodič za AI agenty i strojne klienty: protokoly iskanja (formy + anglijsky), samoprověrky routerov, pravila dověrjenja, postupy prevoda i prověrjenja teksta.</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr><tr><td><a href='build-info.json'>build-info.json</a></td><td>Strojno-čitajema provenijencija gradby: git revizija, verzije paketov, oficialny vhod s sha256, opcionalno pripęty data-release i sha256 vhodnyh kešev.</td></tr></table>{coverage}</article>");
     page("Fajly za dostavanje", &body, 0)
 }
 
@@ -928,44 +928,64 @@ pub(super) fn datasets_coverage_section(
 
 /// site/build-info.json (V15 item 8, hardened V15.1 item 4): the
 /// machine-readable provenance stamp - git revision, crate versions, the
-/// pinned data release, and sha256 of each input cache. The interslavic
+/// pinned data release, the official dictionary input, and sha256 of each
+/// input cache. The interslavic
 /// version is the RESOLVED one from Cargo.lock via release::resolved_pin
 /// (V14.1 finding 6 already condemned Cargo.toml line-trimming, which
 /// V15 briefly reintroduced here), so the stamp is truthful even under a
 /// [patch] override; cache hashing reuses release::sha256_file so this
 /// artifact and data/MANIFEST.json can never publish different digests
 /// for the same bytes.
-pub(super) fn build_info_json(build: &BuildMeta) -> anyhow::Result<String> {
-    use anyhow::Context as _;
-    let manifest: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string("data/MANIFEST.json").context("data/MANIFEST.json")?,
-    )
-    .context("parse data/MANIFEST.json")?;
+pub(super) fn build_info_json(
+    build: &BuildMeta,
+    official_path: &std::path::Path,
+    lemmas_path: &std::path::Path,
+) -> anyhow::Result<String> {
     let interslavic = crate::release::resolved_pin()?
         .trim_start_matches('=')
         .to_string();
+    let official_sha = crate::release::sha256_file(official_path)?.0;
     let mut caches = serde_json::Map::new();
     for path in [
-        crate::DEFAULT_LEMMA_CACHE,
-        crate::DEFAULT_RAW_LEMMA_CACHE,
-        crate::DEFAULT_PROTO_CACHE,
-        crate::DEFAULT_ENRICH_CACHE,
+        lemmas_path,
+        std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        std::path::Path::new(crate::DEFAULT_PROTO_CACHE),
+        std::path::Path::new(crate::DEFAULT_ENRICH_CACHE),
     ] {
         // Absent optional cache -> null; present -> the same digest the
         // data manifest publishes.
-        let value = if std::path::Path::new(path).exists() {
-            serde_json::Value::String(crate::release::sha256_file(std::path::Path::new(path))?.0)
+        let value = if path.exists() {
+            serde_json::Value::String(crate::release::sha256_file(path)?.0)
         } else {
             serde_json::Value::Null
         };
-        caches.insert(path.to_string(), value);
+        caches.insert(path.display().to_string(), value);
     }
+    // A custom official dictionary or lemma corpus is outside the committed
+    // data-release identity even when it happens to contain similar bytes.
+    // Default path names are not sufficient either: the complete manifest,
+    // crate pin, schema/baseline, and changelog witness must match the current
+    // checkout before this build may claim data-vN.
+    let uses_pinned_inputs = official_path == std::path::Path::new(crate::DEFAULT_OFFICIAL)
+        && lemmas_path == std::path::Path::new(crate::DEFAULT_LEMMA_CACHE);
+    let data_release = if uses_pinned_inputs {
+        crate::release::verified_data_release()
+            .ok()
+            .flatten()
+            .map_or(serde_json::Value::Null, serde_json::Value::from)
+    } else {
+        serde_json::Value::Null
+    };
     let doc = serde_json::json!({
         "git": build.git,
         "generated": build.generated,
         "crate": { "name": env!("CARGO_PKG_NAME"), "version": env!("CARGO_PKG_VERSION") },
         "interslavic": interslavic,
-        "data_release": manifest.get("data_release").cloned().unwrap_or(serde_json::Value::Null),
+        "data_release": data_release,
+        "official": {
+            "path": official_path.display().to_string(),
+            "sha256": official_sha,
+        },
         "caches": caches,
     });
     Ok(serde_json::to_string_pretty(&doc)? + "\n")

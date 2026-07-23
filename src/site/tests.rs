@@ -638,6 +638,51 @@ fn deterministic_entry_ids_ignore_previous_output() {
     assert!(format_source_date_epoch("not-an-epoch").is_err());
 }
 
+#[test]
+fn build_info_hashes_the_actual_lemma_input() {
+    let dir = std::env::temp_dir().join(format!(
+        "slovowiki-build-info-{}-{}",
+        std::process::id(),
+        std::thread::current().name().unwrap_or("t")
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let lemmas = dir.join("custom-lemmas.cache.json");
+    std::fs::write(&lemmas, b"custom lemma input").unwrap();
+    let official = dir.join("custom-official.csv");
+    std::fs::write(&official, b"id,isv\n1,slovo\n").unwrap();
+    let build = BuildMeta {
+        git: "test".into(),
+        generated: "0 UNIX".into(),
+        total_entries: 1,
+        lemma_total: 1,
+    };
+
+    let doc: serde_json::Value =
+        serde_json::from_str(&super::special::build_info_json(&build, &official, &lemmas).unwrap())
+            .unwrap();
+    let key = lemmas.display().to_string();
+    assert!(
+        doc["caches"]
+            .get(&key)
+            .is_some_and(serde_json::Value::is_string),
+        "custom lemma input is absent from build provenance: {doc}"
+    );
+    assert!(
+        doc["caches"].get(crate::DEFAULT_LEMMA_CACHE).is_none(),
+        "build provenance incorrectly names the default lemma cache: {doc}"
+    );
+    assert_eq!(doc["official"]["path"], official.display().to_string());
+    assert!(
+        doc["official"]["sha256"].is_string(),
+        "custom official input is absent from build provenance: {doc}"
+    );
+    assert!(
+        doc["data_release"].is_null(),
+        "custom inputs must not claim the default data release: {doc}"
+    );
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 /// V15.1 item 8 (successor to the deleted fallback-banner test): a
 /// comma-joined official cell ("foo, bar") must never be rendered raw by
 /// a shipped page — headwords come from the sanitized byform selection.

@@ -66,15 +66,21 @@ jobs:
       - name: Wall-clock ban (SOURCE_DATE_EPOCH discipline)
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           check() {
             local hits rc
-            hits=$(grep -rnE "$1" $2); rc=$?
-            if [ "$rc" -eq 0 ]; then
-              echo "::error::wall-clock API in an output path:"; echo "$hits"; return 1
-            elif [ "$rc" -gt 1 ]; then
-              echo "::error::the ban's grep itself failed (rc=$rc) — fix the pattern/paths"; return "$rc"
+            if hits=$(grep -rnE "$1" "$2"); then
+              echo "::error::wall-clock API in an output path:"
+              echo "$hits"
+              return 1
+            else
+              rc=$?
+              if [ "$rc" -gt 1 ]; then
+                echo "::error::the ban's grep itself failed (rc=$rc) — fix the pattern/paths"
+                return "$rc"
+              fi
             fi
+            return 0
           }
           check "SystemTime::now|chrono::|OffsetDateTime|Zoned::now" src/
           check "new Date\(|Date\.now|datetime\.now|time\.time\(" tools/

@@ -650,8 +650,8 @@ Site-wide tools beyond the entry pages:
   with current numbers;
 - **`datasets.html`** — all machine-readable artifacts (`api/`, `entries.json`,
   `graph.json`, `novel-words.tsv`, `build.json`, `build-info.json` — the
-  machine-readable provenance stamp: git revision, crate versions, pinned
-  data release, cache sha256s — …).
+  machine-readable provenance stamp: git revision, crate versions, official
+  dictionary path/hash, optional pinned data release, cache sha256s — …).
 
 ## Benchmark artifacts
 

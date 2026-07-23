@@ -79,12 +79,15 @@ be read through the official-row pipeline calibrator or vice versa.
 
 | Stage | Command | Reads | Owns |
 |---|---|---|---|
-| export | `make export` / `cargo run --release -- export --out site` | `data/official-isv.csv`; `data/slavic-lemmas.cache.json` (required for the corpus site); `data/proto-slavic.cache.json`, `data/raw-slavic-lemmas.cache.json`, `data/wiktionary-enrich.cache.json` (optional display caches); `data/corpus-calibration.json`; `data/score-calibration.json`; `data/raw-slavic-coverage.json`; `data/curation-notes.json` (optional); `reports/candidate-generation-summary.json` and `reports/synonym-accuracy.md` (metrics/about page numbers, V15 item 9 — read, never invented) | the `site/` tree (HTML + `api/` + `search/` + root JSON datasets) **and** `data/novel-words.tsv` |
+| export | `make export` / `cargo run --release -- export --out site` | `data/official-isv.csv`; `data/slavic-lemmas.cache.json` (required for the corpus site); `data/proto-slavic.cache.json`, `data/raw-slavic-lemmas.cache.json`, `data/wiktionary-enrich.cache.json` (optional display caches); `data/corpus-calibration.json`; `data/score-calibration.json`; `data/raw-slavic-coverage.json`; `data/curation-notes.json` (optional); `reports/candidate-generation-summary.json`, `reports/synonym-summary.json`, and `reports/corpus-summary.json` (metrics-page numbers, V15.1 item 2 — read, never invented) | the `site/` tree (HTML + `api/` + `search/` + root JSON datasets) **and** `data/novel-words.tsv` |
 
 The export also writes `site/build-info.json` (V15 item 8): a
-machine-readable provenance stamp — git revision, crate versions, the pinned
-`data_release`, and the sha256 of each input cache — so any deployed tree
-names its exact inputs even outside the release ritual.
+machine-readable provenance stamp — git revision, crate versions, the actual
+official-dictionary path/hash, the optional pinned `data_release`, and the
+sha256 of each input cache — so any deployed tree names its exact inputs even
+outside the release ritual. `data_release` is non-null only when the default
+inputs are used and the complete manifest contract verifies; custom inputs,
+edited data, and incomplete checkouts leave it null.
 
 `site/` is scratch (gitignored); `.github/workflows/pages.yml` rebuilds and
 deploys it to GitHub Pages on every master push. `data/novel-words.tsv` is the
@@ -102,7 +105,7 @@ parser — no hand-rolled column splits anywhere.
 ## Benchmarks
 
 All benchmarks read `data/official-isv.csv` (plus the caches noted) and write
-human/machine reports into `reports/` (`--out`, default `reports`). The 22
+human/machine reports into `reports/` (`--out`, default `reports`). The 25
 blessed report snapshots in `reports/` are committed; regenerating them is how
 a benchmark change becomes visible in review.
 
@@ -169,4 +172,4 @@ Their output contracts are specified in the root `INTEGRATION.md`.
 | `data/official-isv.csv`, the four `data/*.cache.json` caches, `data/raw-slavic-coverage.json` | `site/` (gitignored; rebuilt from scratch by `export` and by `pages.yml`) |
 | `data/novel-words.tsv`, `data/score-calibration.json`, `data/corpus-calibration.json` | `target/` (all of it — nothing tracked lives there) |
 | `data/MANIFEST.json`, `data/refresh-changelog.md` | `data/raw-wiktextract-data.jsonl`, `data/wiktionary/` (local source datasets) |
-| `reports/` — the 22 blessed benchmark snapshots (moved out of gitignored `target/eval` in V15 item 9) | `data/*.tmp` |
+| `reports/` — the 25 blessed benchmark snapshots (moved out of gitignored `target/eval` in V15 item 9) | `data/*.tmp` |
