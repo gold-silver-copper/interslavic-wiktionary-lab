@@ -241,6 +241,18 @@ pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
         .enumerate()
         .map(|(i, h)| (h.trim().to_lowercase(), i))
         .collect();
+    // Loud failure on a wrong-delimiter file (V15.1 item 3): a TSV or
+    // semicolon export parses as a one-column CSV whose header has no
+    // `isv` key, and every row then silently yielded an empty lemma —
+    // check-text classified everything "unknown" with no visible cause.
+    anyhow::ensure!(
+        col.contains_key("isv"),
+        "{}: no `isv` column in the header — the loader reads comma-separated CSV only \
+         (got {} header column(s); first cell {:?})",
+        path.display(),
+        header.len(),
+        header.first().map(String::as_str).unwrap_or("")
+    );
 
     let get = |rec: &[String], name: &str| -> String {
         col.get(name)
@@ -388,5 +400,22 @@ mod tests {
         assert_eq!(forms("pęt na desęte"), vec!["pęt na desęte"]);
         assert_eq!(forms("pozirati (na)"), vec!["pozirati"]);
         assert_eq!(forms("dobry, #dobrějši, !dobrěje, *dobro"), vec!["dobry"]);
+    }
+
+    /// V15.1 item 3: a tab-separated export must fail loudly, not parse as
+    /// a one-column CSV that silently classifies every token unknown.
+    #[test]
+    fn tsv_input_is_rejected_with_a_diagnosis() {
+        let dir = std::env::temp_dir().join(format!("slovowiki-tsv-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("official.tsv");
+        std::fs::write(&path, "id\tisv\tpartOfSpeech\ten\n1\tslovo\tn.\tword\n").unwrap();
+        let err = load(&path).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("no `isv` column") && msg.contains("comma-separated"),
+            "{msg}"
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
