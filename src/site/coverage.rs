@@ -203,7 +203,9 @@ pub(super) fn build_corpus_render_index(
     usize, // official-only pages
 ) {
     let cfg = ConsensusConfig::production();
-    let sets = crate::corpus::build_sets(corpus);
+    let built = crate::corpus::build_sets(corpus);
+    println!("{}", built.bridge_report);
+    let sets = built.sets;
 
     let (official_by_exact, official_by_fold) = official_surface_maps(official_entries);
 
@@ -236,8 +238,7 @@ pub(super) fn build_corpus_render_index(
             });
         let display = matched
             .as_ref()
-            .map(|(_, surface)| surface.form.clone())
-            .unwrap_or_else(|| form.clone());
+            .map_or_else(|| form.clone(), |(_, surface)| surface.form.clone());
         prepared.push(CovPrepared {
             id,
             g,
@@ -299,7 +300,7 @@ pub(super) fn build_corpus_render_index(
             std::collections::HashMap::new();
         for (i, p) in prepared.iter().enumerate() {
             by_form
-                .entry(crate::orthography::to_standard(&p.g.form().to_lowercase()))
+                .entry(crate::orthography::fold_key(p.g.form()))
                 .or_default()
                 .push(i);
         }
@@ -402,7 +403,7 @@ pub(super) fn raw_lemma_fate(
     // Same call as the render loop's display headword, by construction —
     // dedup and display must never diverge (issue #62).
     let display = crate::flavorize::flavorize_word(&lemma.lang, &lemma.pos, word);
-    let disp_fold = crate::orthography::to_standard(&display.to_lowercase());
+    let disp_fold = crate::orthography::fold_key(&display);
     if disp_fold.is_empty() {
         return RawFate::Skipped;
     }
@@ -507,7 +508,7 @@ pub(super) fn raw_intl_probabilities(
         if e.genesis.trim() != "I" || e.isv.trim().contains(' ') || e.isv.trim().is_empty() {
             continue;
         }
-        for t in crate::falsefriends::gloss_tokens(&e.english) {
+        for t in crate::gloss::stemmed_tokens(&e.english) {
             by_token.entry(t).or_default().push(i);
         }
     }
@@ -517,7 +518,7 @@ pub(super) fn raw_intl_probabilities(
             continue; // derivational completions inherit their noun's bucket
         }
         let mut rows: std::collections::BTreeSet<usize> = Default::default();
-        for t in crate::falsefriends::gloss_tokens(&c.gloss) {
+        for t in crate::gloss::stemmed_tokens(&c.gloss) {
             if let Some(is) = by_token.get(&t) {
                 rows.extend(is.iter().copied());
             }
@@ -622,7 +623,7 @@ pub(super) fn raw_intl_candidates(
                 .or_default();
             for gloss in l.glosses.iter().map(|g| g.trim()) {
                 if !gloss.is_empty()
-                    && !gloss.chars().any(|c| c.is_uppercase())
+                    && !gloss.chars().any(char::is_uppercase)
                     && !FORM_OF_MARKERS.iter().any(|m| gloss.contains(m))
                     && !entry.iter().any(|(_, have)| have == gloss)
                 {
@@ -656,7 +657,7 @@ pub(super) fn raw_intl_candidates(
         let mut token_langs: BTreeMap<String, std::collections::BTreeSet<&str>> = BTreeMap::new();
         for (lang, _, glosses) in &members {
             for g in glosses {
-                for t in crate::falsefriends::gloss_tokens(g) {
+                for t in crate::gloss::stemmed_tokens(g) {
                     token_langs.entry(t).or_default().insert(lang.as_str());
                 }
             }
@@ -675,7 +676,7 @@ pub(super) fn raw_intl_candidates(
         for (_, _, glosses) in &members {
             for g in glosses {
                 let g = g.trim();
-                if crate::falsefriends::gloss_tokens(g)
+                if crate::gloss::stemmed_tokens(g)
                     .iter()
                     .any(|t| shared.contains(t.as_str()))
                     && gloss
@@ -738,7 +739,7 @@ pub(super) fn raw_intl_candidates(
         if key.is_empty() || !taken.insert(key) {
             continue;
         }
-        let langs: Vec<String> = langs.iter().map(|l| l.to_string()).collect();
+        let langs: Vec<String> = langs.iter().map(std::string::ToString::to_string).collect();
         let Some(branch_pattern) = super::navigation::branch_pattern(&langs) else {
             continue;
         };
@@ -853,7 +854,7 @@ pub(super) fn near_official_match(
     official_entries: &[OfficialEntry],
 ) -> Option<String> {
     const MAX_DISTANCE: usize = 2;
-    let folded = crate::orthography::to_standard(&form.trim().to_lowercase());
+    let folded = crate::orthography::fold_key(form.trim());
     let toks = crate::dump::gloss_tokens(gloss);
     if folded.is_empty() || toks.is_empty() {
         return None;
@@ -871,7 +872,7 @@ pub(super) fn near_official_match(
             continue;
         }
         for byform in e.citation_byforms() {
-            let bf = crate::orthography::to_standard(&byform.form.trim().to_lowercase());
+            let bf = crate::orthography::fold_key(byform.form.trim());
             if bf.is_empty() {
                 continue;
             }
@@ -1028,8 +1029,7 @@ pub fn run_coverage(out: &Path) -> Result<()> {
     };
     let dump_path = cov_stats
         .as_ref()
-        .map(|s| s.source.clone())
-        .unwrap_or_else(|| crate::DEFAULT_DUMP.to_string());
+        .map_or_else(|| crate::DEFAULT_DUMP.to_string(), |s| s.source.clone());
     let mut provenance = vec![
         format!(
             "- English Wiktextract raw dump (single-token content-word gate): `{}`{}",
@@ -1057,10 +1057,9 @@ pub fn run_coverage(out: &Path) -> Result<()> {
     // --- Reconciliation checks ---
     let kept = total; // the cache is exactly the kept set
     let render_reconciles = rendered + deduped == kept;
-    let extract_reconciles = cov_stats
-        .as_ref()
-        .map(|s| s.kept as usize == kept && s.kept + s.dropped_total() == s.slavic_pages_seen)
-        .unwrap_or(false);
+    let extract_reconciles = cov_stats.as_ref().is_some_and(|s| {
+        s.kept as usize == kept && s.kept + s.dropped_total() == s.slavic_pages_seen
+    });
 
     std::fs::create_dir_all(out)?;
 
@@ -1299,6 +1298,7 @@ pub(super) fn fmt_bytes(n: u64) -> String {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct CoverageReportInput<'a> {
     pub(super) raw_corpus: &'a crate::dump::RawSlavicCorpus,
     pub(super) coverage_stats: Option<&'a crate::dump::RawCoverageStats>,

@@ -10,7 +10,7 @@
 //! cumulatively — so the measured effect of every change is attributable. Rules
 //! are kept on the **primary metric (exact top-1)**; a kept rule may still nudge a
 //! secondary metric (e.g. `+nasals` is ~flat on exact, −0.1pp on normalized). All
-//! metrics and the regression/improvement diffs are written under `target/eval/`.
+//! metrics and the regression/improvement diffs are written under `reports/`.
 
 use crate::consensus::{self, ConsensusConfig, MeaningInput, SourceForm};
 use crate::model::{Candidate, CandidateSource, Confidence, Pos, RuleStep};
@@ -108,6 +108,10 @@ fn kept_ladder() -> Vec<Rung> {
 /// load (corrupt, or refused by its schema stamp) aborts with the loader's
 /// message instead of silently dropping the proto engine from every rung —
 /// that would read as a benchmark regression with no visible cause.
+// The deliberate fail-fast (V15 item 7): a cache that exists but fails to
+// load must abort the whole eval run - a silently absent proto engine
+// would read as a benchmark regression with no visible cause.
+#[allow(clippy::panic)]
 fn load_proto_index() -> Option<crate::dump::ProtoIndex> {
     let path = Path::new(crate::DEFAULT_PROTO_CACHE);
     // Note (rejected experiment): augmenting the explicit-etymology map with
@@ -118,8 +122,33 @@ fn load_proto_index() -> Option<crate::dump::ProtoIndex> {
     // that were already right or aren't improvable. Coverage is not the
     // bottleneck; the remaining error is editorial/evidence-gap (see the
     // cluster-selection measurement). Left out.
-    crate::dump::load_optional(path, crate::dump::ProtoIndex::load)
-        .unwrap_or_else(|e| panic!("{}: {e:#}", path.display()))
+    crate::dump::load_optional(path, |p| {
+        crate::dump::ProtoIndex::load_with_lemmas(p, Some(Path::new(crate::DEFAULT_LEMMA_CACHE)))
+    })
+    .unwrap_or_else(|e| panic!("{}: {e:#}", path.display()))
+}
+
+/// The shared eval-harness preamble (V15 item 6): benchmarkable official
+/// entries plus the optional proto index, deduping the copy-pasted opening
+/// of every harness.
+fn harness_preamble(
+    official_path: &Path,
+) -> Result<(Vec<OfficialEntry>, Option<crate::dump::ProtoIndex>)> {
+    let entries: Vec<OfficialEntry> = official::load(official_path)?
+        .into_iter()
+        .filter(super::official::OfficialEntry::is_benchmarkable)
+        .collect();
+    Ok((entries, load_proto_index()))
+}
+
+/// Zero-guarded percentage, deduping the identical closure the harnesses
+/// each carried (V15 item 6).
+fn pct(a: usize, b: usize) -> f32 {
+    if b == 0 {
+        0.0
+    } else {
+        100.0 * a as f32 / b as f32
+    }
 }
 
 /// Rules that were tried and *rejected*: each is the production config plus one
@@ -299,6 +328,22 @@ pub fn run_corpus_eval(official_path: &Path, fit: bool) -> Result<()> {
         pct(exact),
         pct(norm)
     );
+    // Machine-readable twin (V15.1 item 2): the metrics page reads this
+    // instead of carrying hardcoded copies of these two numbers.
+    std::fs::create_dir_all("reports")?;
+    let summary = serde_json::json!({
+        "schema": 1,
+        "n": n,
+        "inherited": inh,
+        "international": bor,
+        "exact_top1": pct(exact) as f64 / 100.0,
+        "normalized_top1": pct(norm) as f64 / 100.0,
+    });
+    std::fs::write(
+        "reports/corpus-summary.json",
+        serde_json::to_string_pretty(&summary)? + "\n",
+    )?;
+    println!("Wrote reports/corpus-summary.json");
 
     if fit {
         // ---- Corpus-coverage calibrator (V11 item 5 / issue #90) ----
@@ -315,7 +360,9 @@ pub fn run_corpus_eval(official_path: &Path, fit: bool) -> Result<()> {
         // no ground truth and are excluded — a stated limitation: the fit
         // describes official-meaning-reachable sets.
         let corpus = crate::dump::LemmaCorpus::load(Path::new(crate::DEFAULT_LEMMA_CACHE))?;
-        let sets = corpus::build_sets(&corpus);
+        let built = corpus::build_sets(&corpus);
+        println!("{}", built.bridge_report);
+        let sets = built.sets;
         let mut by_token: std::collections::HashMap<String, Vec<usize>> =
             std::collections::HashMap::new();
         for (i, e) in entries.iter().enumerate() {
@@ -527,8 +574,8 @@ fn evaluate_config(
         let top = cands.first();
         let predicted = top.map(|c| c.form.clone()).unwrap_or_default();
         let confidence = top.map(|c| c.confidence);
-        let score = top.map(|c| c.score).unwrap_or(0.0);
-        let top_branch_cov = top.map(|c| c.branch_coverage as usize).unwrap_or(0);
+        let score = top.map_or(0.0, |c| c.score);
+        let top_branch_cov = top.map_or(0, |c| c.branch_coverage as usize);
 
         let exact = ortho::exact_match(&predicted, &entry.isv);
         let normalized = ortho::normalized_match(&predicted, &entry.isv);
@@ -632,7 +679,7 @@ fn winning_root_key(top: &Candidate) -> String {
     if top.source == CandidateSource::ProtoSlavicRule {
         if let Some(st) = top.trace.iter().find(|s| s.id == "proto-link") {
             let w = st.before.trim().trim_start_matches('*');
-            return ortho::consonant_key(&ortho::to_standard(&w.to_lowercase()));
+            return ortho::consonant_key(&ortho::fold_key(w));
         }
     }
     ortho::consonant_key(&top.form)
@@ -646,7 +693,7 @@ fn attribute_miss(
     modern_keys: &[String],
     official: &str,
 ) -> (&'static str, String) {
-    let target = ortho::to_standard(&official.trim().to_lowercase());
+    let target = ortho::fold_key(official.trim());
     let official_key = ortho::consonant_key(&target);
 
     let Some(top) = cands.first() else {
@@ -696,9 +743,9 @@ fn attribute_miss(
             if st.id == "proto-link" {
                 continue;
             }
-            let after = ortho::to_standard(&st.after.trim().to_lowercase());
+            let after = ortho::fold_key(st.after.trim());
             let before = if i == 0 {
-                ortho::to_standard(&st.before.trim().to_lowercase())
+                ortho::fold_key(st.before.trim())
             } else {
                 prev.clone()
             };
@@ -724,10 +771,10 @@ fn attribute_within_consensus(trace: &[RuleStep], target: &str) -> (&'static str
     let mut ids: Vec<&str> = Vec::with_capacity(trace.len() + 1);
     let mut forms: Vec<String> = Vec::with_capacity(trace.len() + 1);
     ids.push("<input>");
-    forms.push(ortho::to_standard(&trace[0].before.trim().to_lowercase()));
+    forms.push(ortho::fold_key(trace[0].before.trim()));
     for st in trace {
         ids.push(st.id.as_str());
-        forms.push(ortho::to_standard(&st.after.trim().to_lowercase()));
+        forms.push(ortho::fold_key(st.after.trim()));
     }
     // Last index that folded to the target.
     let last_ok = forms.iter().rposition(|f| f == target);
@@ -789,11 +836,7 @@ fn diff_is_ending(a: &str, b: &str) -> bool {
 /// cognate cohesion of each meaning. Uses `isv` only for this offline analysis —
 /// never on the benchmark path.
 pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
-    let entries: Vec<OfficialEntry> = official::load(official_path)?
-        .into_iter()
-        .filter(|e| e.is_benchmarkable())
-        .collect();
-    let proto = load_proto_index();
+    let (entries, proto) = harness_preamble(official_path)?;
     let cfg = ConsensusConfig::production();
 
     let (mut n, mut miss) = (0usize, 0usize);
@@ -835,6 +878,9 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
         }
         miss += 1;
 
+        // Deliberately NOT fold_key: this pre-existing idiom folds WITHOUT
+        // lowercasing (consonant_key's skeleton handles case), so the V15
+        // fold audit correctly skipped it. Do not "fix" without measuring.
         let official_key = ortho::consonant_key(&ortho::to_standard(&entry.isv));
         let predicted_key = ortho::consonant_key(&predicted);
         let root_in_evidence = keys.iter().any(|k| k == &official_key);
@@ -872,14 +918,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
         }
     }
 
-    let pct = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
-    println!("Audit over {} benchmarkable meanings ({} misses):", n, miss);
+    println!("Audit over {n} benchmarkable meanings ({miss} misses):");
     println!(
         "  miss classes: wrong-cluster {:.1}% | right-cluster-wrong-form {:.1}% | root-absent {:.1}%",
         pct(wrong_cluster, miss),
@@ -902,10 +941,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
     );
 
     // ---- Stage-attribution histogram (V7 §2.3) ----
-    println!(
-        "\n  Stage-attribution histogram ({} misses, per-stage blame):",
-        miss
-    );
+    println!("\n  Stage-attribution histogram ({miss} misses, per-stage blame):");
     let mut stages: Vec<(&&'static str, &usize)> = stage_hist.iter().collect();
     stages.sort_by(|a, b| b.1.cmp(a.1));
     for (stage, cnt) in &stages {
@@ -917,7 +953,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
             .collect();
         details.sort_by(|a, b| b.1.cmp(a.1));
         for ((_, d), c) in details.iter().take(4) {
-            println!("        · {:<24} {:>5}", d, c);
+            println!("        · {d:<24} {c:>5}");
         }
     }
 
@@ -936,8 +972,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
     writeln!(sa, "# Stage-attribution histogram (V7 §2.3)\n")?;
     writeln!(
         sa,
-        "For each of the **{}** normalized misses (of {} benchmarkable meanings), the last pipeline stage whose output still folded to the official form — i.e. the stage that destroyed, or never produced, the correct answer. Computed by replaying the winning candidate's `RuleStep` trace.\n",
-        miss, n
+        "For each of the **{miss}** normalized misses (of {n} benchmarkable meanings), the last pipeline stage whose output still folded to the official form — i.e. the stage that destroyed, or never produced, the correct answer. Computed by replaying the winning candidate's `RuleStep` trace.\n"
     )?;
     writeln!(sa, "| Stage | misses | share |")?;
     writeln!(sa, "|---|---:|---:|")?;
@@ -950,7 +985,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
     let mut all_details: Vec<(&(&'static str, String), &usize)> = detail_hist.iter().collect();
     all_details.sort_by(|a, b| b.1.cmp(a.1));
     for ((stage, detail), cnt) in all_details.iter().take(30) {
-        writeln!(sa, "| {} | {} | {} |", stage, detail, cnt)?;
+        writeln!(sa, "| {stage} | {detail} | {cnt} |")?;
     }
     std::fs::write(out_dir.join("stage-attribution.md"), sa)?;
     println!("Wrote {}", out_dir.join("stage-attribution.md").display());
@@ -963,11 +998,7 @@ pub fn run_audit(official_path: &Path, out_dir: &Path) -> Result<()> {
 /// only to rank stages by recoverable headroom (stage → headroom in pp of exact
 /// top-1 over production).
 pub fn run_oracle(official_path: &Path, out_dir: &Path) -> Result<()> {
-    let entries: Vec<OfficialEntry> = official::load(official_path)?
-        .into_iter()
-        .filter(|e| e.is_benchmarkable())
-        .collect();
-    let proto = load_proto_index();
+    let (entries, proto) = harness_preamble(official_path)?;
     let cfg = ConsensusConfig::production();
 
     // (name, cluster, representative, proto_link) — each flips exactly one oracle,
@@ -1044,8 +1075,7 @@ pub fn run_oracle(official_path: &Path, out_dir: &Path) -> Result<()> {
     writeln!(s, "# Oracle ladder (V7 §2.4) — DIAGNOSTIC ONLY\n")?;
     writeln!(
         s,
-        "Each row makes ONE pipeline stage perfect (by reading the official answer) while everything downstream stays the real production engine, over **{}** benchmarkable meanings. This path can never feed production; it exists only to rank stages by recoverable headroom. Spend effort top-down by Δ exact.\n",
-        denom
+        "Each row makes ONE pipeline stage perfect (by reading the official answer) while everything downstream stays the real production engine, over **{denom}** benchmarkable meanings. This path can never feed production; it exists only to rank stages by recoverable headroom. Spend effort top-down by Δ exact.\n"
     )?;
     writeln!(
         s,
@@ -1061,8 +1091,7 @@ pub fn run_oracle(official_path: &Path, out_dir: &Path) -> Result<()> {
     for (name, ex, dex, nm, dnm) in &rows {
         writeln!(
             s,
-            "| {} | {:.2}% | {:+.2}pp | {:.2}% | {:+.2}pp |",
-            name, ex, dex, nm, dnm
+            "| {name} | {ex:.2}% | {dex:+.2}pp | {nm:.2}% | {dnm:+.2}pp |"
         )?;
     }
     writeln!(
@@ -1086,11 +1115,7 @@ pub fn run_oracle(official_path: &Path, out_dir: &Path) -> Result<()> {
 /// fix. Also reports each rule's cluster-selection precision on the meanings
 /// whose official root is present in the evidence (the recoverable slice).
 pub fn run_select_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
-    let entries: Vec<OfficialEntry> = official::load(official_path)?
-        .into_iter()
-        .filter(|e| e.is_benchmarkable())
-        .collect();
-    let proto = load_proto_index();
+    let (entries, proto) = harness_preamble(official_path)?;
     let cfg = ConsensusConfig::production();
 
     struct Clus {
@@ -1153,7 +1178,7 @@ pub fn run_select_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 .max_by_key(|c| (c.langs, c.branches))
                 .map(|c| c.key.clone()),
             "oracle-cluster" => {
-                let ok = ortho::consonant_key(&ortho::to_standard(&official.to_lowercase()));
+                let ok = ortho::consonant_key(&ortho::fold_key(official));
                 cs.iter().find(|c| c.key == ok).map(|c| c.key.clone())
             }
             _ => None, // "production"
@@ -1179,7 +1204,7 @@ pub fn run_select_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             }
             denom += 1;
             let cs = clusters(&input);
-            let official_key = ortho::consonant_key(&ortho::to_standard(&entry.isv.to_lowercase()));
+            let official_key = ortho::consonant_key(&ortho::fold_key(&entry.isv));
             let official_present = cs.iter().any(|c| c.key == official_key);
             let forced = pick(name, &cs, &entry.isv);
             let (cands, _) = if let Some(k) = &forced {
@@ -1204,19 +1229,17 @@ pub fn run_select_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // root fingerprint match the official one? (For proto-derived tops a
                 // dropped/added consonant can shift the surface key, so this slightly
                 // under-counts — it is a floor.)
-                if winning_root_key(cands.first().unwrap()) == official_key {
+                // Audit fix (V15 item 7): an empty candidate list is a miss,
+                // not a crash - the diagnostic previously unwrapped here.
+                if cands
+                    .first()
+                    .is_some_and(|top| winning_root_key(top) == official_key)
+                {
                     hit += 1;
                 }
             }
         }
         denom_ref = denom;
-        let pct = |a: usize, b: usize| {
-            if b == 0 {
-                0.0
-            } else {
-                100.0 * a as f32 / b as f32
-            }
-        };
         results.push((
             name.to_string(),
             pct(ex, denom),
@@ -1295,7 +1318,7 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         if isv.is_empty() {
             continue;
         }
-        let key = ortho::to_standard(&isv.to_lowercase());
+        let key = ortho::fold_key(isv);
         by_form
             .entry(key)
             .or_default()
@@ -1328,7 +1351,7 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             continue;
         }
         // A miss: classify the prediction against the thesaurus.
-        let pk = ortho::to_standard(&pred.trim().to_lowercase());
+        let pk = ortho::fold_key(pred.trim());
         if !pred.is_empty() && thes.are_synonyms(&entry.isv, &pred) {
             syn += 1; // a valid synonym of this exact concept
         } else if !pred.is_empty() && by_form.contains_key(&pk) {
@@ -1339,13 +1362,6 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     }
 
     let miss = n - norm;
-    let pct = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
     let syn_incl = norm + syn;
     println!("Synonym-aware accuracy over {n} benchmarkable meanings:");
     println!("  exact top-1                 {:.2}%", pct(exact, n));
@@ -1411,6 +1427,26 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
     std::fs::write(out_dir.join("synonym-accuracy.md"), s)?;
     println!("Wrote {}", out_dir.join("synonym-accuracy.md").display());
+    // Machine-readable twin (V15.1 item 2): the metrics page reads THIS,
+    // never the markdown — the md table is for humans only.
+    let summary = serde_json::json!({
+        "schema": 1,
+        "n": n,
+        "exact_top1": pct(exact, n) as f64 / 100.0,
+        "strict_normalized_top1": pct(norm, n) as f64 / 100.0,
+        "synonym_inclusive_top1": pct(syn_incl, n) as f64 / 100.0,
+        "miss_breakdown": {
+            "misses": miss,
+            "valid_synonym_pct": pct(syn, miss) as f64,
+            "other_sense_pct": pct(other_sense, miss) as f64,
+            "non_official_pct": pct(not_official, miss) as f64,
+        },
+    });
+    std::fs::write(
+        out_dir.join("synonym-summary.json"),
+        serde_json::to_string_pretty(&summary)? + "\n",
+    )?;
+    println!("Wrote {}", out_dir.join("synonym-summary.json").display());
     Ok(())
 }
 
@@ -1433,11 +1469,7 @@ pub fn run_synonym_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
 /// scoring — same discipline as the headline benchmark.
 pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use std::collections::{HashMap, HashSet};
-    let entries: Vec<OfficialEntry> = official::load(official_path)?
-        .into_iter()
-        .filter(|e| e.is_benchmarkable())
-        .collect();
-    let proto = load_proto_index();
+    let (entries, proto) = harness_preamble(official_path)?;
     let cfg = ConsensusConfig::production();
     let corpus = crate::dump::LemmaCorpus::load(Path::new(crate::DEFAULT_LEMMA_CACHE))?;
 
@@ -1529,7 +1561,7 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 }
             }
             p.n += 1;
-            let official_key = ortho::consonant_key(&ortho::to_standard(&e.isv.to_lowercase()));
+            let official_key = ortho::consonant_key(&ortho::fold_key(&e.isv));
             let root_present = input
                 .forms
                 .iter()
@@ -1564,7 +1596,7 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             continue;
         }
         let input = build_input(e);
-        let official_key = ortho::consonant_key(&ortho::to_standard(&e.isv.to_lowercase()));
+        let official_key = ortho::consonant_key(&ortho::fold_key(&e.isv));
         let root_present = input
             .forms
             .iter()
@@ -1613,13 +1645,6 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         }
     }
 
-    let pct = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
     println!(
         "Evidence growth (Track E) over {} meanings; cache: {} lemmas",
         base.n, corpus.entry_count
@@ -1683,18 +1708,15 @@ pub fn run_evidence_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
     writeln!(
         s,
-        "| — of which reachable by the conservative rule (root under an uncited language) | {} |",
-        rec_reachable
+        "| — of which reachable by the conservative rule (root under an uncited language) | {rec_reachable} |"
     )?;
     writeln!(
         s,
-        "| — unreachable: root only under an already-cited language (adding it would displace the dictionary's own citation) | {} |",
-        rec_cited
+        "| — unreachable: root only under an already-cited language (adding it would displace the dictionary's own citation) | {rec_cited} |"
     )?;
     writeln!(
         s,
-        "| — unreachable: root only as a bg/mk verb citation (dropped by the no-infinitive rule) | {} |",
-        rec_bgmk
+        "| — unreachable: root only as a bg/mk verb citation (dropped by the no-infinitive rule) | {rec_bgmk} |"
     )?;
     writeln!(
         s,
@@ -1756,13 +1778,6 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let entries = official::load(official_path)?;
     let proto = load_proto_index();
     let cfg = ConsensusConfig::production();
-    let pct = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
 
     // ---- Quantification of the multi-word inventory ----
     let multi: Vec<&OfficialEntry> = entries
@@ -1906,10 +1921,17 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         if g.is_empty() {
             continue;
         }
-        if e.pos_raw.contains("ipf.") {
-            by_gloss_ipf.entry(g).or_default().push(e);
-        } else if e.pos_raw.contains("pf.") {
-            by_gloss_pf.entry(g).or_default().push(e);
+        // Same reading as aspect::detect_pairs: the biaspectual `ipf./pf.`
+        // row lands on the imperfective side (the historical inline
+        // `contains("ipf.")` matched it first).
+        match crate::postag::aspect(&e.pos_raw) {
+            Some(crate::postag::Aspect::Imperfective | crate::postag::Aspect::Biaspectual) => {
+                by_gloss_ipf.entry(g).or_default().push(e);
+            }
+            Some(crate::postag::Aspect::Perfective) => {
+                by_gloss_pf.entry(g).or_default().push(e);
+            }
+            None => {}
         }
     }
     let (mut p_gloss, mut p_morph) = (0usize, 0usize);
@@ -1928,12 +1950,12 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         p_gloss += ipfs.len().min(pfs.len());
         let mut used: Vec<bool> = vec![false; pfs.len()];
         for i in ipfs {
-            let ki = ortho::consonant_key(&ortho::to_standard(&i.isv.to_lowercase()));
+            let ki = ortho::consonant_key(&ortho::fold_key(&i.isv));
             let Some(qi) = pfs.iter().enumerate().position(|(x, q)| {
                 if used[x] {
                     return false;
                 }
-                let kq = ortho::consonant_key(&ortho::to_standard(&q.isv.to_lowercase()));
+                let kq = ortho::consonant_key(&ortho::fold_key(&q.isv));
                 ki.ends_with(&kq) || kq.ends_with(&ki) || ortho::shares_consonant_root(&ki, &kq)
             }) else {
                 continue;
@@ -2024,8 +2046,7 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
     writeln!(
         s,
-        "| — of which no reflexive marker detected in the cognates (structural miss: ` sę` is never appended) | {} | — | — |",
-        a_nodetect
+        "| — of which no reflexive marker detected in the cognates (structural miss: ` sę` is never appended) | {a_nodetect} | — | — |"
     )?;
     writeln!(
         s,
@@ -2048,7 +2069,7 @@ pub fn run_multiword_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
         "\nThe two-token heuristic (disclosed): position 1 is reconstructed as an adjective and agreed with the head's gender, position 2 as the entry's own POS — right for the dominant modifier+head class, wrong for adv+adv or verb phrases; 'not generatable' means fewer than 2 cognates cite a two-token form.\n\n## Two-token nearest misses (sample)\n"
     )?;
     for m in &b_miss {
-        writeln!(s, "- {}", m)?;
+        writeln!(s, "- {m}")?;
     }
     std::fs::write(out_dir.join("multiword-aspect.md"), s)?;
     println!("Wrote {}", out_dir.join("multiword-aspect.md").display());
@@ -2078,12 +2099,12 @@ pub fn run_aspect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             pf.isv.trim()
         )?;
     }
-    let pair_hash = fnv1a(&manifest);
+    let pair_hash = crate::fingerprint::fnv1a64(&manifest);
     const EXPECTED_PAIRS: usize = 1_440;
     const EXPECTED_MANIFEST_FNV: u64 = 0x5ab3_e19e_c5d7_58dd;
     anyhow::ensure!(
         pairs.len() == EXPECTED_PAIRS && pair_hash == EXPECTED_MANIFEST_FNV,
-        "aspect-pair benchmark slice drifted: got {} pairs / {pair_hash:016x}, expected {EXPECTED_PAIRS} / {EXPECTED_MANIFEST_FNV:016x}; inspect and explicitly re-register target/eval/aspect-pairs.tsv",
+        "aspect-pair benchmark slice drifted: got {} pairs / {pair_hash:016x}, expected {EXPECTED_PAIRS} / {EXPECTED_MANIFEST_FNV:016x}; inspect and explicitly re-register reports/aspect-pairs.tsv",
         pairs.len(),
     );
     let proto = load_proto_index();
@@ -2334,11 +2355,7 @@ fn agree_adjective(masc: &str, gender: Option<crate::model::Gender>) -> String {
 /// (medoid / modal-skeleton / shortest) and score the real pipeline, vs the fixed
 /// REP_PRIORITY (production) and the answer-reading oracle-representative.
 pub fn run_rep_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
-    let entries: Vec<OfficialEntry> = official::load(official_path)?
-        .into_iter()
-        .filter(|e| e.is_benchmarkable())
-        .collect();
-    let proto = load_proto_index();
+    let (entries, proto) = harness_preamble(official_path)?;
     let cfg = ConsensusConfig::production();
 
     let run_pass = |rule: &str| -> (usize, usize, usize) {
@@ -2427,8 +2444,7 @@ pub fn run_rep_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     for (name, ex, dex, nm, dnm) in &rows {
         writeln!(
             s,
-            "| {} | {:.2}% | {:+.2}pp | {:.2}% | {:+.2}pp |",
-            name, ex, dex, nm, dnm
+            "| {name} | {ex:.2}% | {dex:+.2}pp | {nm:.2}% | {dnm:+.2}pp |"
         )?;
     }
     writeln!(s, "\n- **production** — the fixed REP_PRIORITY (sl, hr, sr, pl, …) surface choice.\n- **medoid** — the group member minimizing total folded edit distance to the others (most central form).\n- **modal-skeleton** — the most common ascii-skeleton in the group, then REP_PRIORITY among its members.\n- **shortest** — the shortest attested form (nominatives tend shorter than oblique cases).\n- **oracle-representative** — the member folded-closest to the official lemma (ceiling; reads the answer).")?;
@@ -2445,7 +2461,7 @@ pub fn run_rep_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
 pub fn run_proto_engine(official_path: &Path, out_dir: &Path) -> Result<()> {
     let entries: Vec<OfficialEntry> = official::load(official_path)?
         .into_iter()
-        .filter(|e| e.is_benchmarkable())
+        .filter(super::official::OfficialEntry::is_benchmarkable)
         .collect();
     let Some(proto) = load_proto_index() else {
         anyhow::bail!(
@@ -2471,7 +2487,7 @@ pub fn run_proto_engine(official_path: &Path, out_dir: &Path) -> Result<()> {
             continue;
         };
         linked += 1;
-        let recon_key = ortho::consonant_key(&ortho::to_standard(&l.entry.word.to_lowercase()));
+        let recon_key = ortho::consonant_key(&ortho::fold_key(&l.entry.word));
         let reflexes: Vec<String> = input
             .forms
             .iter()
@@ -2584,11 +2600,11 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
         .or_else(|| {
             // Folded match, so a query without the flavored letters still finds
             // the lemma: "kratky" → kråtky, "medzu" → medžu.
-            let qs = ortho::to_standard(&ql);
+            let qs = ortho::fold_key(query.trim());
             let qk = ortho::ascii_skeleton(&ql);
             entries
                 .iter()
-                .find(|e| ortho::to_standard(&e.isv.to_lowercase()) == qs)
+                .find(|e| ortho::fold_key(&e.isv) == qs)
                 .or_else(|| {
                     entries
                         .iter()
@@ -2637,7 +2653,12 @@ pub fn explain(official_path: &Path, query: &str) -> Result<()> {
     for f in &input.forms {
         println!(
             "  [{}] {:<3} {:<18} -> {}",
-            f.branch.code().chars().next().unwrap().to_uppercase(),
+            f.branch
+                .code()
+                .chars()
+                .next()
+                .expect("branch codes are non-empty")
+                .to_uppercase(),
             f.lang_code,
             f.norm.original,
             f.norm.latin
@@ -2685,7 +2706,7 @@ pub fn run(official_path: &Path, out_dir: &Path) -> Result<()> {
     }
     let entries: Vec<OfficialEntry> = entries_all
         .into_iter()
-        .filter(|e| e.is_benchmarkable())
+        .filter(super::official::OfficialEntry::is_benchmarkable)
         .collect();
     println!(
         "Loaded {} benchmarkable official entries from {}",
@@ -2747,7 +2768,7 @@ pub fn run(official_path: &Path, out_dir: &Path) -> Result<()> {
         Some(ConsensusConfig::production()),
         "the kept ladder must end at ConsensusConfig::production()"
     );
-    let production = runs.last().unwrap();
+    let production = runs.last().expect("the ladder always has rungs");
     println!("Shipped production config: {}", production.name);
 
     // Still surface if some earlier rung actually scored higher (a real regression).
@@ -3030,8 +3051,7 @@ fn write_report_md(
     writeln!(s, "\n## Next recommended linguistic rules\n")?;
     writeln!(
         s,
-        "The Proto-Slavic-derived-form path (§4.4) is implemented — consensus picks the root and the Proto-Slavic rule engine supplies the flavored form via a leakage-free descendant+gloss link. Yer resolution now uses a genuine **tense-yer rule** (yer before *j → i/y) plus **reflex-guided vocalization** (a lexically-ambiguous weak yer is retained when the reflexes vote to keep it: `*pьsati`→`pisati` vs `*bьrati`→`brati`), and a length-free **reflex-shape-agreement** ranking rule replaced the earlier length heuristic. Ranked next steps, from the remaining-error analysis:\n\n1. **Expand Proto-Slavic link coverage.** Only meanings with a matched `sla-pro` reconstruction get the flavored derivation; raising cache coverage and loosening the link gate (without admitting bad links) directly grows the proto-derived slice.\n2. **Reduce the reconstruction's non-yer errors** (endings, palatalizations) so the proto form can be trusted even when it disagrees with the reflexes — currently such disagreements defer to the reflexes, capping the proto gain.\n3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~{far} far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.\n4. **Secondary-imperfective verb stems** (`-yva-/-iva-/-ava-`) and the agentive `-telj`/abstract `-teljstvo` suffixes, seen repeatedly in the verb/noun error tail.\n5. **POS-specific gender/animacy inference** to pick the right nominal ending where the modern citation forms disagree.",
-        far = far
+        "The Proto-Slavic-derived-form path (§4.4) is implemented — consensus picks the root and the Proto-Slavic rule engine supplies the flavored form via a leakage-free descendant+gloss link. Yer resolution now uses a genuine **tense-yer rule** (yer before *j → i/y) plus **reflex-guided vocalization** (a lexically-ambiguous weak yer is retained when the reflexes vote to keep it: `*pьsati`→`pisati` vs `*bьrati`→`brati`), and a length-free **reflex-shape-agreement** ranking rule replaced the earlier length heuristic. Ranked next steps, from the remaining-error analysis:\n\n1. **Expand Proto-Slavic link coverage.** Only meanings with a matched `sla-pro` reconstruction get the flavored derivation; raising cache coverage and loosening the link gate (without admitting bad links) directly grows the proto-derived slice.\n2. **Reduce the reconstruction's non-yer errors** (endings, palatalizations) so the proto form can be trusted even when it disagrees with the reflexes — currently such disagreements defer to the reflexes, capping the proto gain.\n3. **Divergent-root modeling (semantic families, §4.2 step 3).** The ~{far} far-misses are mostly cases where Interslavic picked a different root than the plurality skeleton; scoring candidate *roots* (not surface forms) over the six subgroups, clustered by the proto descendant graph, would recover many.\n4. **Secondary-imperfective verb stems** (`-yva-/-iva-/-ava-`) and the agentive `-telj`/abstract `-teljstvo` suffixes, seen repeatedly in the verb/noun error tail.\n5. **POS-specific gender/animacy inference** to pick the right nominal ending where the modern citation forms disagree."
     )?;
 
     std::fs::write(out_dir.join("candidate-generation-report.md"), s)?;
@@ -3048,8 +3068,8 @@ fn classify_error(r: &EntryResult) -> &'static str {
     if r.norm_edit >= 0.34 {
         return "different root / derivation";
     }
-    let so = ortho::to_standard(&off.to_lowercase());
-    let sp = ortho::to_standard(&pred.to_lowercase());
+    let so = ortho::fold_key(off);
+    let sp = ortho::fold_key(pred);
     // Same skeleton but different flavored letters => a flavor-recovery miss.
     if ortho::ascii_skeleton(off) == ortho::ascii_skeleton(pred) {
         return "flavored letter (ě/ę/ų/å/ć/đ) not recovered";
@@ -3139,18 +3159,6 @@ fn write_errors_sample(out_dir: &Path, best: &RunMetrics) -> Result<()> {
 // reproducible byte-for-byte.
 // ---------------------------------------------------------------------------
 
-/// Deterministic FNV-1a hash of an entry id, used for the seeded dev/holdout
-/// split. Stable across runs, platforms and rule changes (depends only on the
-/// entry's id string), so the same entries are held out forever.
-fn fnv1a(s: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in s.as_bytes() {
-        h ^= *b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    h
-}
-
 /// ~25% of entries form the HOLDOUT split; rules are developed against the DEV
 /// split and must generalize to the holdout. A rule that gains on dev but not on
 /// holdout is memorizing dictionary idiosyncrasies (overfitting guard).
@@ -3158,7 +3166,7 @@ fn fnv1a(s: &str) -> u64 {
 /// derive-eval, …) so all dev/holdout numbers are computed on the same
 /// entries. Never change the hash or the modulus.
 pub fn is_holdout_id(id: &str) -> bool {
-    fnv1a(id).is_multiple_of(4)
+    crate::fingerprint::fnv1a64(id).is_multiple_of(4)
 }
 
 /// Exact two-sided sign test on discordant pairs. Under H0 the smaller tail is
@@ -3215,7 +3223,7 @@ fn bootstrap_ci(hits: &[bool]) -> (f32, f32) {
             100.0 * hit as f32 / n as f32
         })
         .collect();
-    rates.sort_by(|a, b| a.total_cmp(b));
+    rates.sort_by(f32::total_cmp);
     (rates[25], rates[974])
 }
 
@@ -3241,13 +3249,6 @@ fn split_rates(results: &[EntryResult]) -> SplitRates {
             dn += r.normalized as usize;
         }
     }
-    let pct = |a: usize, b: usize| {
-        if b == 0 {
-            0.0
-        } else {
-            100.0 * a as f32 / b as f32
-        }
-    };
     SplitRates {
         dev_exact: pct(de, dd),
         dev_norm: pct(dn, dd),
@@ -3261,7 +3262,7 @@ fn split_rates(results: &[EntryResult]) -> SplitRates {
 /// significance of each rung's delta, bootstrap CI on the headline, and the
 /// score-calibration table (reliability, ECE, Brier).
 fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
-    let production = runs.last().unwrap();
+    let production = runs.last().expect("the ladder always has rungs");
     let mut s = String::new();
     writeln!(s, "# Evaluation methodology — statistical instruments\n")?;
 
@@ -3547,7 +3548,7 @@ fn write_methodology(out_dir: &Path, runs: &[RunMetrics]) -> Result<()> {
             r.exact as u8,
             r.normalized as u8,
             r.score,
-            r.confidence.map(conf_label).unwrap_or("-"),
+            r.confidence.map_or("-", conf_label),
             r.branch_cov,
             r.n_langs,
             r.norm_edit,

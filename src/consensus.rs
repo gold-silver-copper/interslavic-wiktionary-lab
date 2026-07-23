@@ -225,38 +225,6 @@ impl ConsensusConfig {
             proto_link_deep_corroboration: false,
         }
     }
-
-    pub fn full() -> Self {
-        ConsensusConfig {
-            branch_balanced: true,
-            prefer_south_representative: true,
-            nasal_from_polish: true,
-            palatal_from_south: true,
-            depleophony: true,
-            jat_reconstruction: true,
-            lemma_endings: true,
-            internationalism: true,
-            six_subgroup_vote: true,
-            prefix_normalization: true,
-            y_recovery: true,
-            adj_longform_rep: true,
-            proto_derived_form: true,
-            internationalism_preference: true,
-            adj_fleeting_drop: true,
-            explicit_etymology: true,
-            synonym_alternatives: true,
-            proto_prefix_stripping: true,
-            loan_stem_repair: true,
-            verb_class_repair: true,
-            voicing_repair: true,
-            medoid_representative: true,
-            derivational_suffixes: true,
-            loan_hiatus: true,
-            spirantization_repair: true,
-            proto_stem_class_endings: true,
-            proto_link_deep_corroboration: true,
-        }
-    }
 }
 
 /// Surface-representative language priority: closest-to-Interslavic first.
@@ -387,10 +355,12 @@ pub fn generate_oracle(
     // The key is either the official one (oracle-cluster — reads the answer) or a
     // leakage-free rule-computed key (select-eval).
     let forced_key: Option<String> = oracle.and_then(|o| {
-        o.force_cluster_key.map(|k| k.to_string()).or_else(|| {
-            o.cluster
-                .then(|| ortho::consonant_key(&ortho::to_standard(&o.official.to_lowercase())))
-        })
+        o.force_cluster_key
+            .map(std::string::ToString::to_string)
+            .or_else(|| {
+                o.cluster
+                    .then(|| ortho::consonant_key(&ortho::fold_key(o.official)))
+            })
     });
     if let Some(key) = forced_key {
         if let Some(p) = groups.iter().position(|g| g.key == key) {
@@ -507,11 +477,8 @@ pub fn generate_oracle(
             if form.is_empty() {
                 continue;
             }
-            let std = ortho::to_standard(&form.to_lowercase());
-            if candidates
-                .iter()
-                .any(|c| ortho::to_standard(&c.form.to_lowercase()) == std)
-            {
+            let std = ortho::fold_key(&form);
+            if candidates.iter().any(|c| ortho::fold_key(&c.form) == std) {
                 continue;
             }
             let score = (min_primary - 0.02 - 0.01 * candidates.len() as f32).clamp(0.03, 0.5);
@@ -559,12 +526,10 @@ fn pick_rep_by_rule<'a>(
         "medoid" => group
             .iter()
             .min_by_key(|f| {
-                let a = ortho::to_standard(&f.norm.latin.to_lowercase());
+                let a = ortho::fold_key(&f.norm.latin);
                 group
                     .iter()
-                    .map(|o| {
-                        ortho::levenshtein(&a, &ortho::to_standard(&o.norm.latin.to_lowercase()))
-                    })
+                    .map(|o| ortho::levenshtein(&a, &ortho::fold_key(&o.norm.latin)))
                     .sum::<usize>()
             })
             .copied(),
@@ -628,12 +593,10 @@ fn reconstruct(
     let rep = if let Some(o) = oracle.filter(|o| o.representative) {
         // Oracle (reads the answer): the member folded-closest to the official
         // lemma — the upper bound of a perfect representative choice.
-        let target = ortho::to_standard(&o.official.to_lowercase());
+        let target = ortho::fold_key(o.official);
         group
             .iter()
-            .min_by_key(|f| {
-                ortho::levenshtein(&ortho::to_standard(&f.norm.latin.to_lowercase()), &target)
-            })
+            .min_by_key(|f| ortho::levenshtein(&ortho::fold_key(&f.norm.latin), &target))
             .copied()
     } else if let Some(rule) = oracle.and_then(|o| o.rep_rule) {
         pick_rep_by_rule(rule, group, priority).or_else(by_priority)
@@ -927,7 +890,7 @@ fn voicing_repair(
 
     for (devoiced, voiced) in [("bes", "bez"), ("is", "iz")] {
         if let Some(rest) = w.strip_prefix(devoiced) {
-            let cons_stem = rest.chars().next().map(is_cons).unwrap_or(false);
+            let cons_stem = rest.chars().next().is_some_and(is_cons);
             if cons_stem && rest.chars().count() >= 3 {
                 let confirmed = per_lang
                     .values()
@@ -1147,8 +1110,7 @@ fn loan_stem_repair(
         }
         // (f) A feminine loan cited without its -a (banknot, aksiom): restore
         // it when the gender says feminine and a cognate shows the -a form.
-        if input.gender == Some(Gender::Feminine) && w.chars().last().map(is_cons).unwrap_or(false)
-        {
+        if input.gender == Some(Gender::Feminine) && w.chars().last().is_some_and(is_cons) {
             let with_a = format!("{w}a");
             let skel = ortho::ascii_skeleton(&with_a);
             if per_lang
@@ -1333,8 +1295,7 @@ fn drop_adj_fleeting(form: &str, per_lang: &BTreeMap<&str, &SourceForm>) -> Opti
     let has_adjacency = ["ru", "pl", "cs", "sk", "uk", "be"].iter().any(|d| {
         per_lang
             .get(*d)
-            .map(|f| ortho::ascii_skeleton(&f.norm.latin).contains(&pair))
-            .unwrap_or(false)
+            .is_some_and(|f| ortho::ascii_skeleton(&f.norm.latin).contains(&pair))
     });
     if !has_adjacency {
         return None;
@@ -1487,7 +1448,7 @@ fn tidy_ending(word: &str, pos: Pos, gender: Option<Gender>) -> String {
 }
 
 fn ends_with_vowel(w: &str) -> bool {
-    w.chars().last().map(ortho::is_vowel).unwrap_or(false)
+    w.chars().last().is_some_and(ortho::is_vowel)
 }
 
 fn round3(x: f32) -> f32 {

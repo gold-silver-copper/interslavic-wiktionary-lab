@@ -69,8 +69,7 @@ pub fn generate_oracle(
                 // whose cell mixes synonyms of different roots (staruška for
                 // *babъka "old woman") would otherwise pollute the yer alignment
                 // and inject a spurious vowel (babka→babaka).
-                let recon_key =
-                    ortho::consonant_key(&ortho::to_standard(&l.entry.word.to_lowercase()));
+                let recon_key = ortho::consonant_key(&ortho::fold_key(&l.entry.word));
                 let reflexes: Vec<String> = input
                     .forms
                     .iter()
@@ -113,7 +112,7 @@ pub fn generate_oracle(
                     // form stays a scored alternative.
                     let cons_top = candidates.first();
                     let cons_form = cons_top.map(|c| c.form.clone()).unwrap_or_default();
-                    let cons_branch_cov = cons_top.map(|c| c.branch_coverage).unwrap_or(0);
+                    let cons_branch_cov = cons_top.map_or(0, |c| c.branch_coverage);
                     let agree = flavor_equivalent(&pc.form, &cons_form);
                     // Reflex-shape agreement, confidence-gated (§F: a trustworthy
                     // engine earns a looser gate). When the reconstruction agrees
@@ -259,14 +258,13 @@ fn dedupe(candidates: &mut Vec<Candidate>) {
     let mut seen: Vec<String> = Vec::new();
     let mut out: Vec<Candidate> = Vec::new();
     for c in candidates.drain(..) {
-        let key = ortho::to_standard(&c.form.to_lowercase());
+        let key = ortho::fold_key(&c.form);
         if seen.contains(&key) {
             // Already have an equal-or-better representative; but if this one is
             // Proto-Slavic-derived and the kept one is not, upgrade to flavored.
             if c.source == CandidateSource::ProtoSlavicRule {
                 if let Some(existing) = out.iter_mut().find(|e| {
-                    ortho::to_standard(&e.form.to_lowercase()) == key
-                        && e.source != CandidateSource::ProtoSlavicRule
+                    ortho::fold_key(&e.form) == key && e.source != CandidateSource::ProtoSlavicRule
                 }) {
                     // Upgrade to the flavored Proto-Slavic-derived spelling and
                     // adopt its provenance so the trace/source stay honest.
@@ -298,7 +296,7 @@ fn proto_rank(c: &Candidate) -> u8 {
 /// segmental choice the reflexes made.
 fn flavor_equivalent(a: &str, b: &str) -> bool {
     let fold = |s: &str| {
-        ortho::to_standard(&s.to_lowercase())
+        ortho::fold_key(s)
             .replace('y', "i")
             // soft-sonorant palatalization is a flavored refinement, too: the
             // reconstruction adds the softness (solj, konj, morje) the consensus

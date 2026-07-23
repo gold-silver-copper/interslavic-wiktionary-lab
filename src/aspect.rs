@@ -11,34 +11,9 @@ use crate::official::OfficialEntry;
 use crate::orthography as ortho;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Aspect {
-    Imperfective,
-    Perfective,
-    Biaspectual,
-}
-
-impl Aspect {
-    pub fn code(self) -> &'static str {
-        match self {
-            Self::Imperfective => "ipf",
-            Self::Perfective => "pf",
-            Self::Biaspectual => "ipf/pf",
-        }
-    }
-}
-
-pub fn aspect(pos_raw: &str) -> Option<Aspect> {
-    if pos_raw.contains("ipf./pf.") {
-        Some(Aspect::Biaspectual)
-    } else if pos_raw.contains("ipf.") {
-        Some(Aspect::Imperfective)
-    } else if pos_raw.contains("pf.") {
-        Some(Aspect::Perfective)
-    } else {
-        None
-    }
-}
+// Aspect and aspect() moved verbatim to crate::postag, the one pos_raw
+// grammar (V15 item 5); the old paths stay valid.
+pub use crate::postag::{aspect, Aspect};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AspectPair {
@@ -78,9 +53,9 @@ pub fn detect_pairs(entries: &[OfficialEntry]) -> Vec<AspectPair> {
         };
         let mut used = vec![false; perfectives.len()];
         for &ii in &ipf[gloss] {
-            let ik = consonant_key(&entries[ii].isv);
+            let ik = ortho::consonant_key(&entries[ii].isv);
             let Some(slot) = perfectives.iter().enumerate().position(|(n, &pi)| {
-                !used[n] && roots_related(&ik, &consonant_key(&entries[pi].isv))
+                !used[n] && roots_related(&ik, &ortho::consonant_key(&entries[pi].isv))
             }) else {
                 continue;
             };
@@ -94,10 +69,6 @@ pub fn detect_pairs(entries: &[OfficialEntry]) -> Vec<AspectPair> {
     out
 }
 
-fn consonant_key(word: &str) -> String {
-    ortho::consonant_key(&ortho::to_standard(&word.to_lowercase()))
-}
-
 fn roots_related(a: &str, b: &str) -> bool {
     // Preserve the pre-registered issue-75 denominator exactly: the legacy
     // slice treated an empty consonant skeleton as suffix-related via
@@ -109,7 +80,10 @@ fn roots_related(a: &str, b: &str) -> bool {
 /// broad cognate heuristic (suffix containment or matching first consonants).
 /// This is not a claim of proven etymological identity.
 pub fn pairing_correct(imperfective: &str, perfective: &str) -> bool {
-    roots_related(&consonant_key(imperfective), &consonant_key(perfective))
+    roots_related(
+        &ortho::consonant_key(imperfective),
+        &ortho::consonant_key(perfective),
+    )
 }
 
 #[derive(Debug, Clone, Copy)]

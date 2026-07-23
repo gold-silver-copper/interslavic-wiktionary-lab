@@ -17,7 +17,7 @@ use super::special::{
 use crate::consensus::MeaningInput;
 use crate::lang::Branch;
 use crate::model::Confidence;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::Path;
@@ -76,9 +76,8 @@ pub(super) fn first_bucket(title: &str) -> String {
     let folded = crate::orthography::ascii_skeleton(title);
     folded
         .chars()
-        .find(|c| c.is_ascii_alphanumeric())
-        .map(|c| c.to_ascii_uppercase().to_string())
-        .unwrap_or_else(|| "#".to_string())
+        .find(char::is_ascii_alphanumeric)
+        .map_or_else(|| "#".to_string(), |c| c.to_ascii_uppercase().to_string())
 }
 
 pub(super) fn category_key(path: &[String]) -> String {
@@ -333,7 +332,7 @@ pub(super) fn wiki_topic_root(lang: &str, topic: Vec<&str>) -> Vec<String> {
         crate::lang::lang_name(lang).to_string(),
         "Vse temy".to_string(),
     ];
-    path.extend(topic.into_iter().map(|s| s.to_string()));
+    path.extend(topic.into_iter().map(std::string::ToString::to_string));
     path
 }
 
@@ -413,7 +412,7 @@ pub(super) fn homograph_groups(
         std::collections::BTreeMap::new();
     for m in metas {
         groups
-            .entry(crate::orthography::to_standard(&m.title.to_lowercase()))
+            .entry(crate::orthography::fold_key(&m.title))
             .or_default()
             .push(m.clone());
     }
@@ -421,12 +420,19 @@ pub(super) fn homograph_groups(
     groups
 }
 
-pub(super) fn load_curation_notes() -> std::collections::HashMap<String, String> {
+/// Same posture as dump::load_optional (V15 item 10): an absent notes file
+/// is a normal state (empty map), but an existing-but-corrupt one is a hard
+/// error — it used to silently strip every curation note from the site.
+pub(super) fn load_curation_notes() -> anyhow::Result<std::collections::HashMap<String, String>> {
     let path = Path::new("data/curation-notes.json");
-    let Ok(raw) = std::fs::read_to_string(path) else {
-        return std::collections::HashMap::new();
+    let raw = match std::fs::read_to_string(path) {
+        Ok(raw) => raw,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(std::collections::HashMap::new())
+        }
+        Err(e) => return Err(e).context("read data/curation-notes.json"),
     };
-    serde_json::from_str::<std::collections::HashMap<String, String>>(&raw).unwrap_or_default()
+    serde_json::from_str(&raw).context("parse data/curation-notes.json")
 }
 
 pub(super) fn add_edge(
@@ -734,8 +740,7 @@ pub(super) fn language_portal_page(
     strongest.sort_by(|a, b| b.score.total_cmp(&a.score));
     let name = crate::lang::lang_name(lang);
     let intro = format!(
-        "Portal za {}: strany zapisov, v ktoryh toj język davaje srodny dokaz. Unikatne slova pokazyvajųt korenje vidno samo v tom języku v našem korpusu; vseslovjanske slova imajųt dokaz iz vsih trěh větvi.",
-        name
+        "Portal za {name}: strany zapisov, v ktoryh toj język davaje srodny dokaz. Unikatne slova pokazyvajųt korenje vidno samo v tom języku v našem korpusu; vseslovjanske slova imajųt dokaz iz vsih trěh větvi."
     );
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Portal: {}</h1><p>{}</p>{}\
@@ -925,7 +930,7 @@ pub(super) fn write_needs_review_subpages(out_dir: &Path, rows: &[SiteEntryMeta]
 }
 
 pub(super) fn suffix_bucket(title: &str, pos: &str) -> String {
-    let folded = crate::orthography::to_standard(&title.to_lowercase());
+    let folded = crate::orthography::fold_key(title);
     if pos == "verb" {
         if folded.ends_with("ti") {
             "glagoly na -ti".to_string()
@@ -933,11 +938,10 @@ pub(super) fn suffix_bucket(title: &str, pos: &str) -> String {
             "druge glagoly".to_string()
         }
     } else if pos == "adj" {
-        folded
-            .chars()
-            .last()
-            .map(|c| format!("pridavniki na -{c}"))
-            .unwrap_or_else(|| "pridavniki".to_string())
+        folded.chars().last().map_or_else(
+            || "pridavniki".to_string(),
+            |c| format!("pridavniki na -{c}"),
+        )
     } else {
         let suffix: String = folded
             .chars()
@@ -987,7 +991,7 @@ fn has_inflection_issue(word: &str, pos: &str) -> bool {
     match pos {
         "noun" | "proper_noun" => {
             let forms =
-                std::panic::catch_unwind(|| crate::forms::noun_paradigm_forms(bare, None)).ok();
+                crate::forms::catch_inflect(|| crate::forms::noun_paradigm_forms(bare, None));
             cases.into_iter().any(|case| {
                 [Number::Singular, Number::Plural]
                     .into_iter()
@@ -998,7 +1002,7 @@ fn has_inflection_issue(word: &str, pos: &str) -> bool {
             })
         }
         "adj" => {
-            let forms = std::panic::catch_unwind(|| interslavic::adj_forms(bare)).ok();
+            let forms = crate::forms::catch_inflect(|| interslavic::adj_forms(bare));
             cases.into_iter().any(|case| {
                 [Number::Singular, Number::Plural]
                     .into_iter()
@@ -1117,9 +1121,10 @@ pub(super) fn special_pages_hub() -> String {
 }
 
 pub(super) fn talk_page(m: &SiteEntryMeta, note: Option<&String>, incoming: &[LinkEdge]) -> String {
-    let note_html = note
-        .map(|n| format!("<div class='notice'>{}</div>", esc(n)))
-        .unwrap_or_else(|| "<p class='muted'>Ješče nema kuratorskyh not.</p>".to_string());
+    let note_html = note.map_or_else(
+        || "<p class='muted'>Ješče nema kuratorskyh not.</p>".to_string(),
+        |n| format!("<div class='notice'>{}</div>", esc(n)),
+    );
     let body = format!(
         "<article class='entry'><h1 class='firstHeading'>Diskusija: {}</h1>\
          <p><a href='../entry/{}.html'>← stran zapisova</a></p>\
@@ -1238,7 +1243,7 @@ pub(super) fn category_page(
     for child in &node.children {
         if let Some(c) = tree.get(child) {
             let count = category_descendant_page_count(tree, child);
-            let label = c.path.last().map(String::as_str).unwrap_or(child);
+            let label: &str = c.path.last().map_or(child, String::as_str);
             let _ = write!(
                 subcats,
                 "<li><a href='{}.html'>{}</a> <span class='muted'>({})</span></li>",
@@ -1276,6 +1281,7 @@ pub(super) fn category_page(
     )
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct WikiIndexInput<'a> {
     pub(super) out_dir: &'a Path,
     pub(super) entries: &'a [SiteEntryMeta],
@@ -1388,7 +1394,7 @@ pub(super) fn write_wiki_indexes(input: WikiIndexInput<'_>) -> Result<()> {
     )?;
 
     for m in metas {
-        let incoming = backlinks.get(&m.id).map(Vec::as_slice).unwrap_or(&[]);
+        let incoming: &[LinkEdge] = backlinks.get(&m.id).map_or(&[], Vec::as_slice);
         let body = backlink_page_body(m, incoming);
         std::fs::write(
             out_dir
@@ -1396,7 +1402,7 @@ pub(super) fn write_wiki_indexes(input: WikiIndexInput<'_>) -> Result<()> {
                 .join(format!("{}.html", m.id)),
             page(&format!("Čto veze k {}", m.title), &body, 1),
         )?;
-        let note_key = crate::orthography::to_standard(&m.title.to_lowercase());
+        let note_key = crate::orthography::fold_key(&m.title);
         let note = curation
             .get(&note_key)
             .or_else(|| curation.get(&m.id.to_string()));
@@ -1415,10 +1421,10 @@ pub(super) fn write_wiki_indexes(input: WikiIndexInput<'_>) -> Result<()> {
     }
     for (sl, rows) in &mut root_map {
         rows.sort_by_key(|m| crate::orthography::ascii_skeleton(&m.title));
-        let root_label = rows
-            .first()
-            .map(|m| m.ancestor.trim_start_matches('*').to_string())
-            .unwrap_or_else(|| sl.clone());
+        let root_label = rows.first().map_or_else(
+            || sl.clone(),
+            |m| m.ancestor.trim_start_matches('*').to_string(),
+        );
         // Link every proto-lemma reflex page that lists at least one of THIS
         // root's entries (membership-gated, issue #73b review): a root can
         // mix ancestors that resolve to different reconstructions (cělo vs
@@ -1438,8 +1444,7 @@ pub(super) fn write_wiki_indexes(input: WikiIndexInput<'_>) -> Result<()> {
                     let label = proto_reflex
                         .pages
                         .get(psl.as_str())
-                        .map(|p| p.word.as_str())
-                        .unwrap_or(psl.as_str());
+                        .map_or(psl.as_str(), |p| p.word.as_str());
                     format!(
                         "<a href='../proto/{psl}.html'><span class='mention'>*{}</span></a>",
                         esc(label)
@@ -1667,15 +1672,16 @@ pub(super) fn entry_infobox(
     extra_rows: &str,
     proto_link: &str,
 ) -> String {
-    let root = ancestor_slug(m)
-        .map(|sl| format!("<a href='../root/{sl}.html'>{}</a>", esc(&m.ancestor)))
-        .unwrap_or_else(|| {
+    let root = ancestor_slug(m).map_or_else(
+        || {
             esc(if m.ancestor.is_empty() {
                 "—"
             } else {
                 &m.ancestor
             })
-        });
+        },
+        |sl| format!("<a href='../root/{sl}.html'>{}</a>", esc(&m.ancestor)),
+    );
     // Calibrated reliability badge (issue #77). Official words state the
     // fact ("oficialno" — not a prediction, no p): official-only pages AND
     // matched entries (issue #86 — the calibrated prior moved to the
@@ -1691,7 +1697,7 @@ pub(super) fn entry_infobox(
             .prob
             .map(|p| {
                 format!(
-                    " <span class='score muted' title='kalibrovana věrojętnosť P(odgovara oficialnomu rěšenju); metodologija: target/eval/methodology.md'>p≈{p:.2}</span>"
+                    " <span class='score muted' title='kalibrovana věrojętnosť P(odgovara oficialnomu rěšenju); metodologija: reports/methodology.md'>p≈{p:.2}</span>"
                 )
             })
             .unwrap_or_default();
@@ -1764,7 +1770,7 @@ pub(super) fn homograph_notice(
     m: &SiteEntryMeta,
     groups: &std::collections::BTreeMap<String, Vec<SiteEntryMeta>>,
 ) -> String {
-    let key = crate::orthography::to_standard(&m.title.to_lowercase());
+    let key = crate::orthography::fold_key(&m.title);
     let Some(rows) = groups.get(&key) else {
         return String::new();
     };
@@ -1786,7 +1792,7 @@ pub(super) fn entry_wiki_blocks(
     build: &BuildMeta,
 ) -> String {
     let mut out = String::new();
-    let note_key = crate::orthography::to_standard(&m.title.to_lowercase());
+    let note_key = crate::orthography::fold_key(&m.title);
     if let Some(note) = curation
         .get(&note_key)
         .or_else(|| curation.get(&m.id.to_string()))
@@ -2032,27 +2038,23 @@ pub(super) fn entries_json(metas: &[SiteEntryMeta]) -> String {
         // probability, mirroring the API's lemma records.
         let prob = m
             .prob
-            .map(|p| format!("{p:.3}"))
-            .unwrap_or_else(|| "null".to_string());
+            .map_or_else(|| "null".to_string(), |p| format!("{p:.3}"));
         let langs_list = m
             .languages
             .iter()
             .map(|l| json_str(l))
             .collect::<Vec<_>>()
             .join(",");
-        let pattern = branch_pattern(&m.languages)
-            .map(|p| json_str(&p))
-            .unwrap_or_else(|| "null".to_string());
+        let pattern =
+            branch_pattern(&m.languages).map_or_else(|| "null".to_string(), |p| json_str(&p));
         let official_id = m
             .official_sense_id
             .as_ref()
-            .map(|id| json_str(id))
-            .unwrap_or_else(|| "null".to_string());
+            .map_or_else(|| "null".to_string(), |id| json_str(id));
         let aspect = m
             .aspect
             .as_ref()
-            .map(|a| json_str(a))
-            .unwrap_or_else(|| "null".to_string());
+            .map_or_else(|| "null".to_string(), |a| json_str(a));
         let partners = m
             .aspect_partners
             .iter()

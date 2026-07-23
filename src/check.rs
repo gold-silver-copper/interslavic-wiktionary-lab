@@ -19,7 +19,7 @@ use crate::forms::{self, FormRecord, RecordSink};
 use crate::model::Pos;
 use crate::official::{self, OfficialEntry};
 use crate::orthography as ortho;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
@@ -52,12 +52,7 @@ pub struct Index {
     /// Project-lexicon rows (V13 item 1), in file order; empty when no
     /// `--lexicon` was supplied. Drives the consistency check.
     pub lexicon: Vec<LexiconRow>,
-    /// Noun lemma key (folded) → dictionary animacy ('a' = tagged anim,
-    /// 'n' = untagged), absorbing on conflict. Official nouns decline
-    /// INANIMATE on purpose (the CSV animacy tag is too unreliable to
-    /// reshape paradigms), so the valence check reads animacy from here
-    /// instead of from the paradigm shape.
-    pub noun_animate: HashMap<String, char>,
+
     /// Verb lemma key (folded) → valence from the dictionary's own pos tag
     /// (V14 item 3): 't' = v.tr., 'i' = v.intr., 'r' = v.refl.; ' ' = mixed
     /// senses, aux, or untagged — the same absorbing-homograph discipline as
@@ -71,7 +66,7 @@ pub struct Index {
 /// false-friend warnings (empty map to disable them, e.g. in unit tests).
 pub fn build_index(
     entries: &[OfficialEntry],
-    novel_words_tsv: Option<&Path>,
+    novel_rows: &[crate::novel::NovelWordRow],
     notes: BTreeMap<String, crate::falsefriends::Note>,
 ) -> Index {
     let mut sink = RecordSink::default();
@@ -122,7 +117,7 @@ pub fn build_index(
                 absorb_insert(
                     &mut verb_valence,
                     forms::form_key(isv),
-                    valence_char(&e.pos_raw),
+                    crate::postag::valence(&e.pos_raw),
                 );
             }
             sink.add(
@@ -164,54 +159,40 @@ pub fn build_index(
             }
         }
     }
-    if let Some(path) = novel_words_tsv {
-        // The proposals file is a committed export artifact (`export` refreshes
-        // it). Rows carry the corpus-coverage calibrator's probability (V11
-        // item 5); a missing file is a separate reproducibility warning.
-        let tsv = std::fs::read_to_string(path).unwrap_or_else(|e| {
-            eprintln!(
-                "warning: generated-word proposal artifact unavailable ({}: {e}); \
-                 generated corpus words will be classified as unknown",
-                path.display()
-            );
-            String::new()
-        });
-        for (i, line) in tsv.lines().skip(1).enumerate() {
-            let cols: Vec<&str> = line.split('\t').collect();
-            if cols.len() < 8 {
-                continue;
-            }
-            let (form, pos, prob, gloss) = (cols[0], cols[1], cols[2], cols[7]);
-            let pos: &'static str = match pos {
-                "noun" => "noun",
-                "verb" => "verb",
-                "adj" => "adj",
-                "adv" => "adv",
-                "proper_noun" => "proper_noun",
-                _ => "other",
-            };
-            // Per-row entry ids (V14.2 item 2): same-surface same-POS
-            // homograph PROPOSALS are distinct concepts (tur/aurochs vs
-            // tur/prison), but the sink dedups on (key, lemma, entry_id) —
-            // with a shared sentinel id the second gloss silently vanished
-            // and its concept was unadoptable. The 1M offset stays clear of
-            // the real official ids this index carries (position+1, count
-            // debug-asserted below 1M). NOTE the ids themselves never leave
-            // the process — the site export builds this index too, but only
-            // its lemma_keys reach an artifact (the suggest shards' [key,
-            // lemma] rows).
-            sink.add(
-                form,
-                "",
-                form,
-                1_000_000 + i,
-                pos,
-                "lemma",
-                "generated",
-                prob.parse::<f64>().ok(),
-                gloss,
-            );
-        }
+    // Rows come from the single owner (crate::novel): the export passes its
+    // in-memory rows directly; CLI paths load the committed file through
+    // novel::load_or_warn. Rows carry the corpus-coverage calibrator's
+    // probability (V11 item 5).
+    for (i, row) in novel_rows.iter().enumerate() {
+        let pos: &'static str = match row.pos.as_str() {
+            "noun" => "noun",
+            "verb" => "verb",
+            "adj" => "adj",
+            "adv" => "adv",
+            "proper_noun" => "proper_noun",
+            _ => "other",
+        };
+        // Per-row entry ids (V14.2 item 2): same-surface same-POS
+        // homograph PROPOSALS are distinct concepts (tur/aurochs vs
+        // tur/prison), but the sink dedups on (key, lemma, entry_id) —
+        // with a shared sentinel id the second gloss silently vanished
+        // and its concept was unadoptable. The 1M offset stays clear of
+        // the real official ids this index carries (position+1, count
+        // debug-asserted below 1M). NOTE the ids themselves never leave
+        // the process — the site export builds this index too, but only
+        // its lemma_keys reach an artifact (the suggest shards' [key,
+        // lemma] rows).
+        sink.add(
+            &row.form,
+            "",
+            &row.form,
+            1_000_000 + i,
+            pos,
+            "lemma",
+            "generated",
+            row.prob,
+            &row.gloss,
+        );
     }
     let records = sink.into_records();
     let mut by_key: HashMap<String, Vec<FormRecord>> = HashMap::new();
@@ -236,25 +217,9 @@ pub fn build_index(
         lemma_keys,
         notes,
         noun_gender,
-        noun_animate,
         prep_cases,
         lexicon: Vec::new(),
         verb_valence,
-    }
-}
-
-/// Valence from the official pos tag. `.intr` is tested BEFORE `.tr`
-/// (substring safety); aux and untagged verbs yield ' ' (abstain).
-fn valence_char(pos_raw: &str) -> char {
-    let s = pos_raw.to_lowercase();
-    if s.contains(".intr") {
-        'i'
-    } else if s.contains(".refl") {
-        'r'
-    } else if s.contains(".tr") {
-        't'
-    } else {
-        ' '
     }
 }
 
@@ -300,7 +265,7 @@ pub struct LexiconRow {
     /// English gloss of the source concept — drives the consistency check.
     pub gloss: String,
     /// Content tokens of `gloss`, normalized exactly as the English API
-    /// normalizes gloss keys ([`crate::site::english_gloss_tokens`]).
+    /// normalizes gloss keys ([`crate::gloss::english_gloss_tokens`]).
     pub gloss_tokens: std::collections::BTreeSet<String>,
 }
 
@@ -393,7 +358,7 @@ pub fn parse_lexicon(text: &str) -> Result<Vec<LexiconRow>> {
             animate: animate.unwrap_or(false),
             indeclinable,
             gloss: gloss.to_string(),
-            gloss_tokens: crate::site::english_gloss_tokens(gloss),
+            gloss_tokens: crate::gloss::english_gloss_tokens(gloss),
         });
     }
     Ok(rows)
@@ -459,10 +424,10 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
         }
         Pos::Noun if row.indeclinable => {} // nothing to decline, nothing to probe
         Pos::Noun => {
-            let declinable = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let declinable = forms::catch_inflect(std::panic::AssertUnwindSafe(|| {
                 forms::noun_paradigm_forms_with_animacy(&row.lemma, row.gender, row.animate)
             }))
-            .is_ok();
+            .is_some();
             anyhow::ensure!(
                 declinable,
                 "lexicon lemma '{}': the inflector cannot decline this noun",
@@ -479,7 +444,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
         .filter(|r| {
             matches!(r.status, "official" | "official-only" | "grammar")
                 && r.source == "lemma"
-                && forms::form_key(&r.lemma) == row.lemma_key
+                && r.lemma_key == row.lemma_key
         })
         .collect();
     if pins.is_empty() {
@@ -493,9 +458,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
         // proposal's, so a data refresh emitting an unrelated same-surface
         // proposal turns into a loud error instead of a silent adoption.
         let all_generated_lemmas = recs.iter().all(|r| {
-            r.status == "generated"
-                && r.source == "lemma"
-                && forms::form_key(&r.lemma) == row.lemma_key
+            r.status == "generated" && r.source == "lemma" && r.lemma_key == row.lemma_key
         });
         if all_generated_lemmas {
             // EVERY same-POS proposal is a candidate (V14.2 item 2 — the
@@ -527,7 +490,7 @@ pub fn validate_lexicon_row(index: &Index, row: &LexiconRow) -> Result<RowDispos
                     .join(" / ")
             );
             for proposal in &spelled {
-                let proposal_tokens = crate::site::english_gloss_tokens(&proposal.gloss);
+                let proposal_tokens = crate::gloss::english_gloss_tokens(&proposal.gloss);
                 if proposal_tokens
                     .intersection(&row.gloss_tokens)
                     .next()
@@ -831,10 +794,7 @@ pub fn tokenize(text: &str) -> Vec<String> {
     while let Some(c) = chars.next() {
         if c.is_alphabetic() {
             cur.push(c);
-        } else if c == '-'
-            && !cur.is_empty()
-            && chars.peek().map(|n| n.is_alphabetic()).unwrap_or(false)
-        {
+        } else if c == '-' && !cur.is_empty() && chars.peek().is_some_and(|n| n.is_alphabetic()) {
             cur.push('-');
         } else if !cur.is_empty() {
             out.push(std::mem::take(&mut cur));
@@ -858,10 +818,7 @@ pub fn tokenize_with_breaks(text: &str) -> (Vec<String>, Vec<bool>) {
     while let Some(c) = chars.next() {
         if c.is_alphabetic() {
             cur.push(c);
-        } else if c == '-'
-            && !cur.is_empty()
-            && chars.peek().map(|n| n.is_alphabetic()).unwrap_or(false)
-        {
+        } else if c == '-' && !cur.is_empty() && chars.peek().is_some_and(|n| n.is_alphabetic()) {
             cur.push('-');
         } else {
             if !cur.is_empty() {
@@ -1033,11 +990,11 @@ fn check_tokens_impl(
             Some(rs) => token_grammar(index, rs, &matched_key),
             None => token_grammar(index, &[], &matched_key),
         });
-        report_breaks.push(breaks.map(|b| b[i]).unwrap_or(false));
+        report_breaks.push(breaks.is_some_and(|b| b[i]));
         reports.push(report);
         i += consumed;
     }
-    agreement_pass(index, &grammar, &report_breaks, &mut reports);
+    agreement_pass(&grammar, &report_breaks, &mut reports);
     reports
 }
 
@@ -1059,12 +1016,12 @@ fn consistency_warning(index: &Index, rs: &[FormRecord], display: &str) -> Optio
     if official.is_empty() {
         return None;
     }
-    let lemma_keys: HashSet<String> = official.iter().map(|r| forms::form_key(&r.lemma)).collect();
+    let lemma_keys: HashSet<String> = official.iter().map(|r| r.lemma_key.clone()).collect();
     // Tokenize each official gloss ONCE per token — the sets are row-loop
     // invariant, and a large text × large lexicon multiplies this cost.
     let record_tokens: Vec<std::collections::BTreeSet<String>> = official
         .iter()
-        .map(|r| crate::site::english_gloss_tokens(&r.gloss))
+        .map(|r| crate::gloss::english_gloss_tokens(&r.gloss))
         .collect();
     for row in &index.lexicon {
         if lemma_keys.contains(&row.lemma_key) {
@@ -1217,11 +1174,7 @@ fn token_grammar(index: &Index, recs: &[FormRecord], matched_key: &str) -> Token
         if r.pos == "verb" {
             // Valence must hold for EVERY verb lemma this surface can
             // belong to; any lemma without a concrete tag abstains.
-            let v = index
-                .verb_valence
-                .get(&forms::form_key(&r.lemma))
-                .copied()
-                .unwrap_or(' ');
+            let v = index.verb_valence.get(&r.lemma_key).copied().unwrap_or(' ');
             if !valence_lemmas_seen {
                 valence = v;
                 valence_lemmas_seen = true;
@@ -1235,7 +1188,7 @@ fn token_grammar(index: &Index, recs: &[FormRecord], matched_key: &str) -> Token
             "noun" => {
                 noun.extend(feats);
                 if noun_gender == ' ' {
-                    if let Some(g) = index.noun_gender.get(&forms::form_key(&r.lemma)) {
+                    if let Some(g) = index.noun_gender.get(&r.lemma_key) {
                         noun_gender = *g;
                     }
                 }
@@ -1273,13 +1226,7 @@ fn token_grammar(index: &Index, recs: &[FormRecord], matched_key: &str) -> Token
 /// The conservative agreement pass (issue #13 §3): a warning fires ONLY when
 /// no combination of the two tokens' analyses is compatible, both tokens are
 /// verification-grade, and each is unambiguously the expected part of speech.
-fn agreement_pass(
-    index: &Index,
-    grammar: &[TokenGrammar],
-    breaks: &[bool],
-    reports: &mut [TokenReport],
-) {
-    let _ = index;
+fn agreement_pass(grammar: &[TokenGrammar], breaks: &[bool], reports: &mut [TokenReport]) {
     for i in 0..reports.len().saturating_sub(1) {
         let (a, b) = (&grammar[i], &grammar[i + 1]);
         if !a.official || !b.official {
@@ -1448,7 +1395,7 @@ pub fn write_web_suggestions(out_dir: &Path, index: &Index) -> Result<usize> {
     }
     let mut bytes = 0;
     for shard in 0..SUGGEST_SHARDS {
-        let rows = shards.get(&shard).map(Vec::as_slice).unwrap_or(&[]);
+        let rows: &[&(String, String)] = shards.get(&shard).map_or(&[], Vec::as_slice);
         let body = format!(
             "{{\"shard\":{shard},\"rows\":[{}]}}\n",
             rows.iter()
@@ -1638,11 +1585,12 @@ pub fn run(
 ) -> Result<()> {
     let entries = official::load(official_path)?;
     let notes = if warnings {
-        crate::falsefriends::compute_from_default_caches(&entries)
+        crate::falsefriends::compute_from_default_caches(&entries)?
     } else {
         BTreeMap::new()
     };
-    let mut index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
+    let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+    let mut index = build_index(&entries, &novel, notes);
     let mut lexicon_applied: Option<(usize, AppliedLexicon)> = None;
     if let Some(path) = lexicon {
         let rows = parse_lexicon(&std::fs::read_to_string(path)?)?;
@@ -1709,8 +1657,7 @@ pub fn run(
                     "  ~ {:<20} generated (p={}) — machine reconstruction, not official",
                     r.token,
                     r.probability
-                        .map(|p| format!("{p:.2}"))
-                        .unwrap_or_else(|| "?".into())
+                        .map_or_else(|| "?".into(), |p| format!("{p:.2}"))
                 );
             }
             "project" => {
@@ -1742,11 +1689,17 @@ pub fn run(
         }
     }
     if let Some(s) = &summary {
-        let severe = match gate.unwrap().max_severe_warnings {
+        let severe = match gate
+            .expect("summary is only built when a gate is active")
+            .max_severe_warnings
+        {
             Some(max) => format!(", {} severe warnings (max {max})", s.severe_warnings),
             None => format!(", {} severe warnings (not gated)", s.severe_warnings),
         };
-        let consistency = match gate.unwrap().max_consistency {
+        let consistency = match gate
+            .expect("summary is only built when a gate is active")
+            .max_consistency
+        {
             Some(max) => format!(
                 ", {} consistency warnings (max {max})",
                 s.consistency_warnings
@@ -1761,13 +1714,12 @@ pub fn run(
             "summary: {} — {} unknown (max {}), {} agreement errors (max {}), {} project{severe}{consistency}",
             if s.passed { "PASS" } else { "FAIL" },
             s.unknown,
-            gate.unwrap().max_unknown,
+            gate.expect("summary is only built when a gate is active").max_unknown,
             s.agreement_errors,
-            gate.unwrap().max_agreement,
+            gate.expect("summary is only built when a gate is active").max_agreement,
             s.project,
         );
     }
-    let _ = json_escape("");
     fail_gate_if_needed(summary)
 }
 
@@ -1874,7 +1826,7 @@ mod summary_tests {
 /// The check-text benchmark (issue #13, `checktext-eval`): classification
 /// counts on the committed fixture (all-correct Interslavic → must be fully
 /// known with zero agreement flags), plus the agreement gold/error sets.
-/// Report: target/eval/checktext-report.md.
+/// Report: reports/checktext-report.md.
 pub const FIXTURE: &str = "data/checktext-fixture.txt";
 
 /// Grammatically correct sentences: zero agreement warnings expected.
@@ -1935,8 +1887,9 @@ pub const UNKNOWN_PROBE: &str = "On vidita rěku.";
 pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use std::fmt::Write as _;
     let entries = official::load(official_path)?;
-    let notes = crate::falsefriends::compute_from_default_caches(&entries);
-    let index = build_index(&entries, Some(Path::new("data/novel-words.tsv")), notes);
+    let notes = crate::falsefriends::compute_from_default_caches(&entries)?;
+    let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+    let index = build_index(&entries, &novel, notes);
 
     let text = std::fs::read_to_string(FIXTURE)?;
     let reps = check_text(&index, &text);
@@ -1960,13 +1913,13 @@ pub fn run_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     let errors_flagged = error_hits.iter().filter(|x| **x).count();
     // The valence sets include project-lexicon nouns (plural-partitive
     // gold), so they run against a lexicon-loaded index (V14.1 finding 2).
-    let mut lex_index = build_index(&entries, None, BTreeMap::new());
+    let mut lex_index = build_index(&entries, &[], BTreeMap::new());
     let lex_rows = parse_lexicon(
         &std::fs::read_to_string("data/project-lexicon-fixture.tsv")
-            .expect("committed lexicon fixture"),
+            .context("committed lexicon fixture")?,
     )
-    .expect("lexicon parses");
-    apply_lexicon(&mut lex_index, lex_rows).expect("lexicon validates");
+    .context("lexicon parses")?;
+    apply_lexicon(&mut lex_index, lex_rows).context("lexicon validates")?;
     let valence_gold_flags: usize = VALENCE_GOLD
         .iter()
         .map(|s| {
@@ -2074,7 +2027,7 @@ mod tests {
             .into_iter()
             .step_by(20)
             .collect();
-        build_index(&entries, None, Default::default())
+        build_index(&entries, &[], Default::default())
     }
 
     #[test]
@@ -2087,7 +2040,7 @@ mod tests {
             .into_iter()
             .step_by(20)
             .collect();
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         let mut checked = 0usize;
         for e in &entries {
             for byform in e.citation_byforms() {
@@ -2150,7 +2103,7 @@ mod tests {
         // flagged. If a change legitimately shifts these numbers, update the
         // fixture/report — that is the change-detector working.
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         let text = std::fs::read_to_string(FIXTURE).expect("fixture");
         let reps = check_text(&index, &text);
         let unknown: Vec<&str> = reps
@@ -2200,7 +2153,7 @@ mod tests {
         // every seeded valence error is flagged. Runs against a
         // lexicon-loaded index: the plural-partitive gold uses a project
         // noun (V14.1 finding 2).
-        let mut lex_index = build_index(&entries, None, Default::default());
+        let mut lex_index = build_index(&entries, &[], Default::default());
         apply_lexicon(
             &mut lex_index,
             parse_lexicon(
@@ -2243,7 +2196,7 @@ mod tests {
     #[test]
     fn homographic_noun_genders_abstain_from_agreement() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         // Cover exact/case-folded homographs and genuine standard-orthography
         // collisions (Bělorus/Běloruś, plȯť/plot, spust/spusť).
         for word in ["Bělorus", "dodatȯk", "družba", "led", "plȯť", "spust"] {
@@ -2283,7 +2236,7 @@ mod tests {
             entry
         })
         .collect();
-        let synthetic_index = build_index(&synthetic, None, Default::default());
+        let synthetic_index = build_index(&synthetic, &[], Default::default());
         assert_eq!(
             synthetic_index.noun_gender.get(&forms::form_key("testova")),
             Some(&' ')
@@ -2296,7 +2249,7 @@ mod tests {
     #[test]
     fn pronoun_series_and_l_participles_resolve() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         for tok in [
             "njego", "njej", "njim", "njih", "njejų", "njemu", // n- forms
             "mę", "tę", "mi", "ti", "sę", "si", // clitics
@@ -2323,7 +2276,7 @@ mod tests {
     #[test]
     fn official_comma_byforms_are_known_lemmas() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         for isv in ["iměti", "imati", "poslědnji", "poslědny"] {
             let reps = check_tokens(&index, &tokenize(isv));
             assert!(
@@ -2355,7 +2308,6 @@ mod tests {
             prep_cases: government,
             lexicon: Vec::new(),
             verb_valence: HashMap::new(),
-            noun_animate: HashMap::new(),
         };
         assert_eq!(suggest(&index, "domm"), vec!["dom", "doma"]);
         let dir = std::env::temp_dir().join(format!(
@@ -2414,7 +2366,7 @@ mod tests {
     #[test]
     fn project_lexicon_end_to_end() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let mut index = build_index(&entries, None, Default::default());
+        let mut index = build_index(&entries, &[], Default::default());
         let text = std::fs::read_to_string("data/game-text-fixture.txt").expect("fixture");
 
         let without: Vec<String> = check_text(&index, &text)
@@ -2501,7 +2453,7 @@ mod tests {
     #[test]
     fn numeral_inventory_resolves() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         // Changed cells: masculine-animate accusative and the neuter
         // nom/acc now shared with the feminine — both must belong to dva.
         for (tok, analysis) in [("dvoh", "akuz. m.živ."), ("dvě", "akuz. sr.")] {
@@ -2550,7 +2502,7 @@ mod tests {
     #[test]
     fn official_homographs_are_distinct_records() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         let pin = parse_lexicon("děti\tnoun\tf\tanim\tchildren").unwrap();
         assert_eq!(
             validate_lexicon_row(&index, &pin[0]).expect("the noun sense must be pinnable"),
@@ -2573,22 +2525,12 @@ mod tests {
     /// never the first record's number presented as "the" probability.
     #[test]
     fn homograph_proposals_report_min_probability_and_ambiguity() {
-        let dir = std::env::temp_dir().join(format!(
-            "slovowiki-homog-{}-{}",
-            std::process::id(),
-            std::thread::current().name().unwrap_or("t")
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let tsv = dir.join("novel.tsv");
-        std::fs::write(
-            &tsv,
+        let novel = crate::novel::parse(
             "form\tpos\tp\tc\tc\tc\tc\tgloss\n\
              turok\tnoun\t0.62\t-\t-\t-\t-\taurochs\n\
              turok\tnoun\t0.31\t-\t-\t-\t-\tprison\n",
-        )
-        .unwrap();
-        let index = build_index(&[], Some(&tsv), Default::default());
+        );
+        let index = build_index(&[], &novel, Default::default());
         let reps = check_tokens(&index, &tokenize("turok"));
         assert_eq!(reps.len(), 1);
         assert_eq!(reps[0].status, "generated");
@@ -2600,7 +2542,7 @@ mod tests {
         );
         // Official homographs read as ambiguous too (item 1's děti).
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let full = build_index(&entries, None, Default::default());
+        let full = build_index(&entries, &[], Default::default());
         let deti = check_tokens(&full, &tokenize("děti"));
         assert!(deti[0].ambiguous, "verb + noun readings: {:?}", deti[0]);
     }
@@ -2624,17 +2566,16 @@ mod tests {
                 }
             }
         }
-        let tsv = std::fs::read_to_string("data/novel-words.tsv").expect("novel words");
+        let tsv = std::fs::read_to_string(crate::novel::DEFAULT_NOVEL_WORDS).expect("novel words");
         let mut offenders: Vec<String> = Vec::new();
-        for line in tsv.lines().skip(1) {
-            let cols: Vec<&str> = line.split('\t').collect();
-            if cols.len() < 8 {
-                continue;
-            }
-            let key = forms::form_key(cols[0]);
+        for row in crate::novel::parse(&tsv) {
+            let key = forms::form_key(&row.form);
             if let Some(pos_set) = official_pos.get(&key) {
-                if !pos_set.contains(cols[1]) {
-                    offenders.push(format!("{} ({}) vs official {pos_set:?}", cols[0], cols[1]));
+                if !pos_set.contains(row.pos.as_str()) {
+                    offenders.push(format!(
+                        "{} ({}) vs official {pos_set:?}",
+                        row.form, row.pos
+                    ));
                 }
             }
         }
@@ -2729,7 +2670,7 @@ mod tests {
     #[test]
     fn valence_absorbs_untagged_and_aux_senses() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         assert_eq!(
             index.verb_valence.get(&forms::form_key("iměti")),
             Some(&' '),
@@ -2753,7 +2694,7 @@ mod tests {
     #[test]
     fn indeclinable_and_generated_adoption() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let mut index = build_index(&entries, None, Default::default());
+        let mut index = build_index(&entries, &[], Default::default());
         let rows = parse_lexicon(
             &std::fs::read_to_string("data/project-lexicon-fixture.tsv").expect("lexicon"),
         )
@@ -2790,23 +2731,14 @@ mod tests {
             "indeclinable after an intransitive must not fire valence: {valence:?}"
         );
 
-        // Adoption, against a synthetic novel-words file (the committed one
+        // Adoption, against synthetic novel-words rows (the committed one
         // may legitimately gain/lose rows on a data refresh).
-        let dir = std::env::temp_dir().join(format!(
-            "slovowiki-adopt-{}-{}",
-            std::process::id(),
-            std::thread::current().name().unwrap_or("t")
-        ));
-        std::fs::create_dir_all(&dir).unwrap();
-        let tsv = dir.join("novel.tsv");
-        std::fs::write(
-            &tsv,
+        let novel = crate::novel::parse(
             "form\tpos\tp\tc\tc\tc\tc\tgloss\n\
              emuk\tnoun\t0.20\t-\t-\t-\t-\temu bird\n\
              žabervočiti\tverb\t0.20\t-\t-\t-\t-\tto jabberwock\n",
-        )
-        .unwrap();
-        let mut synthetic = build_index(&[], Some(&tsv), Default::default());
+        );
+        let mut synthetic = build_index(&[], &novel, Default::default());
         let adopt = parse_lexicon("emuk\tnoun\tm\tanim\temu bird").unwrap();
         let disposition = validate_lexicon_row(&synthetic, &adopt[0]).expect("adoption validates");
         assert!(
@@ -2830,7 +2762,7 @@ mod tests {
         // shared concept token — and it is REPORTED, never silent. (Checked
         // against a FRESH index: once adopted, the key also holds project
         // records and any further collision is the generic hard error.)
-        let mut fresh = build_index(&[], Some(&tsv), Default::default());
+        let mut fresh = build_index(&[], &novel, Default::default());
         let respelled = parse_lexicon("Emuk\tnoun\tm\tanim\temu bird").unwrap();
         let err = validate_lexicon_row(&fresh, &respelled[0]).unwrap_err();
         assert!(err.to_string().contains("spelled"), "{err}");
@@ -2845,7 +2777,6 @@ mod tests {
         );
         assert_eq!(applied.adoptions[0].0, "emuk");
         assert!(applied.adoptions[0].1.contains("emu bird"));
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// V14.2 item 2: adoption considers EVERY same-POS proposal — the
@@ -2855,11 +2786,8 @@ mod tests {
     #[test]
     fn adoption_handles_same_pos_homograph_proposals() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(
-            &entries,
-            Some(Path::new("data/novel-words.tsv")),
-            Default::default(),
-        );
+        let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+        let index = build_index(&entries, &novel, Default::default());
         let prison = parse_lexicon("tur\tnoun\tm\tinanim\tprison cell").unwrap();
         let d = validate_lexicon_row(&index, &prison[0]).expect("prison sense adopts");
         assert!(
@@ -2903,7 +2831,7 @@ mod tests {
         }
         // Valid adj/verb coinage rows parse and validate (no gender columns).
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).expect("official csv");
-        let index = build_index(&entries, None, Default::default());
+        let index = build_index(&entries, &[], Default::default());
         let ok = parse_lexicon(
             "žabervočny\tadj\t\t\tjabberwockian\nžabervočiti\tverb\t\t\tto jabberwock",
         )
@@ -2953,7 +2881,7 @@ mod tests {
         // colliding with an earlier coinage's inflected form is rejected,
         // not silently double-indexed. (Empty official corpus — the
         // collision is purely between the two project rows.)
-        let mut coinage_index = build_index(&[], None, Default::default());
+        let mut coinage_index = build_index(&[], &[], Default::default());
         let ordered = parse_lexicon(
             "žabervok\tnoun\tm\tanim\tjabberwock\nžabervoka\tnoun\tf\tinanim\tjabberwock hen",
         )

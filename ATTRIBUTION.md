@@ -8,7 +8,7 @@ differently. Please read this page before reusing anything.
 |---|---|---|
 | Source code | Everything under `src/`, `Cargo.toml`, `Makefile`, build/site logic | **MIT** — see [`LICENSE`](LICENSE) |
 | Bundled data | `data/official-isv.csv`, `data/RULE_SPEC.md`, `data/VOTING_MACHINE_NOTES.md` | **CC BY-SA 4.0** (derived from ShareAlike sources; credits below) |
-| Generated content | The Slavic-lemma corpus (`data/slavic-lemmas.cache.json`), the derived words (`data/novel-words.tsv`), the entry pages the site renders, and the benchmark reports under `target/eval/` | **CC BY-SA 4.0 + GFDL** (inherited from Wiktionary), and **machine-generated / unverified** |
+| Generated content | The Slavic-lemma corpus (`data/slavic-lemmas.cache.json`), the derived words (`data/novel-words.tsv`), the entry pages the site renders, and the benchmark reports under `reports/` | **CC BY-SA 4.0 + GFDL** (inherited from Wiktionary), and **machine-generated / unverified** |
 
 If you redistribute the data or generated content, you must keep the
 attribution below and share adaptations under the same terms (ShareAlike).

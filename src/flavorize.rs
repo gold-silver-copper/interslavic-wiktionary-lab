@@ -51,8 +51,7 @@ pub fn flavorize_word(lang: &str, pos: &str, word: &str) -> String {
     let first_upper = stripped
         .chars()
         .find(|c| c.is_alphabetic())
-        .map(|c| c.is_uppercase())
-        .unwrap_or(false);
+        .is_some_and(char::is_uppercase);
     let lower = stripped.to_lowercase();
     let lower = adapt_ending(lang, pos, &lower);
     let mapped = match lang {
@@ -91,7 +90,7 @@ pub fn translit_text(lang: &str, text: &str) -> String {
 /// Drop combining stress/length marks (Wiktionary headwords carry them).
 fn strip_marks(s: &str) -> String {
     s.chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .collect()
 }
 
@@ -298,7 +297,7 @@ fn cyr_word(lang: &str, s: &str) -> String {
             'ь' => {
                 if next == Some('о')
                     || (matches!(prev, Some('л') | Some('н'))
-                        && next.map(|n| !CYR_VOWELS.contains(n)).unwrap_or(true))
+                        && next.is_none_or(|n| !CYR_VOWELS.contains(n)))
                 {
                     "j"
                 } else {
@@ -479,10 +478,7 @@ fn latin_scan(s: &str, rules: &[LRule]) -> String {
             let ok = match when {
                 When::Always => true,
                 When::AfterCons => i > 0 && is_latin_cons(chars[i - 1]),
-                When::WordFinal => chars
-                    .get(i + plen)
-                    .map(|c| !c.is_alphabetic())
-                    .unwrap_or(true),
+                When::WordFinal => chars.get(i + plen).is_none_or(|c| !c.is_alphabetic()),
                 When::BeforeVowel => chars.get(i + plen).copied().is_some_and(is_latin_vowel),
             };
             if ok {
@@ -664,13 +660,7 @@ const CSB_FOLD: &[(char, char)] = &[
 
 fn fold_chars(s: &str, table: &[(char, char)]) -> String {
     s.chars()
-        .map(|c| {
-            table
-                .iter()
-                .find(|(f, _)| *f == c)
-                .map(|(_, t)| *t)
-                .unwrap_or(c)
-        })
+        .map(|c| table.iter().find(|(f, _)| *f == c).map_or(c, |(_, t)| *t))
         .collect()
 }
 
@@ -726,7 +716,7 @@ fn ru_text(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
     for (i, &ch) in chars.iter().enumerate() {
         // Drop stress/combining marks common in Wiktionary Russian headwords.
-        if ('\u{0300}'..='\u{036F}').contains(&ch) {
+        if crate::orthography::is_combining_mark(ch) {
             continue;
         }
         let prev = previous_base(&chars, i);
@@ -807,7 +797,7 @@ fn previous_base(chars: &[char], i: usize) -> Option<char> {
         .iter()
         .rev()
         .copied()
-        .find(|c| !(('\u{0300}'..='\u{036F}').contains(c)))
+        .find(|c| !(crate::orthography::is_combining_mark(*c)))
         .map(|c| c.to_lowercase().next().unwrap_or(c))
 }
 

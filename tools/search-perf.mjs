@@ -9,7 +9,7 @@
 // search/ manifest), so before/after runs are directly comparable.
 //
 // Usage:
-//   node tools/search-perf.mjs <site-dir> [--out target/eval/search-performance.md]
+//   node tools/search-perf.mjs <site-dir> [--out reports/search-performance.md]
 //                              [--label "monolithic (master)"] [--append]
 //
 // No dependencies beyond Node builtins. Byte counts and hit lists are

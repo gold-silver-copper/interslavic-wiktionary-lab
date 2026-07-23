@@ -51,7 +51,7 @@ fn pos_class(p: Pos) -> &'static str {
 
 /// The lookup key for a lemma: its standard-alphabet folded spelling.
 fn key(isv: &str) -> String {
-    ortho::to_standard(&isv.trim().to_lowercase())
+    ortho::fold_key(isv.trim())
 }
 
 /// A modern translation form reduced for cross-lemma matching: lowercased,
@@ -87,8 +87,9 @@ impl Thesaurus {
                 }
                 let k = key(&isv);
                 let pos = pos_class(e.pos);
-                let gloss: HashSet<String> =
-                    crate::dump::gloss_tokens(&e.english).into_iter().collect();
+                let gloss: HashSet<String> = crate::gloss::content_tokens(&e.english)
+                    .into_iter()
+                    .collect();
                 info.entry((row, k.clone())).or_insert(Info {
                     orig: isv.to_string(),
                     pos,
@@ -125,10 +126,15 @@ impl Thesaurus {
                     if row_a == row_b || key_a == key_b {
                         continue;
                     }
-                    let (ia, ib) = (
-                        &info[&(*row_a, key_a.clone())],
-                        &info[&(*row_b, key_b.clone())],
-                    );
+                    // Audit fix (V15 item 7): defensive lookup instead of
+                    // panicking map-indexing; the keys are inserted from the
+                    // same members, so the skip arm is unreachable in practice.
+                    let (Some(ia), Some(ib)) = (
+                        info.get(&(*row_a, key_a.clone())),
+                        info.get(&(*row_b, key_b.clone())),
+                    ) else {
+                        continue;
+                    };
                     if ia.pos == ib.pos && ia.pos != "x" && !ia.gloss.is_disjoint(&ib.gloss) {
                         syn.entry(key_a.clone())
                             .or_default()
@@ -164,8 +170,7 @@ impl Thesaurus {
     pub fn get(&self, isv: &str) -> &[String] {
         self.by_key
             .get(&key(isv))
-            .map(|&i| self.entries[i].synonyms.as_slice())
-            .unwrap_or(&[])
+            .map_or(&[], |&i| self.entries[i].synonyms.as_slice())
     }
 
     /// True when `a` and `b` are synonyms (either direction).

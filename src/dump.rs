@@ -93,6 +93,30 @@ pub fn load_optional<T>(path: &Path, load: impl FnOnce(&Path) -> Result<T>) -> R
     }
 }
 
+/// The shared stamped-cache load skeleton (V15 item 2): open (gz-aware),
+/// parse, verify the schema stamp, verify the entry-count self-check. The
+/// three cache loaders each keep only their post-load hygiene passes.
+pub(crate) fn load_stamped_cache<T: serde::de::DeserializeOwned>(
+    kind: &str,
+    path: &Path,
+    schema: impl FnOnce(&T) -> u32,
+    expected_schema: u32,
+    counts: impl FnOnce(&T) -> (usize, usize),
+    regen: &str,
+) -> Result<T> {
+    let bytes =
+        read_maybe_gz(path).with_context(|| format!("open {kind} cache {}", path.display()))?;
+    let cache: T = serde_json::from_slice(&bytes).with_context(|| format!("parse {kind} cache"))?;
+    check_cache_schema(kind, path, schema(&cache), expected_schema, regen)?;
+    let (declared, actual) = counts(&cache);
+    anyhow::ensure!(
+        declared == actual,
+        "corrupt {kind} cache {}: entry_count {declared} but {actual} entries",
+        path.display(),
+    );
+    Ok(cache)
+}
+
 /// Loader-side check for the cache schema stamps above. `regen` is the exact
 /// `make` target that rebuilds the cache.
 pub(crate) fn check_cache_schema(
@@ -230,23 +254,14 @@ pub struct LemmaCorpus {
 
 impl LemmaCorpus {
     pub fn load(path: &Path) -> Result<Self> {
-        let bytes =
-            read_maybe_gz(path).with_context(|| format!("open lemma corpus {}", path.display()))?;
-        let mut corpus: Self = serde_json::from_slice(&bytes).context("parse lemma corpus")?;
-        check_cache_schema(
+        let mut corpus: Self = load_stamped_cache(
             "lemma",
             path,
-            corpus.schema,
+            |c: &Self| c.schema,
             LEMMA_CACHE_SCHEMA,
+            |c| (c.entry_count, c.entries.len()),
             "make extract-lemmas",
         )?;
-        anyhow::ensure!(
-            corpus.entry_count == corpus.entries.len(),
-            "corrupt lemma cache {}: entry_count {} but {} entries",
-            path.display(),
-            corpus.entry_count,
-            corpus.entries.len()
-        );
         // Load-time hygiene (issues #66/#89): cached protos can carry Cyrillic
         // lookalikes or URL-escaped UTF-8 copied from a Wiktionary template.
         // Clean them at this single ingress so every downstream consumer sees
@@ -439,8 +454,7 @@ fn old_codes_for(lang: &str) -> &'static [&'static str] {
     OLD_STAGE_OF
         .iter()
         .find(|(l, _)| *l == lang)
-        .map(|(_, codes)| *codes)
-        .unwrap_or(&[])
+        .map_or(&[], |(_, codes)| *codes)
 }
 
 /// Join key for chain resolution: etymology templates cite old-stage words
@@ -449,7 +463,7 @@ fn old_codes_for(lang: &str) -> &'static [&'static str] {
 fn chain_key(word: &str) -> String {
     word.trim()
         .chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .flat_map(char::to_lowercase)
         .collect()
 }
@@ -565,7 +579,7 @@ fn old_stage_info(value: &Value) -> OldStageInfo {
                 if !form.is_empty()
                     && !form.starts_with('-')
                     && !form.ends_with('-')
-                    && form.chars().any(|c| c.is_alphabetic())
+                    && form.chars().any(char::is_alphabetic)
                 {
                     info.proto = format!("*{form}");
                 }
@@ -966,7 +980,7 @@ fn borrowed_etymon(value: &Value) -> Option<String> {
             "en" => 2,
             _ => 1,
         };
-        if best.as_ref().map(|(r, _)| rank > *r).unwrap_or(true) {
+        if best.as_ref().is_none_or(|(r, _)| rank > *r) {
             best = Some((rank, format!("{src} {word}")));
         }
     }
@@ -1037,7 +1051,7 @@ fn proto_ancestor(value: &Value) -> Option<String> {
         if form.is_empty()
             || form.starts_with('-')
             || form.ends_with('-')
-            || !form.chars().any(|c| c.is_alphabetic())
+            || !form.chars().any(char::is_alphabetic)
         {
             continue;
         }
@@ -1056,12 +1070,11 @@ fn lemma_gloss(value: &Value) -> Option<String> {
         let is_form = sense
             .get("tags")
             .and_then(Value::as_array)
-            .map(|tags| {
+            .is_some_and(|tags| {
                 tags.iter()
                     .filter_map(Value::as_str)
                     .any(|t| t == "form-of" || t == "inflection-of")
-            })
-            .unwrap_or(false);
+            });
         if is_form {
             continue;
         }
@@ -1543,24 +1556,20 @@ pub struct ProtoIndex {
 }
 
 impl ProtoIndex {
-    pub fn load(path: &Path) -> Result<Self> {
-        let bytes =
-            read_maybe_gz(path).with_context(|| format!("open proto cache {}", path.display()))?;
-        let mut cache: ProtoCache = serde_json::from_slice(&bytes).context("parse proto cache")?;
-        check_cache_schema(
+    /// Load the proto cache; when `lemma_source` is given, attach that
+    /// corpus's explicit (lang, lemma) → ancestor etymology. The lemma-cache
+    /// dependency is EXPLICIT (V15 item 5): `load` used to silently read
+    /// `DEFAULT_LEMMA_CACHE` from the cwd regardless of the caller's path
+    /// argument — the audit's worst nonlinear edge.
+    pub fn load_with_lemmas(proto_path: &Path, lemma_source: Option<&Path>) -> Result<Self> {
+        let mut cache: ProtoCache = load_stamped_cache(
             "proto",
-            path,
-            cache.schema,
+            proto_path,
+            |c: &ProtoCache| c.schema,
             PROTO_CACHE_SCHEMA,
+            |c| (c.entry_count, c.entries.len()),
             "make extract-proto",
         )?;
-        anyhow::ensure!(
-            cache.entry_count == cache.entries.len(),
-            "corrupt proto cache {}: entry_count {} but {} entries",
-            path.display(),
-            cache.entry_count,
-            cache.entries.len()
-        );
         // Same load-time homoglyph hygiene as LemmaCorpus::load (issue #66),
         // applied to reconstruction names so `by_word` and the lemma corpus's
         // folded `proto` fields keep matching. Descendants stay verbatim —
@@ -1569,14 +1578,13 @@ impl ProtoIndex {
             e.word = crate::normalize::fold_proto_homoglyphs(&e.word);
         }
         let mut idx = Self::build(cache.entries);
-        // Attach Wiktionary's explicit (lang, lemma) -> ancestor etymology if the
-        // lemma corpus is available next to the proto cache. Absent → skip; a
-        // corpus that exists but fails to load is a hard error (a silently
-        // missing etymology map would degrade the linker with no visible cause).
-        if let Some(corpus) =
-            load_optional(Path::new(crate::DEFAULT_LEMMA_CACHE), LemmaCorpus::load)?
-        {
-            idx.attach_etymology(&corpus);
+        // Absent lemma corpus → skip; a corpus that exists but fails to load
+        // is a hard error (a silently missing etymology map would degrade
+        // the linker with no visible cause).
+        if let Some(lemma_path) = lemma_source {
+            if let Some(corpus) = load_optional(lemma_path, LemmaCorpus::load)? {
+                idx.attach_etymology(&corpus);
+            }
         }
         Ok(idx)
     }
@@ -1614,7 +1622,7 @@ impl ProtoIndex {
     pub fn etym_ancestor(&self, lang: &str, latin: &str) -> Option<&str> {
         self.etym
             .get(&format!("{lang}\u{1}{latin}"))
-            .map(|s| s.as_str())
+            .map(std::string::String::as_str)
     }
 
     /// The folded deep (Proto-Balto-Slavic / PIE) ancestor tokens a modern
@@ -1622,7 +1630,7 @@ impl ProtoIndex {
     pub fn deep_ancestors(&self, lang: &str, latin: &str) -> Option<&[String]> {
         self.deep_etym
             .get(&format!("{lang}\u{1}{latin}"))
-            .map(|v| v.as_slice())
+            .map(std::vec::Vec::as_slice)
     }
 
     /// The entry index for a reconstruction word (`voda`, no `*`).
@@ -1681,19 +1689,8 @@ impl ProtoIndex {
     }
 }
 
-/// Lowercase content-word gloss tokens (drop stopwords and short tokens).
-pub fn gloss_tokens(gloss: &str) -> Vec<String> {
-    const STOP: &[&str] = &[
-        "the", "a", "an", "to", "of", "and", "or", "in", "on", "for", "with", "be", "is", "as",
-        "at", "by", "that", "this", "it", "one", "some", "any", "esp", "e", "g",
-    ];
-    gloss
-        .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
-        .filter(|t| t.len() >= 3 && !STOP.contains(t))
-        .map(|t| t.to_string())
-        .collect()
-}
+// Moved verbatim to crate::gloss (V15 item 4); the old path stays valid.
+pub use crate::gloss::content_tokens as gloss_tokens;
 
 #[cfg(test)]
 mod tests {

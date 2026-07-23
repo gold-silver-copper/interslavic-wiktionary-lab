@@ -2,7 +2,7 @@ DUMP ?= data/raw-wiktextract-data.jsonl
 WIKI_DIR ?= data/wiktionary
 OFFICIAL ?= data/official-isv.csv
 SITE ?= site
-OUT ?= target/eval
+OUT ?= reports
 
 .PHONY: extract-proto extract-lemmas extract-raw-slavic extract-enrich extract-all \
 	eval proto-eval corpus-eval aspect-eval audit export serve explain coverage check fmt test clean \
@@ -51,7 +51,7 @@ corpus-eval:
 aspect-eval:
 	cargo run --release -- aspect-eval --official "$(OFFICIAL)" --out "$(OUT)"
 
-# Generate the static website locally (no server; not published anywhere).
+# Generate the static website locally (no server; deployed by pages.yml).
 export:
 	cargo run --release -- export --out "$(SITE)"
 
@@ -65,7 +65,7 @@ search-perf:
 	node tools/search-perf.mjs "$(SITE)" --out "$(OUT)/search-performance.md" --label "$$(git rev-parse --short HEAD)"
 
 # The tracked 219-word translation probe (V13) against a prior export —
-# a reported metric, never a gate. Writes target/eval/translation-probe.md.
+# a reported metric, never a gate. Writes reports/translation-probe.md.
 probe:
 	cargo run --release -- translation-probe --site "$(SITE)" --out "$(OUT)"
 

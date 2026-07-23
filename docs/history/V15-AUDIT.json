@@ -1,0 +1,1386 @@
+{
+ "audits": [
+  {
+   "area": "extraction (src/dump.rs, src/enrich.rs, src/official.rs, src/model.rs)",
+   "dataflow": "IN: data/raw-wiktextract-data.jsonl (~23 GB English wiktextract), data/wiktionary/{ru,pl,cs}-extract.jsonl (native editions), data/official-isv.csv (official dictionary export).\nOUT (each written by exactly one CLI command, gzip-with-.json-name via dump::write_gz, atomic tmp+rename, schema-stamped):\n- extract-proto -> data/proto-slavic.cache.json (ProtoCache, schema 1); read by dump::ProtoIndex::load -> proto_link, eval, site/mod.rs:76,989.\n- extract-lemmas -> data/slavic-lemmas.cache.json (LemmaCorpus, schema 1); read by site::export_corpus, eval, falsefriends, coincheck, site/coverage, extract-enrich, AND implicitly by ProtoIndex::load (dump.rs:1577 hardcodes crate::DEFAULT_LEMMA_CACHE).\n- extract-raw-slavic -> data/raw-slavic-lemmas.cache.json (RawSlavicCorpus, schema 0) + sibling data/raw-slavic-coverage.json (plain JSON, RawCoverageStats); read by site/mod.rs:735, site/coverage.rs, coincheck, falsefriends, flavorize, and main.rs:387 (extract-enrich wanted-set union).\n- extract-enrich -> data/wiktionary-enrich.cache.json (EnrichCache, schema 0); read by enrich::EnrichIndex::load -> site, falsefriends, site/coverage. Wanted set = enrich::build_wanted(LemmaCorpus + official cells + raw lemmas).\nofficial::load parses the CSV via its own RFC-4180 read_csv_records (also reused by release.rs:210); model.rs supplies Pos::parse/parse_noun_traits consumed by official.rs and dump.rs. Load-time mutations (proto homoglyph folding dump.rs:255-260,1568-1570; enrich markup filter enrich.rs:134-144) happen at the single ingress, caches stay verbatim. No cache has two writers; the one nonlinear edge is ProtoIndex::load reading the lemma cache behind the caller's back.",
+   "findings": [
+    {
+     "kind": "boundary",
+     "file": "src/site/english_api.rs",
+     "line": 329,
+     "summary": "english_gloss_tokens lives in site but is a check.rs dependency (3 call sites), coupling the checker to the site exporter",
+     "evidence": "english_api.rs:329 `pub fn english_gloss_tokens(gloss: &str) -> BTreeSet<String>`; consumed by check.rs:396 `gloss_tokens: crate::site::english_gloss_tokens(gloss)`, check.rs:530, check.rs:1067, and re-exported at site/mod.rs:2135. check.rs:303 doc even cites it: \"normalizes gloss keys ([`crate::site::english_gloss_tokens`])\"",
+     "fix": "Move english_gloss_tokens (with its gloss_keys/usable_token_key dependencies) into a neutral gloss module (glossxref.rs or new gloss.rs); keep a `pub use` in site so both site and check import the same symbol — pure relocation, byte-identical export",
+     "effort": "M"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/check.rs",
+     "line": 248,
+     "summary": "valence_char parses the official POS tag inside check.rs while model.rs owns that tag's grammar (Pos::parse, parse_noun_traits)",
+     "evidence": "check.rs:248-258 `fn valence_char(pos_raw: &str) -> char { let s = pos_raw.to_lowercase(); if s.contains(\".intr\") {'i'} else if s.contains(\".refl\") {'r'} else if s.contains(\".tr\") {'t'} ... }` — third parser over the same `pos_raw` string that model.rs:246 Pos::parse and model.rs:359 parse_noun_traits already dissect",
+     "fix": "Move it to model.rs beside parse_noun_traits as `pub fn verb_valence(raw: &str) -> char`; check.rs:125 calls the relocated function — same bytes in the export",
+     "effort": "S"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/dump.rs",
+     "line": 1577,
+     "summary": "ProtoIndex::load silently loads a SECOND cache (DEFAULT_LEMMA_CACHE) from a cwd-relative hardcoded path, ignoring the caller's path argument",
+     "evidence": "dump.rs:1576-1580 `if let Some(corpus) = load_optional(Path::new(crate::DEFAULT_LEMMA_CACHE), LemmaCorpus::load)? { idx.attach_etymology(&corpus); }` inside `ProtoIndex::load(path)` — the linker's etym/deep_etym maps appear or vanish depending on the process cwd, not on any explicit input; a caller passing a custom --proto-cache still reads data/slavic-lemmas.cache.json relative to cwd",
+     "fix": "Lift the coupling to callers: `ProtoIndex::load_with_lemmas(proto_path, lemma_path)` (or accept Option<&LemmaCorpus>), with existing call sites passing DEFAULT_LEMMA_CACHE explicitly — dependency becomes visible, behavior unchanged",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/main.rs",
+     "line": 387,
+     "summary": "extract-enrich collapses RawSlavicCorpus::load errors to an empty Vec, violating dump.rs's own documented load_optional contract",
+     "evidence": "main.rs:387-389 `RawSlavicCorpus::load(...).map(|c| c.lemmas).unwrap_or_default()` vs dump.rs:84-87 doc: \"Callers must NOT collapse that error to `None` (`.ok()` / `.unwrap_or_default()`), or a stale cache silently degrades the output, which is exactly what the schema stamps exist to prevent.\" A corrupt/stale-schema raw cache silently shrinks the enrich wanted set. Same violation at coincheck.rs:292-293 (`.ok()` on both LemmaCorpus and RawSlavicCorpus loads)",
+     "fix": "Route through dump::load_optional so absent stays Ok(None) but corrupt/stale is a hard error (identical output when the cache is healthy, which is the frozen baseline)",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/enrich.rs",
+     "line": 592,
+     "summary": "string_values and push_limited are byte-identical copies of the dump.rs helpers; wiki_metadata is a near-copy differing only in caps",
+     "evidence": "enrich.rs:592-614 `fn string_values(v: Option<&Value>, cap: usize)` and 616-625 `fn push_limited` are character-for-character identical to dump.rs:895-917 and 919-928; enrich.rs:572-590 wiki_metadata mirrors dump.rs:876-893 (enrich adds top-level raw_tags and uses caps 28/32 vs 24/28)",
+     "fix": "Survivor: the dump.rs pair promoted to pub(crate) (or a small shared wikijson helper module); enrich.rs imports them and keeps its own wiki_metadata caps — identical output",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/dump.rs",
+     "line": 624,
+     "summary": "Four hand-rolled copies of the same dump-streaming skeleton (open/8MB BufReader/lines/substring prefilter/serde parse/lang_code re-verify)",
+     "evidence": "dump.rs:624-709 extract_lemmas, dump.rs:1092-1158 extract_raw_slavic, dump.rs:1341-1373 extract, enrich.rs:351-407 enrich::extract all repeat `BufReader::with_capacity(8 * 1024 * 1024, file)`, `for line in reader.lines()`, a `line.contains(marker)` prefilter, `serde_json::from_str` with `Err(_) => continue`, and a lang_code re-check",
+     "fix": "One `stream_jsonl(path, prefilter: impl Fn(&str)->bool, f: impl FnMut(&Value))` helper in dump.rs consumed by all four extractors; per-pass logic stays in the closures, cache bytes unchanged",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/dump.rs",
+     "line": 232,
+     "summary": "Cache-load boilerplate (read_maybe_gz + parse + check_cache_schema + entry_count ensure) copy-pasted three times",
+     "evidence": "LemmaCorpus::load dump.rs:232-249, ProtoIndex::load dump.rs:1546-1563, EnrichIndex::load enrich.rs:111-130 each repeat the same four steps including the identical `entry_count {} but {} entries` ensure message shape",
+     "fix": "Generic `load_stamped_cache<T>(kind, path, expected_schema, regen)` beside check_cache_schema returning the parsed struct; the three loaders keep only their post-load hygiene passes",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/dump.rs",
+     "line": 647,
+     "summary": "extract_lemmas' prefilter hardcodes every old-stage code as string literals, duplicating OLD_STAGE_LANGS — adding a stage to the map silently misses the prefilter",
+     "evidence": "dump.rs:647-661 `line.contains(\"zlw-opl\") || line.contains(\"zlw-ocs\") || line.contains(\"zlw-osk\") || line.contains(\"zle-ort\") || ...` repeats each member of OLD_STAGE_LANGS (dump.rs:434-436); a new entry in OLD_STAGE_OF without a matching literal here drops the whole evidence class with no error",
+     "fix": "Build the marker list once from OLD_STAGE_LANGS (quoted/colon forms, keeping the documented special-casing for short codes orv/cu) — same set, byte-identical cache",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/dump.rs",
+     "line": 1050,
+     "summary": "lemma_gloss and real_glosses/is_form_of_sense are two parallel skip-form-of-sense implementations in the same file with diverging tag sets",
+     "evidence": "lemma_gloss dump.rs:1050-1078 checks `sense.get(\"form_of\").is_some()` and tags `form-of|inflection-of`, caps at 80 chars; real_glosses/is_form_of_sense dump.rs:1278-1328 checks non-empty form_of/alt_of arrays plus tags `form-of|inflection-of|alt-of|alternative|abbreviation` and gloss_marks_form_of, caps at 200",
+     "fix": "Co-locate the two and document the divergence; unify only after a truth-table proof over the dump (the tag sets differ, so blind merging changes cache bytes) — the safe move now is extracting the shared tag-scan into one helper parameterized by tag set",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/model.rs",
+     "line": 311,
+     "summary": "Pos::parse repeats `s.starts_with(\"m.\")` twice in one condition and re-implements parse_noun_traits' m./f./n. prefix grammar",
+     "evidence": "model.rs:304-312: `if s.starts_with(\"m.\") || s.starts_with(\"f.\") || ... || s.starts_with(\"m/\") || s.starts_with(\"m.\")` — the final clause is a literal duplicate of the first; the same gender-prefix grammar lives again in parse_noun_traits model.rs:362-367 (which additionally accepts \"m \")",
+     "fix": "Delete the duplicate clause (provably identical); co-locate the two tag parsers and note the \"m \" asymmetry so the next edit touches one grammar, not two",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/enrich.rs",
+     "line": 658,
+     "summary": "enrich::truncate duplicates dump::truncate_chars (char-cap + ellipsis)",
+     "evidence": "enrich.rs:658-665 `fn truncate(s: &str, max_chars: usize)` and dump.rs:868-874 `fn truncate_chars(s: &str, max_chars: usize)` both count chars and append '…' — same output for all inputs",
+     "fix": "Survivor: dump.rs truncate_chars made pub(crate) (or moved to normalize.rs); enrich.rs imports it",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/dump.rs",
+     "line": 449,
+     "summary": "chain_key duplicates enrich::norm_word (trim + strip U+0300–036F combining marks + lowercase)",
+     "evidence": "dump.rs:449-455 `word.trim().chars().filter(|c| !('\\u{0300}'..='\\u{036F}').contains(c)).flat_map(char::to_lowercase)` vs enrich.rs:179-185 `word.trim().to_lowercase().chars().filter(|c| !('\\u{0300}'..='\\u{036F}').contains(c))` — order differs but to_lowercase never emits combining marks, so results are equal",
+     "fix": "One accent-fold helper in normalize.rs used by both (keep both call-site names as thin wrappers if the diff must stay minimal)",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/model.rs",
+     "line": 51,
+     "summary": "Confidence::from_score uses magic literals 0.72/0.45 while its sibling from_probability uses named calibrate consts; the numbers are also hardcoded in eval.rs prose",
+     "evidence": "model.rs:51-53 `if score >= 0.72 ... else if score >= 0.45`; contrast model.rs:65-67 `if p >= crate::calibrate::PROPOSE_T`; eval.rs:3406 embeds \"thresholds 0.72/0.45 in `Confidence::from_score`\" in a generated report string — doc-rot magnet if either literal moves",
+     "fix": "Name them (e.g. SCORE_HIGH_T / SCORE_MEDIUM_T in model.rs or calibrate.rs) and reference the consts from the eval report text",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/official.rs",
+     "line": 230,
+     "summary": "The TSV branch of official::load (looks_like_tsv) has no in-repo caller and uses quote-blind split beside the real CSV parser",
+     "evidence": "official.rs:230-231 `fn looks_like_tsv(header: &str) -> bool { header.contains('\\t') && !header.starts_with(\"id,\") }` and 239-242 naive `l.split('\\t')`; every caller (check.rs:1639,1937, coincheck.rs:253, derive.rs:437, release.rs:197-198, site) passes the comma CSV official-isv.csv; no .tsv file or TSV-producing target exists in repo/Makefile",
+     "fix": "Delete the branch (or demote to a documented escape hatch) once confirmed no out-of-repo workflow feeds a TSV; read_csv_records is the survivor",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "src/official.rs:134 OfficialEntry::native_branches — pub method whose only callers are its own unit tests (official.rs:361); no production use found repo-wide",
+    "src/official.rs:230 looks_like_tsv + the tab branch of load() — no caller ever passes a TSV (all pass official-isv.csv); likely leftover from an earlier metadata-TSV workflow",
+    "src/main.rs:370 site::export(&official, &out) fallback (Export when DEFAULT_LEMMA_CACHE is absent) — production/CI always has the committed lemma cache, so the official-only site path may be an unexercised second exporter (verify before touching; outside my four files)",
+    "src/dump.rs pre-stamp schema-0 tolerance narrative (dump.rs:61-79 comment block) — partially superseded: LEMMA_CACHE_SCHEMA moved to 1 so schema-0 caches are now refused, but the comment still explains why 0 was 'deliberately the initial expected value'; doc-rot candidate",
+    "src/enrich.rs:159-165 EnrichIndex::len/is_empty — len is used (site/coverage), is_empty not found outside the file; harmless clippy-pair but unused"
+   ]
+  },
+  {
+   "area": "generation (src/corpus.rs, src/consensus.rs, src/proto.rs, src/proto_link.rs, src/derive.rs)",
+   "dataflow": "IN: data/slavic-lemmas.cache.json (dump::LemmaCorpus), data/proto-slavic.cache.json (dump::ProtoIndex), data/official-isv.csv (official::load).\nSITE path (export_corpus, the shipped export): LemmaCorpus -> corpus::build_sets (union-find cognate sets; prints a stats line) -> corpus::generate_set = consensus::generate(ConsensusConfig::production) + proto::generate_with_reflexes(set.proto, stem_class=None — the known Wiktionary ancestor; proto_link is NEVER called on this path) -> GeneratedWord consumed by site/mod.rs:317/408, site/coverage.rs:206/215, site/entries.rs, site/special.rs. derive::pattern_probabilities(official) (site/mod.rs:1811) and derive::derive_family (site/entries.rs:812, site/coverage.rs:1406) feed shipped derivative pages. site/coverage.rs:725 borrowings path calls pipeline::generate(input, proto=None).\nEVAL/fallback path: pipeline::generate(_oracle) = consensus::generate_oracle + proto_link::{link_explicit, link, link_oracle} + proto::generate_with_reflexes(stem_class from cfg.proto_stem_class_endings) — used by eval.rs (headline ladder, oracle/select-eval/rep-eval), aspect.rs, generator.rs, and the official-seeded fallback site::export.\nCROSS-COMMAND ARTIFACT: `corpus-eval --fit` (eval::run_corpus_eval) re-drives corpus::build_sets + generate_set and writes data/corpus-calibration.json, which `export` reads back (site/mod.rs:469) — the one generation artifact produced by one command and consumed by another.\nEVAL-ONLY code living inside generation modules: consensus::Oracle + forced-cluster/oracle-rep branches, pick_rep_by_rule(\"modal-skeleton\"/\"shortest\"), proto_link::link_oracle, the deep-corroboration rescue (RESCUE_FLOOR/deep_share), REP_PRIORITY_NO_SOUTH_BIAS + REP_PRIORITY_ADJ, ConsensusConfig::baseline(), tidy_ending, palatal_from_south/jat_reconstruction/recover_y — all reachable only via eval subcommands (kept alive by the ablation/rejected ladders). ConsensusConfig::full() is reachable from nowhere.",
+   "findings": [
+    {
+     "kind": "redundant",
+     "file": "src/corpus.rs",
+     "line": 531,
+     "summary": "corpus::generate_set and pipeline::generate_oracle are drifted copy-paste twins of the same post-processing: insert proto candidate first, append reflexive ' sę', dedupe by standard spelling preferring the proto-flavored form",
+     "evidence": "corpus.rs:531-534 appends the particle with only `!pc.form.ends_with(\" sę\")`, while pipeline.rs:232-238 first strips residual particles [\" sę\",\" sa\",\" se\",\" sie\",\" się\",\" sobě\"]; corpus::dedupe (613-632) silently drops the unflavored duplicate while pipeline::dedupe (253-288) upgrades it in place ('existing.form = c.form.clone(); existing.source = CandidateSource::ProtoSlavicRule'). Both key on `ortho::to_standard(&c.form.to_lowercase())`. Note pipeline's strip list also omits \" sobe\" that consensus::reflexive_stem (consensus.rs:1618) handles — three drifted particle lists total.",
+     "fix": "Extract shared post-processing helpers (append_reflexive_particle, dedupe_by_standard_spelling with an upgrade-vs-drop flag) into one module, each caller keeping its exact current particle list and dedupe policy; then unify lists only with a measured-neutral proof. Survivor: pipeline.rs as the host.",
+     "effort": "M"
+    },
+    {
+     "kind": "stale",
+     "file": "src/consensus.rs",
+     "line": 229,
+     "summary": "ConsensusConfig::full() is dead — no caller anywhere in the crate (tests included)",
+     "evidence": "grep for 'full()' across src/ hits only the definition at consensus.rs:229 and two unrelated `rows[i].full()` calls on a different type in site/search.rs:371/395. The ablation ladder (eval.rs kept_ladder) rebuilds its top rung field-by-field and rejected_experiments() starts from production(); neither uses full().",
+     "fix": "Delete ConsensusConfig::full(). Byte-identical trivially (dead code).",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/corpus.rs",
+     "line": 519,
+     "summary": "generate_set silently ignores the ConsensusConfig gates it receives: the proto-derivation block runs unconditionally and stem_class is hard-coded None while production() says proto_stem_class_endings=true",
+     "evidence": "corpus.rs:519 `if !set.borrowed {` is not gated on cfg.proto_derived_form; corpus.rs:527-530: 'stem_class stays None on the site path: site output must not change until the display side ships its own readers (issue #76)' followed by `generate_with_reflexes(proto_word, set.pos, None, &reflexes, None)`. Meanwhile pipeline.rs:84-88 does honor the flag. A production() flag flip never reaches the site path.",
+     "fix": "Split the fields generate_set actually honors into a narrower config (or take no ConsensusConfig for the proto block and document the site-frozen knobs at the ConsensusConfig fields), so the two-stack divergence is typed instead of implicit. Pure signature refactor, output unchanged.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/corpus.rs",
+     "line": 373,
+     "summary": "corpus::debase_stress hand-duplicates proto::debase_vowel, the table that was made pub(crate) precisely 'so the two sides can never drift'",
+     "evidence": "corpus.rs:373-383 maps the same accented-vowel sets to a/e/i/o/u/y as proto.rs:602-617; proto.rs:600-601 doc: 'the site's proto-reflex join (issue #73b) folds ancestor and cache words with this same table, so the two sides can never drift.' Only delta: debase_vowel also maps U+1EF9 ỹ, and `grep -c 'ỹ' data/slavic-lemmas.cache.json` finds 0 occurrences, so proto_merge_key output is byte-identical on the committed corpus.",
+     "fix": "Delete debase_stress; call crate::proto::debase_vowel from proto_merge_key. Prove with export hash (ỹ absent from the cache).",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/consensus.rs",
+     "line": 284,
+     "summary": "Answer-reading diagnostic machinery (Oracle, forced-cluster reorder, oracle-representative pick, rep rules 'modal-skeleton'/'shortest') lives inside the production consensus module",
+     "evidence": "consensus.rs:284-304 `pub struct Oracle` ('Every field READS THE OFFICIAL ANSWER and must never feed production'); reconstruct() branches on it at 628-645; generate_oracle's forced_key block at 389-399; proto_link.rs:84-134 link_oracle ('READS THE ANSWER'). Callers are exclusively eval.rs (993, 1186, 2355 via pipeline::generate_oracle) behind the Oracle/SelectEval/RepEval subcommands.",
+     "fix": "Move Oracle + link_oracle + the non-production pick_rep_by_rule arms into an eval-side module (production reconstruct keeps only the medoid arm), leaving generate() a thin oracle-free path. Pure code motion, byte-identical.",
+     "effort": "M"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/derive.rs",
+     "line": 436,
+     "summary": "derive.rs mixes the generation layer (derive_family, pattern_probabilities — used by the site) with a 300-line benchmark writer that reaches into eval and calibrate internals",
+     "evidence": "run_eval (436-632) writes target/eval/derivation-report.md and, like holdout_pattern_stats, calls crate::eval::is_holdout_id (344, 467, 481) and crate::calibrate::REVIEW_T (426); naive_family (81-127) exists only as the benchmark baseline. The site needs only derive_family (site/entries.rs:812) and pattern_probabilities (site/mod.rs:1811).",
+     "fix": "Move run_eval + naive_family + the report writer next to the other benchmarks in eval.rs (or a derive_eval module), keeping mine_pairs/holdout_pattern_stats with pattern_probabilities. Code motion only.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/proto_link.rs",
+     "line": 216,
+     "summary": "Candidate-collection loop (gloss_candidates ∪ desc_candidates with contains-dedup) is duplicated between link_core and link_oracle",
+     "evidence": "proto_link.rs:216-225 and 90-103 are the same union: `let mut candidates: Vec<usize> = index.gloss_candidates(...); ... if let Some(v) = index.desc_candidates(sk) { for &i in v { if !candidates.contains(&i) { candidates.push(i); } } }` — the only difference is link_oracle recomputes each form's skeleton inline.",
+     "fix": "Extract fn collect_candidates(index, gloss, skeletons) -> Vec<usize>; both callers keep their exact iteration order (gloss first, then per-skeleton) so the Vec order — and therefore tie-breaks — is unchanged.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/corpus.rs",
+     "line": 59,
+     "summary": "corpus::branch_of is a pure delegation shim to crate::lang::branch_of that external modules still route through",
+     "evidence": "corpus.rs:59-61: `pub fn branch_of(lang: &str) -> Option<Branch> { crate::lang::branch_of(lang) }` with a doc admitting the old local table 'had already drifted'. Callers: site/navigation.rs:101, site/entries.rs:901, site/special.rs:456 all call crate::corpus::branch_of.",
+     "fix": "Point all callers at crate::lang::branch_of and delete the shim. Survivor: lang::branch_of. Byte-identical trivially.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/proto_link.rs",
+     "line": 343,
+     "summary": "PREFIX_VARIANTS contains the literal entry (\"voz\", \"vȯz\") twice; the second is unreachable",
+     "evidence": "proto_link.rs:343-344: `(\"voz\", \"vȯz\"),\\n    (\"voz\", \"vȯz\"),` — strip_one iterates in order and returns on the first strip_prefix match, so the duplicate can never fire.",
+     "fix": "Delete the duplicate row. Byte-identical (unreachable entry).",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/derive.rs",
+     "line": 135,
+     "summary": "inverse_palatalization/inverse_iotation are one-line leftover wrappers around interslavic::phono from the issue-#21 migration",
+     "evidence": "derive.rs:135-143: `fn inverse_palatalization(stem: &str) -> Vec<String> { interslavic::phono::inverse_palatalization(stem) }` and the identical-shape inverse_iotation; both called only inside mine_pairs (222, 249, 261, 276).",
+     "fix": "Call interslavic::phono directly at the four call sites and delete the wrappers.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/pipeline.rs",
+     "line": 313,
+     "summary": "round3 is duplicated verbatim in pipeline.rs and consensus.rs",
+     "evidence": "pipeline.rs:313-315 and consensus.rs:1493-1495 are byte-identical: `fn round3(x: f32) -> f32 { (x * 1000.0).round() / 1000.0 }`.",
+     "fix": "One pub(crate) round3 (natural home: model.rs next to Candidate scoring, or orthography.rs); survivor consensus's, pipeline imports it.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/consensus.rs",
+     "line": 1479,
+     "summary": "tidy_ending's Noun arm is a no-op branch (empty body behind a condition), and the whole function is reachable only on the eval baseline rung",
+     "evidence": "consensus.rs:1479-1483: `Pos::Noun => { if gender == Some(Gender::Neuter) && !ends_with_vowel(&w) { // leave; neuter usually already ends in -o/-e } }` — the if-body is empty; ends_with_vowel (1489) exists only for it. tidy_ending is called only when internationalism, lemma_endings AND prefix_normalization are all false (778/794), i.e. ConsensusConfig::baseline() — never production, never the site.",
+     "fix": "Delete the Noun arm and ends_with_vowel (provable identity); optionally fold tidy_ending toward the eval-only baseline rung it serves.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/corpus.rs",
+     "line": 215,
+     "summary": "build_sets prints its borrowing-layer stats via println! from a library function, so every consumer (export, coverage, corpus-eval --fit) emits it, and the translit_keyed/bridge_folds accounting exists only to feed that stdout line",
+     "evidence": "corpus.rs:215-229 `println!(\"borrowing layer: {} lemmas → {} components ...\")` inside pub fn build_sets; counters translit_keyed (93), bridge_folds (191) and the comps_before/after machinery (178-198) are consumed nowhere else. Called from site/mod.rs:317, site/coverage.rs:206 and eval.rs:318.",
+     "fix": "Return a BuildStats struct alongside the sets (or accept a reporting sink) and let main-path callers print it; stdout text can be kept byte-identical at the call sites while the library becomes silent.",
+     "effort": "S"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/consensus.rs",
+     "line": 270,
+     "summary": "REP_PRIORITY_NO_SOUTH_BIAS and REP_PRIORITY_ADJ are generation tables kept alive solely by eval ladder rungs (baseline / rejected adj_longform_rep experiment)",
+     "evidence": "consensus.rs:615 selects REP_PRIORITY_NO_SOUTH_BIAS only when prefer_south_representative=false — true only in ConsensusConfig::baseline() (eval.rs:35 kept_ladder rung 1); consensus.rs:611 selects REP_PRIORITY_ADJ only under adj_longform_rep, which production() sets false ('Rejected by the benchmark') and only eval.rs:134's rejected-experiments rung enables. Same story for palatal_from_south/jat_reconstruction/recover_y and proto_link's RESCUE_FLOOR/deep_share (production comment: 'fired on exactly 1 of 16,300 meanings ... +0.00pp').",
+     "fix": "No deletion (the ablation/rejected ladders still execute them) — but tag each with a '// eval-only: kept for the ablation ladder' marker or group them in an eval_rungs section, so a future ladder retirement can remove them mechanically. Documentation-only, byte-identical.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "ConsensusConfig::full() (src/consensus.rs:229) — proven dead: zero callers crate-wide; also listed as a finding",
+    "proto_link deep-corroboration rescue (RESCUE_FLOOR/RESCUE_SHARE/deep_share, src/proto_link.rs:41-42, 291-327) — production-off; reachable only through the 'prod+link-corroboration' rejected-experiments rung whose own description says it fired on 1/16,300 meanings and moved +0.00pp; dead the moment that rung is retired",
+    "consensus::Oracle.cluster / force_cluster_key / rep_rule branches and pick_rep_by_rule('modal-skeleton'|'shortest') — alive only via the Oracle/SelectEval/RepEval diagnostic subcommands; if those measurement campaigns are considered concluded (their headline numbers are already baked into rung descriptions), this is a removable diagnostic layer",
+    "consensus::tidy_ending + ends_with_vowel (consensus.rs:1455-1491) — reachable only on the baseline eval rung (all ending flags false); never runs for the site or production config",
+    "REP_PRIORITY_NO_SOUTH_BIAS and REP_PRIORITY_ADJ (consensus.rs:270-277) — selected only under eval-only configs (baseline / rejected adj_longform_rep)",
+    "consensus.rs palatal_from_south (1243), jat_reconstruction (1349), recover_y (1383) — production flags false ('Rejected by the benchmark'); exercised only by rejected_experiments() and full() (itself dead)",
+    "corpus.rs seen_lang: BTreeMap<&str, bool> used as a set (corpus.rs:454) — not stale but an improper micro; BTreeSet expresses it",
+    "proto.rs generate() (the reflex-less wrapper, proto.rs:17-19) — NOT stale (proto_link scoring and eval use it) but easily mistaken for it; site path only ever calls generate_with_reflexes"
+   ]
+  },
+  {
+   "area": "surface — string/orthography/morphology machinery (flavorize.rs, morph.rs, normalize.rs, lang.rs, aspect.rs, glossxref.rs, thesaurus.rs, plus orthography.rs/model.rs/check.rs cross-checks)",
+   "dataflow": "In: official CSV cells (pos_raw, per-language translation cells, English glosses), Wiktionary lemma caches, raw candidate strings.\n- lang.rs is the static registry (branch/script/speakers/pop_weight); consumed by normalize dispatch, consensus weighting, razumlivost, and site display. thesaurus.rs re-hardcodes a subset of it.\n- normalize.rs turns raw cells into NormForm{original, phonemic-Latin, ascii skeleton} for the consensus vote; also exports translit_greek (corpus etymon keys), fold_proto_homoglyphs (proto engine), fold_deep_token, desc_skeleton (proto_link matching).\n- orthography.rs re-exports interslavic::to_standard and layers ascii_skeleton → consonant_key → shares_consonant_root plus edit distances; virtually every module folds through it, often re-inlining the `to_standard(&x.trim().to_lowercase())` idiom that forms::form_key already names.\n- morph.rs (LemmaRules, benchmark-gated) rewrites candidate lemma endings for consensus.rs only.\n- aspect.rs parses the official pos_raw aspect tag, detect_pairs defines the frozen 1,440-pair benchmark slice consumed by eval.rs and site/mod.rs; generate_pair reaches UP into pipeline::generate (inverted layering).\n- flavorize.rs is display-only (site/coverage.rs, site/entries.rs, coincheck.rs, falsefriends.rs); its header forbids leaking into voting — the parallel Cyrillic tables vs normalize.rs are deliberate, documented duplication.\n- glossxref.rs and thesaurus.rs are export-time in-memory indexes (never persisted) feeding site/entries.rs and synonym-aware scoring; both depend on foreign tokenizers (dump::gloss_tokens, site::english_gloss_tokens) — the crate has five gloss tokenizers total.\nOut: normalized forms into consensus/pipeline, aspect pairs into eval + site artifacts, flavorized headwords into site HTML, gloss/synonym links into site pages. No artifact in this area is written by two commands.",
+   "findings": [
+    {
+     "kind": "redundant",
+     "file": "src/aspect.rs",
+     "line": 31,
+     "summary": "Four independent substring parsers of the one official pos_raw CSV column, scattered across four modules",
+     "evidence": "aspect.rs:31-41 `pub fn aspect(pos_raw: &str)` matches `contains(\"ipf./pf.\")/contains(\"ipf.\")/contains(\"pf.\")`; check.rs:248-259 `fn valence_char(pos_raw: &str)` matches `.intr/.refl/.tr`; model.rs:246-316 `Pos::parse` + model.rs:359-374 `parse_noun_traits` match gender/number prefixes (`m.`, `f.pl.`, `indecl`); eval.rs:1909-1913 re-inlines `e.pos_raw.contains(\"ipf.\")` / `contains(\"pf.\")` instead of calling aspect::aspect, duplicating detect_pairs' grouping preamble (aspect.rs:55-71) verbatim including the biaspectual-on-ipf-side quirk.",
+     "fix": "Create one pos-tag module (e.g. src/postag.rs) exposing aspect(), valence(), traits() with the EXACT current substring semantics moved verbatim; point eval.rs:1909 at aspect::aspect (identical truth table: ipf./pf. rows land on the ipf side in both). Byte-identity provable because every matcher is a pure function of pos_raw and the bodies move unchanged.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/thesaurus.rs",
+     "line": 53,
+     "summary": "forms::form_key body is re-implemented verbatim as thesaurus::key and hand-inlined at ~15 more call sites",
+     "evidence": "forms.rs:119-121 `pub fn form_key(form:&str)->String{ortho::to_standard(&form.trim().to_lowercase())}`; thesaurus.rs:53-55 `fn key(isv:&str)->String{ortho::to_standard(&isv.trim().to_lowercase())}` is character-identical; grep shows the same idiom inlined in derive.rs:163,169,303-304, inflect_eval.rs:20, proto_link.rs:89, pipeline.rs:262,268,301, eval.rs:649, corpus.rs:624, orthography.rs:107.",
+     "fix": "Hoist the helper into orthography.rs (e.g. `pub fn fold_key`) with forms::form_key as a re-export, delete thesaurus::key, and replace the inlined idiom call-by-call — each site is a textual substitution of an identical expression, so the export is byte-identical by construction.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/aspect.rs",
+     "line": 97,
+     "summary": "Triple-fold: callers wrap ortho::consonant_key in an extra to_standard+lowercase it already performs",
+     "evidence": "aspect.rs:97-99 `fn consonant_key(word:&str)->String{ortho::consonant_key(&ortho::to_standard(&word.to_lowercase()))}`; same pattern at pipeline.rs:73 and eval.rs:635. But orthography.rs:59-61 consonant_key starts with `let skel = ascii_skeleton(word);` and ascii_skeleton (orthography.rs:27) is `to_standard(&word.to_lowercase())` — so the outer fold is applied twice.",
+     "fix": "Replace with `ortho::consonant_key(word)` after adding a to_standard-idempotence property test (to_standard(to_standard(x))==to_standard(x), and lowercase-stability) pinned over the official lexicon; the interslavic crate's fold maps into the standard alphabet whose letters are fixed points, so removal is provably byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/morph.rs",
+     "line": 391,
+     "summary": "Provably unreachable/duplicate suffix-table entries in international_ending and verb_infinitive",
+     "evidence": "morph.rs:391-395: verb list `[\"ovati\", \"ować\", \"ovať\", \"ovat\", \" irovati\", \"irovať\", \"izovati\", ...]` is guarded by `word.ends_with(suf) && !word.ends_with(\"ovati\")` (line 395) — any word ending in \"ovati\", \" irovati\" or \"izovati\" also ends in \"ovati\", so those three entries can never fire. morph.rs:274 `for suf in [\"ično\", \"ično\", \"ičny\", ...]` lists \"ično\" twice. morph.rs:265 `\" yczny\", \"yczny\"` and morph.rs:449 `(\" nąć\", \"nuti\"), (\"nąć\", \"nuti\")`: the leading-space variant maps to the same replacement as its space-free twin, which matches everything the spaced one matches (the space just lands in the retained stem) — identical output either way.",
+     "fix": "Delete the dead entries (\"ovati\", \" irovati\", \"izovati\", duplicate \"ično\", \" yczny\", \" nąć\"); each removal is provably byte-identical by the guard/subsumption argument above. Add a unit test asserting derive on e.g. \"organizovati\" is unchanged.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/flavorize.rs",
+     "line": 92,
+     "summary": "The combining-mark predicate ('\\u{0300}'..='\\u{036F}').contains(c) is hand-inlined six times across two modules",
+     "evidence": "flavorize.rs:92-96 strip_marks, flavorize.rs:729 ru_text, flavorize.rs:810 previous_base; normalize.rs:129 translit_greek, normalize.rs:221 fold_deep_token, normalize.rs:457 desc_skeleton — all six filter on the identical range expression.",
+     "fix": "Add `pub fn is_combining_mark(c: char) -> bool` to orthography.rs and substitute at all six sites; pure predicate extraction, byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/glossxref.rs",
+     "line": 134,
+     "summary": "Five parallel English gloss tokenizers, with check.rs reaching into site for one of them",
+     "evidence": "glossxref.rs:134 head_tokens (own STOP list, 2..=32 chars, \" of \" filter); dump.rs:1685 gloss_tokens (own STOP, len>=3, Vec); falsefriends.rs:182 gloss_tokens (BTreeSet, light_stem) plus falsefriends.rs:199 ordered_tokens duplicating its body; site/english_api.rs:329 english_gloss_tokens; check.rs:396 and check.rs:530,1067 call `crate::site::english_gloss_tokens` — a check-side gate depending on a site-side helper (the known check<->site offender), and thesaurus.rs:91 calls `crate::dump::gloss_tokens` (an export index depending on the dump loader for tokenization).",
+     "fix": "Create src/gloss.rs and MOVE all five tokenizers verbatim under distinct names (dump_tokens, ff_tokens/ff_ordered, english_api_tokens, xref_head_tokens) — no behavior merging, imports rewritten only. Removes the check→site and thesaurus→dump reaches; byte-identical because bodies are relocated unchanged.",
+     "effort": "M"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/aspect.rs",
+     "line": 183,
+     "summary": "aspect.rs (leaf morphology module) reaches up into pipeline::generate, inverting the layering",
+     "evidence": "aspect.rs:183-190: `let ipf = crate::pipeline::generate(imperfective, proto, consensus_cfg).0.into_iter().next()?; let pf = crate::pipeline::generate(perfective, ...)` inside generate_pair — the only upward dependency in the module; everything else in aspect.rs is pure string morphology consumed BY eval.rs and site/mod.rs.",
+     "fix": "Move generate_pair (aspect.rs:176-192) verbatim into pipeline.rs (it is an orchestration entry point: it runs the full generator twice, then calls aspect::reconcile_pair); aspect.rs keeps reconcile_pair/derive_* as pure functions. Call-site rename only, byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/thesaurus.rs",
+     "line": 19,
+     "summary": "Hard-coded SLAV language list duplicates the lang.rs registry (modern CSV-backed columns)",
+     "evidence": "thesaurus.rs:19-21 `const SLAV: &[&str] = &[\"ru\",\"be\",\"uk\",\"pl\",\"cs\",\"sk\",\"sl\",\"hr\",\"sr\",\"bg\",\"mk\"]` — exactly lang.rs official_slavic_cols() (lang.rs:270-273) filtered to `modern` (drops cu), but with bg/mk in swapped order vs LANGS. The list only keys `by_trans: HashMap<(String,String), BTreeSet<...>>` (thesaurus.rs:80), so iteration order cannot affect output.",
+     "fix": "Derive it: `lang::official_slavic_cols().iter().filter(|l| l.modern).map(|l| l.csv_col)`. Neutrality provable because every (lang, trans-key) bucket ends in order-insensitive HashMap/BTreeSet containers; add a test asserting the derived set equals the old literal.",
+     "effort": "S"
+    },
+    {
+     "kind": "panic-risk",
+     "file": "src/thesaurus.rs",
+     "line": 128,
+     "summary": "HashMap bracket-indexing in Thesaurus::build library path (plus per-pair key clones in the O(m²) loop)",
+     "evidence": "thesaurus.rs:128-131 `let (ia, ib) = (&info[&(*row_a, key_a.clone())], &info[&(*row_b, key_b.clone())]);` and thesaurus.rs:147 `isv: lemma_orig[&k].clone()` — panics if the invariant (every by_trans member was inserted into info/lemma_orig) is ever broken by a future edit; also allocates two String clones per candidate pair inside the nested i/j loop.",
+     "fix": "Replace with `.get(...).expect(\"by_trans member missing from info\")` carrying the invariant message, or restructure members to carry indices into a Vec<Info>; same output, panic converted to a documented invariant and the clones removed.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/model.rs",
+     "line": 304,
+     "summary": "Pos::parse repeats `s.starts_with(\"m.\")` twice in one condition and drifts from parse_noun_traits' gender prefixes",
+     "evidence": "model.rs:304-312: `if s.starts_with(\"m.\") || s.starts_with(\"f.\") || s.starts_with(\"n.\") || s == \"m\" || s == \"f\" || s == \"n\" || s.starts_with(\"m/\") || s.starts_with(\"m.\")` — the last disjunct duplicates the first. parse_noun_traits (model.rs:362) additionally accepts `s.starts_with(\"m \")` for masculine but has no `\"f \"`/`\"n \"` counterparts — two adjacent functions parsing the same prefixes with silently different accept sets.",
+     "fix": "Delete the duplicated `s.starts_with(\"m.\")` disjunct (pure boolean identity, byte-identical) and extract one `gender_prefix(&str)->Option<Gender>` used by both, preserving each caller's exact accept set behind explicit flags until a behavior-change PR reconciles them.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/morph.rs",
+     "line": 160,
+     "summary": "The closed hard -tel word list is duplicated in derivational_suffixes and noun_lemma",
+     "evidence": "morph.rs:160 `let hard_tel = [\"hotel\", \"kotel\", \"kostel\", \"dětel\"];` and morph.rs:532-534 `!([\"hotel\", \"kotel\", \"kostel\", \"dětel\"].iter().any(|x| word.ends_with(x)))` — same closed set, two literals (note one checks contains, the other ends_with; keep both predicates, share the const).",
+     "fix": "Hoist `const HARD_TEL: [&str; 4]` to module scope and reference it from both sites; literal deduplication, byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/glossxref.rs",
+     "line": 17,
+     "summary": "glossxref declares the rendering caps but site/entries.rs enforces two of the three",
+     "evidence": "glossxref.rs:17-21 declares `pub const MAX_LANGS`, `pub const MAX_PER_LANG`, `MAX_TOKENS`; MAX_TOKENS is enforced inside GlossXref::matches (glossxref.rs:117 `if out.len() >= MAX_TOKENS`), but MAX_LANGS/MAX_PER_LANG are applied only in site/entries.rs:657-660 (`.take(crate::glossxref::MAX_LANGS)`, `.take(crate::glossxref::MAX_PER_LANG)`) — the truncation policy is split across the module boundary.",
+     "fix": "Either move all three caps' enforcement into GlossXref::matches (returning already-truncated groups) or move the two display caps to site/entries.rs where they are applied; same .take() arithmetic, byte-identical HTML.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/normalize.rs",
+     "line": 397,
+     "summary": "No-op match arm and dead stoplist character: micro-residue in normalize.rs (+ trivial is_letter wrapper in morph.rs)",
+     "evidence": "normalize.rs:397-398 `\"sl\" | \"hr\" | \"bs\" | \"sh\" => {} _ => {}` — the named arm is behaviorally identical to the fallthrough (documentation only). normalize.rs:377 `const CYR_VOWELS: &str = \"аеёиіїоуыэюяєѣѫѧ \"` carries a trailing space that can never match because line 378 requires `prev.is_alphabetic()`. morph.rs:629-631 `fn is_letter(c: char) -> bool { c.is_alphabetic() }` is a single-caller alias.",
+     "fix": "Fold the named arm into a comment on the `_` arm, drop the trailing space, inline is_letter into is_consonant — each is a provable no-op removal.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "src/glossxref.rs:124 GlossXref::token_count — pub fn with no callers found anywhere in src/ (only the definition matches); likely dead API",
+    "src/morph.rs:391-394 verb suffix entries \"ovati\", \" irovati\", \"izovati\" — proven unreachable (see finding 4), listed here as the concrete deletions",
+    "src/eval.rs:1900-1914 — re-implements aspect::detect_pairs' entry filtering and ipf/pf grouping inline; suspected copy that should call the aspect module (covered under finding 1 but the whole block may be collapsible)",
+    "src/lang.rs:15-21 Branch::code — could not confirm a caller in this pass (`.code()` hits were all Pos/declension codes); verify before removal",
+    "src/flavorize.rs:83-89 translit_text non-ru arms — pass-through is a documented placeholder for issue #38, not dead, but the function is a one-language dispatcher that will look vestigial until #38 lands",
+    "src/normalize.rs vs src/flavorize.rs parallel Cyrillic tables (translit_cyrillic vs cyr_word/bcms_cyr_to_latin/ru_text) — deliberate, documented duplication (flavorize header forbids leaking into voting); NOT a merge candidate, but the shared invariant consonant rows are copy-paste that will drift without a cross-pinning test"
+   ]
+  },
+  {
+   "area": "verification (check.rs, forms.rs, coincheck.rs, release.rs)",
+   "dataflow": "In: data/official-isv.csv (official::load), data/novel-words.tsv (written by the site export, site/mod.rs:1622), data/project-lexicon-fixture.tsv / user --lexicon TSVs, false-friend caches (falsefriends::compute_from_default_caches; coincheck also loads DEFAULT_LEMMA_CACHE + DEFAULT_RAW_LEMMA_CACHE), interslavic crate paradigm tables.\nOut: check-text terminal/JSON envelope (CHECKTEXT_JSON_SCHEMA=1); target/eval/checktext-report.md (check::run_eval); api/suggest/<n>.json + api/suggest-selftest.json (check::write_web_suggestions, invoked by site export at site/mod.rs:2032); api/forms/<n>.json, api/lemmas.json, api/meta.json, api/router-selftest.json, api/agent-guide.md (forms::write_api + forms::agent_guide, invoked at site/mod.rs:2023-2043); coin-check terminal/JSON + validated lexicon TSV row; data/MANIFEST.json (release::run_manifest, hashing git-tracked data/ files + Cargo.lock pin + site::PROBE_BASELINE + forms::SCHEMA_VERSION); data/official-isv.csv install + data/refresh-changelog.md prepend (release::run_refresh).\nCross-module touches: check→site (english_gloss_tokens: check.rs:396,530,1067); site→check (build_index at site/mod.rs:2029, write_web_suggestions, masc_animate_lemma_keys at site/mod.rs:1891); site→forms (write_api, agent_guide); release→site (PROBE_BASELINE at release.rs:134) and release→official (read_csv_records at release.rs:210).\nNonlinear hotspot: the export command writes data/novel-words.tsv mid-run (site/mod.rs:1622) and re-reads it from disk later in the same run (site/mod.rs:2029); check-text, checktext-eval and coin-check consume the committed copy via hardcoded string literals.",
+   "findings": [
+    {
+     "kind": "boundary",
+     "file": "src/check.rs",
+     "line": 396,
+     "summary": "check.rs core validation depends on crate::site::english_gloss_tokens — gloss normalization lives in the site module but serves the checker's lexicon/adoption/consistency logic",
+     "evidence": "check.rs:396 `gloss_tokens: crate::site::english_gloss_tokens(gloss)` (parse_lexicon), :530 `let proposal_tokens = crate::site::english_gloss_tokens(&proposal.gloss)` (validate_lexicon_row adoption guard), :1067 `.map(|r| crate::site::english_gloss_tokens(&r.gloss))` (consistency_warning). Defined at src/site/english_api.rs:329 `pub fn english_gloss_tokens(gloss: &str) -> BTreeSet<String>`. The known offender, confirmed at three call sites.",
+     "fix": "Move english_gloss_tokens into a neutral shared module (normalize.rs or a new gloss.rs); re-export from site::english_api so the English API path is untouched. Pure move — byte-identical output.",
+     "effort": "S"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/site/mod.rs",
+     "line": 1622,
+     "summary": "data/novel-words.tsv is written by the export into the source data/ dir mid-run, re-read from disk later in the same run, and parsed by three hand-rolled readers with no shared schema or path constant",
+     "evidence": "Writer: site/mod.rs:1622 `std::fs::write(\"data/novel-words.tsv\", &tsv)?` (10-column writeln at :1606-1618); same run re-reads it at site/mod.rs:2029-2031 `build_index(..., Some(Path::new(\"data/novel-words.tsv\")), ...)`. Readers hand-parse with magic indices: check.rs:179-214 (`cols.len() < 8`, `(cols[0], cols[1], cols[2], cols[7])`), duplicated in test check.rs:2629-2639, plus hardcoded literals at check.rs:1645, check.rs:1939, coincheck.rs:264 — no DEFAULT_NOVEL_WORDS constant despite lib.rs defining DEFAULT_OFFICIAL/DEFAULT_LEMMA_CACHE etc.",
+     "fix": "Add crate::DEFAULT_NOVEL_WORDS to lib.rs; extract one NovelWordRow write/parse pair (column names owned once) used by the site writer, build_index, and the shadow-canary test; have the export pass its in-memory rows to build_index instead of round-tripping through disk.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/forms.rs",
+     "line": 415,
+     "summary": "FormRecord has no lemma_key field, so the folded lemma is recomputed per sink-add and per record in every consumer loop (~5% of index build)",
+     "evidence": "CONFIRMED deferred item. FormRecord struct (forms.rs:340-360) lacks lemma_key; RecordSink::add refolds per cell at forms.rs:415 `self.map.entry((key.clone(), form_key(lemma), entry_id))`; enrich_animate_accusatives refolds per record at forms.rs:726 `masc_animate_keys.contains(&form_key(&r.lemma))`; check.rs refolds in hot loops at :482/:498 `forms::form_key(&r.lemma) == row.lemma_key`, :1062 `official.iter().map(|r| forms::form_key(&r.lemma))`, :1222 `index.verb_valence.get(&forms::form_key(&r.lemma))` (token_grammar, per token per record), :1238 `index.noun_gender.get(&forms::form_key(&r.lemma))`.",
+     "fix": "Add lemma_key: String to FormRecord, computed once in RecordSink::add (the fold is already done there for the dedup key — keep it); replace every form_key(&r.lemma) call site with r.lemma_key. Record JSON serialization unchanged, so export stays byte-identical.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/release.rs",
+     "line": 197,
+     "summary": "run_refresh reads and CSV-parses both dictionary files twice — official::load first, then raw_rows re-reads and re-runs read_csv_records on the same files",
+     "evidence": "CONFIRMED deferred item. release.rs:197-198 `let new_entries = crate::official::load(input)?; let old_entries = crate::official::load(official)?;` (official::load does read_to_string + read_csv_records, official.rs:234-244); then raw_rows at :207-210 `let text = std::fs::read_to_string(path)?; ... crate::official::read_csv_records(&text)` is called for both files at :225-226. new_entries/old_entries are used ONLY for `.len()` in the changelog entry (release.rs:253-255).",
+     "fix": "Read each file once; run read_csv_records once per file and derive both the row map and the entry count from that single pass (validate loadability via official's record-to-entry step on the shared records, or keep load but feed it the already-read text). Changelog output byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/forms.rs",
+     "line": 1093,
+     "summary": "Three JSON string escapers: forms.rs json_str (hand-rolled), check.rs json_escape (serde_json wrapper), site/layout.rs json_str (lossy variant) — the first two produce identical bytes",
+     "evidence": "CONFIRMED deferred item. forms.rs:1093-1111 hand-rolled `fn json_str` escaping \",\\\\,\\n,\\r,\\t and <0x20 as \\u{:04x} — exactly serde_json's escaping; check.rs:1495-1497 `fn json_escape(s) { serde_json::to_string(s).unwrap_or_else(|_| \"\\\"\\\"\".into()) }`; site/layout.rs:65-79 `pub(super) fn json_str` DIVERGES (\\t → space, other control chars silently dropped).",
+     "fix": "Make forms::json_str pub(crate) and use it from check.rs (byte-identical to the serde path for all inputs). layout.rs's variant has different semantics — keep it but rename (e.g. json_str_lossy) with a comment, or prove callers never pass control chars and merge later; do not merge it in the frozen pass.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/check.rs",
+     "line": 60,
+     "summary": "Index.noun_animate is built and stored but never read anywhere, and its doc comment falsely claims the valence check reads it",
+     "evidence": "Repo-wide grep for noun_animate: only check.rs:60 (field decl), :85 (built), :239 (moved into Index), :2358 (test constructor). No `.noun_animate` read exists. Doc comment at :57-59 says \"the valence check reads animacy from here instead of from the paradigm shape\" — the valence check (agreement_pass :1333-1366) actually reads object-shaped analyses and index.verb_valence, never noun_animate. The animacy data reaches consumers only via masc_animate_from_maps on the LOCAL maps before Index construction (:224).",
+     "fix": "Delete the field (and the test constructor's line) and fix the doc comment; keep noun_trait_maps returning the pair for masc_animate_from_maps. No serialized artifact touches it — provably export-neutral.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/forms.rs",
+     "line": 1332,
+     "summary": "agent_guide() is a ~368-line format! raw string inside forms.rs documenting the entire product surface (English API, coin-check, project lexicons, notes) — wrong home, wrong medium",
+     "evidence": "CONFIRMED deferred item. forms.rs:1332-1699: `pub fn agent_guide() -> String { format!(r#\"# Slovowiki lexical API — agent guide ...\"#) }` covering `## Coinage validation (coin-check)` (:1557), `## Project lexicons (check-text --lexicon)` (:1586), `## English → Interslavic lookup` (:1421) — none owned by forms.rs. Sole caller: site/mod.rs:2042 `&crate::forms::agent_guide()`. Interpolations are just SCHEMA_VERSION, LICENSE, SHARDS; the literal needs `{{`-escaping throughout (e.g. :1622-1626), a maintenance trap.",
+     "fix": "Move to the site module (the only caller) as src/site/agent_guide.rs, or better an include_str! template with the three placeholders substituted — assert byte-equality with the old output in a test during the move.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/check.rs",
+     "line": 827,
+     "summary": "tokenize() is a copy-paste of tokenize_with_breaks() minus break tracking — 20 duplicated lines of the same char/hyphen state machine",
+     "evidence": "check.rs:827-847 tokenize and :852-882 tokenize_with_breaks share identical alphabetic/hyphen-peek logic (`c == '-' && !cur.is_empty() && chars.peek().map(|n| n.is_alphabetic()).unwrap_or(false)` appears verbatim in both, :834-837 and :861-864); the with-breaks version only adds `pending_break` bookkeeping. Token output is provably identical for all inputs.",
+     "fix": "Survivor: tokenize_with_breaks. Reimplement `pub fn tokenize(text) { tokenize_with_breaks(text).0 }`.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/check.rs",
+     "line": 2085,
+     "summary": "18 duplicated test preambles (official::load(DEFAULT_OFFICIAL).expect + build_index) across check.rs and coincheck.rs tests",
+     "evidence": "CONFIRMED deferred item (area share of the ~13): `grep -c \"official::load(Path::new(crate::DEFAULT_OFFICIAL))\"` → check.rs: 16 (e.g. :2085, :2152, :2245, :2298, :2325, :2416, :2503, :2552, :2602, :2615, :2654, :2731, :2755, :2857, :2905), coincheck.rs: 2 (:589, :745). Most immediately follow with `build_index(&entries, None, Default::default())`. check.rs already has the pattern-proving helper sample_index() at :2069.",
+     "fix": "Two #[cfg(test)] helpers beside sample_index(): fn official_entries() -> Vec<OfficialEntry> and fn full_index() -> Index; also consider OnceLock-caching the CSV load to cut test wall time.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/check.rs",
+     "line": 1770,
+     "summary": "Dead no-ops left in lib paths: `let _ = json_escape(\"\");` in run(), and agreement_pass's index parameter discarded with `let _ = index;`",
+     "evidence": "check.rs:1770 `let _ = json_escape(\"\");` immediately before `fail_gate_if_needed(summary)` — json_escape is genuinely used in write_web_suggestions (:1455,:1470), so this call suppresses nothing and does nothing. check.rs:1276-1282: `fn agreement_pass(index: &Index, ...)` then first statement `let _ = index;` — the parameter is entirely unused (prep government arrives pre-resolved in TokenGrammar.prep at :1247).",
+     "fix": "Delete the no-op line; drop the index parameter from agreement_pass and its two call-shape (one call site, :1040).",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/check.rs",
+     "line": 1206,
+     "summary": "token_grammar's valence fold uses two mutable variables (char + seen-bool) where an Option<char> fold states the all-lemmas-agree rule directly",
+     "evidence": "CONFIRMED deferred item. check.rs:1206-1207 `let mut valence = ' '; let mut valence_lemmas_seen = false;` and :1225-1230 `if !valence_lemmas_seen { valence = v; valence_lemmas_seen = true; } else if valence != v { valence = ' '; }`.",
+     "fix": "Fold into `let mut valence: Option<char> = None;` with `valence = match valence { None => Some(v), Some(x) if x == v => Some(v), _ => Some(' ') }`, unwrap_or(' ') at struct build — identical truth table, one variable.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/check.rs",
+     "line": 1344,
+     "summary": "The genitive-of-negation guard is a triple-negated inline expression buried in the valence condition chain",
+     "evidence": "CONFIRMED deferred item. check.rs:1340-1344: `if a.pure_verb && a.valence == 'i' && b.pure_noun && !b.noun.is_empty() && !(i > 0 && grammar[i - 1].negation && !breaks.get(i).copied().unwrap_or(false))` — negation of (negation-token AND NOT break), inside an already 5-clause &&-chain.",
+     "fix": "Extract `let negated_context = i > 0 && grammar[i-1].negation && !breaks.get(i).copied().unwrap_or(false);` (or a named closure preceded_by_negation(i)) and write `&& !negated_context` — same boolean, readable at the altitude the comment (:1339 \"A preceding ne abstains\") already speaks.",
+     "effort": "S"
+    },
+    {
+     "kind": "panic-risk",
+     "file": "src/check.rs",
+     "line": 462,
+     "summary": "Declinability probing uses raw std::panic::catch_unwind at two call sites instead of one fallible wrapper in forms.rs — panic-as-control-flow leaks stderr noise wherever the CLI quiet hook isn't installed",
+     "evidence": "check.rs:462-465 `std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| forms::noun_paradigm_forms_with_animacy(...))).is_ok()` in validate_lexicon_row (a lib path, also reached by coin-check --lexicon-row); coincheck.rs:309-312 `std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| interslavic::noun_forms(word))).ok()`. forms.rs already owns the pattern (catch() :128-130, verb_cells :290) and the quiet hook (:39-52) is only installed by main.rs command arms (:362,:411,:448,:476) — library/test callers of validate_lexicon_row print raw panic backtraces for undeclinable nouns.",
+     "fix": "Add forms::try_noun_paradigm_forms_with_animacy / try_noun_forms returning Option, doing the catch_unwind in one place next to catch(); both call sites become .is_some()/.map(). Identical results; centralizes the AssertUnwindSafe justification.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/coincheck.rs",
+     "line": 477,
+     "summary": "coin-check builds collision rows as serde_json::Value then string-extracts them back for the human report (`c[\"lemma\"].as_str().unwrap_or(\"\")`) — a stringly-typed round-trip of its own data",
+     "evidence": "coincheck.rs:267-289 builds `Vec<serde_json::Value>` via json!({\"lemma\": .., \"pos\": .., \"status\": .., \"as\": .., \"gloss\": ..}); the human path then reads it back at :477-491: `c[\"lemma\"].as_str().unwrap_or(\"\"), c[\"status\"].as_str().unwrap_or(\"\"), c[\"pos\"].as_str().unwrap_or(\"\"), c[\"as\"].as_str().unwrap_or(\"\"), c[\"gloss\"].as_str().unwrap_or(\"\")` — five silent-empty fallbacks for fields the same function just set.",
+     "fix": "A plain `struct Collision { lemma, pos, status, as_, gloss }` with #[derive(Serialize)]; JSON arm serializes it, human arm reads fields directly. Same bytes both ways, no unwrap_or masking.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "check.rs:891 pub fn check_tokens — no callers outside check.rs (grep -l \"check_tokens(\" hits only src/check.rs; used by run_eval and in-file tests); could be pub(crate), but external/doc consumers of the library API can't be ruled out",
+    "check.rs:279 pub const LEXICON_COLUMNS — referenced only inside check.rs's own error message (:323); its pub-ness suggests an external consumer that no longer exists (possibly docs)",
+    "release.rs:166 run_manifest hardcodes \"data/refresh-changelog.md\" while run_refresh takes changelog as a parameter — asymmetric parameterization suggests the param is only exercised by tests; either both should take it or neither",
+    "check.rs:185-192 the novel-words pos match arm maps every unknown string to \"other\" silently — possibly a leftover permissiveness from before the writer (site/mod.rs) constrained the vocabulary; couldn't prove any \"other\" row exists in committed data",
+    "forms.rs:192-194 pub fn noun_cell — thin wrapper over noun_cell_g(.., None); callers outside tests appear to be site tables and one check.rs test (:2121); if site consistently has gender available, the None wrapper may be a trap kept only for tests"
+   ]
+  },
+  {
+   "area": "site-core (src/site/mod.rs, entries.rs, model.rs, assets.rs, layout.rs)",
+   "dataflow": "In: data/official-isv.csv (official::load), data/slavic-lemmas.cache.json (LemmaCorpus — its EXISTENCE selects export_corpus vs the fallback export in main.rs:365-371), optional caches (proto-slavic, raw-slavic-lemmas + coverage tally, wiktionary-enrich), two calibrators (data/score-calibration.json pipeline-domain, data/corpus-calibration.json banded-domain), curation notes, git metadata (BuildMeta shells out to git).\nOut under out_dir: entry/*.html (3 page classes: generated / official-only / raw), sharded search index + browse/spotlight (search.rs), wiki indexes (navigation::write_wiki_indexes: all-pages, categories, graph, stats...), special pages (index, search, forms, text-check, about, metrics, datasets, proposals, deriv/, proto/), wiktionary.css, .nojekyll, novel-words.tsv, api/ (forms shards via forms::write_api, en/ shards via english_api, notes/ shards, aspect-pairs.json, suggest/ shards via check::write_web_suggestions).\nOut into the REPO: data/novel-words.tsv (mod.rs:1622, relative path) — re-read in the same run by check::build_index (mod.rs:2028) and by the separate check-text/coincheck commands.\nModules touched: corpus, generator, consensus, official, calibrate, dump, enrich, thesaurus, aspect, derive, forms, check, falsefriends, flavorize, glossxref, lang, orthography, normalize; release.rs reads site::PROBE_BASELINE back.\nCircular concern: check.rs imports crate::site::english_gloss_tokens (english_api.rs:329) while site::export_corpus calls check::build_index / write_web_suggestions / masc_animate_lemma_keys.\nFallback export (mod.rs:73-285) emits entry pages + search shards + 5 shell pages but NO api/ artifacts at all.",
+   "findings": [
+    {
+     "kind": "improper",
+     "file": "src/site/mod.rs",
+     "line": 314,
+     "summary": "export_corpus is a 1,808-line god function (lines 314-2121) with ~13 distinct responsibilities and three local struct definitions (Prepared, OfficialMatch, OfficialOnlyRecord at 373-404) declared inside the function body.",
+     "evidence": "fn starts at 314, Ok(()) at 2120. Responsibilities counted in-code: (1) cache/calibrator loading 315-350+473-487; (2) generate pass building Prepared 405-464; (3) official-match dedup 500-536; (4) same-concept suppression 561-610; (5) id allocation 613-615; (6) families/thesaurus/xref/headword index 646-724; (7) raw-page planning + false-friends 734-767; (8) metas + aspect linking + invariant ensure! 771-950; (9) wiki indexes 1046-1057; (10) THREE render loops with search-row emission 1072-1519; (11) proposals + TSV 1537-1627; (12) forms/lemma API sinks, derivatives, raw-intl, notes shards, english API, aspect-pairs, checker suggest index 1635-2052; (13) special pages 2058-2113.",
+     "fix": "Split into staged functions passing explicit structs: plan_corpus_site() (pure: Prepared+metas+ids+raw plan), render_pages() (the three loops), export_api() (sinks/shards), write_shell_pages(). Pure code motion — byte-identical output, and each stage becomes unit-testable.",
+     "effort": "L"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/mod.rs",
+     "line": 1214,
+     "summary": "The 14-element positional search-row array is hand-format!-ed in FOUR separate loops (fallback export, generated, official-only, raw), held in sync only by a comment.",
+     "evidence": "mod.rs 201-213 (fallback: format!(\"[{},{},{},...\") with hardcoded \"1,1,0\"), 1216-1231 (generated), 1324-1339 (official-only), 1473-1488 (raw). The comment at 1198-1212 admits it: \"one 14-element positional array per entry, emitted identically by THREE loops (generated / official-only / raw) ... Keep all five sides in lock-step\".",
+     "fix": "Survivor: a single SearchRow::build(fields: SearchRowFields) constructor in site/search.rs next to the SearchRow struct and SEARCH_JS reader; all four call sites feed it the same values. Same format string centralized → provably byte-identical.",
+     "effort": "M"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/site/english_api.rs",
+     "line": 329,
+     "summary": "site<->check circular concern: english_gloss_tokens lives in site::english_api but serves check.rs, while site::export_corpus orchestrates check's artifacts (build_index, write_web_suggestions, masc_animate_lemma_keys).",
+     "evidence": "english_api.rs:329 `pub fn english_gloss_tokens(...)`, re-exported at mod.rs:2134-2137; consumed by check.rs:396, 530, 1067 (`crate::site::english_gloss_tokens`). Opposite direction: mod.rs:1889-1891 `crate::check::masc_animate_lemma_keys`, 2027-2032 `crate::check::build_index(...)` + `crate::check::write_web_suggestions(out_dir, &checker_index)`.",
+     "fix": "Extract english_gloss_tokens plus its gloss_keys/usable_token_key dependencies into a neutral crate::gloss module (keep the site re-export one release for compat); have export_corpus call a check-owned `check::export_web_artifacts(out_dir, ...)` so the checker owns its own api/suggest surface. Breaks the cycle without touching bytes.",
+     "effort": "M"
+    },
+    {
+     "kind": "stale",
+     "file": "src/site/mod.rs",
+     "line": 73,
+     "summary": "The fallback site::export mode (no lemma cache) is dead in practice AND broken when reached: it writes forms.html/text-check.html whose JS requires api/ artifacts the function never writes, and every page's nav links to a dozen pages it never generates.",
+     "evidence": "main.rs:365-371 dispatches export() only `if !lemmas.exists()`, but data/slavic-lemmas.cache.json is committed (git ls-files data/ lists it), so a repo checkout never takes this path. When taken: export() at mod.rs 73-285 writes forms.html (257) and text-check.html (258) but contains zero api/ writes; forms_js's routerSelftest (assets.rs:33) fetches api/router-selftest.json → fails → \"Iskanje je zaprěno\". layout.rs page shell (lines 24, 30-43) links special.html, all-pages.html, categories.html, site-stats.html, indices.html, portals.html, graph.html, borrowings.html, needs-review.html, contribute.html, metrics.html — none written by export().",
+     "fix": "Behavior-frozen-safe move: quarantine export() and its private renderer cluster (entries.rs entry_page 1396+ / status_banner / etymology_block / alternatives_block / evidence_block, search.rs home_page, special.rs about_page) into a site::fallback submodule and record the decision needed: either delete the mode (make missing-cache a hard error — behavior change requiring sign-off) or make it write the api/ artifacts it links.",
+     "effort": "M"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/site/mod.rs",
+     "line": 1622,
+     "summary": "export_corpus writes data/novel-words.tsv into the REPO via a cwd-relative path, then 400 lines later re-reads the same file from disk for check::build_index — data it already holds in memory — and three other commands consume the same hardcoded path.",
+     "evidence": "mod.rs:1622 `std::fs::write(\"data/novel-words.tsv\", &tsv)?` (relative — running the binary from another cwd creates a stray ./data). mod.rs:2027-2031 `crate::check::build_index(&official_entries, Some(std::path::Path::new(\"data/novel-words.tsv\")), ...)` re-parses what line 1622 just wrote from the in-scope `proposals` vec. Same literal path in check.rs:1645, 1939 and coincheck.rs:264, 748 — an artifact regenerated by `export` and owned by no single stage.",
+     "fix": "Pass the in-memory proposal rows to build_index (prove the TSV round-trip is lossless with a one-off diff test), keep the data/ write as an explicitly named 'commit artifact' step anchored to a repo-root constant (e.g. crate::NOVEL_WORDS_PATH) shared by check/coincheck instead of four string literals.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/assets.rs",
+     "line": 29,
+     "summary": "~40 KB of minified client JS lives in Rust string constants with hand-rolled __PLACEHOLDER__ string-replace templating; TEXT_CHECK_JS is a single ~4.6 KB source line — unlintable, untestable except via runtime self-test fetches.",
+     "evidence": "assets.rs:29-50 forms_js JS blob with `__SHARDS__`/`__SUGGEST_SHARDS__`/`__FOLD_MAP__` patched via .replace() (56-62); assets.rs:70 TEXT_CHECK_JS is one line; search.rs:604-724 SEARCH_JS is ~10 KB with `__SEARCH_FOLD__` injection (search.rs:473). assets.rs itself is 30,211 bytes, mostly payload. Precedent already exists: BASE_CSS uses include_str! (assets.rs:72).",
+     "fix": "Move each blob verbatim to static/*.js and load with include_str! (byte-identical by construction, like BASE_CSS); keep the placeholder substitution but name the contract in one inject() helper. Enables eslint/prettier-check in CI on real .js files.",
+     "effort": "S"
+    },
+    {
+     "kind": "panic-risk",
+     "file": "src/site/entries.rs",
+     "line": 239,
+     "summary": "Renderers unwrap/index on cross-function invariants: candidates.first().unwrap() twice in entries.rs, HashMap bracket-indexing and .expect() on meta lookups in mod.rs.",
+     "evidence": "entries.rs:239 `let top = g.candidates.first().unwrap();` (corpus_entry_page) and entries.rs:1403 same in entry_page — the emptiness check lives in the distant caller (mod.rs:130 / the form.is_empty() skip at 410). mod.rs:899 `metas[meta_pos[&id]].aspect = ...`, mod.rs:913 `let (im, pm) = (meta_pos[&ii], meta_pos[&pi]);` — double bracket-indexing that panics if the metas/prepared invariant ever drifts. mod.rs:1106 and 1269 `.expect(\"generated entry meta\")`.",
+     "fix": "Make the invariant structural: put the top candidate (and the resolved &SiteEntryMeta) into CorpusEntryInput / the render call instead of re-deriving them inside the renderer; replace meta_pos bracket-indexing with the same `let Some(..) else { anyhow::bail!/ensure! }` posture the surrounding code already uses (lines 932-948).",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/mod.rs",
+     "line": 50,
+     "summary": "The fold+ascii_skeleton search-key builder (filter: >=2 chars, != lowercased display, dedupe) is written three times: add_official_byform_keys, the official-only loop, and the raw loop.",
+     "evidence": "mod.rs:50-70 add_official_byform_keys: `for k in [lower.clone(), to_standard(&lower), ascii_skeleton(byform)] { if k.chars().count() >= 2 && k != display_lower && !keys.iter().any(...) }`; mod.rs:1291-1299 official-only loop: `for k in [fold.clone(), ascii_skeleton(isv)] { if k.chars().count() >= 2 && k != isv.to_lowercase() && ... }`; mod.rs:1447-1459 raw loop: identical shape over `[to_standard(&disp_lower), ascii_skeleton(&display)]`.",
+     "fix": "Survivor: one `push_fold_keys(keys, variants, display_lower, rank)` helper in site/search.rs (it already owns search_keys); add_official_byform_keys becomes a thin wrapper. Same iteration order → identical key lists.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/mod.rs",
+     "line": 191,
+     "summary": "The sameInLanguages razumlivost \"null-or-rounded-percent\" block is duplicated verbatim between the fallback export and the official-only loop, beside a model.rs helper (razum_pct) that covers only the non-null half.",
+     "evidence": "mod.rs:191-198 and mod.rs:1313-1320 are token-identical: `let same_in = e.same_in_langs(); if same_in.is_empty() { \"null\".to_string() } else { (crate::lang::razumlivost(&same_in).overall.round() as u32).to_string() }`. model.rs:297-300 razum_pct already wraps the round-as-u32 half for &[String].",
+     "fix": "Survivor: `razum_same_in_cell(&OfficialEntry) -> String` in site/model.rs next to razum_pct; both call sites delegate. Byte-identical output.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/mod.rs",
+     "line": 231,
+     "summary": "The shared shell-write tail (write_search_index, remove_file(search.json), wiktionary.css, .nojekyll, plus the index/search/forms/text-check/about page writes) is duplicated between export and export_corpus.",
+     "evidence": "mod.rs:231-234 vs 1521-1530: both do write_search_index → `let _ = std::fs::remove_file(out_dir.join(\"search.json\"));` → `std::fs::write(out_dir.join(\"wiktionary.css\"), css())` → `.nojekyll`. mod.rs:255-258 vs 2076-2079: identical `search.html`/`forms.html`/`text-check.html` writes (search_page(), forms_page(), text_check_page()).",
+     "fix": "Survivor: a `write_common_shell(out_dir, search_rows) -> Result<(usize,usize)>` helper in site/mod.rs called by both exports (also shrinks the fallback so its eventual removal is smaller).",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/site/mod.rs",
+     "line": 369,
+     "summary": "`covered` is declared 324 lines before first use and the first operation on it is .clear() of an always-empty set — leftover from a removed first-pass population.",
+     "evidence": "mod.rs:369 `let mut covered: HashSet<String> = HashSet::new();` with a comment about \"surviving generated pages\"; grep shows no insert between 369 and mod.rs:693 `covered.clear();` — the only inserts are at 696 and 708, after the clear. The comment at 690-692 (\"The earlier candidate-coverage set includes top-5 alternatives...\") describes code that no longer exists.",
+     "fix": "Declare `covered` at line 693, delete the clear() and the stale comment at 369-370. No behavior change.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/layout.rs",
+     "line": 65,
+     "summary": "json_str is a hand-rolled JSON string encoder that silently drops all control chars < 0x20 and rewrites tab to space, living beside serde_json which export_corpus already uses for the notes shards.",
+     "evidence": "layout.rs:65-79: `'\\t' => out.push(' '), c if (c as u32) < 0x20 => {}` — lossy, undocumented at call sites; it encodes every search-row field and the aspect-pairs JSON (mod.rs:2008-2022 builds JSON by write!). serde_json is used ~80 lines away in the same function (mod.rs:1916-1941).",
+     "fix": "Frozen-safe move: keep the encoder (swapping to serde_json would change bytes for tab/control inputs) but rename to lossy_json_str, document the two lossy rules, and pin them with unit tests; schedule the serde swap for a declared byte-thaw.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/dump.rs",
+     "line": 1685,
+     "summary": "Two parallel English gloss tokenizers with silently different semantics: dump::gloss_tokens (used by export_corpus dedup/suppression/search keys) vs site::english_api::english_gloss_tokens (used by the checker's overlap test).",
+     "evidence": "dump.rs:1685-1696: lowercase, split on non-alphabetic, len>=3, 25-word stoplist, returns Vec. english_api.rs:329-340: routes through gloss_keys + usable_token_key, returns BTreeSet, \"the SAME key extraction and stopword discipline the English index build uses\". export_corpus uses the dump one at mod.rs:503-504, 565, 1172; check.rs uses the site one — two overlap definitions for the same concept in one pipeline.",
+     "fix": "Co-locate both in the proposed crate::gloss module with contract-stating names (e.g. dedup_gloss_tokens vs english_index_tokens) and a doc comment explaining why they differ; do NOT merge semantics under the freeze — that would change suppression and search output.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/model.rs",
+     "line": 337,
+     "summary": "proto_stem re-allocates and re-sorts its constant SUFFIXES table on every call, and the table is compile-time sortable.",
+     "evidence": "model.rs:337-338 inside fn proto_stem: `let mut suffixes = SUFFIXES.to_vec(); suffixes.sort_by_key(|suffix| std::cmp::Reverse(suffix.chars().count()));` — SUFFIXES is a `const &[&str]` (333-336); the function runs once per prepared entry via family_key (mod.rs:652).",
+     "fix": "Order the const table longest-first (assert the ordering in a unit test) or sort once in a LazyLock; identical stripping result, removes a per-entry alloc+sort in the export hot loop.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "src/site/entries.rs:1396-1833 fallback-only renderer cluster (entry_page, status_banner, etymology_block, alternatives_block, evidence_block, calibration_note) — reachable only via site::export, which never runs on a checkout that has the committed data/slavic-lemmas.cache.json",
+    "src/site/search.rs home_page and src/site/special.rs about_page — same fallback-only reachability (corpus path uses corpus_home/corpus_about instead)",
+    "src/site/assets.rs EXTRA_CSS lines ~199-208 (a.chip/entry-tabs pill styling) — fully negated by the later '!important' reset layer at lines 250-253 ('Strict wiki link styling'); dead CSS shipped on every page, but removal changes export bytes so it needs a declared byte-thaw",
+    "src/site/mod.rs:232 and :1528 remove_file(\"search.json\") — migration hygiene for the retired monolithic index (retired per comment at search.rs:160); removable once no deployment predates the sharded index",
+    "src/site/mod.rs:50 add_official_byform_keys' third variant key `lower.clone()` — on the fallback path display==byform for most rows so the `k != display_lower` guard usually rejects it; suspect only the folded/skeleton variants ever survive (not proven across byform lists)",
+    "fallback export's hardcoded search-row elements \"1,1,0\" and empty quality/ancestor cells (mod.rs:202-213) — schema padding that exists only to keep SEARCH_JS parsing one shape; dies with the fallback mode"
+   ]
+  },
+  {
+   "area": "site-api (src/site: english_api.rs, search.rs, special.rs, navigation.rs, coverage.rs, tests.rs)",
+   "dataflow": "Inputs: official dictionary entries, corpus cognate sets (crate::corpus/dump caches), FormRecord streams (crate::forms), falsefriends notes, aspect meta, calibrators, proto cache, curation-notes.json.\nOutputs: english_api.rs writes site/api/en/{0..255}.json + selftest.json + meta.json; search.rs writes search/{shard}.json + manifest/browse/spotlight; navigation.rs writes ~15 wiki index page families plus entries.json/edges.json/categories.json/roots.json; special.rs writes rule/, proto/, deriv/ pages, datasets.html, metrics.html, proposals; coverage.rs writes target/eval/raw-coverage.{md,json} via the `coverage` CLI.\ncoverage.rs is NOT reporting-only: mod.rs::export_corpus imports 9 of its functions (inject_generated_derivatives feeds the forms/lemma sinks; plan_raw_pages, raw_intl_candidates/probabilities, select_official_surface, official_surface_maps drive the export itself). Its run_coverage additionally REPLICATES the export dedup pipeline to reconcile counts.\nnavigation.rs is a grab-bag: entry-meta/category construction (incl. a ~70-line hardcoded topic taxonomy), graph edge/backlink building, ~20 HTML page renderers, the write_wiki_indexes IO orchestrator, hand-rolled JSON dataset emitters, entry-page fragments (infobox/tabs/blocks/razum rows) consumed by entries.rs, and inflection-issue detection that calls crate::forms under catch_unwind.\nenglish_api.rs mixes three programs: shard/index BUILD (build_english_index/write_en_api, called from export_corpus), a CLI lookup runtime that reads back the exported JSON (en_ladder/run_en_lookup/run_en_batch, dispatched from main.rs), and the tracked translation-probe runner writing target/eval/translation-probe.md (PROBE_BASELINE also read by release.rs).\nCross-module touch points: check.rs calls crate::site::english_gloss_tokens (3 sites); coverage.rs:1418 produces the \"label ← base (gloss…)\" derivative-gloss format that english_api.rs string-parses; both mod.rs::export (legacy) and export_corpus write index/search/forms/text-check/about pages.",
+   "findings": [
+    {
+     "kind": "redundant",
+     "file": "src/site/coverage.rs",
+     "line": 196,
+     "summary": "build_corpus_render_index re-implements ~170 lines of export_corpus's match/homograph-dedup/same-concept-suppression/official-only-id pipeline, kept synchronized only by comment discipline",
+     "evidence": "coverage.rs:56 'Minimal replica of export_corpus's per-set state… Kept in lock-step with export_corpus.' Lines 250-284 (homograph dedup with rank = gloss-token overlap + score*1000) and 286-321 (same-concept suppression) are near-verbatim copies of mod.rs:500-536 and mod.rs:562-594 (same rank closures, same by_form fold, same kept-token test). Drift is only caught at runtime: run_coverage line 1281 'anyhow::bail!(\"coverage reconciliation FAILED\")'.",
+     "fix": "Extract one prepare-pipeline (generate → match → homograph dedup → suppression → id allocation) into a shared function consumed by both export_corpus and run_coverage; CovPrepared/Prepared unify. Byte-identity provable because run_coverage already asserts its replica reconciles with export counts.",
+     "effort": "L"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/site/english_api.rs",
+     "line": 329,
+     "summary": "english_gloss_tokens (plus gloss_keys and the stopword lists it rides on) lives in site::english_api but exists to serve check.rs, which reaches across the module boundary at three sites",
+     "evidence": "english_api.rs:329 'pub fn english_gloss_tokens… This is the overlap test behind check-text's project-lexicon consistency warning (V13 item 1)'. check.rs:396 'gloss_tokens: crate::site::english_gloss_tokens(gloss)', also check.rs:530 and check.rs:1067. mod.rs:2134-2136 pub-exports it solely for this.",
+     "fix": "Move English gloss tokenization (gloss_keys, HEAD_STOPWORDS/TOKEN_STOPWORDS, english_gloss_tokens, normalize_english_query) to a neutral module (e.g. a new src/english.rs beside dump::gloss_tokens/falsefriends::gloss_tokens), imported by both site build and check.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/english_api.rs",
+     "line": 498,
+     "summary": "english_api.rs (1896 lines) fuses three separately-owned programs: shard index BUILD, CLI lookup runtime over the exported JSON, and the translation-probe eval-report writer",
+     "evidence": "Build half: build_english_index/write_en_api (1075-1357) called from mod.rs:1976. CLI half begins at the banner comment line 498-505 ('`en` CLI… reads the exporter's OWN emitted artifacts') — en_ladder/run_en_lookup/run_en_batch dispatched from main.rs:430-431. Probe half: run_translation_probe (860-990) writes target/eval/translation-probe.md; PROBE_BASELINE (850) is read by release.rs:134.",
+     "fix": "Split into english_api/build.rs (index construction + write_en_api), english_api/cli.rs (ladder/lookup/batch), and move the probe runner + PROBE_BASELINE/PROBE_FILE next to the other eval reporters (eval.rs owns target/eval artifacts elsewhere). Pure code motion; export bytes untouched.",
+     "effort": "M"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/site/coverage.rs",
+     "line": 1418,
+     "summary": "The derivative gloss format \"label ← base (gloss…)\" is produced in coverage.rs and string-parsed back in english_api.rs — an undeclared cross-module text schema including a 50-char truncation both sides must agree on",
+     "evidence": "coverage.rs:1418 'let gloss = format!(\"{} ← {} ({})\", d.label, base, truncate(base_gloss, 50));'. english_api.rs:196-205 english_lookup_gloss keys off 'gloss.contains('←')' and extracts the parenthetical; gloss_keys:183-186 skips '…'-bearing segments only when derived. english_api.rs test comment 1727: 'coverage.rs truncates the base gloss at 50 chars with a trailing `…`; the cut fragment must not become an English key.'",
+     "fix": "Define the derivative-gloss constructor and parser as a paired API in one module (format_deriv_gloss / parse_deriv_gloss with the 50-char constant), used by inject_generated_derivatives and english_lookup_gloss; or carry base-gloss provenance structurally on FormRecord instead of re-parsing the display string.",
+     "effort": "M"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/site/mod.rs",
+     "line": 256,
+     "summary": "Two export paths (legacy `export` and `export_corpus`) both write index.html, search.html, forms.html, text-check.html and an about/metrics page — the same artifacts regenerated by two divergent code paths behind one CLI subcommand",
+     "evidence": "mod.rs:255-266 (export writes index/search/forms/text-check/about) and mod.rs:2076-2089 (export_corpus writes the same four plus metrics_page). main.rs:367-371 picks between them by whether DEFAULT_LEMMA_CACHE exists: 'if lemmas.exists() { site::export_corpus(...) } else { site::export(...) }'.",
+     "fix": "Extract the shared static-page block into one writer used by both; then evaluate retiring the ~240-line legacy export() fallback entirely (it renders a different site from the same output dir, so its pages are dead the moment the cache exists).",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/navigation.rs",
+     "line": 1,
+     "summary": "navigation.rs (2123 lines) mixes six concerns: meta/category model construction, a hardcoded topic taxonomy, graph edge building, ~20 page renderers, the write_wiki_indexes IO orchestrator, JSON dataset emitters, and entry-page fragments consumed by entries.rs",
+     "evidence": "entry_meta/entry_categories/branch_pattern (29-186), topic_category_path 70-line if-chain (260-327), build_edges/backlinks_by_target (460-540), write_wiki_indexes writing ~15 file families (1292-1536), entries_json/graph_json/categories_json/roots_json (1939-2122), and entry-page fragments entry_tabs/entry_infobox/entry_wiki_blocks/razum_row (1559-1761) which mod.rs imports for entry rendering, not navigation.",
+     "fix": "Split along data flow: categories.rs (taxonomy + tree + category pages), graph.rs (edges/backlinks/graph page+json), move entry fragments (infobox/tabs/wiki blocks/razum/raw_credit_line) into entries.rs which is their only consumer context, and gather the hand-rolled *_json emitters into one datasets module. Pure code motion.",
+     "effort": "L"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/search.rs",
+     "line": 14,
+     "summary": "Four byte-identical private `fn page` wrappers around layout::page + search_js() in search.rs, navigation.rs, special.rs, entries.rs",
+     "evidence": "grep: 'super::layout::page(title, body, depth, search_js())' at entries.rs:27, search.rs:15, navigation.rs:26, special.rs:20 — each preceded by the same three-line fn definition.",
+     "fix": "Survivor: one pub(super) layout::std_page(title, body, depth) in layout.rs that injects search_js() itself; delete the four wrappers.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/site/mod.rs",
+     "line": 50,
+     "summary": "add_official_byform_keys (mod.rs) duplicates search.rs::search_keys' fold-triple logic: [lowercase, to_standard(lower), ascii_skeleton] with len>=2 gate and dedup",
+     "evidence": "mod.rs:58-66 'for k in [lower.clone(), crate::orthography::to_standard(&lower), crate::orthography::ascii_skeleton(byform)] { if k.chars().count() >= 2 && k != display_lower && !keys.iter().any(...)' vs search.rs:488-496 'for k in [lower.clone(), crate::orthography::to_standard(&lower), crate::orthography::ascii_skeleton(&c.form)] { if k.chars().count() >= 2 && seen.insert(...)'; collect_source_aliases (search.rs:565-574) is a third variant over [latin, to_standard(latin), skeleton].",
+     "fix": "Survivor: a fold_variants(s) -> [String;3] helper in search.rs (or orthography), consumed by search_keys, add_official_byform_keys and collect_source_aliases; move add_official_byform_keys into search.rs beside its twin.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/navigation.rs",
+     "line": 429,
+     "summary": "load_curation_notes swallows both read AND parse errors — a malformed data/curation-notes.json silently drops every curation note site-wide",
+     "evidence": "navigation.rs:424-430: 'let Ok(raw) = std::fs::read_to_string(path) else { return HashMap::new(); }; serde_json::from_str::<HashMap<String,String>>(&raw).unwrap_or_default()' — a JSON typo yields an empty map with no diagnostic. Same pattern in coverage.rs:1380 'serde_json::to_vec_pretty(&report).unwrap_or_default()' would write an empty raw-coverage.json on serialize failure.",
+     "fix": "Missing file stays a silent default (legitimate optional input), but a present-yet-unparsable file should return Err (or at minimum print a loud warning). Byte-identical on all valid inputs; only the currently-silent corruption path changes.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/navigation.rs",
+     "line": 2024,
+     "summary": "Six hand-rolled JSON emitters (entries_json, graph_json, categories_json, roots_json, rules_json, build_json) build JSON by string concatenation beside serde_json used in the same files",
+     "evidence": "navigation.rs:2024-2067 entries_json manually assembles '{\"id\":…,\"title\":…}' with json_str and \"null\" strings; graph_json 1939-1956, categories_json 2069-2105, roots_json 2107-2122; special.rs:930-938 build_json, 327-345 rules_json — while write_search_index (search.rs:425-436) and write_en_api use serde_json::json! for equivalent output in the same module family.",
+     "fix": "Unify behind serde_json::json! value construction with a byte-diff verification on a frozen export (the emitters' formatting — pretty vs compact, \\n placement — must be reproduced or verified identical); at minimum collapse the six writers onto one shared row-builder to stop the copy-paste of the null/escape idioms.",
+     "effort": "M"
+    },
+    {
+     "kind": "panic-risk",
+     "file": "src/site/navigation.rs",
+     "line": 990,
+     "summary": "has_inflection_issue uses std::panic::catch_unwind around interslavic paradigm calls as control flow, and recomputes full noun/adj/verb paradigms for every entry during export",
+     "evidence": "navigation.rs:990 'std::panic::catch_unwind(|| crate::forms::noun_paradigm_forms(bare, None)).ok()' and :1001 'std::panic::catch_unwind(|| interslavic::adj_forms(bare)).ok()' — panic-as-Option in a lib path, with a per-cell fallback (noun_cell_g/adj_cell) that re-derives the paradigm cell-by-cell after a panic; inflection_issue(m) runs this for every noun/proper_noun/adj/verb meta in inflection_issues_page.",
+     "fix": "Route through the same quiet-hook/panic-counting wrapper forms.rs already owns (forms.rs has its own 2 catch_unwind sites and inflection_panic_count), exposing one non-panicking paradigm API; compute the issue flag once per entry alongside the entry's own paradigm render instead of re-deriving.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/site/english_api.rs",
+     "line": 528,
+     "summary": "The en CLI half parses its own exporter's shards as untyped serde_json::Value with stringly field access, despite EnglishCandidate defining the exact schema in the same file",
+     "evidence": "sense_note_for (528-552) and display_order (557-568) match on c[\"status\"], c[\"match\"], c[\"lemma\"] string literals; en_ladder/first_candidate (687-723) mutate Values with c[\"step\"] = json!(…); en_selftest:594-595 hides malformed fields via 'sample[2].as_u64().unwrap_or(u64::MAX) as u32'. EnglishCandidate (69-97) is Serialize-only.",
+     "fix": "Derive Deserialize on EnglishCandidate (+ a small LadderCandidate wrapper for step/key) and type the CLI path; field-name typos become compile errors instead of silent None. Output text/JSON unchanged.",
+     "effort": "M"
+    },
+    {
+     "kind": "stale",
+     "file": "src/site/coverage.rs",
+     "line": 344,
+     "summary": "Dead statements: coverage.rs declares `covered` 130 lines before its only real use then clear()s the still-empty set; navigation.rs has a pointless by_src.clear() after last use and an unused `all` parameter",
+     "evidence": "coverage.rs:211 'let mut covered: HashSet<String> = HashSet::new();' is never touched until :344 'covered.clear();' (nothing inserted in between). navigation.rs:817 'by_src.clear();' immediately before the value drops at end of borrowing_portal_page; navigation.rs:754 'let _ = all;' — language_portal_page's third parameter is never used (call site mod-level passes metas for nothing, nav.rs:1376).",
+     "fix": "Declare `covered` at line 344 and drop the clear; delete by_src.clear() and the needless mut; remove the `all` parameter from language_portal_page and its call site. Provably byte-identical.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/site/special.rs",
+     "line": 992,
+     "summary": "metrics_page and about_page hardcode measured accuracy figures (41,65% / 49,59% / 58,31% / 20,1% / oracle deltas) as HTML literals regenerated only by hand — doc-rot by construction",
+     "evidence": "special.rs:992-996 '<td>41,65%</td>… <td>49,59%</td>… <td>60,48% / 63,12%</td>… <td>0,224</td>' inside a r##\"…\"## literal; :1035 '58,31% točno / 62,84% normalizovano na 7 398 zapisah'; :1040-1041 proto-eval 20,1%/46,68%. Only the calibration section (1012-1031) renders live from the committed calibrator; everything else is frozen prose that eval reruns will silently contradict.",
+     "fix": "Hoist the figures into one named-constants block (with a comment tying each to its target/eval artifact) or render them from a committed metrics snapshot the eval commands update — keeping today's exact strings preserves bytes while making rot a one-file diff.",
+     "effort": "M"
+    }
+   ],
+   "stale_candidates": [
+    "site::export (mod.rs:73, ~240 lines) — the legacy official-dictionary-seeded site; only reachable when data/isv-lemmas cache is absent (main.rs:367). Likely never exercised in the documented workflow, but cannot be proven dead without confirming the cache is guaranteed present in all environments.",
+    "language_portal_page's `all: &[SiteEntryMeta]` parameter (navigation.rs:721,754) — provably unused inside the function ('let _ = all;'); listed here as an API-shape stale, fix bundled in the dead-statements finding.",
+    "borrowing_portal_page's `mut by_src` + `by_src.clear()` (navigation.rs:801,817) — dead mutation just before drop.",
+    "metrics_page/about_page hardcoded 41,65%/49,59%/58,31% figures (special.rs:992+, 1035, 1092-1101) — suspected rotted relative to current target/eval outputs; could not verify without rerunning evaluate/corpus-eval.",
+    "search.rs hosts home_page/HomeRow/strength_cell (search.rs:40-157) — not stale but misplaced relative to the module's stated charter ('Search routing, folding, sharding'); the home page is a page renderer, not search machinery.",
+    "special.rs::rule_key (special.rs:109) — single caller (rules_json); trivial indirection that could inline, kept as-is if the naming is considered documentation.",
+    "EnglishApiCounts.bytes (english_api.rs:123) — accumulated across shards+selftest+meta but check whether mod.rs prints it; only .keys/.candidates/.largest_shard confirmed used at mod.rs:1987-1991 (bytes may be reported elsewhere in the same println; unverified)."
+   ]
+  },
+  {
+   "area": "eval (src/eval.rs, src/inflect_eval.rs, src/calibrate.rs, src/falsefriends.rs, src/pipeline.rs, src/generator.rs)",
+   "dataflow": "In: data/official-isv.csv (official::load), Proto-Slavic cache (DEFAULT_PROTO_CACHE), lemma corpus (DEFAULT_LEMMA_CACHE), raw+enrich caches (falsefriends only).\nBenchmarks in eval.rs, each a CLI subcommand: evaluate (run: kept ladder + rejected experiments -> target/eval/{candidate-generation-summary.json,-report.md,methodology.md,predictions.csv,regressions/improvements.csv,errors-sample.csv} AND COMMITTED data/score-calibration.json), corpus-eval (--fit writes COMMITTED data/corpus-calibration.json), audit (audit-misses.csv, stage-attribution.md), oracle (oracle-ladder.md), select-eval (cluster-selection.md), rep-eval (rep-selection.md), synonym-eval, evidence-eval, multiword-eval, proto-eval, explain (stdout), aspect-eval (aspect-pairs.{tsv,md}, frozen by FNV manifest), inflect_eval.rs (inflection-report.md).\nCI-gated: evaluate (39.5% exact floor + git-diff-clean on data/score-calibration.json + target/eval/methodology.md), aspect-eval (frozen 1440-pair manifest, diff-clean on aspect-pairs.md/tsv), inflect-eval (struct-path==getter hard ensure). Diagnostic-only: audit, oracle (V7 ladder, still wired), select-eval, rep-eval, synonym-eval, evidence-eval, multiword-eval, corpus-eval headline, proto-eval, explain.\nCross-module: pipeline.rs is the shared leakage-free generate path (consensus + proto_link + proto engine) used by eval, aspect, site/coverage; generator.rs wraps it for the site (official match status) and is used by site/mod.rs and eval::explain. calibrate.rs artifacts are read by site/mod.rs (export). eval::is_holdout_id is the ONE seeded split shared with derive.rs; calibrate.rs borrows derive::wilson_lower. falsefriends.rs computes notes for site/mod.rs export and check.rs (check-text/check-eval); its gloss_tokens serves site/coverage.\nNonlinear edges: two benchmark commands (evaluate, corpus-eval --fit) write committed data/ files that export later reads; the evaluate write is buried inside write_methodology.",
+   "findings": [
+    {
+     "kind": "redundant",
+     "file": "src/eval.rs",
+     "line": 791,
+     "summary": "The benchmark harness preamble is copy-pasted across ~8 run_* commands: official::load + .filter(is_benchmarkable) + load_proto_index() + ConsensusConfig::production() + per-entry build_input -> skip if no modern form -> pipeline::generate -> cands.first() form -> exact/normalized match.",
+     "evidence": "Identical blocks at run_audit (791-835), run_oracle (965-1006), run_select_eval (1088-1200), run_synonym_eval (1316-1326), run_evidence_eval (1436-1543), run_rep_eval (2336-2371), run_proto_engine (2445-2491), evaluate_config (519-535); e.g. `let pred = cands.first().map(|c| c.form.clone()).unwrap_or_default(); ex += ortho::exact_match(&pred, &entry.isv) as usize;` appears near-verbatim 6+ times.",
+     "fix": "Extract a shared harness in eval.rs: `scorable_meanings(path) -> Vec<(OfficialEntry, MeaningInput)>` plus a `score(pred, entry)` helper; each run_* keeps its own loop body. Pure code motion, byte-identical reports.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/calibrate.rs",
+     "line": 173,
+     "summary": "fit_isotonic_deciles and fit_wilson_isotonic_deciles are the same PAVA pool/spread algorithm duplicated; they differ only in the per-bin statistic (raw mean vs derive::wilson_lower) and a final clamp.",
+     "evidence": "Lines 108-134 and 180-207 are line-for-line identical pooling loops (`while pools.len() >= 2 && pools[pools.len()-2].1 > pools[pools.len()-1].1 { ... }` and the iso spread loop); the doc at 170-172 admits: \"the same recipe `evaluate` applies inline ... kept separate there to leave the benchmark path byte-stable; a future refactor can unify\".",
+     "fix": "One private `fn pava_deciles(bins: [(usize, f64); 10]) -> [f64; 10]`; both pub fns become thin wrappers supplying mean vs wilson_lower per bin (clamp stays in the wilson wrapper). f64 ops unchanged -> identical fitted deciles.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/eval.rs",
+     "line": 3436,
+     "summary": "write_methodology's eval_split closure reimplements calibrate::ece_brier exactly (same decile binning, ECE, Brier), and run_corpus_eval re-inlines the ECE half a third time.",
+     "evidence": "eval.rs 3436-3462 (`let eval_split = |rs: &[&EntryResult], use_cal: bool| -> (f64, f64)`) is the same b10/brier/ece computation as calibrate.rs 212-236 `pub fn ece_brier`; eval.rs 429-443 repeats the pooled-ECE loop (`ece_cal += (*bn as f64 / n) * (sp / *bn as f64 - ...)`).",
+     "fix": "Replace eval_split with `calibrate::ece_brier(&samples, use_cal.then_some(&iso))` after mapping EntryResult->(score, normalized); identical f64 arithmetic makes methodology.md byte-identical (verifiable against the CI git-diff guard).",
+     "effort": "S"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/eval.rs",
+     "line": 3497,
+     "summary": "write_methodology (named as a target/eval report writer) silently persists the COMMITTED calibrator data/score-calibration.json; together with corpus-eval --fit writing data/corpus-calibration.json, two benchmark commands mutate data/ artifacts that export later consumes.",
+     "evidence": "eval.rs:3497 `std::fs::write(crate::calibrate::PATH, serde_json::to_string_pretty(&cal)?)?;` inside `fn write_methodology`; eval.rs:465-468 writes CORPUS_CALIBRATION_PATH inside run_corpus_eval; site/mod.rs:85-92 and 474 load both at export time; ci.yml enforces `git diff --exit-code -- data/score-calibration.json target/eval/methodology.md`.",
+     "fix": "Hoist the calibrator fit+persist out of write_methodology into an explicitly named stage called from run() (e.g. fit_and_persist_pipeline_calibrator), and record both evaluate->data/*.json->export edges in PIPELINE.md. Pure code motion.",
+     "effort": "S"
+    },
+    {
+     "kind": "panic-risk",
+     "file": "src/eval.rs",
+     "line": 1207,
+     "summary": "run_select_eval calls cands.first().unwrap() while an empty candidate list is a real state the sibling code defends against.",
+     "evidence": "Line 1207: `if winning_root_key(cands.first().unwrap()) == official_key` — guarded only by official_present, which is computed from input forms, not from cands; attribute_miss (652-654) explicitly handles `let Some(top) = cands.first() else { return (\"0-no-candidate\", ...) }`, proving empty cands occurs.",
+     "fix": "Replace with `if cands.first().is_some_and(|t| winning_root_key(t) == official_key)`; identical counts on every entry that has candidates, no panic on the empty case.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/eval.rs",
+     "line": 1897,
+     "summary": "run_multiword_eval hand-rolls its own aspect-pair detection (gloss-keyed ipf/pf maps + greedy 1:1 consonant-root matching), parallel to aspect::detect_pairs which the CI-gated aspect-eval uses on the same corpus.",
+     "evidence": "eval.rs 1898-1965 builds by_gloss_ipf/by_gloss_pf from `e.pos_raw.contains(\"ipf.\")` and matches with `ki.ends_with(&kq) || kq.ends_with(&ki) || ortho::shares_consonant_root(&ki, &kq)`; run_aspect_eval (2067) uses `crate::aspect::detect_pairs(&entries)` with a frozen 1440-pair manifest — two detectors for one concept.",
+     "fix": "Delegate multiword-eval's aspect slice to aspect::detect_pairs (survivor), or drop the slice and point the report at aspect-pairs.md. Numbers change only in the diagnostic-only multiword-aspect.md, never in a CI-gated artifact — call that out in the refactor note.",
+     "effort": "M"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/eval.rs",
+     "line": 875,
+     "summary": "The percent closure `let pct = |a, b| if b == 0 { 0.0 } else { 100.0 * a as f32 / b as f32 }` is copy-pasted 12 times across eval.rs and inflect_eval.rs (plus a `rate` alias and two one-arg variants).",
+     "evidence": "Definitions at eval.rs 287, 875, 1011, 1213, 1342, 1616, 1759, 2091 (f64 variant), 2384, 2509 (`let rate = ...`), 3244 and inflect_eval.rs 272 — grep-verified identical bodies.",
+     "fix": "One module-level `fn pct(a: usize, b: usize) -> f32` in eval.rs (keep the single f64 variant at 2091 separate to preserve aspect-eval's frozen report bytes); mechanical substitution.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/falsefriends.rs",
+     "line": 182,
+     "summary": "Three parallel gloss tokenizers with the same name family and different semantics cross module boundaries: dump::gloss_tokens (extraction cache module, used by eval/thesaurus), falsefriends::gloss_tokens (check-notes module, used by site/coverage), site::english_api::english_gloss_tokens.",
+     "evidence": "dump.rs:1685 (Vec<String>, len>=3, 23 stopwords, no stemming) vs falsefriends.rs:182 (BTreeSet, strip_parens, ~60 stopwords, light_stem, len>=2) vs site/english_api.rs:329; site/coverage.rs imports falsefriends::gloss_tokens at 510/520/659/678 while eval.rs uses dump::gloss_tokens at 325/343/1456 — callers must know which of three same-named tokenizers they hold.",
+     "fix": "Create a `gloss` text-utils module hosting all three under distinguishing names (e.g. cache_gloss_tokens, stemmed_gloss_tokens, english_gloss_tokens) with bodies moved verbatim; re-export from old paths during transition. Fixes the dump<-eval and falsefriends<-site reaches without changing any token set.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "src/eval.rs",
+     "line": 122,
+     "summary": "load_proto_index aborts via panic! inside an Option-returning helper, though all 10 callers are Result-returning commands that could propagate the error.",
+     "evidence": "Lines 121-122: `crate::dump::load_optional(path, crate::dump::ProtoIndex::load).unwrap_or_else(|e| panic!(\"{}: {e:#}\", path.display()))` — the comment (107-110) justifies aborting but not the mechanism; every run_* returns anyhow::Result.",
+     "fix": "Change signature to `Result<Option<ProtoIndex>>` and `?` at the 10 call sites; same abort-on-corrupt-cache behavior, ordinary error path instead of a lib-path panic. CLI-output-only change, export untouched.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "src/eval.rs",
+     "line": 220,
+     "summary": "run_corpus_eval hand-rolls two near-copies of OfficialEntry::is_benchmarkable that silently diverge from it (missing the '!', '\"', '(', '[' and POS gates).",
+     "evidence": "Lines 220-225 `if input.forms.iter().filter(|f| f.modern).count() < 2 || entry.isv.trim().is_empty() { continue; } if entry.isv.contains(' ') || entry.isv.contains('#')` and line 322 repeat a weaker predicate than official.rs:69-82 `is_benchmarkable` (which also excludes '!', '\"', '(', '[' and non-content POS).",
+     "fix": "Name the corpus-eval predicate once (e.g. `fn corpus_scorable(e) -> bool` with the exact current semantics, documented as intentionally looser than is_benchmarkable) and use it at both sites — freezes today's denominators while removing the drift hazard.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/generator.rs",
+     "line": 25,
+     "summary": "Generation::top() is a dead pub method — zero callers anywhere in src/ or tools/.",
+     "evidence": "generator.rs:25-27 `pub fn top(&self) -> Option<&Candidate> { self.candidates.first() }`; `grep -rn \"\\.top()\" src tools` returns nothing; site/mod.rs:117 and eval.rs:2620 use .candidates/.match_status directly.",
+     "fix": "Delete the method (and the impl block if it becomes empty). Zero behavior change.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/pipeline.rs",
+     "line": 29,
+     "summary": "Doc rot: generate_oracle's doc says \"only the `--diagnostic-oracle` eval path passes a non-None oracle\", but no such CLI flag exists; the real callers are the oracle/select-eval/rep-eval subcommands.",
+     "evidence": "pipeline.rs:29-31 names `--diagnostic-oracle`; `grep -rn \"diagnostic-oracle\" src/main.rs` is empty; actual non-None oracle callers are eval.rs:1001, 1194, 2367 (run_oracle, run_select_eval, run_rep_eval via consensus::Oracle).",
+     "fix": "Rewrite the comment to name the three diagnostic subcommands. Comment-only.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "src/calibrate.rs",
+     "line": 144,
+     "summary": "CORPUS_COVERAGE_SCORE_DOMAIN (\"reserved domain for a future calibrator\") is superseded by CORPUS_BANDED_DOMAIN v2, which is what corpus-eval --fit actually writes; the reserved const's only remaining use is as an arbitrary wrong-domain string in one test.",
+     "evidence": "calibrate.rs:142-144 declares it \"Reserved ... for a future calibrator\"; the corpus calibrator ships `score_domain: crate::calibrate::CORPUS_BANDED_DOMAIN` (eval.rs:454); the only non-defining reference is the domain-mismatch test at calibrate.rs:319.",
+     "fix": "Delete the const and use a literal (e.g. \"some-other-domain-v0\") in the test; prevents anyone wiring the dead v1 domain into a new consumer.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/calibrate.rs",
+     "line": 113,
+     "summary": "calibrate.rs reaches into derive.rs for the statistics primitive wilson_lower — a Wilson bound has nothing to do with derivational families; it lives there only because derive used it first.",
+     "evidence": "calibrate.rs:113 `pools.push((*n as f64, crate::derive::wilson_lower(*hits, *n)));`; derive.rs:369 `pub(crate) fn wilson_lower(k: usize, n: usize) -> f64` is used by derive.rs:417 and calibrate.",
+     "fix": "Move wilson_lower into calibrate.rs (the module already owning ECE/Brier/PAVA) or a small stats module, and have derive.rs call it there. Pure move, identical f64 math.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "src/eval.rs run_rep_eval 'medoid' rung (line 2378): production now ships medoid_representative=true (consensus.rs:209/252), so forcing rep_rule=\"medoid\" should reproduce the production row — the rung looks redundant post-'+medoid-rep' adoption, but I did not diff the two code paths in consensus::pick (559 vs 640) to prove identical output.",
+    "src/eval.rs pipeline.rs:114-132 cons_branch_cov: computed at 116, discarded at 132 via `let _ = cons_branch_cov;` — kept alive only to document a rejected experiment; deletable with the comment retained.",
+    "src/calibrate.rs Calibration::load (241): pub, but every external caller goes through load_for_domain (site/mod.rs:85, 2090); could be private.",
+    "src/eval.rs run_oracle V7 oracle ladder (965): wired and functional, but purely diagnostic and its headroom numbers (e.g. +3.9pp oracle-cluster) are already frozen into doc comments elsewhere (run_select_eval doc, rung descriptions) — doc rot risk if the ladder drifts; not dead, but a candidate for demotion to docs/history.",
+    "IMPROVEMENT_PROMPT.md at repo root: untracked leftover (git status '??'); prior briefs were archived under docs/history (commit c2aedf2).",
+    "src/eval.rs generator::generate (Option<&str> wrapper, generator.rs:57): single caller eval.rs:2620 (explain); site uses generate_with_official_byforms directly — thin wrapper that could be inlined at its one call site."
+   ]
+  },
+  {
+   "area": "ops",
+   "dataflow": "Ops layer = src/main.rs (27 flat clap subcommands dispatching into lib modules), Makefile (16 targets wrapping a subset), 3 workflows, tools/ validators.\nGroups: BUILD = export, extract-proto/-lemmas/-raw-slavic/-enrich, coverage; EVAL = evaluate, proto-/corpus-/derive-/multiword-/aspect-/evidence-/inflect-/checktext-eval, audit, oracle, select-/rep-/synonym-eval; AUTHOR/CHECK = check-text, coin-check, en, translation-probe, explain; RELEASE = data-manifest, refresh-official.\nIn: committed data/ caches (proto, lemma, raw-lemma, enrich), data/official-isv.csv, local 23GB dumps (extract-* only). Out: site/ (deployed by pages.yml on every master push), 22 TRACKED reports under gitignored target/eval/, and committed data/ artifacts written by three different commands: export -> data/novel-words.tsv (site/mod.rs:1622, hardcoded path), evaluate -> data/score-calibration.json (eval.rs:3497), corpus-eval --fit -> data/corpus-calibration.json; ci.yml freezes all three via `git diff --exit-code` (lines 49, 101).\nci.yml runs fmt/build/clippy/test + aspect-eval frozen-manifest guard + double-export determinism hash + 3 tools/ validators + inflect-eval + translation probe + data-manifest + changelog guard + accuracy floor (stdout grep). pages.yml exports and deploys; data-release.yml verifies MANIFEST on data-v* tags. Toolchain pin 1.93.1 appears in rust-toolchain.toml AND hardcoded in all 3 workflows.\nxtask verdict: not warranted — the binary IS the product CLI and Makefile is thin; the behavior-frozen wins are a shared clap EvalArgs flatten and a composite setup-rust action; nested namespacing (e.g. `eval <probe>`) would change CLI strings and is out of frozen scope.\ntools/__pycache__: on disk but NOT committed; .gitignore covers __pycache__/ and *.pyc — verified clean.",
+   "findings": [
+    {
+     "kind": "stale",
+     "file": "README.md",
+     "line": 3,
+     "summary": "README and Makefile claim the site is not published, but pages.yml deploys it to GitHub Pages on every master push",
+     "evidence": "README:3-5 'It is not published to GitHub Pages.'; README:437 'not published anywhere'; Makefile:54 'not published anywhere'. Yet .github/workflows/pages.yml triggers `on: push: branches: [master]` and runs actions/deploy-pages@v4. History: 07c17be (07-06) 'drop GitHub Pages publish' then 10695f1 (07-07) 'add Pages deployment' — docs never caught back up despite the 07-22 'Doc truth sweep' commit.",
+     "fix": "Single truth sweep: update README intro/commands and Makefile export comment to state the site IS deployed via pages.yml (or delete pages.yml if non-publication is the intent).",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": ".github/workflows/ci.yml",
+     "line": 18,
+     "summary": "Toolchain setup preamble triplicated and the 1.93.1 pin quadruplicated across workflows + rust-toolchain.toml",
+     "evidence": "Identical 3-step block (checkout@v4, dtolnay/rust-toolchain@master with `toolchain: 1.93.1`, Swatinem/rust-cache@v2) in ci.yml:15-22, pages.yml:24-29, data-release.yml:17-22, each with a 'Keep in sync with rust-toolchain.toml' comment; rust-toolchain.toml:8 `channel = \"1.93.1\"` is the fourth copy.",
+     "fix": "Composite action .github/actions/setup-rust that reads the channel from rust-toolchain.toml (or plain rustup, which honors the toml natively); survivor = rust-toolchain.toml as the single pin.",
+     "effort": "S"
+    },
+    {
+     "kind": "nonlinear",
+     "file": "src/site/mod.rs",
+     "line": 1622,
+     "summary": "Three different commands write committed data/ artifacts owned by other stages — export, evaluate, and corpus-eval all mutate data/",
+     "evidence": "site/mod.rs:1622 `std::fs::write(\"data/novel-words.tsv\", &tsv)?` runs on every `export` (hardcoded path, ignores --out); eval.rs:3497 `std::fs::write(crate::calibrate::PATH, ...)` rewrites data/score-calibration.json on every `evaluate`; corpus-eval --fit writes data/corpus-calibration.json (calibrate.rs:21). CI must freeze all three with `git diff --exit-code` (ci.yml:49, ci.yml:101) to keep builds honest.",
+     "fix": "Make data/ writes explicit opt-in: `export --propose` / `evaluate --refit` (defaulting off in CI, on in the refresh ritual), route through one writer in release.rs, and record ownership per artifact in PIPELINE.md.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": "target/eval/aspect-pairs.md",
+     "line": 1,
+     "summary": "22 committed benchmark snapshots live under gitignored /target/ — `cargo clean` deletes tracked files",
+     "evidence": "`git ls-files target/` returns 22 files (aspect-pairs.md/.tsv, methodology.md, predictions.csv, ...) while .gitignore line 1 is `/target/` (force-added past the ignore). ci.yml:37 and :101 `git diff --exit-code -- target/eval/...` depend on them; README:212-213 'a committed snapshot is under version control'. `cargo clean` or a fresh clone's target wipe silently deletes tracked content.",
+     "fix": "Move the committed snapshots to reports/eval/ (writers keep --out target/eval as scratch; the eval commands take --out already, CI passes the new path), leaving /target/ purely ephemeral. Export bytes untouched.",
+     "effort": "M"
+    },
+    {
+     "kind": "improper",
+     "file": ".github/workflows/ci.yml",
+     "line": 97,
+     "summary": "Regression-floor gate scrapes `evaluate` stdout with grep/awk while the same run writes the metric machine-readably",
+     "evidence": "ci.yml:96-99 `exact=$(echo \"$out\" | grep -oE 'exact top-1 [0-9]+\\.[0-9]+%' | tail -1 ...)` + awk compare — parsing the human print at eval.rs:298; but evaluate simultaneously writes target/eval/candidate-generation-summary.json containing `runs[]` with an `exact` field per rung (verified by loading the JSON). A wording tweak to the print silently breaks the gate (grep finds nothing, awk compares empty).",
+     "fix": "Read runs[-1].exact from candidate-generation-summary.json (python3/jq one-liner), keeping the same 39.5 floor.",
+     "effort": "S"
+    },
+    {
+     "kind": "redundant",
+     "file": "src/main.rs",
+     "line": 194,
+     "summary": "13 eval subcommands copy-paste the identical official/out argument pair",
+     "evidence": "`grep -c DEFAULT_OFFICIAL src/main.rs` = 21, `grep -c 'default_value = \"target/eval\"'` = 15; ProtoEval (194-199), DeriveEval, MultiwordEval, AspectEval, EvidenceEval, InflectEval, ChecktextEval, Audit, Oracle, SelectEval, RepEval, SynonymEval, Evaluate each repeat the same two #[arg] fields.",
+     "fix": "One `#[derive(Args)] struct EvalArgs { official, out }` used via `#[command(flatten)]` — clap parse is identical, so behavior-frozen; survivor = the shared struct.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/main.rs",
+     "line": 376,
+     "summary": "ExtractEnrich arm embeds pipeline logic in the documented 'thin dispatch adapter'",
+     "evidence": "main.rs:376-399 loads LemmaCorpus, official::load, RawSlavicCorpus (with the absent->empty policy comment), calls enrich::build_wanted, computes totals and prints, before enrich::extract — while README:334 declares main.rs 'thin Clap command parser and library dispatch adapter' and every other arm is a one-line delegate.",
+     "fix": "Hoist the whole arm into `enrich::run(dir, lemmas, official, out)` next to build_wanted; main.rs keeps the one-line dispatch.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "README.md",
+     "line": 513,
+     "summary": "README documents 'interslavic 0.10.0' but the crate pins =0.13.0",
+     "evidence": "README:513 '(full `tebe`, clitic `tę`, prepositional `njego` — interslavic 0.10.0)' vs Cargo.toml:16 `interslavic = \"=0.13.0\"` and data/MANIFEST.json:2 `\"crate_pin\": \"=0.13.0\"`.",
+     "fix": "Drop the version number from the prose (the MANIFEST is the pin of record) or state 0.13.0.",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "README.md",
+     "line": 628,
+     "summary": "README contradicts itself on proposals.html: 'explicitly paused' vs 'Live again since V11'",
+     "evidence": "README:628-629 'proposals.html — an explicitly paused proposal worklist until the corpus coverage model has its own calibrator' vs README:66-70 'Live again since V11: the corpus path has its own committed calibrator (data/corpus-calibration.json...)'; site/mod.rs:469 comment confirms the calibrator exists and is read by export.",
+     "fix": "Rewrite the proposals.html bullet to describe the live, calibrated worklist (164-row best-attested band per README:76-78).",
+     "effort": "S"
+    },
+    {
+     "kind": "stale",
+     "file": "README.md",
+     "line": 331,
+     "summary": "Architecture map omits six real modules: aspect.rs, coincheck.rs, glossxref.rs, release.rs, site/english_api.rs, site/tests.rs",
+     "evidence": "README:331-384 lists src/ contents; diffing against `ls src src/site`: src/aspect.rs (427 lines), coincheck.rs (772), glossxref.rs (196), release.rs (451) and src/site/english_api.rs + tests.rs are absent (english_api.rs holds the whole en-API incl. english_gloss_tokens at :329).",
+     "fix": "Add the six missing rows to the architecture block so the map matches lib.rs's module list.",
+     "effort": "S"
+    },
+    {
+     "kind": "improper",
+     "file": "Makefile",
+     "line": 37,
+     "summary": "Make/doc surface covers only 4 of 13 eval probes; select-eval is documented nowhere user-facing",
+     "evidence": "Makefile has eval/proto-eval/corpus-eval/aspect-eval/audit targets but none for derive-, multiword-, evidence-, inflect-, checktext-, oracle, select-, rep-, synonym-eval; README's Commands block (393-497) covers most but never mentions select-eval (only CONTRIBUTING.md:84); Makefile:79 `explain` is also the sole target running without --release.",
+     "fix": "One pattern rule `eval-%: ; cargo run --release -- $*-eval --out \"$(OUT)\"` plus a README command row for select-eval; add --release to explain.",
+     "effort": "S"
+    },
+    {
+     "kind": "boundary",
+     "file": "src/check.rs",
+     "line": 396,
+     "summary": "check.rs reaches into site for english_gloss_tokens (the known offender, confirmed with line refs)",
+     "evidence": "check.rs:396 `gloss_tokens: crate::site::english_gloss_tokens(gloss)`, also :530 and :1067 (doc ref :303); definition lives in src/site/english_api.rs:329 and is re-exported at site/mod.rs:2135 — the text checker depends on the site exporter's internals.",
+     "fix": "Hoist english_gloss_tokens into a shared gloss module (glossxref.rs is the natural home) and have both site::english_api and check import it; pure move, byte-identical output.",
+     "effort": "S"
+    }
+   ],
+   "stale_candidates": [
+    "select-eval subcommand — code last materially touched 07-06 (61ce610), no Makefile target, absent from README's Commands block; its report only refreshed in the bulk 'four stale committed reports' sweep (71dd478)",
+    "IMPROVEMENT_REPORT_V7.md and IMPROVEMENT_REPORT_V8.md at repo root — the matching prompts were archived to docs/history/ but the reports were left behind (V7 still linked from README:672, so move-not-delete)",
+    "IMPROVEMENT_PROMPT.md — untracked working file at repo root (git status ??)",
+    "context.md — present on disk, gitignored 'accidentally committed once, untracked in #53'; local litter",
+    "tools/__pycache__/ — on-disk only, ignored and uncommitted (verified clean); safe to delete locally",
+    "data/curation-notes.example.json — example schema for an optional data/curation-notes.json; could not prove any current workflow ever supplies the real file",
+    "target/eval/raw-coverage.{md,json} written by the coverage subcommand are NOT among the 22 committed snapshots while data/raw-slavic-coverage.json IS tracked — possible superseded/duplicate coverage artifact pair worth reconciling",
+    "Makefile clean target removes only site/ and data/*.tmp — never target/eval scratch, suggesting it predates the eval-report proliferation"
+   ]
+  }
+ ],
+ "lints": "All data gathered. Composing the summary.\n\n## Strict-lint adoption cost — slovowiki (single-crate, `interslavic-wiktionary-lab`)\n\nMethod: `cargo clippy --all-targets --message-format=json` with the seven strict lints; each warning deduplicated by (lint, file, line) and classified lib vs test by brace-matched `#[cfg(test)]` regions (`src/site/tests.rs` is wholly test via `#[cfg(test)] mod tests;` at `src/site/mod.rs:2139`).\n\n### 1. Per-lint counts (608 unique warnings: 306 lib / 302 test)\n\n| Lint | Lib | Test | Total |\n|---|---|---|---|\n| `indexing_slicing` | 279 | 100 | 379 |\n| `unwrap_used` | 17 | 112 | 129 |\n| `expect_used` | 6 | 87 | 93 |\n| `panic` | 1 | 3 | 4 |\n| `unwrap_in_result` | 3 | 0 | 3 |\n| `todo` | 0 | 0 | 0 |\n| `dbg_macro` | 0 | 0 | 0 |\n\nPer-lint per-file (lib/test), non-zero lib rows first — worst cells:\n- `indexing_slicing`: eval.rs 47/0, site/mod.rs 29/0, check.rs 29/37, proto.rs 28/0, consensus.rs 18/0, calibrate.rs 18/0, falsefriends.rs 15/4, site/coverage.rs 13/0, site/english_api.rs 12/23, flavorize.rs 10/0, coincheck.rs 8/0, derive.rs 6/0, site/navigation.rs 6/0, thesaurus.rs 6/0, aspect.rs 5/0, dump.rs 4/0, site/search.rs 4/0, site/special.rs 4/0, orthography.rs 3/0, proto_link.rs 3/0, enrich.rs 3/7, forms.rs 2/4, site/entries.rs 2/0, remainder ≤2.\n- `unwrap_used` lib: calibrate.rs 4, check.rs 4, eval.rs 4, site/entries.rs 2, coincheck.rs 1, derive.rs 1, site/english_api.rs 1. Test-heavy: check.rs 35, site/tests.rs 33, release.rs 23.\n- `expect_used` lib: check.rs 3, site/mod.rs 2, calibrate.rs 1. Test-heavy: check.rs 44, english_api.rs 17.\n- `panic` lib: eval.rs 1 (line 122, fail-fast fixture load). `unwrap_in_result`: check.rs 3.\n\nTop offender files (lib/test/total): check.rs 39/116/155, site/english_api.rs 13/41/54, site/tests.rs 0/53/53, eval.rs 52/0/52, release.rs 1/35/36, site/mod.rs 31/0/31, proto.rs 28/0/28, calibrate.rs 23/4/27, falsefriends.rs 15/7/22, consensus.rs 18/1/19.\n\n### 2. Pedantic scan (810 unique warnings) — 8 most valuable\n\n1. `cast_possible_truncation` (29) — real bug class: usize/u64 counts truncated in stats/percentile code; silently wrong metrics at corpus scale.\n2. `cast_sign_loss` (16) — negative-to-unsigned wraps in delta/score arithmetic; same bug family.\n3. `match_same_arms` (39) — highest real-bug density here: duplicated arms in morphology/case match tables can hide an unimplemented case pasted from a neighbor.\n4. `map_unwrap_or` (83) — largest count; mechanical `.map(..).unwrap_or(..)` → `map_or`, clarifies fallback values in gloss/paradigm pipelines; mostly `--fix`-able.\n5. `redundant_closure_for_method_calls` (32) — zero-risk, fully auto-fixable.\n6. `uninlined_format_args` (22) — auto-fixable; this codebase is format-string heavy (site generator).\n7. `needless_pass_by_value` (7) — real clone cost in per-lemma hot loops.\n8. `too_many_lines` (47) — check.rs (2981 lines) and eval.rs (3608 lines) are the maintainability risk the counts point at; warn-and-allow-existing.\n\nSkip as noise: `must_use_candidate` (157, bin-style crate), `cast_precision_loss` (72, corpus counts ≪ 2^52), `missing_errors_doc`/`doc_markdown`/`missing_panics_doc` (doc-only).\n\n### 3. Recommended table\n\n```toml\n# Cargo.toml\n[workspace]          # already implicit single-package; needed for workspace.lints\n[workspace.lints.clippy]\n# Zero-cost today — deny to keep it that way\ntodo = \"deny\"\ndbg_macro = \"deny\"\n# Cheap burn-down (17 lib sites) — warn now, deny after\nunwrap_used = \"warn\"\nunwrap_in_result = \"warn\"\npanic = \"warn\"\n# expect-with-message is the sanctioned escape hatch for unwrap burn-down\nexpect_used = \"allow\"\n# 279 lib sites; batch CLI where a panic = failed build, not an outage.\n# Do NOT enable globally yet; burn down per-module (see effort).\nindexing_slicing = \"allow\"\n# Pedantic picks\ncast_possible_truncation = \"warn\"\ncast_sign_loss = \"warn\"\nmatch_same_arms = \"warn\"\nmap_unwrap_or = \"warn\"\nredundant_closure_for_method_calls = \"warn\"\nuninlined_format_args = \"warn\"\nneedless_pass_by_value = \"warn\"\ntoo_many_lines = \"warn\"\n\n[lints]\nworkspace = true\n```\n\nLegitimate `#[allow]` scoping:\n- **Every `#[cfg(test)] mod`** (and top of `src/site/tests.rs`): `#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]` — retires ~302 warnings (unwrap 112, expect 87, indexing 100, panic 3) legitimately; panicking asserts are the point of tests.\n- **catch_unwind inflector boundary** (`src/forms.rs:129`, `src/inflect_eval.rs:76/160/241`, `src/check.rs:462`, `src/coincheck.rs:309`, `src/site/entries.rs:1653/1677`): the closures deliberately invoke the panicking upstream `interslavic` inflector and recover blanks; targeted `#[allow]` with a comment on the wrapper fns, not module-wide.\n- **`src/eval.rs:122`** fail-fast fixture load (`unwrap_or_else(|e| panic!(...))`): intentional CLI fail-fast; `#[allow(clippy::panic)]` with rationale.\n\n### 4. Burn-down effort per lint\n\n| Lint | Lib sites | Effort | Notes |\n|---|---|---|---|\n| `todo`, `dbg_macro` | 0 | S (free) | deny immediately |\n| `panic` | 1 | S | one allow-with-comment |\n| `unwrap_in_result` | 3 | S | check.rs, convert to `?` |\n| `expect_used` | 6 | S | or keep as allow policy |\n| `unwrap_used` | 17 | S–M | ~half day; `?`/expect conversions across 7 files |\n| `uninlined_format_args` + `redundant_closure_for_method_calls` | 54 total | S | `cargo clippy --fix` |\n| `cast_possible_truncation` + `cast_sign_loss` | 45 total | M | `try_from` or documented `as` per site |\n| `map_unwrap_or` | 83 | M | mostly `--fix`-able, review diff |\n| `match_same_arms` | 39 | M | human review required — merging morphology arms risks semantic change |\n| `indexing_slicing` | 279 | L | multi-week; `get()`/`split_first` rewrites change control flow in eval.rs, check.rs, proto.rs, site/mod.rs hot paths; do per-module, start with site/ (user-facing output) |\n| `too_many_lines` | 47 fns | L | check.rs/eval.rs decomposition; treat as ongoing refactor budget |\n\nRaw JSON runs preserved at `/private/tmp/claude-501/-Users-kisaczka-Desktop-code-slovowiki/901f952f-b0c9-4087-834d-148879f8e9c3/scratchpad/strict.json` and `.../pedantic.json`. No project files were modified.",
+ "research": [
+  {
+   "source": "tatuylonen/wiktextract + wikitextprocessor (GitHub READMEs) and kaikki.org publication pages (rawdata.html, per-edition error reports, tatuylonen.github.io schema site), researched 2026-07-22",
+   "lessons": [
+    {
+     "pattern": "Hard two-phase split: raw source -> durable page cache (phase 1, SQLite) vs. extraction/normalization (phase 2, pure function over the cache)",
+     "detail": "wikitextprocessor ingests the dump once into SQLite, then all extraction runs against the cache; an existing cache 'eliminat[es] the time needed for Phase 1'. Slovowiki already does the analogue (Wiktextract JSONL -> data/slavic-lemmas.cache.json -> corpus/site), but the lesson is to keep that boundary strict: the committed cache is the only stateful stage, everything downstream stays a pure deterministic function of committed inputs.",
+     "applicability": "Direct fit — this IS the committed-cache/offline-build rule; formalizing it (never let site/corpus code peek at raw JSONL) protects determinism. SQLite itself is unneeded at 46k lemmas; committed JSON is fine.",
+     "recommendation": "adopt",
+     "references": [
+      "https://github.com/tatuylonen/wikitextprocessor",
+      "https://github.com/tatuylonen/wiktextract"
+     ]
+    },
+    {
+     "pattern": "Single-page reprocessing for the dev loop (--page, --override, --pages-dir) instead of incremental builds",
+     "detail": "wiktextract lets you re-extract one page from the cache ('wiktwords --db-path ... --page page_title') and test a locally modified page before a full run. Slovowiki has no per-lemma/per-cognate-set debug entry point; adding a `--word`/`--set` flag that runs the full pipeline for one entry from the caches would make rule tweaks inspectable in milliseconds.",
+     "applicability": "Fits perfectly: pure function over committed caches, no state, no network. Cheap at 18.5k/46k scale.",
+     "recommendation": "adapt",
+     "references": [
+      "https://github.com/tatuylonen/wiktextract"
+     ]
+    },
+    {
+     "pattern": "Full rebuilds as the publication model; incrementality only at dev level",
+     "detail": "kaikki re-extracts everything on cadence ('updated regularly, usually at least once a week') rather than diffing published JSONL — even at 23 GB output. Incremental machinery is deliberately absent; correctness comes from rerunning the whole deterministic pipeline against a pinned dump.",
+     "applicability": "Strong fit — slovowiki's builds are seconds-to-minutes; incremental site generation would add nondeterminism risk for zero gain. Keep full rebuilds, use lesson 2 for iteration speed.",
+     "recommendation": "adopt",
+     "references": [
+      "https://kaikki.org/dictionary/rawdata.html"
+     ]
+    },
+    {
+     "pattern": "Provenance stamping on every published artifact: source dump date + exact tool commit hashes",
+     "detail": "kaikki pages/footers record 'the enwiktionary dump dated 2026-07-06', processing completion date, and commit hashes of both wiktextract and wikitextprocessor, 'enabling precise reproduction'. Slovowiki's data/MANIFEST.json and refresh-changelog.md are the natural home: record source dump date, sha256 of each committed cache, and the generator git commit; also emit it into the static site footer.",
+     "applicability": "Perfect fit — it is the reproducibility discipline the house rules imply but that a manifest can enforce mechanically (build fails if cache hash != manifest).",
+     "recommendation": "adopt",
+     "references": [
+      "https://kaikki.org/dictionary/rawdata.html"
+     ]
+    },
+    {
+     "pattern": "Diagnostics as structured data, published as first-class static release artifacts",
+     "detail": "wikitextprocessor collects error/warning/debug messages as lists of dicts (page title, section, path of templates/modules, sortid), and kaikki renders them into browsable static error pages grouped by message kind with per-page links and counts, shipped alongside each dataset. Slovowiki's validators (tools/validate-*.py/.mjs) print to CI; instead emit a build-diagnostics JSON (rule id, severity, entry, detail) and render a static /errors or /audit page grouped by rule.",
+     "applicability": "Fits static-only output exactly; at 18.5k entries the report is tiny and doubles as a curation worklist. Deterministic since it derives from the same committed inputs.",
+     "recommendation": "adapt",
+     "references": [
+      "https://github.com/tatuylonen/wikitextprocessor",
+      "https://kaikki.org/dewiktionary/errors/debug.html"
+     ]
+    },
+    {
+     "pattern": "Publish machine-readable schemas generated from the typed models, with schema-diffing across editions",
+     "detail": "Non-English wiktextract editions ship JSON Schemas at tatuylonen.github.io (pinned to a commit, with a 'Compare JSON schemas' view); the English edition's lack of one is a documented pain point. Slovowiki can derive JSON Schema from its serde types (schemars) for cache files and the 14-column search.json row, commit them, and validate caches against them at load — extending the existing corpus-calibration load-time validation.",
+     "applicability": "Fits: deterministic codegen, offline, and it hardens the producer/consumer contract for the 569k-record index whose rows are positional arrays (currently documented only in code).",
+     "recommendation": "adapt",
+     "references": [
+      "https://tatuylonen.github.io/wiktextract/",
+      "https://github.com/tatuylonen/wiktextract"
+     ]
+    },
+    {
+     "pattern": "Additive-only, unversioned schema evolution ('more fields may be added in the future')",
+     "detail": "wiktextract evolves its JSONL by adding fields with no version number or migration story; consumers must tolerate unknown keys. That works for a loose public dataset but is their weakest discipline — schema drift is only discoverable by diffing output.",
+     "applicability": "Reject for slovowiki: it controls both producer and consumer, so it should instead put an explicit schema/version field in MANIFEST.json and each cache, and fail loudly on mismatch rather than tolerating drift silently.",
+     "recommendation": "reject",
+     "references": [
+      "https://github.com/tatuylonen/wiktextract"
+     ]
+    },
+    {
+     "pattern": "Split large published datasets into per-subset downloads so consumers pull only what they need",
+     "detail": "kaikki shards the 23 GB extraction into per-language, per-word, and error files rather than forcing the monolith. Slovowiki's analogue is the 569k-record search.json: shard it into prefix/bucket files fetched lazily by the client, keeping first-paint payload small while remaining fully static.",
+     "applicability": "Fits static-only hosting (plain file fetches, no server); deterministic sharding by folded first char/bucket hash. Worth it only if search.json size is actually hurting load time — measure first with tools/search-perf.mjs.",
+     "recommendation": "adapt",
+     "references": [
+      "https://kaikki.org/dictionary/rawdata.html"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "/Users/kisaczka/Desktop/code/interslavic-rs (local checkout; workspace now at 0.14.0, ahead of slovowiki's =0.13.0 pin). Examined: crates/xtask/src/main.rs, crates/interslavic/src/fingerprint.rs, INTEGRATION.md, CHANGELOG.md policy header, tests/variant_order.rs, tools/compare-latest-sonic.js, workspace Cargo.toml (coallescor excluded), lint config (none exists).",
+   "lessons": [
+    {
+     "pattern": "Whole-output fingerprint pinned in a unit test (inline dep-free FNV-1a over a canonical lemma\\tcell\\tform dump; failure message names the exact remediation commands and the deliberate-update protocol)",
+     "detail": "src/fingerprint.rs streams every paradigm cell in stable BTreeSet/fixed-iteration order into one string, hashes it, and pins the u64 as EXPECTED_FINGERPRINT with cell count and version in the comment. Any output change anywhere fails one test with a message telling you to run diff-fingerprint and update the constant only in a commit that lists the delta.",
+     "applicability": "Fits perfectly: slovowiki's exports are already deterministic/offline, and it has scattered byte-identical guards (dump.rs, enrich.rs) but no single number that fails when ANY output moves. Hash the canonical site export (e.g. search.json + entry-page corpus) or the generated-forms dump; FNV-1a inline keeps it dependency-free.",
+     "recommendation": "adopt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/interslavic/src/fingerprint.rs"
+     ]
+    },
+    {
+     "pattern": "dump-paradigms + diff-fingerprint pair: a canonical whole-output dump command plus a keyed differ, so the changelog entry for any fingerprint change is mechanically enumerated (changed/removed/added per cell)",
+     "detail": "xtask dump-paradigms writes target/paradigm-fingerprint/<name>.tsv (named dumps survive for diffing across trees); diff-fingerprint loads both into BTreeMap<lemma\\tcell, form> and prints the exact delta with counts. The fingerprint test and the dump share one corpus generator so they cannot disagree.",
+     "applicability": "Fits: pairs with the fingerprint test above and turns 'the hash changed' from a mystery into an enumerated diff. Implement as slovowiki CLI subcommands (dump-output / diff-output) rather than xtask — slovowiki's binary is already its task runner via the Makefile.",
+     "recommendation": "adopt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/xtask/src/main.rs"
+     ]
+    },
+    {
+     "pattern": "cargo xtask workspace task runner (Rust binary crate dispatching refresh-data/check-all/etc.)",
+     "detail": "crates/xtask is a thin Command-spawning dispatcher; check-all = fmt --check + workspace tests + generated-file currency check.",
+     "applicability": "Conflicts with slovowiki's shape: one flat crate whose Makefile already dispatches to `cargo run --` subcommands — adding a workspace member just to run tasks is ceremony with no gain. The one idea worth stealing is a single `check` target that chains fmt + tests + the fingerprint/manifest gates.",
+     "recommendation": "reject",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/xtask/src/main.rs",
+      "/Users/kisaczka/Desktop/code/slovowiki/Makefile"
+     ]
+    },
+    {
+     "pattern": "INTEGRATION.md as a downstream contract document: everything a consumer learned the hard way, in one root-level file — citation-form conventions, output-order contracts, which fields are truth, a worked CI-tested example",
+     "detail": "163 lines covering byform-order-is-API, clean vs _raw, None-means-no-such-form semantics, and notably the folded-key homograph rule for interpreting slovowiki's own check-text output — that rule about slovowiki's API is currently documented only in the UPSTREAM repo.",
+     "applicability": "Strong fit: slovowiki has real downstream consumers (interslavic-rs's phrase-check gate calls `check-text --json`; data-vN tags are pinned externally) but no contract doc. Write one covering the check-text JSON schema and status semantics, the folded-key/lemmas-field rule, data-release pinning via MANIFEST.json, and which exports are byte-stable.",
+     "recommendation": "adopt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/INTEGRATION.md",
+      "/Users/kisaczka/Desktop/code/slovowiki/src/release.rs"
+     ]
+    },
+    {
+     "pattern": "CHANGELOG policy header 'variant order is API' + a dedicated fence test (tests/variant_order.rs) pinning one representative output per class, updatable only with a changelog entry",
+     "detail": "The policy line sits at the top of CHANGELOG.md, names the enforcing test, and defines reordering as breaking because consumers bless first-variant outputs into expectations.",
+     "applicability": "Adapt: slovowiki has no CHANGELOG at all, but it does expose observable orderings (candidate ranking, search.json row schema/order) that downstream and blessed tests depend on. Add a CHANGELOG (or CONTRIBUTING section) with an explicit ordering-is-API policy line plus a small fence test per ordered surface; the manifest guards bytes but not the stated policy.",
+     "recommendation": "adapt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/CHANGELOG.md",
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/interslavic/tests/variant_order.rs"
+     ]
+    },
+    {
+     "pattern": "Parity harness with per-category minimum compatibility rates and dated inline justifications for every threshold change ('upstream data drift, not a regression — relaxed one notch')",
+     "detail": "tools/compare-latest-sonic.js pins MIN_COMPATIBLE_RATES per POS (noun 0.9998, verb 0.95, pronoun 1.0) and each relaxation carries a dated comment explaining the diagnosis. But the harness itself fetches a live Google Sheet and git-fetches an external checkout at run time.",
+     "applicability": "The threshold-band-with-dated-rationale discipline fits slovowiki's eval/aspect-eval/corpus-calibration bands and is worth copying wholesale; the live-network structure conflicts with deterministic/offline house rules — slovowiki's version must run against pinned local reference data only.",
+     "recommendation": "adapt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/tools/compare-latest-sonic.js"
+     ]
+    },
+    {
+     "pattern": "Cross-repo reciprocal gate kept manual/local, never CI: xtask phrase-check locates a sibling checkout via env var (SLOVOWIKI_DIR, default ../slovowiki), runs goldens through the OTHER project's independent checker, and documents interpretation caveats at the gate itself",
+     "detail": "It also handles the toolchain seam correctly (plain `cargo`, not $CARGO, so slovowiki's rust-toolchain.toml wins) and writes the failing JSON report to a stable path.",
+     "applicability": "Fits as the mirror image: slovowiki could add a local-only gate that renders its own golden sentences/forms through the pinned interslavic crate (already a dependency, so this one is even CI-safe and offline). Keep any variant needing a sibling checkout out of CI, per upstream's precedent.",
+     "recommendation": "adapt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/xtask/src/main.rs"
+     ]
+    },
+    {
+     "pattern": "Quarantine dead/prototype code outside the workspace via Cargo `exclude` (coallescor is an old prototype excluded so fmt/test/check-all never touch it)",
+     "detail": "Workspace Cargo.toml: members = crates/* + experiments/*, exclude = [\"coallescor\"]. The crates/core-vs-data split (dependency-free rules crate + generated-metadata crate + extractor + check-registry currency check) is the rest of the layout.",
+     "applicability": "The exclude trick is moot for slovowiki (single flat crate; its tools/ scripts are not Cargo members anyway). The core/data crate split solves a library-consumer problem slovowiki does not have — its consumers use the CLI and data tags, not a lib API. The check-registry idea (verify generated files are current) is impractical for slovowiki since regeneration needs the 23GB dump; MANIFEST.json sha256 verification already covers integrity.",
+     "recommendation": "reject",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/Cargo.toml"
+     ]
+    },
+    {
+     "pattern": "Lint configuration: none exists upstream — no [workspace.lints], no clippy config, no lint attributes; the only style gate is `cargo fmt --all -- --check` inside xtask check-all",
+     "applicability": "Nothing to adopt; interslavic-rs offers no precedent here. If slovowiki wants a lint gate it should decide independently (e.g. clippy in `make check`), not copy upstream.",
+     "recommendation": "reject",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/xtask/src/main.rs"
+     ]
+    },
+    {
+     "pattern": "Failure messages and doc comments that encode the operational protocol: the fingerprint assert names the exact commands to run and requires the update to land 'deliberately, in a commit whose message lists the delta'; the pinned constant's comment records cell count and version",
+     "applicability": "Pure fit, zero cost: slovowiki's byte-identical and manifest guards should tell the developer the precise regenerate/diff/verify commands and the changelog obligation in the assert message itself, matching its existing heavily-annotated house style.",
+     "recommendation": "adopt",
+     "references": [
+      "/Users/kisaczka/Desktop/code/interslavic-rs/crates/interslavic/src/fingerprint.rs"
+     ]
+    }
+   ]
+  },
+  {
+   "source": "Web research: DVC pipeline docs (dvc.yaml/dvc.lock), reproducible-builds.org + Debian ReproducibleBuilds (SOURCE_DATE_EPOCH, .buildinfo, variation testing), Unicode CLDR build/consistency-check design docs, FreeDict make/TEI build system, kaikki.org wiktextract publishing — judged against slovowiki's Makefile, data/MANIFEST.json, and docs/DATA-REFRESH.md",
+   "lessons": [
+    {
+     "pattern": "Stage = pure function of DECLARED deps/outs; the DAG is derived from declarations, never narrated",
+     "detail": "DVC stages list cmd/deps/outs and the pipeline DAG falls out of outs-of-A matching deps-of-B. Slovowiki's DAG lives in Makefile comments ('run extract-enrich AFTER extract-lemmas') on .PHONY targets, so nothing enforces order or freshness. Converting cache files to real Make file targets (extract-enrich depends on the two cache files) gets enforced ordering, skip-if-fresh, and a machine-readable DAG (`make -Bnd`) from ~15 lines of Makefile — no new tools.",
+     "applicability": "Fits perfectly: Make is already the entry point, file-target deps are deterministic and offline, and it turns prose ordering rules into checked ones at zero dependency cost.",
+     "recommendation": "adopt",
+     "references": [
+      "https://doc.dvc.org/user-guide/project-structure/dvcyaml-files",
+      "https://doc.dvc.org/user-guide/pipelines/defining-pipelines",
+      "/Users/kisaczka/Desktop/code/slovowiki/Makefile"
+     ]
+    },
+    {
+     "pattern": "Lock-file provenance: record per-artifact producing command + input hashes, not just output hashes",
+     "detail": "dvc.lock stores, per stage, the command plus hashes of every dep and every out — so 'was this artifact built from these exact inputs by this exact step?' is answerable offline. Slovowiki's MANIFEST.json is a flat file list; it proves integrity but not lineage. Adding a small `stages` section (stage name, input paths+hashes, output paths) to the existing data-manifest command makes the 'each stage is a pure function of declared inputs' rule verifiable instead of aspirational.",
+     "applicability": "Fits: extends the existing hand-rolled MANIFEST.json/data-manifest verb; deterministic JSON, no runtime, one maintainer can keep ~6 stage entries honest because CI already runs `data-manifest` in verify mode.",
+     "recommendation": "adapt",
+     "references": [
+      "https://doc.dvc.org/user-guide/project-structure/dvcyaml-files",
+      "/Users/kisaczka/Desktop/code/slovowiki/data/MANIFEST.json",
+      "/Users/kisaczka/Desktop/code/slovowiki/docs/DATA-REFRESH.md"
+     ]
+    },
+    {
+     "pattern": "DVC the tool (content-addressed cache, remotes, incremental skip engine)",
+     "detail": "DVC's machinery exists to avoid re-running expensive stages and to sync large blobs to remote storage. Slovowiki's full pipeline (minus the one-time 23GB dump extraction) rebuilds fast, caches are committed to git, and remotes violate the offline rule; an incremental-skip engine also weakens the strongest guarantee slovowiki has — full rebuild + byte-identical compare.",
+     "applicability": "Conflicts: Python dependency, network remotes, and cache indirection are enterprise machinery that pays no rent at 38k lines with git-committed data. Take the lock-file schema idea (above), not the tool.",
+     "recommendation": "reject",
+     "references": [
+      "https://dvc.org/doc/user-guide/glossary",
+      "https://dvc.org/doc/command-reference/repro"
+     ]
+    },
+    {
+     "pattern": "buildinfo-style provenance stamp on the OUTPUT artifact (site/build-info.json)",
+     "detail": "Debian ships a .buildinfo per package recording exactly what produced the binary, kept separate from the artifact so verification is decoupled from delivery. Slovowiki's manifest covers data/ inputs but a deployed site/ carries no record of which data_release, git commit, or rustc produced it. Emitting site/build-info.json {data_release, source commit, rustc -V, manifest sha256} during export makes any deployed copy traceable; all values are committed/pinned, so the stamp is itself deterministic.",
+     "applicability": "Fits: pure function of committed state (rust-toolchain.toml pins rustc), ~20 lines in export, and it closes the one provenance gap the refresh/release ritual doesn't cover — artifacts that left the repo.",
+     "recommendation": "adopt",
+     "references": [
+      "https://reproducible-builds.org/docs/recording/",
+      "https://wiki.debian.org/ReproducibleBuilds/About"
+     ]
+    },
+    {
+     "pattern": "SOURCE_DATE_EPOCH principle: exactly one committed time source, wall clock banned from all output paths",
+     "detail": "Reproducible-builds' core move on timestamps: any date in an artifact derives from a declared source-controlled value (Debian: the changelog), never now(). Slovowiki equivalent: if any page, TSV, or eval report wants a date, it must come from the refresh-changelog/data_release entry. Worth codifying as a house rule plus a CI grep for SystemTime::now/chrono::Utc::now in export paths, since the double-export check only catches clock use at second granularity by luck.",
+     "applicability": "Fits directly — it is the canonical formulation of a rule slovowiki mostly follows implicitly; the grep-lint makes regressions impossible instead of unlikely.",
+     "recommendation": "adopt",
+     "references": [
+      "https://reproducible-builds.org/docs/source-date-epoch/",
+      "https://reproducible-builds.org/docs/timestamps/"
+     ]
+    },
+    {
+     "pattern": "Verify by rebuilding under DELIBERATE variation, not just twice in place; diffoscope for triage",
+     "detail": "Debian's CI rebuilds with varied build path, locale, timezone, and filesystem ordering to flush latent nondeterminism; a plain A/B rebuild in the same environment misses path- and locale-dependence. Slovowiki's byte-identical double export already catches HashMap-order bugs (Rust's per-process SipHash seed varies) but runs from the same cwd/locale. Cheap upgrade: second export from a different absolute path with LC_ALL varied. When a compare fails, diffoscope (offline CLI) localizes the diff far faster than diff -r.",
+     "applicability": "Fits: shell-only change to an existing check; diffoscope is an ad-hoc offline debugging tool, not pipeline machinery. Skip Debian's VM-farm scale — one varied rebuild in CI is the right dose.",
+     "recommendation": "adapt",
+     "references": [
+      "https://reproducible-builds.org/docs/env-variations/",
+      "https://wiki.debian.org/ReproducibleBuilds"
+     ]
+    },
+    {
+     "pattern": "Stable-ordering commandment: sort at every serialization boundary, BTreeMap-by-default",
+     "detail": "The single most common determinism bug class in the reproducible-builds corpus is unordered inputs/outputs (readdir order, hash-map iteration). Codify as a written rule + review checklist item: any loop that writes bytes iterates a sorted or BTree collection, and directory reads are sorted before use. Slovowiki passes today (double export proves it) but the rule keeps new code from relying on the check as its only defense.",
+     "applicability": "Fits: zero-cost convention, Rust makes it easy (BTreeMap, sort_unstable before emit), and it converts an emergent property into a stated invariant a one-maintainer project can hold in review.",
+     "recommendation": "adopt",
+     "references": [
+      "https://reproducible-builds.org/docs/stable-order/"
+     ]
+    },
+    {
+     "pattern": "CLDR: validation is a NAMED PIPELINE STAGE over the full artifact, distinct from unit tests, with committed exception lists",
+     "detail": "CLDR runs ConsoleCheckCLDR (full-data sweep of cross-field invariants: every language has a default script, every locale has population data, etc.) as its own gating build step, separate from code unit tests; fuzzy invariants stay strict by carrying an explicit committed exception list rather than loosening the check. Slovowiki's three site validators already follow the stage shape — the importable pieces are (a) maintain an enumerable catalog of cross-artifact invariants (every search row's id resolves to a page, every official lemma appears exactly once, every rendered page is reachable from the index) and (b) when an invariant has legitimate outliers, commit an exceptions file so the check never gets weakened globally.",
+     "applicability": "Fits the house rules exactly (deterministic full-corpus sweeps, no sampling, offline); exception-lists-over-loosened-checks is the same philosophy as slovowiki's 'floor is re-argued in the changelog, never silently'.",
+     "recommendation": "adopt",
+     "references": [
+      "https://cldr.unicode.org/development/development-process/design-proposals/language-data-consistency",
+      "https://github.com/unicode-org/conformance"
+     ]
+    },
+    {
+     "pattern": "FreeDict hub-and-spoke: one canonical intermediate, schema-validated at the stage boundary, all outputs pure converters from it",
+     "detail": "FreeDict funnels every importer into canonical TEI, validates it against a committed RELAX NG schema, then derives all distribution formats from that single validated hub. Slovowiki's hub is its cache JSONs; full XML-schema tooling would be dead weight, but the boundary-validation idea lands as: serde with deny_unknown_fields on every cache struct plus load-time invariant checks that fail loud (the corpus-calibration band validation added recently is exactly this pattern — extend it to all committed caches).",
+     "applicability": "Adapt, not adopt: RELAX NG/XML is the wrong substrate for Rust+JSON, but 'the hub artifact is validated the moment a stage loads it, not when a downstream symptom appears' fits deterministic/offline and costs a few lines per cache.",
+     "recommendation": "adapt",
+     "references": [
+      "https://github.com/freedict/tools",
+      "https://github.com/freedict/fd-dictionaries/wiki/FreeDict-HOWTO-%E2%80%93-FreeDict-Build-System"
+     ]
+    },
+    {
+     "pattern": "kaikki.org: ship the machine-readable corpus as a first-class site artifact, carrying the same release identity as the pages",
+     "detail": "kaikki publishes the raw wiktextract JSONL for download alongside the browsable dictionary, making the site self-describing for downstream consumers. Slovowiki already emits search.json and novel-words.tsv; the lesson is to treat them as advertised, stable, data_release-stamped outputs (linked from the site, covered by the manifest/provenance stamp) rather than internal byproducts — consumers then pin data-vN exactly as docs/DATA-REFRESH.md intends.",
+     "applicability": "Fits: static files only, no API, no service; it extends the existing release ritual's 'consumers pin data-vN' promise to the data files themselves at near-zero cost.",
+     "recommendation": "adapt",
+     "references": [
+      "https://kaikki.org/dictionary/rawdata.html",
+      "/Users/kisaczka/Desktop/code/slovowiki/docs/DATA-REFRESH.md"
+     ]
+    }
+   ]
+  }
+ ],
+ "critic": "MISSED ITEMS (whole-repo view)\n\n1. **Two unclaimed areas hold the two largest files.** No auditor owns site/* (~11.6k lines: navigation.rs 2122, english_api.rs 1895, entries.rs 1833, coverage.rs 1437, special.rs 1114, search.rs 724, mod.rs 2140) or eval.rs (3608, the largest file in the repo). All four reports cite them only as counterparties. Also unaudited: falsefriends.rs (1249), calibrate.rs (394), generator.rs, inflect_eval.rs, orthography.rs internals, main.rs wiring.\n\n2. **Calibrator lifecycle is unowned and the generation report understates it.** Generation calls corpus-calibration.json \"the one generation artifact produced by one command and consumed by another.\" Whole-repo there are THREE cross-command committed artifacts: (a) data/score-calibration.json written by `evaluate` (eval.rs:3497) and read by export (site/mod.rs:86, 2091); (b) data/corpus-calibration.json written by `corpus-eval --fit` (calibrate.rs:21) and read by export (site/mod.rs:469); (c) data/novel-words.tsv written by export, read by check/coincheck. Crucially, CI freshness-guards (a) and (c) (`git diff --exit-code -- data/novel-words.tsv data/score-calibration.json`, ci.yml:49, again :101) but **corpus-calibration.json has no CI regeneration guard** — only the MANIFEST hash pin, which checks tree-vs-manifest, not fit-vs-code. It can silently go stale relative to corpus::build_sets changes; the recent band-validation commit checks shape, not freshness.\n\n3. **CI already machine-checks the frozen-export invariant** — double export + full tree sha256 diff (ci.yml:45-48) plus the artifact git-diff guards. Nobody noted this; it means \"byte-identical\" proofs for every proposed refactor are nearly free, which changes the sequencing calculus (code-motion commits are cheap to verify).\n\n4. **falsefriends.rs repeats the load_optional contract violation extraction flagged elsewhere**: falsefriends.rs:990/992/995 `.ok()` on LemmaCorpus/RawSlavicCorpus/EnrichIndex loads (mitigated only by a warn_if_unreadable eprintln), and compute()/the notes feed the shipped site (site/mod.rs:746, sharded at :1911-1915) — a corrupt cache silently degrades site output, worse than the main.rs:387 case extraction did flag.\n\n5. **falsefriends::gloss_tokens is not falsefriends-local**: site/coverage.rs calls it at 510, 520, 659, 678. The surface report's \"five tokenizers\" map missed this fourth cross-module reach (site→falsefriends), and missed that dump::gloss_tokens has ~14 consumers across eval, proto_link (production-path scoring), thesaurus, and site/mod.rs — it is already the de facto shared tokenizer, so the gloss.rs consolidation must include it.\n\n6. **Under-counted mechanical duplications** (each area saw its slice): the `to_standard(&x.to_lowercase())` fold idiom appears **59 times** crate-wide (surface listed ~15; site/* alone has ~10, e.g. site/mod.rs:1266,1548, coverage.rs:405,856); the combining-mark range predicate appears **10 times**, not 6 (add dump.rs:452, enrich.rs:183, proto.rs:120, site/search.rs:275); `catch_unwind` on inflector panics appears at **8+ sites**, not the 2 verification flagged (add inflect_eval.rs:76,160,241, site/navigation.rs:990,1001, beside forms.rs:129,290 — the proposed forms.rs wrapper should absorb all of them); the `official::load(DEFAULT_OFFICIAL)` test preamble is 21 sites (add site/tests.rs ×2, site/coverage.rs ×1); site/model.rs:267 has the same redundant double-fold (`ascii_skeleton(&to_standard(&lower))`) as surface's triple-fold finding.\n\n7. **Library println! is a crate-wide pattern, not a corpus.rs one-off**: 12 files print from lib paths (dump, enrich, derive, falsefriends, flavorize, release, …); generation flagged only build_sets.\n\nCONTRADICTIONS / MERGE LIST\n\n- **english_gloss_tokens (check→site)**: extraction F1 + surface F6 + verification F1 are one finding with three destinations proposed (glossxref.rs / new gloss.rs / normalize.rs). Merge; resolve to a single src/gloss.rs that also takes dump::gloss_tokens, falsefriends::gloss_tokens+ordered_tokens, glossxref::head_tokens verbatim with re-exports.\n- **pos_raw parsers**: extraction F2 (valence_char→model.rs) and surface F1 (four parsers→new postag.rs) overlap and conflict on destination. Merge into one move; surface's version is the complete one (it adds aspect::aspect and the eval.rs:1909 inline copy).\n- **Pos::parse duplicate `starts_with(\"m.\")` + parse_noun_traits drift**: extraction F10 and surface F10 are byte-for-byte the same finding.\n- **Combining-mark predicate**: surface F5 and extraction F12 (chain_key vs norm_word) are two halves of one accent-fold helper; true scope 10 sites across four areas.\n- **form_key idiom**: surface F2 and generation F1's dedupe key (`to_standard(&c.form.to_lowercase())` in both dedupe twins) are the same idiom; sequence the fold_key hoist before the dedupe-helper extraction.\n- **Test preamble dedup**: verification F9 should widen to include site/tests.rs and site/coverage.rs.\n- **Load-contract `.ok()`**: extraction F4 (main.rs:387, coincheck.rs:292-293) merges with the unflagged falsefriends.rs:990-995 into one \"route all cache loads through dump::load_optional\" fix.\n\nTOP-10 SEQUENCE (every commit provable byte-identical via CI's double-export tree hash + artifact git-diffs)\n\n1. **Provable-dead deletions batch (S)**: ConsensusConfig::full(), duplicate PREFIX_VARIANTS row, duplicate `m.` disjunct, check.rs no-ops (`let _ = json_escape(\"\")`, `let _ = index`), Index.noun_animate + its false doc, morph.rs unreachable suffix entries, debase_stress. Zero risk, immediate reading-surface shrink, exercises the CI proof loop.\n2. **Load-contract fixes (S)**: main.rs:387, coincheck.rs:292-293, falsefriends.rs:990-995 through dump::load_optional. The only pure correctness fix in the audit — silent stale-cache degradation is the failure mode the schema stamps exist for.\n3. **Add a CI freshness guard for data/corpus-calibration.json** (extend ci.yml:49's git-diff or a `corpus-eval --fit --check` mode) (S). Closes the one committed-artifact lifecycle hole before any generation refactoring starts.\n4. **DEFAULT_NOVEL_WORDS + one NovelWordRow write/parse pair + pass in-memory rows to build_index (M)**: kills the mid-run disk round-trip and 8 hardcoded literals; schema owned once.\n5. **src/gloss.rs consolidation (M, pure motion)**: relocate all five tokenizers verbatim with re-exports. One commit removes check→site, thesaurus→dump, and site→falsefriends reaches.\n6. **ProtoIndex::load_with_lemmas (M)**: the worst nonlinear edge — a cwd-dependent hidden second cache read inside a loader — becomes an explicit parameter.\n7. **orthography::fold_key + is_combining_mark, substituted mechanically at the 59/10 sites (S per batch)**: largest drift-risk reduction per line; do in 2-3 batches with the CI hash between.\n8. **postag.rs (one pos_raw grammar: aspect/valence/gender-traits) + point eval.rs:1909 at aspect::aspect (M)**: four areas converge on one truth table.\n9. **Eval-only code motion (M)**: Oracle + link_oracle + non-production rep rules out of consensus/proto_link; derive::run_eval + naive_family into eval; generate_pair into pipeline. Leaves production generate() oracle-free and makes future ladder retirement mechanical.\n10. **Shared post-processing helpers for the corpus::generate_set / pipeline::generate_oracle twins (M)** — extract append_reflexive/dedupe-with-policy keeping each caller's exact particle list and drop-vs-upgrade policy; unify lists only later with a measured proof. Then, opportunistically: stream_jsonl + load_stamped_cache in dump/enrich (frozen caches, lowest urgency) and the 21-site test-preamble helper with a OnceLock'd CSV load.\n\nDeliberately deferred below top-10: FormRecord.lemma_key (perf, not risk), agent_guide relocation, tokenize/tokenize_with_breaks merge, coincheck Collision struct — all sound but lower risk-reduction per effort."
+}

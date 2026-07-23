@@ -1,7 +1,7 @@
 {
   "score_domain": "corpus-coverage-banded-v2",
-  "fitted_on": "cache cognate sets gloss+POS-matched to official rows, banded by attesting languages, 19730 samples (4952 holdout), generate_set coverage score",
-  "holdout_ece": 0.019837642155116342,
+  "fitted_on": "cache cognate sets gloss+POS-matched to official rows, banded by attesting languages, 19729 samples (4951 holdout), generate_set coverage score",
+  "holdout_ece": 0.0198748142392087,
   "propose_pr": [
     0.0,
     0.0
@@ -25,8 +25,8 @@
         0.16420134618610513
       ],
       "dev_n": 12270,
-      "holdout_n": 4142,
-      "holdout_ece": 0.011738183327405019
+      "holdout_n": 4141,
+      "holdout_ece": 0.011780670535691307
     },
     "4-6": {
       "deciles": [

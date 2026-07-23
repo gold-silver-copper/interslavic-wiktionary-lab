@@ -23,9 +23,9 @@
       "sha256": "45ef377ec6eef205121fb47296d46fa9b93c4c5eb4282039ed6808aa3d222639"
     },
     {
-      "bytes": 1648,
+      "bytes": 1646,
       "path": "data/corpus-calibration.json",
-      "sha256": "5c4ec891ed12ff3823a34623c1242a498a69ac9709049da6d8ebf49193de569a"
+      "sha256": "76ff267b701e9e530c93be14f560208c5a263aea7db0cb18064ac569837d9426"
     },
     {
       "bytes": 188,

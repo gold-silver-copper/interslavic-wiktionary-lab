@@ -1,5 +1,24 @@
 //! Reusable library for Slovowiki's linguistic pipeline and static-site exporter.
 
+// One lint regime for every test module (V15.1 item 8): under cfg(test)
+// the unwrap-family denies and the four warn-gated pedantic lints are
+// allowed crate-wide — tests legitimately unwrap/panic and are not the
+// burn-down's target. The lib target compiles WITHOUT cfg(test), so
+// clippy's -D warnings still enforces everything on production code.
+#![cfg_attr(
+    test,
+    allow(
+        clippy::unwrap_used,
+        clippy::panic,
+        clippy::unwrap_in_result,
+        clippy::indexing_slicing,
+        clippy::map_unwrap_or,
+        clippy::redundant_closure_for_method_calls,
+        clippy::uninlined_format_args,
+        clippy::needless_pass_by_value
+    )
+)]
+
 pub mod aspect;
 pub mod calibrate;
 pub mod check;
@@ -7,22 +26,27 @@ pub mod coincheck;
 pub mod consensus;
 pub mod corpus;
 pub mod derive;
+pub mod derive_eval;
 pub mod dump;
 pub mod enrich;
 pub mod eval;
 pub mod falsefriends;
+pub mod fingerprint;
 pub mod flavorize;
 pub mod forms;
 pub mod generator;
+pub mod gloss;
 pub mod glossxref;
 pub mod inflect_eval;
 pub mod lang;
 pub mod model;
 pub mod morph;
 pub mod normalize;
+pub mod novel;
 pub mod official;
 pub mod orthography;
 pub mod pipeline;
+pub mod postag;
 pub mod proto;
 pub mod proto_link;
 pub mod release;

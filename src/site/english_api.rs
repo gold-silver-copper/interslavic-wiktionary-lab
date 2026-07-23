@@ -42,29 +42,12 @@ const EN_DESUFFIX_SAMPLES: &[&str] = &[
     "stories",
 ];
 
-/// Function words: never a lookup key, not even as an exact gloss head.
-const HEAD_STOPWORDS: &[&str] = &["a", "an", "and", "etc", "in", "of", "or", "the", "to"];
-
-/// Grammatical-note noise, filtered from token extraction only. A gloss whose
-/// entire head is one of these ("one", "form", "plural") is a real English
-/// word and must stay findable.
-const TOKEN_STOPWORDS: &[&str] = &[
-    "archaic",
-    "dative",
-    "form",
-    "genitive",
-    "instrumental",
-    "locative",
-    "nominative",
-    "obsolete",
-    "one",
-    "plural",
-    "singular",
-    "someone",
-    "something",
-    "used",
-    "variant",
-];
+// The English key-extraction subtree (stopword consts, normalization,
+// gloss_keys and its helpers, english_gloss_tokens) moved verbatim to
+// crate::gloss (V15 item 4); the old public paths stay valid.
+pub(super) use crate::gloss::gloss_keys;
+pub use crate::gloss::normalize_english_query;
+use crate::gloss::{match_rank, usable_token_key};
 
 #[derive(Debug, Clone, Serialize)]
 pub(super) struct EnglishCandidate {
@@ -132,210 +115,8 @@ struct ShardFile {
     records: BTreeMap<String, Vec<EnglishCandidate>>,
 }
 
-fn normalize_english_text(raw: &str) -> String {
-    let mut out = String::new();
-    let mut last_space = true;
-    for ch in raw.to_lowercase().chars() {
-        if ch.is_alphanumeric() {
-            out.push(ch);
-            last_space = false;
-        } else if !last_space {
-            out.push(' ');
-            last_space = true;
-        }
-    }
-    out.trim().to_string()
-}
-
-pub fn normalize_english_query(raw: &str) -> String {
-    let key = normalize_english_text(raw);
-    key.strip_prefix("to ")
-        .map(str::trim)
-        .filter(|rest| !rest.is_empty())
-        .unwrap_or(&key)
-        .to_string()
-}
-
 pub fn english_shard_of(key: &str) -> u32 {
     forms::fnv1a32(key) % EN_SHARDS
-}
-
-fn usable_head_key(key: &str) -> bool {
-    let n = key.chars().count();
-    (2..=48).contains(&n)
-        && !HEAD_STOPWORDS.contains(&key)
-        && !key.ends_with(" etc")
-        && !key.starts_with("used ")
-}
-
-fn usable_token_key(key: &str) -> bool {
-    usable_head_key(key) && !TOKEN_STOPWORDS.contains(&key)
-}
-
-pub(super) fn gloss_keys(gloss: &str) -> Vec<(String, String)> {
-    // Derivative glosses ("label ← base (…)") truncate the base gloss with a
-    // trailing `…`, so their final segment can be a cut word ("substa…") or
-    // carry an unbalanced paren. Official glosses use `…` legitimately
-    // ("either … or …") and are never ←-shaped.
-    let derived = gloss.contains('←');
-    let gloss = english_lookup_gloss(gloss);
-    let mut out = Vec::new();
-    for segment in split_gloss_segments(gloss) {
-        if derived && segment.contains('…') {
-            continue;
-        }
-        let (head, parenthetical) = split_parenthetical(segment);
-        push_gloss_head_keys(&mut out, head);
-        if let Some(note) = parenthetical {
-            push_parenthetical_keys(&mut out, note);
-        }
-    }
-    out
-}
-
-fn english_lookup_gloss(gloss: &str) -> &str {
-    if gloss.contains('←') {
-        if let (Some(open), Some(close)) = (gloss.find('('), gloss.rfind(')')) {
-            if open < close {
-                return &gloss[open + 1..close];
-            }
-        }
-    }
-    gloss
-}
-
-fn split_gloss_segments(gloss: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut start = 0usize;
-    let mut depth = 0usize;
-    for (i, ch) in gloss.char_indices() {
-        match ch {
-            '(' | '[' | '{' => depth += 1,
-            ')' | ']' | '}' => depth = depth.saturating_sub(1),
-            ',' | ';' | '/' if depth == 0 => {
-                out.push(&gloss[start..i]);
-                start = i + ch.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    out.push(&gloss[start..]);
-    out
-}
-
-fn split_parenthetical(segment: &str) -> (&str, Option<&str>) {
-    match (segment.find('('), segment.rfind(')')) {
-        (Some(open), Some(close)) if open < close => {
-            let before = segment[..open].trim();
-            let after = segment[close + 1..].trim();
-            if before.is_empty() && !after.is_empty() {
-                // Leading register label, e.g. "(formal) day": the head follows
-                // the note, and the label itself is not a lookup key.
-                (after, None)
-            } else {
-                (before, Some(segment[open + 1..close].trim()))
-            }
-        }
-        _ => (segment.trim(), None),
-    }
-}
-
-fn push_gloss_head_keys(out: &mut Vec<(String, String)>, raw: &str) {
-    let normalized_head = raw.replace(" or ", ",");
-    if normalized_head != raw {
-        // Idioms like "more or less": query normalization keeps "or", so the
-        // full phrase must be a key too, not only the split alternatives. The
-        // " or " must survive normalization ("either … or …" folds to
-        // "either or" — not a phrase anyone queries).
-        let full = normalize_english_query(raw);
-        if full.contains(" or ") && usable_head_key(&full) {
-            push_key(out, full, "phrase");
-        }
-    }
-    for part in normalized_head.split(',') {
-        let key = normalize_english_query(part);
-        if !usable_head_key(&key) {
-            continue;
-        }
-        let match_kind = if key.contains(' ') {
-            "phrase"
-        } else {
-            "exact-gloss-head"
-        };
-        push_key(out, key.clone(), match_kind);
-        if key.contains(' ') {
-            push_token_keys(out, &key);
-        }
-    }
-}
-
-fn push_parenthetical_keys(out: &mut Vec<(String, String)>, raw: &str) {
-    if raw.contains([',', ';', '/']) {
-        return;
-    }
-    let mut key = normalize_english_query(raw);
-    for prefix in ["of ", "a ", "an ", "the ", "on ", "in "] {
-        while let Some(rest) = key.strip_prefix(prefix) {
-            key = rest.trim().to_string();
-        }
-    }
-    let words = key.split_whitespace().count();
-    if words <= 3 {
-        push_token_keys(out, &key);
-    }
-}
-
-fn push_token_keys(out: &mut Vec<(String, String)>, key: &str) {
-    for token in key.split_whitespace() {
-        if usable_token_key(token) {
-            push_key(out, token.to_string(), "gloss-token");
-        }
-    }
-}
-
-/// Rank contribution of the match kind. `phrase` and `exact-gloss-head` never
-/// compete on one key (a key with a space is always a phrase match, a key
-/// without one never is) — the weights only order them against `gloss-token`.
-fn match_rank(match_kind: &str) -> i32 {
-    match match_kind {
-        "phrase" => 120,
-        "exact-gloss-head" => 100,
-        // Mechanical English derivation of the base's gloss (see
-        // `derived_english_forms`): stronger than an incidental token hit,
-        // weaker than an exact head.
-        "derived-english" => 80,
-        "gloss-token" => 40,
-        _ => 20,
-    }
-}
-
-fn push_key(out: &mut Vec<(String, String)>, key: String, match_kind: &str) {
-    match out.iter_mut().find(|(seen, _)| seen == &key) {
-        // Upgrade, e.g. a token of an earlier phrase segment reappearing as
-        // its own exact segment: "up until, before, until".
-        Some((_, existing)) if match_rank(match_kind) > match_rank(existing) => {
-            *existing = match_kind.to_string();
-        }
-        Some(_) => {}
-        None => out.push((key, match_kind.to_string())),
-    }
-}
-
-/// Deterministic content-token set of an English gloss — the SAME key
-/// extraction and stopword discipline the English index build uses
-/// ([`gloss_keys`]), flattened to single tokens. This is the overlap test
-/// behind `check-text`'s project-lexicon consistency warning (V13 item 1):
-/// two glosses "overlap" iff their token sets intersect.
-pub fn english_gloss_tokens(gloss: &str) -> std::collections::BTreeSet<String> {
-    let mut out = std::collections::BTreeSet::new();
-    for (key, _) in gloss_keys(gloss) {
-        for token in key.split_whitespace() {
-            if usable_token_key(token) {
-                out.insert(token.to_string());
-            }
-        }
-    }
-    out
 }
 
 fn key_matches(gloss: &str) -> Vec<KeyMatch> {
@@ -788,16 +569,17 @@ pub fn run_en_batch(site_dir: &Path, file: &Path, json: bool) -> anyhow::Result<
         sense_notes += sense_note.is_some() as usize;
         if !json {
             let show = |c: &Option<serde_json::Value>| {
-                c.as_ref()
-                    .map(|c| {
+                c.as_ref().map_or_else(
+                    || "—".into(),
+                    |c| {
                         format!(
                             "{} [{} via {}]",
                             c["lemma"].as_str().unwrap_or(""),
                             c["trust"].as_str().unwrap_or(""),
                             c["step"].as_str().unwrap_or(""),
                         )
-                    })
-                    .unwrap_or_else(|| "—".into())
+                    },
+                )
             };
             println!(
                 "{query}	{status}	{}	{}{}",
@@ -855,7 +637,7 @@ pub const PROBE_FILE: &str = "tools/translation-probe.txt";
 
 /// `translation-probe`: run the committed probe through the same `en --batch`
 /// machinery, print the headline counts against the recorded baseline, and
-/// write `target/eval/translation-probe.md` with per-category counts and the
+/// write `reports/translation-probe.md` with per-category counts and the
 /// full miss list. Always exits 0 — the numbers are reported, never gated.
 pub fn run_translation_probe(site_dir: &Path, probe: &Path, out_dir: &Path) -> anyhow::Result<()> {
     use std::fmt::Write as _;
@@ -897,7 +679,7 @@ pub fn run_translation_probe(site_dir: &Path, probe: &Path, out_dir: &Path) -> a
                 ..Default::default()
             });
         }
-        let cat = cats.last_mut().unwrap();
+        let cat = cats.last_mut().expect("pushed above when category changes");
         match row.status {
             "verified" => {
                 cat.verified += 1;
@@ -1120,7 +902,7 @@ pub(super) fn build_english_index(
             continue;
         }
 
-        let form_key = forms::form_key(&record.lemma);
+        let form_key = record.lemma_key.clone();
         let form_shard = forms::shard_of(&form_key);
         let note = notes.get(&form_key);
         let warnings = note.map(|n| vec![n.warning.clone()]).unwrap_or_default();
@@ -1165,10 +947,7 @@ pub(super) fn build_english_index(
         for key_match in keys {
             let rank = status_rank(record.status)
                 + key_match.match_rank
-                + record
-                    .probability
-                    .map(|p| (p * 10.0).round() as i32)
-                    .unwrap_or(0);
+                + record.probability.map_or(0, |p| (p * 10.0).round() as i32);
             let candidate = EnglishCandidate {
                 lemma: record.lemma.clone(),
                 entry_id: record.entry_id,
@@ -1401,6 +1180,7 @@ mod tests {
             form: lemma.to_string(),
             key: forms::form_key(lemma),
             lemma: lemma.to_string(),
+            lemma_key: forms::form_key(lemma),
             entry_id,
             pos: "verb",
             analyses: Vec::new(),

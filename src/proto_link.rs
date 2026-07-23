@@ -86,7 +86,7 @@ pub fn link_oracle<'a>(
     input: &MeaningInput,
     official: &str,
 ) -> Option<ProtoLink<'a>> {
-    let target = ortho::to_standard(&official.trim().to_lowercase());
+    let target = ortho::fold_key(official.trim());
     let mut candidates: Vec<usize> = index.gloss_candidates(&input.gloss);
     for f in &input.forms {
         if !f.modern || !f.primary || f.norm.skeleton.is_empty() {
@@ -112,9 +112,8 @@ pub fn link_oracle<'a>(
         if derived.is_empty() {
             continue;
         }
-        let d =
-            ortho::normalized_edit_distance(&ortho::to_standard(&derived.to_lowercase()), &target);
-        if best.as_ref().map(|(_, bd)| d < *bd).unwrap_or(true) {
+        let d = ortho::normalized_edit_distance(&ortho::fold_key(&derived), &target);
+        if best.as_ref().is_none_or(|(_, bd)| d < *bd) {
             best = Some((e, d));
         }
     }
@@ -177,7 +176,7 @@ pub fn link<'a>(
                 &bare_sk,
                 &gloss_toks,
                 input,
-                Some(isv_prefix.clone()),
+                Some(&isv_prefix),
                 false,
             ) {
                 // Stripped links are slightly less certain.
@@ -197,7 +196,7 @@ fn link_core<'a>(
     skeletons: &[String],
     gloss_toks: &[String],
     input: &MeaningInput,
-    prefix: Option<String>,
+    prefix: Option<&str>,
     deep_corroboration: bool,
 ) -> Option<ProtoLink<'a>> {
     if skeletons.is_empty() {
@@ -265,18 +264,14 @@ fn link_core<'a>(
         };
 
         let confidence = 0.42 * desc_membership + 0.36 * form_similarity + 0.22 * gloss_overlap;
-        if best
-            .as_ref()
-            .map(|b| confidence > b.confidence)
-            .unwrap_or(true)
-        {
+        if best.as_ref().is_none_or(|b| confidence > b.confidence) {
             best = Some(ProtoLink {
                 entry: e,
                 confidence,
                 desc_membership,
                 form_similarity,
                 gloss_overlap,
-                prefix: prefix.clone(),
+                prefix: prefix.map(str::to_string),
             });
         }
     }
@@ -341,7 +336,6 @@ const PREFIX_VARIANTS: &[(&str, &str)] = &[
     ("bez", "bez"),
     ("bes", "bez"),
     ("voz", "vȯz"),
-    ("voz", "vȯz"),
     ("pod", "pod"),
     ("nad", "nad"),
     ("pri", "pri"),
@@ -385,8 +379,7 @@ fn strip_one(latin: &str) -> Option<(&'static str, String)> {
             let vowel_initial = rest
                 .chars()
                 .next()
-                .map(|c| "aeiouyěęǫųåȯ".contains(c))
-                .unwrap_or(true);
+                .is_none_or(|c| "aeiouyěęǫųåȯ".contains(c));
             // Consonant-initial stems are the safe common case. Vowel-initial
             // stems (raz+um→umeti) are allowed only for the longer, unambiguous
             // prefixes and a longer stem — the short prefixes (na/po/za/do/u)

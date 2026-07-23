@@ -109,25 +109,16 @@ pub struct EnrichIndex {
 
 impl EnrichIndex {
     pub fn load(path: &Path) -> Result<Self> {
-        let bytes = crate::dump::read_maybe_gz(path)
-            .with_context(|| format!("open enrich cache {}", path.display()))?;
-        let mut cache: EnrichCache =
-            serde_json::from_slice(&bytes).context("parse enrich cache")?;
-        crate::dump::check_cache_schema(
+        // Entry-count checked (inside load_stamped_cache) BEFORE the markup
+        // filter below mutates `entries`.
+        let mut cache: EnrichCache = crate::dump::load_stamped_cache(
             "enrich",
             path,
-            cache.schema,
+            |c: &EnrichCache| c.schema,
             ENRICH_CACHE_SCHEMA,
+            |c| (c.entry_count, c.entries.len()),
             "make extract-enrich",
         )?;
-        // Checked before the markup filter below mutates `entries`.
-        anyhow::ensure!(
-            cache.entry_count == cache.entries.len(),
-            "corrupt enrich cache {}: entry_count {} but {} entries",
-            path.display(),
-            cache.entry_count,
-            cache.entries.len()
-        );
         // Drop the handful of strings where wiktextract leaked unparsed wiki markup
         // (`[[">*melko< / [[span>#…|span>]]]]`, `''…''`, stray tags) so no page shows
         // garbage. A bare `<` is kept — it is legit descent notation ("*ognь < …").
@@ -180,7 +171,7 @@ fn norm_word(word: &str) -> String {
     word.trim()
         .to_lowercase()
         .chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .collect()
 }
 
@@ -475,7 +466,7 @@ fn entry_from_value(v: &Value, lang: &str, word: &str) -> EnrichEntry {
                 let joined: Vec<String> = g
                     .iter()
                     .filter_map(Value::as_str)
-                    .map(|x| x.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect();
                 let text = truncate(&joined.join("; "), 220);
                 if !text.trim().is_empty() && !senses.contains(&text) {

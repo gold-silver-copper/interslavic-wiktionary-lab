@@ -129,7 +129,7 @@ impl RuleStep {
             before: before.into(),
             after: after.into(),
             explanation: explanation.into(),
-            reference: reference.map(|s| s.to_string()),
+            reference: reference.map(std::string::ToString::to_string),
         }
     }
 }
@@ -243,76 +243,9 @@ impl Pos {
 
     /// Parse both official ("m.", "v.tr. ipf.", "adj.", "adv.") and Wiktextract
     /// ("noun", "verb", "adj", "proper noun") part-of-speech strings.
+    /// Shim: the pos_raw grammar lives in crate::postag (V15 item 5).
     pub fn parse(raw: &str) -> Pos {
-        let s = raw.trim().to_lowercase();
-        if s.is_empty() {
-            return Pos::Other;
-        }
-        // Wiktextract style first.
-        match s.as_str() {
-            "noun" => return Pos::Noun,
-            "proper noun" | "proper_noun" | "name" => return Pos::ProperNoun,
-            "verb" => return Pos::Verb,
-            "adj" | "adjective" => return Pos::Adjective,
-            "adv" | "adverb" => return Pos::Adverb,
-            "num" | "numeral" | "number" => return Pos::Numeral,
-            "pron" | "pronoun" => return Pos::Pronoun,
-            "prep" | "preposition" | "postp" => return Pos::Preposition,
-            "conj" | "conjunction" => return Pos::Conjunction,
-            "intj" | "interjection" => return Pos::Interjection,
-            "particle" | "prtcl" => return Pos::Particle,
-            "prefix" => return Pos::Prefix,
-            "suffix" | "affix" => return Pos::Suffix,
-            "phrase" | "proverb" | "idiom" => return Pos::Phrase,
-            _ => {}
-        }
-        // Official dictionary style (leading abbreviation).
-        if s.starts_with("v.") || s.starts_with("v ") || s == "v" {
-            return Pos::Verb;
-        }
-        if s.starts_with("adj") {
-            return Pos::Adjective;
-        }
-        if s.starts_with("adv") {
-            return Pos::Adverb;
-        }
-        if s.starts_with("num") {
-            return Pos::Numeral;
-        }
-        if s.starts_with("pron") {
-            return Pos::Pronoun;
-        }
-        if s.starts_with("prep") || s.starts_with("postp") {
-            return Pos::Preposition;
-        }
-        if s.starts_with("conj") {
-            return Pos::Conjunction;
-        }
-        if s.starts_with("intj") {
-            return Pos::Interjection;
-        }
-        if s.starts_with("prefix") {
-            return Pos::Prefix;
-        }
-        if s.starts_with("suffix") {
-            return Pos::Suffix;
-        }
-        if s.starts_with("phrase") {
-            return Pos::Phrase;
-        }
-        // Bare gender markers -> noun. `m.`, `f.`, `n.`, `m.anim.`, `f.sg.` ...
-        if s.starts_with("m.")
-            || s.starts_with("f.")
-            || s.starts_with("n.")
-            || s == "m"
-            || s == "f"
-            || s == "n"
-            || s.starts_with("m/")
-            || s.starts_with("m.")
-        {
-            return Pos::Noun;
-        }
-        Pos::Other
+        crate::postag::pos(raw)
     }
 
     pub fn heading_isv(self) -> &'static str {
@@ -356,21 +289,9 @@ pub struct NounTraits {
     pub indeclinable: bool,
 }
 
+/// Shim: the pos_raw grammar lives in crate::postag (V15 item 5).
 pub fn parse_noun_traits(raw: &str) -> NounTraits {
-    let s = raw.to_lowercase();
-    let mut t = NounTraits::default();
-    if s.starts_with("m.") || s == "m" || s.starts_with("m/") || s.starts_with("m ") {
-        t.gender = Some(Gender::Masculine);
-    } else if s.starts_with("f.") || s == "f" {
-        t.gender = Some(Gender::Feminine);
-    } else if s.starts_with("n.") || s == "n" {
-        t.gender = Some(Gender::Neuter);
-    }
-    t.animate = s.contains("anim");
-    t.plural_only = s.contains(".pl") || s.contains("pl.");
-    t.singular_only = s.contains(".sg") || s.contains("sg.");
-    t.indeclinable = s.contains("indecl");
-    t
+    crate::postag::noun_traits(raw)
 }
 
 #[cfg(test)]

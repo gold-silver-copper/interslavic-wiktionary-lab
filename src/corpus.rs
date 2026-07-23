@@ -44,10 +44,7 @@ pub struct GeneratedWord {
 
 impl GeneratedWord {
     pub fn form(&self) -> &str {
-        self.candidates
-            .first()
-            .map(|c| c.form.as_str())
-            .unwrap_or("")
+        self.candidates.first().map_or("", |c| c.form.as_str())
     }
 }
 
@@ -80,7 +77,15 @@ fn pos_class(pos: &str) -> &'static str {
 /// etymon. Merging on the shared etymon connects variants the Slavic-form
 /// skeleton alone splits (avtomobil ≍ automobil via the Latin `automobile`),
 /// lifting internationalisms out of the low-confidence singleton tail.
-pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
+/// The assembled cognate sets plus the borrowing-layer bridge diagnostic.
+/// The library no longer prints it (V15 item 6); CLI callers display
+/// `bridge_report` themselves.
+pub struct BuiltSets {
+    pub sets: Vec<CognateSet>,
+    pub bridge_report: String,
+}
+
+pub fn build_sets(corpus: &LemmaCorpus) -> BuiltSets {
     let mut inherited: BTreeMap<(String, &'static str), Vec<LemmaEntry>> = BTreeMap::new();
     let mut borrowed: Vec<(&LemmaEntry, String, &'static str)> = Vec::new(); // (lemma, slav_key, pos_class)
     let mut uf = UnionFind::default();
@@ -156,7 +161,7 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
             if root.is_empty()
                 || root.starts_with('-')
                 || root.ends_with('-')
-                || !root.chars().any(|c| c.is_alphabetic())
+                || !root.chars().any(char::is_alphabetic)
             {
                 continue;
             }
@@ -212,7 +217,7 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
         comps.entry(uf.find(snode)).or_default().push((*e).clone());
     }
     let largest = comps.values().map(Vec::len).max().unwrap_or(0);
-    println!(
+    let bridge_report = format!(
         "borrowing layer: {} lemmas → {} components (fold-identity bridge merged {}: {} → {}{}), {} non-Latin etymons keyed via transliteration, largest component {} members (issue #86)",
         borrowed.len(),
         comps_after,
@@ -233,7 +238,10 @@ pub fn build_sets(corpus: &LemmaCorpus) -> Vec<CognateSet> {
             sets.push(set);
         }
     }
-    sets
+    BuiltSets {
+        sets,
+        bridge_report,
+    }
 }
 
 /// The etymon's skeleton as a merge key. Latin-script source words key
@@ -362,24 +370,10 @@ fn proto_merge_key(proto: &str) -> String {
             '(' | '[' => depth += 1,
             ')' | ']' => depth = (depth - 1).max(0),
             _ if depth > 0 => {}
-            _ => out.push(debase_stress(c)),
+            _ => out.push(crate::proto::debase_vowel(c)),
         }
     }
     out
-}
-
-/// Strip a stress-accented base vowel to its plain base; leave etymological
-/// letters untouched (mirrors the reconstruction-cleaning in the proto engine).
-fn debase_stress(c: char) -> char {
-    match c {
-        'à' | 'á' | 'â' | 'ã' | 'ā' | 'ǎ' | 'ȁ' | 'ȃ' => 'a',
-        'è' | 'é' | 'ê' | 'ẽ' | 'ē' | 'ȅ' | 'ȇ' => 'e',
-        'ì' | 'í' | 'î' | 'ĩ' | 'ī' | 'ȉ' | 'ȋ' => 'i',
-        'ò' | 'ó' | 'ô' | 'õ' | 'ō' | 'ȍ' | 'ȏ' => 'o',
-        'ù' | 'ú' | 'û' | 'ũ' | 'ū' | 'ȕ' | 'ȗ' => 'u',
-        'ý' | 'ỳ' | 'ŷ' | 'ȳ' => 'y',
-        other => other,
-    }
 }
 
 /// The most common original reconstruction among merged members (for display).
@@ -419,8 +413,7 @@ fn most_common_pos(members: &[LemmaEntry]) -> Pos {
     counts
         .into_iter()
         .max_by_key(|(_, n)| *n)
-        .map(|(p, _)| Pos::parse(p))
-        .unwrap_or(Pos::Other)
+        .map_or(Pos::Other, |(p, _)| Pos::parse(p))
 }
 
 /// The gloss shared by the most members (the cognate-set's meaning), preferring a
@@ -515,8 +508,13 @@ pub fn generate_set(set: CognateSet, cfg: &ConsensusConfig) -> GeneratedWord {
 
     // Inherited words get their authoritative form from the *known* Proto-Slavic
     // ancestor; borrowings have no reconstruction and rely on the consensus.
+    // The cfg gate is WIRED (V15 item 6): this section used to run
+    // unconditionally, silently ignoring cfg.proto_derived_form. The
+    // investigation found every caller passes ConsensusConfig::production()
+    // (gate true), so wiring it is behavior-identical for the ship and every
+    // benchmark - the parameter is simply honest now.
     let mut reconstruction = None;
-    if !set.borrowed {
+    if !set.borrowed && cfg.proto_derived_form {
         let reflexes: Vec<String> = input
             .forms
             .iter()
@@ -621,7 +619,7 @@ fn dedupe(candidates: &mut Vec<Candidate>) {
     let mut seen: Vec<String> = Vec::new();
     let mut out: Vec<Candidate> = Vec::new();
     for c in candidates.drain(..) {
-        let key = ortho::to_standard(&c.form.to_lowercase());
+        let key = ortho::fold_key(&c.form);
         if seen.contains(&key) {
             continue;
         }
@@ -727,7 +725,7 @@ mod tests {
                 le("cs", "voda", "noun", "*voda", ""),
             ],
         };
-        let sets = build_sets(&corpus);
+        let sets = build_sets(&corpus).sets;
         assert!(
             sets.iter()
                 .all(|s| !s.proto.starts_with("*-") && !s.proto.ends_with('-')),
@@ -802,7 +800,7 @@ mod tests {
                 le("pl", "aloes", "noun", "", "frm aloès"), // different fold → own set
             ],
         };
-        let sets = build_sets(&corpus);
+        let sets = build_sets(&corpus).sets;
         let borrowed: Vec<_> = sets.iter().filter(|s| s.borrowed).collect();
         assert_eq!(borrowed.len(), 2, "{borrowed:?}");
         let merged = borrowed

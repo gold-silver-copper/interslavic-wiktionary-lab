@@ -71,7 +71,7 @@ enforced by CI and the report tooling:
    rung on the ablation ladder in `eval.rs` (the ladder must end at
    `ConsensusConfig::production()` — a test asserts this).
 2. Run `cargo run --release -- evaluate` before and after. The primary
-   keep-metric is **exact top-1**; `target/eval/methodology.md` reports each
+   keep-metric is **exact top-1**; `reports/methodology.md` reports each
    rung's **dev/holdout split** (a rule must hold its gain on the held-out
    quarter) and a **paired sign test** (p ≳ 0.05 ⇒ provisional, not proven).
 3. Ship a regression test per fix. Record rejected experiments honestly, with
@@ -102,7 +102,7 @@ for one entry).
 | `check-text <file> [--json]` | verify an Interslavic text against the lexicon |
 
 Every new capability ships with its own benchmark command and a committed
-report under `target/eval/` — state the denominator, the leakage story, and
+report under `reports/` — state the denominator, the leakage story, and
 dev/holdout numbers in the report's first paragraph.
 
 ## The lexical API and its invariants

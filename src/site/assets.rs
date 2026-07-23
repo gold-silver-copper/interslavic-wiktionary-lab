@@ -5,7 +5,7 @@
 //! `search` boundary because it shares the search routing and wire schema.
 
 pub(super) fn css() -> String {
-    format!("{}\n{}", BASE_CSS, EXTRA_CSS)
+    format!("{BASE_CSS}\n{EXTRA_CSS}")
 }
 
 pub(super) fn site_base_js(relative_root: &str) -> String {

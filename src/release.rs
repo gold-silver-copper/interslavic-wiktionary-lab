@@ -31,7 +31,7 @@ use std::path::Path;
 pub const MANIFEST_SCHEMA: u32 = 2;
 pub const MANIFEST_PATH: &str = "data/MANIFEST.json";
 
-fn sha256_file(path: &Path) -> Result<(String, u64)> {
+pub(crate) fn sha256_file(path: &Path) -> Result<(String, u64)> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
     let mut h = Sha256::new();
     h.update(&bytes);
@@ -43,8 +43,26 @@ fn sha256_file(path: &Path) -> Result<(String, u64)> {
 /// (V14.1 finding 7). Stray local files can neither break verification nor
 /// leak into a committed manifest. git is required; this tool is
 /// maintainer/CI-facing and both run in the repository.
-fn tracked_data_files() -> Result<Vec<String>> {
+fn tracked_data_files_at(root: &Path) -> Result<Vec<String>> {
+    let prefix = std::process::Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["rev-parse", "--show-prefix"])
+        .output()
+        .context("locate the Git worktree root")?;
+    anyhow::ensure!(
+        prefix.status.success(),
+        "git rev-parse failed: {}",
+        String::from_utf8_lossy(&prefix.stderr)
+    );
+    anyhow::ensure!(
+        String::from_utf8(prefix.stdout)?.trim().is_empty(),
+        "{} is nested inside another Git worktree, not its root",
+        root.display()
+    );
     let out = std::process::Command::new("git")
+        .arg("-C")
+        .arg(root)
         .args(["ls-files", "-z", "--", "data"])
         .output()
         .context("run `git ls-files` (the manifest covers TRACKED data/ files)")?;
@@ -66,11 +84,17 @@ fn tracked_data_files() -> Result<Vec<String>> {
     Ok(names)
 }
 
+fn tracked_data_files() -> Result<Vec<String>> {
+    tracked_data_files_at(Path::new("."))
+}
+
 /// The resolved interslavic version from Cargo.lock — format-stable, and
 /// the truth about what actually built (V14.1 finding 6; the old
 /// Cargo.toml line-trim broke on legal `{ version = \"…\" }` forms).
-fn resolved_pin() -> Result<String> {
-    let lock = std::fs::read_to_string("Cargo.lock").context("read Cargo.lock")?;
+fn resolved_pin_at(root: &Path) -> Result<String> {
+    let lock_path = root.join("Cargo.lock");
+    let lock = std::fs::read_to_string(&lock_path)
+        .with_context(|| format!("read {}", lock_path.display()))?;
     let mut lines = lock.lines();
     while let Some(line) = lines.next() {
         if line.trim() == "name = \"interslavic\"" {
@@ -83,6 +107,10 @@ fn resolved_pin() -> Result<String> {
         }
     }
     anyhow::bail!("interslavic not found in Cargo.lock")
+}
+
+pub(crate) fn resolved_pin() -> Result<String> {
+    resolved_pin_at(Path::new("."))
 }
 
 /// Render the manifest for an explicit file list — serde_json end to end
@@ -100,6 +128,34 @@ fn committed_release() -> Result<u32> {
         "committed manifest has no data_release (pre-schema-2 tree) — regenerate with \
          `--write --release N`",
     )
+}
+
+fn manifest_files(manifest: &serde_json::Value) -> Result<Vec<String>> {
+    let entries = manifest["files"]
+        .as_array()
+        .context("committed manifest has no files array")?;
+    let mut files = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let path = entry["path"]
+            .as_str()
+            .context("committed manifest file entry has no path")?;
+        let safe_data_path = path.starts_with("data/")
+            && Path::new(path)
+                .components()
+                .all(|part| matches!(part, std::path::Component::Normal(_)))
+            && path != MANIFEST_PATH;
+        anyhow::ensure!(
+            safe_data_path,
+            "committed manifest contains unsafe or non-data path {path:?}"
+        );
+        files.push(path.to_string());
+    }
+    anyhow::ensure!(
+        files.windows(2).all(|pair| pair[0] < pair[1]),
+        "committed manifest file paths must be unique and sorted"
+    );
+    anyhow::ensure!(!files.is_empty(), "committed manifest has no data files");
+    Ok(files)
 }
 
 /// The newest `### data-vN` heading in the refresh changelog — the
@@ -121,10 +177,10 @@ fn newest_changelog_release(changelog: &Path) -> Result<u32> {
         })
 }
 
-fn render_manifest(files: &[String], data_release: u32) -> Result<String> {
+fn render_manifest_at(root: &Path, files: &[String], data_release: u32) -> Result<String> {
     let mut entries: Vec<serde_json::Value> = Vec::new();
     for path in files {
-        let (sha256, bytes) = sha256_file(Path::new(path))?;
+        let (sha256, bytes) = sha256_file(&root.join(path))?;
         entries.push(serde_json::json!({
             "path": path,
             "sha256": sha256,
@@ -135,12 +191,67 @@ fn render_manifest(files: &[String], data_release: u32) -> Result<String> {
     let manifest = serde_json::json!({
         "schema_version": MANIFEST_SCHEMA,
         "data_release": data_release,
-        "crate_pin": resolved_pin()?,
+        "crate_pin": resolved_pin_at(root)?,
         "forms_schema": crate::forms::SCHEMA_VERSION,
         "probe_baseline": [b0, b1, b2],
         "files": entries,
     });
     Ok(serde_json::to_string_pretty(&manifest)? + "\n")
+}
+
+fn render_manifest(files: &[String], data_release: u32) -> Result<String> {
+    render_manifest_at(Path::new("."), files, data_release)
+}
+
+fn release_if_verified(
+    on_disk: &str,
+    rendered: &str,
+    data_release: u32,
+    witnessed_release: u32,
+) -> Option<u32> {
+    (witnessed_release == data_release && on_disk == rendered).then_some(data_release)
+}
+
+/// Return the committed data release only when the complete manifest contract
+/// verifies against the current checkout. Callers that merely need
+/// provenance can turn an error into `null`; unlike reading `data_release`
+/// directly, this can never label edited or incomplete default-path inputs as
+/// an exact data-vN tree.
+fn verified_data_release_at(root: &Path) -> Result<Option<u32>> {
+    let manifest_path = root.join(MANIFEST_PATH);
+    let on_disk = std::fs::read_to_string(&manifest_path).with_context(|| {
+        format!(
+            "{} missing — run `data-manifest --write`",
+            manifest_path.display()
+        )
+    })?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&on_disk).context("parse committed manifest")?;
+    let data_release = manifest["data_release"]
+        .as_u64()
+        .and_then(|n| u32::try_from(n).ok())
+        .context("committed manifest has no valid data_release")?;
+    let files = manifest_files(&manifest)?;
+    // A source archive has no .git directory, so the manifest's canonical
+    // sorted file list is the authority there. In a worktree, Git provides
+    // an additional check that the manifest omitted or added no tracked data.
+    if let Ok(tracked) = tracked_data_files_at(root) {
+        if tracked != files {
+            return Ok(None);
+        }
+    }
+    let witnessed_release = newest_changelog_release(&root.join("data/refresh-changelog.md"))?;
+    let rendered = render_manifest_at(root, &files, data_release)?;
+    Ok(release_if_verified(
+        &on_disk,
+        &rendered,
+        data_release,
+        witnessed_release,
+    ))
+}
+
+pub(crate) fn verified_data_release() -> Result<Option<u32>> {
+    verified_data_release_at(Path::new("."))
 }
 
 /// `data-manifest [--write]`: verify (default) or regenerate the manifest.
@@ -279,7 +390,7 @@ pub fn run_refresh(input: &Path, official: &Path, changelog: &Path) -> Result<()
         "- evaluate normalized top-1: __% → __%",
         "- corpus-eval exact/normalized: __ → __",
         "- probe verified/generated-only/miss: __/__/__ → __/__/__ (update PROBE_BASELINE)",
-        "- aspect both/either/fingerprint: __ → __ (re-bless target/eval/aspect-pairs.*)",
+        "- aspect both/either/fingerprint: __ → __ (re-bless reports/aspect-pairs.*)",
         "- form index records/keys/lemmas: __ → __",
     ] {
         writeln!(entry, "{line}")?;
@@ -386,11 +497,23 @@ mod tests {
             m1,
             render_manifest(std::slice::from_ref(&file_a), 1).unwrap()
         );
+        assert_eq!(
+            release_if_verified(&m1, &m1, 1, 1),
+            Some(1),
+            "an exact manifest and witness identify their release"
+        );
         std::fs::write(&file_a, "x\t2\n").unwrap();
-        assert_ne!(
-            m1,
-            render_manifest(std::slice::from_ref(&file_a), 1).unwrap(),
-            "content change must invalidate"
+        let tampered = render_manifest(std::slice::from_ref(&file_a), 1).unwrap();
+        assert_ne!(m1, tampered, "content change must invalidate");
+        assert_eq!(
+            release_if_verified(&m1, &tampered, 1, 1),
+            None,
+            "default-path data with changed bytes must not claim data-v1"
+        );
+        assert_eq!(
+            release_if_verified(&m1, &m1, 1, 2),
+            None,
+            "a stale changelog witness must not claim data-v1"
         );
         let file_b = dir.join("b.tsv").to_string_lossy().to_string();
         std::fs::write(&file_b, "y\n").unwrap();
@@ -404,6 +527,65 @@ mod tests {
             run_refresh(&a, Path::new("data/official-isv.csv"), &dir.join("cl.md")).unwrap_err();
         assert!(err.to_string().contains("no-op"), "{err}");
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn released_tree_without_git_keeps_verified_identity() {
+        let outer = std::env::temp_dir().join(format!(
+            "slovowiki-release-archive-{}-{}",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("t")
+        ));
+        let _ = std::fs::remove_dir_all(&outer);
+        let dir = outer.join("vendor/slovowiki");
+        std::fs::create_dir_all(dir.join("data")).unwrap();
+        std::fs::write(
+            dir.join("Cargo.lock"),
+            "[[package]]\nname = \"interslavic\"\nversion = \"0.13.0\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("data/refresh-changelog.md"),
+            "# log\n\n### data-v7\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("data/example.tsv"), "word\tgloss\n").unwrap();
+        let files = vec!["data/example.tsv".to_string()];
+        let manifest = render_manifest_at(&dir, &files, 7).unwrap();
+        std::fs::write(dir.join(MANIFEST_PATH), &manifest).unwrap();
+
+        assert!(
+            !dir.join(".git").exists(),
+            "fixture must model a source archive"
+        );
+        assert_eq!(
+            verified_data_release_at(&dir).unwrap(),
+            Some(7),
+            "an exact manifest must identify a released tree without Git metadata"
+        );
+        let init = std::process::Command::new("git")
+            .arg("init")
+            .arg("--quiet")
+            .arg(&outer)
+            .status()
+            .unwrap();
+        assert!(init.success());
+        assert!(
+            tracked_data_files_at(&dir).is_err(),
+            "an enclosing consumer repository must not become the vendored tree's authority"
+        );
+        assert_eq!(
+            verified_data_release_at(&dir).unwrap(),
+            Some(7),
+            "an enclosing consumer repository must not erase a vendored release identity"
+        );
+        std::fs::write(dir.join("data/example.tsv"), "tampered\n").unwrap();
+        assert_eq!(
+            verified_data_release_at(&dir).unwrap(),
+            None,
+            "manifest-declared bytes still gate the release identity without Git"
+        );
+        let _ = std::fs::remove_dir_all(outer);
     }
 
     /// V14.1 finding 3: the refresh diff survives the three multiline-CSV

@@ -3,9 +3,7 @@
 //! Typed inputs from `model` keep orchestration state out of this boundary;
 //! functions here return markup and perform no filesystem writes.
 
-use super::layout::{
-    compact, conf_class, esc, pos_code_label, pos_heading, status_pill, truncate, urlencode_q,
-};
+use super::layout::{compact, esc, pos_code_label, status_pill, truncate, urlencode_q};
 use super::model::{
     family_key, razum_pct, CorpusEntryInput, FamilyEntry, HeadwordIndex, OfficialDisplay,
     OfficialEntryInput, RawEntryInput, RenderContext, RAZUM_TITLE, RAZUM_TITLE_MATCHED,
@@ -15,9 +13,8 @@ use super::navigation::{entry_infobox, razum_row};
 use super::search::{search_js, strength_cell, HomeRow};
 use super::special::{DerivAgg, DerivRow};
 use crate::consensus::MeaningInput;
-use crate::generator::Generation;
 use crate::lang::Branch;
-use crate::model::{Candidate, CandidateSource, Confidence, Evidence, MatchStatus};
+use crate::model::{Candidate, CandidateSource, Evidence, MatchStatus};
 use crate::official::OfficialEntry;
 use interslavic::{Case as IsvCase, Number as IsvNumber};
 use std::collections::{BTreeMap, BTreeSet};
@@ -236,13 +233,14 @@ pub(super) fn corpus_entry_page(input: CorpusEntryInput<'_>) -> String {
         xref,
         raw_xref,
     } = *context;
-    let top = g.candidates.first().unwrap();
+    let top = g
+        .candidates
+        .first()
+        .expect("callers render only meanings with candidates");
     let pos_code = g.set.pos.code();
     // The official lemma is the authoritative headword when any candidate
     // reproduces it; the generated form stays visible as the reconstruction.
-    let headword = official
-        .map(|(_, isv, _)| isv.to_string())
-        .unwrap_or_else(|| top.form.clone());
+    let headword = official.map_or_else(|| top.form.clone(), |(_, isv, _)| isv.to_string());
     let recon_line = if headword != top.form {
         format!(
             "<p class='def'><b>Rekonstrukcija generatora:</b> <span class='mention'>{}</span></p>",
@@ -297,8 +295,7 @@ pub(super) fn corpus_entry_page(input: CorpusEntryInput<'_>) -> String {
     );
     let _ = write!(
         info_rows,
-        "<tr><th>Opomba</th><td>{}</td></tr>",
-        official_note
+        "<tr><th>Opomba</th><td>{official_note}</td></tr>"
     );
     // Generated page: razumlivost over the cognate-set membership; on a
     // MATCHED page the caller unioned in the official row's sameInLanguages
@@ -608,9 +605,7 @@ pub(super) fn word_chip(
     raw_xref: &crate::enrich::Xref,
     self_id: usize,
 ) -> String {
-    let generated = xref
-        .map(|x| x.lookup(lang, word))
-        .unwrap_or(crate::enrich::XrefMatch::Missing);
+    let generated = xref.map_or(crate::enrich::XrefMatch::Missing, |x| x.lookup(lang, word));
     // An ambiguous generated key must not fall through to a raw page: that
     // would merely replace one insertion-order-dependent sense choice with
     // another. Use the external source as the honest disambiguation surface.
@@ -921,10 +916,10 @@ pub(super) fn cognate_block(
                 ),
                 None => String::new(),
             };
-            let gloss = hit
-                .and_then(|e| e.senses.first())
-                .map(|x| truncate(&source_display(&m.lang, x), 44))
-                .unwrap_or_else(|| truncate(&source_display(&m.lang, &m.gloss), 32));
+            let gloss = hit.and_then(|e| e.senses.first()).map_or_else(
+                || truncate(&source_display(&m.lang, &m.gloss), 32),
+                |x| truncate(&source_display(&m.lang, x), 44),
+            );
             let visible_word = crate::flavorize::flavorize_word(&m.lang, &m.pos, &m.word);
             let norm = crate::normalize::to_phonemic_latin(&m.lang, &m.word);
             let norm_note = if norm != visible_word {
@@ -1207,6 +1202,7 @@ pub(super) fn enrich_member_block(
     inner
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct CorpusHomeInput<'a> {
     pub(super) entries: usize,
     pub(super) lemmas: usize,
@@ -1389,115 +1385,6 @@ pub(super) fn branch_evidence(input: &MeaningInput) -> Vec<Evidence> {
         .collect()
 }
 
-// ---------------------------------------------------------------------------
-// Entry page
-// ---------------------------------------------------------------------------
-
-pub(super) fn entry_page(
-    id: usize,
-    entry: &OfficialEntry,
-    g: &Generation,
-    evidence: &[Evidence],
-    cal: Option<&crate::calibrate::Calibration>,
-) -> String {
-    let top = g.candidates.first().unwrap();
-    let status = g.match_status;
-    let pos_code = entry.pos.code();
-
-    let headline = format!(
-        "<div class='headword-block'>
-           <div class='headmeta'>
-             <span class='badge pos'>{}</span>
-             <span class='pill {}'>{}</span>
-             <span class='reliability {}'>uvěrjenost: {}</span>
-             {}
-           </div>
-           <p class='def'><b>Anglijski smysl:</b> {}</p>
-         </div>",
-        esc(&pos_heading(&entry.pos_raw)),
-        source_class(top.source),
-        esc(top.source.label()),
-        conf_class(top.confidence),
-        top.confidence.label(),
-        status_pill(status),
-        esc(&entry.english),
-    );
-
-    let official = g.official.as_deref().unwrap_or(entry.isv.as_str());
-    let banner = status_banner(status, top, official);
-    let etymology = etymology_block(g);
-    let inflection = inflection_table_g(&top.form, pos_code, entry.noun_traits.gender);
-    let evidence_html = evidence_block(evidence);
-    let alternatives = alternatives_block(&g.candidates, None);
-    let trace = trace_block(top);
-    let calib = calibration_note(top.confidence, cal);
-    let freq = entry
-        .frequency
-        .map(|f| format!("<p class='muted'>Čęstota v slovniku: {f:.0}.</p>"))
-        .unwrap_or_default();
-
-    let body = format!(
-        "<article class='entry'>
-           <h1 class='page-title firstHeading'>{}</h1>
-           {banner}
-           {headline}
-           {calib}{freq}
-           <details class='sec' open><summary>Etimologija (praslovjanska rekonstrukcija)</summary>{etymology}</details>
-           <details class='sec' open><summary>Prěgibanje</summary>{inflection}</details>
-           <details class='sec' open><summary>Dokazy po slovjanskyh větvah</summary>{evidence_html}</details>
-           <details class='sec'><summary>Alternativne kandidaty</summary>{alternatives}</details>
-           <details class='sec'><summary>Sled pravil (kako je forma izvedena)</summary>{trace}</details>
-           <p class='foot'>Lokalno generovana stranica. Formy prěgibanja iz interslavic-rs. Forma je mašinno generovana — ne oficialny standard bez prověrky.</p>
-         </article>",
-        esc(&top.form),
-    );
-    let _ = id;
-    page(&format!("{} — medžuslovjansky", top.form), &body, 1)
-}
-
-pub(super) fn status_banner(status: MatchStatus, top: &Candidate, official: &str) -> String {
-    match status {
-        MatchStatus::OfficialMatch => format!(
-            "<div class='banner ok'><b>Oficialno potvŕđeno.</b> Generovana forma odgovara oficialnomu slovniku: <span class='mention'>{}</span>.</div>",
-            esc(official)
-        ),
-        MatchStatus::DiffersFromOfficial => format!(
-            "<div class='banner warn'><b>Razlikuje se od oficialnogo.</b> Generovany kandidat <span class='mention'>{}</span> · oficialna forma <span class='mention'>{}</span>.</div>",
-            esc(&top.form),
-            esc(official)
-        ),
-        MatchStatus::NoOfficialEntry => "<div class='banner info'><b>Nema oficialnogo zapisa.</b> Forma je čisto generovana iz slovjanskyh dokazov.</div>".to_string(),
-    }
-}
-
-pub(super) fn etymology_block(g: &Generation) -> String {
-    let Some(r) = &g.reconstruction else {
-        return "<p class='muted'>Za sej smysl ne najdena praslovjanska rekonstrukcija; forma je iz medžuvětvovogo konsensusa.</p>".to_string();
-    };
-    let mut s = format!(
-        "<p>Iz praslovjanskogo <a class='mention' href='{}'>*{}</a> <span class='muted'>(uvěrjenost povezanja {:.0}%)</span>.</p>",
-        esc(&crate::enrich::proto_source_url(&r.word)),
-        esc(&r.word),
-        100.0 * r.confidence
-    );
-    if !r.proto_balto_slavic.is_empty() {
-        let _ = write!(
-            s,
-            "<p>Prabaltoslavjansky: <span class='mention'>{}</span>.</p>",
-            esc(&r.proto_balto_slavic)
-        );
-    }
-    if !r.proto_indo_european.is_empty() {
-        let _ = write!(
-            s,
-            "<p>Praindoevropejsky: <span class='mention'>{}</span>.</p>",
-            esc(&r.proto_indo_european)
-        );
-    }
-    s.push_str("<p class='muted'>Medžuvětvovy konsensus izbira korenj; praslovjansko pravilo izvodi formu s pravilnymi znakami (ě, ć/đ, å, ȯ, y).</p>");
-    s
-}
-
 pub(super) fn alternatives_block(
     candidates: &[Candidate],
     top_razum_codes: Option<&[String]>,
@@ -1573,41 +1460,6 @@ pub(super) fn trace_block(c: &Candidate) -> String {
     }
     s
 }
-
-pub(super) fn evidence_block(evidence: &[Evidence]) -> String {
-    let mut s = String::new();
-    for branch in Branch::ALL {
-        let items: Vec<&Evidence> = evidence
-            .iter()
-            .filter(|ev| ev.branch == Some(branch))
-            .collect();
-        if items.is_empty() {
-            continue;
-        }
-        let _ = write!(
-            s,
-            "<div class='branch-box'><h4>{}</h4><table class='wikitable compact-table'><tbody>",
-            esc(branch.label())
-        );
-        for ev in items {
-            let _ = write!(
-                s,
-                "<tr><td class='lc'>{}</td><td><a href='{}'>{}</a></td><td class='muted'>{}</td></tr>",
-                esc(&ev.lang_name),
-                esc(&ev.source_url),
-                esc(&source_display(&ev.lang_code, &ev.form)),
-                esc(&source_display(&ev.lang_code, &ev.normalized_form))
-            );
-        }
-        s.push_str("</tbody></table></div>");
-    }
-    if s.is_empty() {
-        "<p class='muted'>Bez dokazov.</p>".to_string()
-    } else {
-        format!("<div class='branch-grid'>{s}</div>")
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Inflection (via the interslavic crate)
 // ---------------------------------------------------------------------------
@@ -1650,7 +1502,7 @@ pub(super) fn noun_table(word: &str, gender: Option<crate::model::Gender>) -> St
     // panics (inflect-eval asserts 0 panics over the official corpus), fall back
     // to the per-cell getters, which degrade a panicking cell to "—" — keeping
     // the old robustness for generated (non-official) cognate pages.
-    let forms = std::panic::catch_unwind(|| crate::forms::noun_paradigm_forms(word, gender)).ok();
+    let forms = crate::forms::catch_inflect(|| crate::forms::noun_paradigm_forms(word, gender));
     let cell = |case, num| match &forms {
         Some(f) => crate::forms::clean_cell(f.get(case, num)),
         None => crate::forms::noun_cell_g(word, case, num, gender),
@@ -1674,7 +1526,7 @@ pub(super) fn adj_table(word: &str) -> String {
     // as the API records. The four columns are exactly forms::ADJ_COLS. As in
     // noun_table, a panicking build (none in the official corpus) falls back to
     // the per-cell getters so generated cognate pages degrade to "—", not crash.
-    let forms = std::panic::catch_unwind(|| interslavic::adj_forms(word)).ok();
+    let forms = crate::forms::catch_inflect(|| interslavic::adj_forms(word));
     let header = "<table class='wikitable inflection-table'><thead><tr><th>Padež</th><th>M. živ.</th><th>M. neživ.</th><th>Ž.</th><th>Sr.</th></tr></thead><tbody>";
     let number_block = |num: IsvNumber| {
         let mut s = String::new();
@@ -1789,45 +1641,4 @@ pub(super) fn source_class(s: CandidateSource) -> &'static str {
         CandidateSource::OfficialDictionary => "src-official",
         _ => "src-consensus",
     }
-}
-
-/// The badge explainer under the legacy entry headline: measured operating
-/// points read live from the committed calibrator (issue #77), never
-/// hand-maintained rates that go stale.
-pub(super) fn calibration_note(
-    c: Confidence,
-    cal: Option<&crate::calibrate::Calibration>,
-) -> String {
-    let Some(cal) = cal else {
-        return "<p class='muted calib'>Sovmestimaja kalibracija ne dostupna — znak uvěrjenosti jest nekalibrovany modelovy kȯšik, ne věrojętnosť.</p>".to_string();
-    };
-    let rate = match c {
-        Confidence::High => format!(
-            "predlog p≥{:.1}: {:.1}% takyh kandidatov odgovara oficialnomu slovniku ({:.1}% pokrytje)",
-            crate::calibrate::PROPOSE_T,
-            100.0 * cal.propose_pr.0,
-            100.0 * cal.propose_pr.1,
-        ),
-        // Medium = the band p ∈ [0.3, 0.6) EXCLUSIVE of the High band —
-        // review_pr's threshold-inclusive precision (all p ≥ 0.3) would
-        // overstate this bucket's own match rate (~62% vs ~44%).
-        Confidence::Medium => match cal.review_band_precision() {
-            Some(band) => format!(
-                "pregled p∈[{:.1},{:.1}): ≈{:.0}% takyh kandidatov odgovara oficialnomu slovniku",
-                crate::calibrate::REVIEW_T,
-                crate::calibrate::PROPOSE_T,
-                100.0 * band,
-            ),
-            None => format!(
-                "pregled p∈[{:.1},{:.1})",
-                crate::calibrate::REVIEW_T,
-                crate::calibrate::PROPOSE_T,
-            ),
-        },
-        Confidence::Low => "pod pragom pregleda (p<0.3)".to_string(),
-    };
-    format!(
-        "<p class='muted calib'>Kalibrovana věrodostojnosť: {rate} (izměrjeno na odloženoj četvrtině; ECE {:.3}).</p>",
-        cal.holdout_ece
-    )
 }

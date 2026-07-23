@@ -14,3 +14,34 @@ sha2 = "0.10"
 # Exact crates.io pin keeps generated paradigms reproducible in CI and Pages.
 # For local work against a sibling clone, override it with a [patch].
 interslavic = "=0.13.0"
+
+# V15 item 7: the strict-lint adoption, from the audit's census (608 raw
+# hits: 306 lib / 302 test; test modules carry a blanket allow instead).
+# CI runs clippy with -D warnings, so every "warn" here is a hard gate.
+# expect_used stays ALLOW deliberately: expect-with-message is the
+# sanctioned escape hatch the unwrap burn-down converts sites TO.
+# indexing_slicing stays ALLOW globally (279 lib sites); the audit-flagged
+# panic-risk sites are fixed individually, the full burn-down is a tracked
+# per-module follow-up, not promised here.
+[lints.clippy]
+todo = "deny"
+dbg_macro = "deny"
+unwrap_used = "deny"
+unwrap_in_result = "deny"
+panic = "deny"
+# Pedantic picks driven to ZERO this PR and gated (CI's -D warnings makes
+# every warn a hard gate):
+map_unwrap_or = "warn"
+redundant_closure_for_method_calls = "warn"
+uninlined_format_args = "warn"
+needless_pass_by_value = "warn"
+# Pedantic picks ALLOWED with their census counts on record - under CI's
+# -D warnings a "warn" is a gate, and these need a real burn-down first
+# (tracked follow-up, per-module): cast_possible_truncation (29 lib),
+# cast_sign_loss (16 lib), match_same_arms (39), too_many_lines (46).
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+match_same_arms = "allow"
+too_many_lines = "allow"
+expect_used = "allow"
+indexing_slicing = "allow"

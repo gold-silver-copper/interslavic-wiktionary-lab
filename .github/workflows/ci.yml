@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Keep in sync with rust-toolchain.toml — the pin is what stops local
-      # rustfmt/clippy from drifting against CI.
-      - uses: dtolnay/rust-toolchain@master
+      # V15 item 9: one pin. The action reads rust-toolchain.toml, so the
+      # version lives in exactly one file instead of 4 hand-synced copies.
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: 1.93.1
           components: rustfmt, clippy
+          cache: false
       - uses: Swatinem/rust-cache@v2
       - name: Format
         run: cargo fmt --check
@@ -34,7 +34,7 @@ jobs:
       - name: Aspect-pair benchmark and frozen-manifest guard
         run: |
           cargo run --release -- aspect-eval
-          git diff --exit-code -- target/eval/aspect-pairs.md target/eval/aspect-pairs.tsv
+          git diff --exit-code -- reports/aspect-pairs.md reports/aspect-pairs.tsv
       - name: Aspect production-export guard
         run: |
           rm -rf /tmp/slovowiki-aspect-ci
@@ -47,6 +47,54 @@ jobs:
           (cd /tmp/slovowiki-aspect-ci && find . -type f -print0 | sort -z | xargs -0 sha256sum) > /tmp/export-tree-b.sha256
           diff -u /tmp/export-tree-a.sha256 /tmp/export-tree-b.sha256
           git diff --exit-code -- data/novel-words.tsv data/score-calibration.json
+      # Calibrator freshness guard (V15 item 3): data/corpus-calibration.json
+      # is written by `corpus-eval --fit` and read by export, but had no
+      # staleness guard — the one committed artifact that could silently
+      # drift against corpus::build_sets. Refit-and-diff, mirroring the
+      # score-calibration pattern above (the fit takes seconds).
+      - name: Corpus-calibration freshness guard
+        run: |
+          cargo run --release -- corpus-eval --fit
+          git diff --exit-code -- data/corpus-calibration.json
+      # V15 item 8 / V15.1 item 5: one committed time source.
+      # SOURCE_DATE_EPOCH / git metadata are the only time inputs any
+      # output path may use. Exit codes are inspected explicitly so a grep
+      # FAILURE (bad pattern, renamed path) fails the step instead of
+      # silently disabling the ban. Instant::now is deliberately not
+      # banned (monotonic, not a reproducibility hazard). Matching inside
+      # comments/strings is accepted bluntness: reword the comment.
+      - name: Wall-clock ban (SOURCE_DATE_EPOCH discipline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() {
+            local hits rc
+            if hits=$(grep -rnE "$1" "$2"); then
+              echo "::error::wall-clock API in an output path:"
+              echo "$hits"
+              return 1
+            else
+              rc=$?
+              if [ "$rc" -gt 1 ]; then
+                echo "::error::the ban's grep itself failed (rc=$rc) — fix the pattern/paths"
+                return "$rc"
+              fi
+            fi
+            return 0
+          }
+          check "SystemTime::now|chrono::|OffsetDateTime|Zoned::now" src/
+          check "new Date\(|Date\.now|datetime\.now|time\.time\(" tools/
+      # Report freshness (V15.1 item 2): the metrics page reads
+      # synonym-summary.json and corpus-summary.json at export time, so the
+      # committed copies must always match the code. Re-run and diff, same
+      # pattern as the calibrator guards. (The floor step below guards
+      # candidate-generation-summary.json the same way.)
+      - name: Benchmark report freshness (synonym + corpus summaries)
+        run: |
+          set -euo pipefail
+          cargo run --release -- synonym-eval
+          cargo run --release -- corpus-eval
+          git diff --exit-code -- reports/synonym-summary.json reports/synonym-accuracy.md reports/corpus-summary.json
       - name: Inflection full-corpus guard
         run: cargo run --release -- inflect-eval
       # Tracked translation probe (V13 item 3): a REPORTED metric, never a
@@ -90,12 +138,25 @@ jobs:
             grep -q '^data/refresh-changelog.md$' /tmp/changed-files.txt \
               || { echo "::error::data/official-isv.csv changed without a refresh-changelog entry (see docs/DATA-REFRESH.md)"; exit 1; }
           fi
+      # V15 item 9 / V15.1 item 1: the floor reads the machine-readable
+      # summary the run just rewrote. Fail-closed: pipefail keeps a broken
+      # evaluator from silently passing on the STALE committed summary, and
+      # the production-rung marker is asserted rather than trusted
+      # positionally. The ::error:: goes to stdout so GitHub renders it.
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)
         run: |
-          out=$(cargo run --release -- evaluate)
-          echo "$out" | tail -12
-          exact=$(echo "$out" | grep -oE 'exact top-1 [0-9]+\.[0-9]+%' | tail -1 | grep -oE '[0-9]+\.[0-9]+')
-          echo "measured exact top-1 = ${exact}%"
-          awk -v e="$exact" 'BEGIN { exit !(e + 0 >= 39.5) }' \
-            || { echo "::error::exact top-1 ${exact}% fell below the 39.5% regression floor"; exit 1; }
-          git diff --exit-code -- data/score-calibration.json target/eval/methodology.md
+          set -euo pipefail
+          cargo run --release -- evaluate | tail -12
+          python3 - <<'PY'
+          import json, sys
+          run = json.load(open("reports/candidate-generation-summary.json"))["runs"][-1]
+          if not run["name"].endswith("(production)"):
+              print(f"::error::ladder no longer ends at the production rung (got {run['name']!r}) — fix eval.rs ordering or this check")
+              sys.exit(1)
+          exact = 100.0 * run["exact_top1"]
+          print(f"measured exact top-1 = {exact:.2f}% ({run['name']})")
+          if exact < 39.5:
+              print(f"::error::exact top-1 {exact:.2f}% fell below the 39.5% regression floor")
+              sys.exit(1)
+          PY
+          git diff --exit-code -- data/score-calibration.json reports/methodology.md reports/candidate-generation-summary.json

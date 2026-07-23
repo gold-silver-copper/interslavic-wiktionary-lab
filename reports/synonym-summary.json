@@ -1,0 +1,13 @@
+{
+  "exact_top1": 0.42024539947509765,
+  "miss_breakdown": {
+    "misses": 8209,
+    "non_official_pct": 79.55902099609375,
+    "other_sense_pct": 6.09087610244751,
+    "valid_synonym_pct": 14.350103378295898
+  },
+  "n": 16300,
+  "schema": 1,
+  "strict_normalized_top1": 0.49638038635253906,
+  "synonym_inclusive_top1": 0.5686503219604492
+}

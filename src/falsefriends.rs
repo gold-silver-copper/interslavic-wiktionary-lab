@@ -98,136 +98,11 @@ pub struct Note {
     pub collisions: Vec<Collision>,
 }
 
-/// Strip `(...)`/`[...]` disambiguation and the text after a `:` inside them.
-fn strip_parens(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut depth = 0i32;
-    for ch in s.chars() {
-        match ch {
-            '(' | '[' => depth += 1,
-            ')' | ']' => depth = (depth - 1).max(0),
-            _ if depth == 0 => out.push(ch),
-            _ => {}
-        }
-    }
-    out
-}
-
-const STOPWORDS: &[&str] = &[
-    "a",
-    "an",
-    "the",
-    "to",
-    "of",
-    "in",
-    "on",
-    "or",
-    "and",
-    "for",
-    "be",
-    "by",
-    "with",
-    "at",
-    "as",
-    "from",
-    "is",
-    "are",
-    "was",
-    "it",
-    "its",
-    "one",
-    "ones",
-    "etc",
-    "who",
-    "whom",
-    "whose",
-    "which",
-    "that",
-    "this",
-    "these",
-    "those",
-    "sth",
-    "smth",
-    "smb",
-    "so",
-    "not",
-    "do",
-    "does",
-    "up",
-    "out",
-    "e",
-    "g",
-    "i",
-    "also",
-    "any",
-    "some",
-    "very",
-    "into",
-    "over",
-    "s",
-    "someone",
-    "something",
-    "oneself",
-    "esp",
-    "especially",
-    "usually",
-    "often",
-    "person",
-    "thing",
-];
-
-/// Deterministic content tokens of a gloss: lowercase, parentheticals removed,
-/// split on non-letters, stopwords dropped, light suffix strip (plural
-/// `-s`/`-es`, participle `-ing`/`-ed`) so `asking`/`asks` meet `ask`.
-pub fn gloss_tokens(gloss: &str) -> BTreeSet<String> {
-    let mut out = BTreeSet::new();
-    for raw in strip_parens(gloss)
-        .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
-    {
-        if raw.is_empty() || STOPWORDS.contains(&raw) {
-            continue;
-        }
-        let t = light_stem(raw);
-        if t.chars().count() >= 2 && !STOPWORDS.contains(&t.as_str()) {
-            out.insert(t);
-        }
-    }
-    out
-}
-
-/// Order-preserving variant of [`gloss_tokens`] for positional rules (the
-/// `X or Y` closure needs the token ADJACENT to the `or`, and a BTreeSet
-/// iterator would hand back the alphabetical extreme instead — which minted
-/// phantom pairs like evil≈event from unrelated glosses).
-fn ordered_tokens(text: &str) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    for raw in strip_parens(text)
-        .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
-    {
-        if raw.is_empty() || STOPWORDS.contains(&raw) {
-            continue;
-        }
-        let t = light_stem(raw);
-        if t.chars().count() >= 2 && !STOPWORDS.contains(&t.as_str()) && !out.contains(&t) {
-            out.push(t);
-        }
-    }
-    out
-}
-
-fn light_stem(t: &str) -> String {
-    let n = t.chars().count();
-    for (suf, min_len) in [("ing", 6), ("ed", 5), ("es", 5), ("s", 4)] {
-        if n >= min_len {
-            if let Some(stem) = t.strip_suffix(suf) {
-                return stem.to_string();
-            }
-        }
-    }
-    t.to_string()
-}
+// The tokenizer cluster (strip_parens, STOPWORDS, gloss_tokens,
+// ordered_tokens, light_stem) moved verbatim to crate::gloss (V15 item 4);
+// the public path falsefriends::gloss_tokens stays valid.
+pub use crate::gloss::stemmed_tokens as gloss_tokens;
+use crate::gloss::{ordered_stemmed_tokens as ordered_tokens, strip_parens};
 
 /// Deterministic English synonym-mate pairs, mined from the committed data.
 /// Precision matters more than recall here — a wrong mate suppresses a real
@@ -412,7 +287,7 @@ fn overlaps(
 /// from divergence tokens at ingestion.
 fn clean_quote(gloss: &str) -> Option<String> {
     let g = gloss.trim();
-    if g.is_empty() || g.chars().any(|c| c.is_uppercase()) {
+    if g.is_empty() || g.chars().any(char::is_uppercase) {
         return None;
     }
     let g = g.split(';').next().unwrap_or(g).trim();
@@ -507,7 +382,7 @@ pub fn compute(
             }
             let glosses: Vec<String> = glosses
                 .into_iter()
-                .filter(|g| !g.trim().is_empty() && !g.chars().any(|c| c.is_uppercase()))
+                .filter(|g| !g.trim().is_empty() && !g.chars().any(char::is_uppercase))
                 .collect();
             let tokens: BTreeSet<String> = glosses.iter().flat_map(|g| gloss_tokens(g)).collect();
             if tokens.is_empty() {
@@ -944,7 +819,7 @@ pub fn surface_readings(
         for g in glosses {
             let g = g.trim();
             if !g.is_empty()
-                && !g.chars().any(|c| c.is_uppercase())
+                && !g.chars().any(char::is_uppercase)
                 && !entry.0.iter().any(|have| have == g)
             {
                 entry.0.push(g.to_string());
@@ -974,27 +849,34 @@ pub fn surface_readings(
         .collect()
 }
 
-/// Load both caches and compute notes; an ABSENT cache degrades silently to
-/// fewer/no notes so `check-text` stays usable without them, but a cache
-/// that exists and fails to load (corrupt/stale schema) warns loudly —
-/// silently dropping every warning would look identical to a clean text.
-pub fn compute_from_default_caches(official: &[OfficialEntry]) -> BTreeMap<String, Note> {
-    fn warn_if_unreadable(name: &str, path: &str, loaded: bool) {
-        if !loaded && std::path::Path::new(path).exists() {
-            eprintln!(
-                "warning: {name} cache at {path} exists but failed to load — \
-                 false-friend warnings will be incomplete (re-run the extractor?)"
-            );
-        }
-    }
-    let evidence = LemmaCorpus::load(std::path::Path::new(crate::DEFAULT_LEMMA_CACHE)).ok();
-    warn_if_unreadable("lemma", crate::DEFAULT_LEMMA_CACHE, evidence.is_some());
-    let raw = RawSlavicCorpus::load(std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
-    warn_if_unreadable("raw-lemma", crate::DEFAULT_RAW_LEMMA_CACHE, raw.is_some());
-    let enrich =
-        crate::enrich::EnrichIndex::load(std::path::Path::new(crate::DEFAULT_ENRICH_CACHE)).ok();
-    warn_if_unreadable("enrich", crate::DEFAULT_ENRICH_CACHE, enrich.is_some());
-    compute(official, evidence.as_ref(), raw.as_ref(), enrich.as_ref())
+/// Load the caches and compute notes. The ACTUAL contract (V15 item 2):
+/// an ABSENT cache degrades silently to fewer/no notes so `check-text`
+/// stays usable without them; a cache that EXISTS but fails to load
+/// (corrupt/stale schema) is a hard error naming the cache — these feed
+/// the shipped notes shards, and silent degradation is precisely what the
+/// schema stamps exist to prevent. (The V15-era warn-and-continue helper
+/// was unreachable under this contract and is gone — V15.1 item 6.)
+pub fn compute_from_default_caches(
+    official: &[OfficialEntry],
+) -> anyhow::Result<BTreeMap<String, Note>> {
+    let evidence = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_LEMMA_CACHE),
+        LemmaCorpus::load,
+    )?;
+    let raw = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        RawSlavicCorpus::load,
+    )?;
+    let enrich = crate::dump::load_optional(
+        std::path::Path::new(crate::DEFAULT_ENRICH_CACHE),
+        crate::enrich::EnrichIndex::load,
+    )?;
+    Ok(compute(
+        official,
+        evidence.as_ref(),
+        raw.as_ref(),
+        enrich.as_ref(),
+    ))
 }
 
 #[cfg(test)]
@@ -1004,7 +886,7 @@ mod tests {
     fn notes() -> BTreeMap<String, Note> {
         let official =
             crate::official::load(std::path::Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
-        compute_from_default_caches(&official)
+        compute_from_default_caches(&official).expect("caches load")
     }
 
     /// The retired curated notes (data/semantic-notes.json, removed) as a

@@ -6,7 +6,7 @@
 use super::assets::{forms_js, FORMS_PAGE_JS, TEXT_CHECK_JS};
 use super::layout::{compact, esc, json_str, pos_code_label, truncate};
 use super::model::{
-    ancestor_slug, razum_pct, slug, BuildMeta, SiteEntryMeta, RAZUM_TITLE, REPO_URL, SITE_URL,
+    ancestor_slug, razum_pct, slug, BuildMeta, SiteEntryMeta, RAZUM_TITLE, SITE_URL,
 };
 use super::search::search_js;
 use crate::lang::Branch;
@@ -169,7 +169,7 @@ pub(super) fn build_rule_index<'a>(
 /// the ancestor string and the cache word, so the two sides cannot drift.
 pub(super) fn fold_proto_accents(w: &str) -> String {
     w.chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .map(crate::proto::debase_vowel)
         .collect()
 }
@@ -335,7 +335,7 @@ pub(super) fn rules_json(rule_index: &RuleIndex) -> String {
         ids.dedup();
         let list = ids
             .iter()
-            .map(|i| i.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(",");
         let _ = write!(s, "  {}: [{}]", json_str(&rule_key(engine, id)), list);
@@ -444,7 +444,7 @@ pub(super) fn proto_page(
         // "ine/pročeje" group and display their raw code (the registry
         // name fallback would mislabel them "slovjansky").
         fn dname(code: &str) -> &str {
-            crate::lang::lang_info(code).map(|i| i.name).unwrap_or(code)
+            crate::lang::lang_info(code).map_or(code, |i| i.name)
         }
         let mut by_branch: BTreeMap<u8, Vec<(String, String)>> = BTreeMap::new();
         let mut historical_descendants: Vec<(String, String)> = Vec::new();
@@ -750,7 +750,7 @@ pub(super) fn proposals_page(
         // Curation-note keys follow the site-wide convention: standard
         // orthography, lowercase (see data/curation-notes.example.json).
         let note = curation
-            .get(&crate::orthography::to_standard(&r.form.to_lowercase()))
+            .get(&crate::orthography::fold_key(&r.form))
             .or_else(|| curation.get(&r.form))
             .or_else(|| curation.get(&r.id.to_string()))
             .map(|n| format!(" <span class='muted' title='{}'>[nota]</span>", esc(n)))
@@ -793,9 +793,8 @@ pub(super) fn proposals_page(
          <p class='lede'>Slova, ktore stroj pravilno izvodi iz slovjanskogo dokaza, ale ktoryh <b>něma</b> v oficialnom slovniku — kandidaty za novu leksiku.</p>\
          <p>{cal_note}</p>\
          <p>{summary} Kuratorske noty prihodęt iz <code>data/curation-notes.json</code>.</p>\
-         <table class='wikitable'><thead><tr><th>slovo</th><th>vrsta</th><th>p</th><th title='{razum_title}'>razumlivosť</th><th>prědok</th><th>językov / větvi</th><th>značenje</th></tr></thead><tbody>{rows}</tbody></table>\
+         <table class='wikitable'><thead><tr><th>slovo</th><th>vrsta</th><th>p</th><th title='{RAZUM_TITLE}'>razumlivosť</th><th>prědok</th><th>językov / větvi</th><th>značenje</th></tr></thead><tbody>{rows}</tbody></table>\
          <p class='muted'>Pokazano najviše 600 predlogov; polny spisok v TSV. Mašinove rekonstrukcije, ne normativna leksika.</p></article>",
-        razum_title = RAZUM_TITLE,
     );
     page("Predloženja novyh slov — medžuslovjansky", &body, 0)
 }
@@ -837,7 +836,7 @@ pub(super) fn text_check_page() -> String {
 }
 
 pub(super) fn datasets_page(coverage: &str) -> String {
-    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = modelovo-specifična kalibrovana věrojętnosť (null bez sovmestimoj kalibracije i za oficialne/surove zapisy), <code>official_id</code> = id smysla v izvornom oficialnom slovniku (null za neoficialne), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partners</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov; samo zaglavje dokolě korpusny model ne imaje vlastnu holdout-validovanu kalibraciju.</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, opcionalnoju modelovo-specifičnoju věrojetnostju i vidovymi partnerami glagolov i dokazami rangovanja (frequency, langs, branch_pattern, borrowed; schema 4).</td></tr><tr><td><a href='api/en/meta.json'>api/en/meta.json</a> + api/en/&lt;n&gt;.json</td><td>Anglijsko→medžuslovjansky statičny API za prevodne agenty: normalizovany anglijski ključ → rangovane kandidaty s POS, smyslom, statusom, vidom, semantičnymi notami i povezkoju do <code>api/forms</code>.</td></tr><tr><td><a href='api/aspect-pairs.json'>api/aspect-pairs.json</a></td><td>Produkcijny model glagolskyh par: oficialne i generovane ipf↔pf formy, stranice i pravilo.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='api/agent-guide.md'>api/agent-guide.md</a></td><td>Vodič za AI agenty i strojne klienty: protokoly iskanja (formy + anglijsky), samoprověrky routerov, pravila dověrjenja, postupy prevoda i prověrjenja teksta.</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr></table>{coverage}</article>");
+    let body = format!("<article class='entry'><h1 class='firstHeading'>Fajly za dostavanje</h1><p class='lede'>Statične JSON fajly za raziskovanje i ponovno upotrěbljenje.</p><table class='wikitable'><tr><th>Fajl</th><th>Opis</th></tr><tr><td><a href='entries.json'>entries.json</a></td><td>Metadany zapisa: id, naslov, smysl, čęst rěči, uvěrjenost (kalibrovany kȯšik), <code>prob</code> = modelovo-specifična kalibrovana věrojętnosť (null bez sovmestimoj kalibracije i za oficialne/surove zapisy), <code>official_id</code> = id smysla v izvornom oficialnom slovniku (null za neoficialne), prědȯk, <code>langs_list</code> = sortovany spis kodov atestujučih językov i <code>branch_pattern</code> = vzorec větvi (V/Z/J kombinacija, null bez větvi), <code>aspect</code> i <code>aspect_partners</code> za glagoly — vsako zapytanje po vzorcu atestacije je jedna jq-linija (issues #73, #75).</td></tr><tr><td><a href='edges.json'>edges.json</a></td><td>Vęzi semantičnogo grafa.</td></tr><tr><td><a href='categories.json'>categories.json</a></td><td>Členstvo v kategorijah.</td></tr><tr><td><a href='roots.json'>roots.json</a></td><td>Členstvo v praslovjanskyh korenjah.</td></tr><tr><td><a href='rules.json'>rules.json</a></td><td>Obratny indeks pravil: \u{201e}motor:id-pravila\u{201c} (motor = proto ili konsensus — id pravila ne je unikatny črěz motory) → spis id zapisov, ktoryh pokazany kandidat koristil to pravilo (vidi <a href='rules.html'>indeks pravil</a>; issue #73).</td></tr><tr><td><a href='search/manifest.json'>search/manifest.json</a></td><td>Klientsky indeks iskanja: manifest + razděly po prvoj bukvě (search/*.json; vidi #71).</td></tr><tr><td><a href='novel-words.tsv'>novel-words.tsv</a></td><td>Predloženja novyh slov s kalibrovanoju věrojętnostju (bucket predlog/pregled) i klasifikacijeju novo/počti-oficialno.</td></tr><tr><td><a href='api/meta.json'>api/meta.json</a></td><td>Leksikalny API za stroje: šema, ličby, licencija, routing indeksa.</td></tr><tr><td><a href='api/lemmas.json'>api/lemmas.json</a></td><td>Vse lemmy s statusom, opcionalnoju modelovo-specifičnoju věrojetnostju i vidovymi partnerami glagolov i dokazami rangovanja (frequency, langs, branch_pattern, borrowed; schema 4).</td></tr><tr><td><a href='api/en/meta.json'>api/en/meta.json</a> + api/en/&lt;n&gt;.json</td><td>Anglijsko→medžuslovjansky statičny API za prevodne agenty: normalizovany anglijski ključ → rangovane kandidaty s POS, smyslom, statusom, vidom, semantičnymi notami i povezkoju do <code>api/forms</code>.</td></tr><tr><td><a href='api/aspect-pairs.json'>api/aspect-pairs.json</a></td><td>Produkcijny model glagolskyh par: oficialne i generovane ipf↔pf formy, stranice i pravilo.</td></tr><tr><td>api/forms/&lt;n&gt;.json</td><td>Fleksijny indeks (razděljeny; vidi <a href='api/agent-guide.md'>agent-guide.md</a> i <a href='forms.html'>Iskanje form</a>).</td></tr><tr><td><a href='api/agent-guide.md'>api/agent-guide.md</a></td><td>Vodič za AI agenty i strojne klienty: protokoly iskanja (formy + anglijsky), samoprověrky routerov, pravila dověrjenja, postupy prevoda i prověrjenja teksta.</td></tr><tr><td><a href='build.json'>build.json</a></td><td>Metadany aktualnoj gradby (git, ličby).</td></tr><tr><td><a href='build-info.json'>build-info.json</a></td><td>Strojno-čitajema provenijencija gradby: git revizija, verzije paketov, oficialny vhod s sha256, opcionalno pripęty data-release i sha256 vhodnyh kešev.</td></tr></table>{coverage}</article>");
     page("Fajly za dostavanje", &body, 0)
 }
 
@@ -923,8 +922,73 @@ pub(super) fn datasets_coverage_section(
         "<tr><th>Samo oficialne strany</th><td>{official_only}</td></tr>"
     );
     s.push_str("</table>");
-    s.push_str("<p class='muted'>Podrobny izvěst: <code>target/eval/raw-coverage.md</code> (komanda <code>coverage</code>).</p>");
+    s.push_str("<p class='muted'>Podrobny izvěst: <code>reports/raw-coverage.md</code> (komanda <code>coverage</code>).</p>");
     s
+}
+
+/// site/build-info.json (V15 item 8, hardened V15.1 item 4): the
+/// machine-readable provenance stamp - git revision, crate versions, the
+/// pinned data release, the official dictionary input, and sha256 of each
+/// input cache. The interslavic
+/// version is the RESOLVED one from Cargo.lock via release::resolved_pin
+/// (V14.1 finding 6 already condemned Cargo.toml line-trimming, which
+/// V15 briefly reintroduced here), so the stamp is truthful even under a
+/// [patch] override; cache hashing reuses release::sha256_file so this
+/// artifact and data/MANIFEST.json can never publish different digests
+/// for the same bytes.
+pub(super) fn build_info_json(
+    build: &BuildMeta,
+    official_path: &std::path::Path,
+    lemmas_path: &std::path::Path,
+) -> anyhow::Result<String> {
+    let interslavic = crate::release::resolved_pin()?
+        .trim_start_matches('=')
+        .to_string();
+    let official_sha = crate::release::sha256_file(official_path)?.0;
+    let mut caches = serde_json::Map::new();
+    for path in [
+        lemmas_path,
+        std::path::Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        std::path::Path::new(crate::DEFAULT_PROTO_CACHE),
+        std::path::Path::new(crate::DEFAULT_ENRICH_CACHE),
+    ] {
+        // Absent optional cache -> null; present -> the same digest the
+        // data manifest publishes.
+        let value = if path.exists() {
+            serde_json::Value::String(crate::release::sha256_file(path)?.0)
+        } else {
+            serde_json::Value::Null
+        };
+        caches.insert(path.display().to_string(), value);
+    }
+    // A custom official dictionary or lemma corpus is outside the committed
+    // data-release identity even when it happens to contain similar bytes.
+    // Default path names are not sufficient either: the complete manifest,
+    // crate pin, schema/baseline, and changelog witness must match the current
+    // checkout before this build may claim data-vN.
+    let uses_pinned_inputs = official_path == std::path::Path::new(crate::DEFAULT_OFFICIAL)
+        && lemmas_path == std::path::Path::new(crate::DEFAULT_LEMMA_CACHE);
+    let data_release = if uses_pinned_inputs {
+        crate::release::verified_data_release()
+            .ok()
+            .flatten()
+            .map_or(serde_json::Value::Null, serde_json::Value::from)
+    } else {
+        serde_json::Value::Null
+    };
+    let doc = serde_json::json!({
+        "git": build.git,
+        "generated": build.generated,
+        "crate": { "name": env!("CARGO_PKG_NAME"), "version": env!("CARGO_PKG_VERSION") },
+        "interslavic": interslavic,
+        "data_release": data_release,
+        "official": {
+            "path": official_path.display().to_string(),
+            "sha256": official_sha,
+        },
+        "caches": caches,
+    });
+    Ok(serde_json::to_string_pretty(&doc)? + "\n")
 }
 
 pub(super) fn build_json(build: &BuildMeta) -> String {
@@ -961,7 +1025,7 @@ pub(super) fn sitemap_xml(metas: &[SiteEntryMeta]) -> String {
         "graph.html",
         "contribute.html",
     ] {
-        let _ = writeln!(s, "  <url><loc>{}{}</loc></url>", SITE_URL, loc);
+        let _ = writeln!(s, "  <url><loc>{SITE_URL}{loc}</loc></url>");
     }
     for m in metas {
         let _ = writeln!(s, "  <url><loc>{}entry/{}.html</loc></url>", SITE_URL, m.id);
@@ -970,14 +1034,109 @@ pub(super) fn sitemap_xml(metas: &[SiteEntryMeta]) -> String {
     s
 }
 
-/// A full explainer of every accuracy statistic tracked against the official
-/// dictionary. Mostly static content; the confidence-calibration section is
-/// rendered live from the committed calibrator (issue #77) so it can never
-/// drift from data/score-calibration.json.
-pub(super) fn metrics_page(cal: Option<&crate::calibrate::Calibration>) -> String {
-    let head = r##"<article class='entry metrics'>
+/// The measured benchmark numbers the metrics/about pages print, read from
+/// the MACHINE-READABLE report summaries at export time (V15 item 9,
+/// hardened in V15.1 item 2): candidate-generation-summary.json,
+/// synonym-summary.json and corpus-summary.json. No markdown is scraped and
+/// nothing is hardcoded, so the page numbers cannot rot against the
+/// reports; CI keeps the summaries themselves fresh (the floor step
+/// diff-guards candidate-generation-summary.json, the report-freshness
+/// step re-runs synonym-eval and corpus-eval and diff-guards their
+/// summaries). Values arrive pre-formatted with the pages' comma decimal
+/// separator.
+pub(super) struct BenchSummary {
+    pub(super) exact: String,
+    pub(super) norm1: String,
+    pub(super) norm3: String,
+    pub(super) norm5: String,
+    pub(super) dist: String,
+    pub(super) base: String,
+    pub(super) syn: String,
+    /// Strict-miss breakdown (share of misses, one decimal).
+    pub(super) miss_syn: String,
+    pub(super) miss_other: String,
+    pub(super) miss_novel: String,
+    /// Corpus-path (generate_set) accuracy and denominator.
+    pub(super) corpus_exact: String,
+    pub(super) corpus_norm: String,
+    pub(super) corpus_n: usize,
+}
+
+fn read_json(path: &str) -> anyhow::Result<serde_json::Value> {
+    use anyhow::Context as _;
+    serde_json::from_str(
+        &std::fs::read_to_string(path)
+            .with_context(|| format!("{path} (regenerate: see docs/PIPELINE.md benchmarks)"))?,
+    )
+    .with_context(|| format!("parse {path}"))
+}
+
+fn json_pct(doc: &serde_json::Value, key: &str) -> anyhow::Result<String> {
+    use anyhow::Context as _;
+    let x = doc[key]
+        .as_f64()
+        .with_context(|| format!("summary field {key}"))?;
+    Ok(format!("{:.2}%", 100.0 * x).replace('.', ","))
+}
+
+impl BenchSummary {
+    /// runs[0] is the baseline rung; the last run must carry the
+    /// "(production)" name marker (same assert as the CI floor — never
+    /// trust the position alone).
+    pub(super) fn load() -> anyhow::Result<Self> {
+        use anyhow::Context as _;
+        let doc = read_json("reports/candidate-generation-summary.json")?;
+        let runs = doc["runs"]
+            .as_array()
+            .filter(|r| !r.is_empty())
+            .context("summary json has no runs")?;
+        let prod = runs.last().context("no production run")?;
+        anyhow::ensure!(
+            prod["name"]
+                .as_str()
+                .is_some_and(|n| n.ends_with("(production)")),
+            "ladder no longer ends at the production rung (got {:?}) — fix eval.rs ordering",
+            prod["name"]
+        );
+        let base = runs.first().context("no baseline run")?;
+        let dist = prod["mean_normalized_edit_distance"]
+            .as_f64()
+            .context("summary field mean_normalized_edit_distance")?;
+        let syn = read_json("reports/synonym-summary.json")?;
+        let miss = &syn["miss_breakdown"];
+        let one_dec = |key: &str| -> anyhow::Result<String> {
+            let x = miss[key]
+                .as_f64()
+                .with_context(|| format!("miss_breakdown.{key}"))?;
+            Ok(format!("{x:.1}%").replace('.', ","))
+        };
+        let corpus = read_json("reports/corpus-summary.json")?;
+        Ok(Self {
+            exact: json_pct(prod, "exact_top1")?,
+            norm1: json_pct(prod, "normalized_top1")?,
+            norm3: json_pct(prod, "normalized_top3")?,
+            norm5: json_pct(prod, "normalized_top5")?,
+            dist: format!("{dist:.3}").replace('.', ","),
+            base: json_pct(base, "exact_top1")?,
+            syn: json_pct(&syn, "synonym_inclusive_top1")?,
+            miss_syn: one_dec("valid_synonym_pct")?,
+            miss_other: one_dec("other_sense_pct")?,
+            miss_novel: one_dec("non_official_pct")?,
+            corpus_exact: json_pct(&corpus, "exact_top1")?,
+            corpus_norm: json_pct(&corpus, "normalized_top1")?,
+            corpus_n: corpus["n"].as_u64().context("corpus n")? as usize,
+        })
+    }
+}
+
+pub(super) fn metrics_page(
+    cal: Option<&crate::calibrate::Calibration>,
+    bench: &BenchSummary,
+) -> String {
+    let head = format!(
+        r##"<article class='entry metrics'>
   <h1 class='firstHeading'>Statistiky točnosti</h1>
-  <p class='lede'>Ta strana objasnjaje <b>vsaku statistiku</b>, ktoru měrimo, da bismo proverili točnosť generatora protiv oficialnogo medžuslovjanskogo slovnika. Čisla sųt aktualne měrjenja produkcijnoj konfiguracije; vsaky artefakt sę regeneruje v <code>target/eval/</code>.</p>
+  <p class='lede'>Ta strana objasnjaje <b>vsaku statistiku</b>, ktoru měrimo, da bismo proverili točnosť generatora protiv oficialnogo medžuslovjanskogo slovnika. Čisla sųt aktualne měrjenja produkcijnoj konfiguracije; vsaky artefakt sę regeneruje v <code>reports/</code>.</p>
 
   <h2 id='setup'>Kako radi testovo množstvo</h2>
   <p>Za vsaky smysl (16&nbsp;300 jednoslovnyh zapisov) generator dostaje <b>moderne slovjanske srodne slova</b> + časť rěči, rod i priznak internacionalizma (<code>genesis</code>) — ale <b>nikȯgda</b> oficialnu medžuslovjansku formu (<code>isv</code>). On rekonstruuje lemmu, a my ju sravnjajemo s oficialnoju. Tako testovo množstvo je <b>bez utečki</b> ględe formy. Komanda: <code>evaluate</code>.</p>
@@ -989,16 +1148,16 @@ pub(super) fn metrics_page(cal: Option<&crate::calibrate::Calibration>) -> Strin
   <table class='wikitable'>
     <thead><tr><th>Statistika</th><th>Aktualno</th><th>Značenje</th></tr></thead>
     <tbody>
-    <tr><td><b>točno pŕvy izbor</b> (povno)</td><td>41,65%</td><td>Prědvidženje je <b>identično</b> oficialnoj variantnoj lemmě, znak-v-znak.</td></tr>
-    <tr><td><b>normalizovano — pŕvy izbor</b></td><td>49,59%</td><td>Identično <b>po složenju</b> oběh v standardny alfavit (ě=e, ć=č…). Glavna měrka i porog stalnoj integracije.</td></tr>
+    <tr><td><b>točno pŕvy izbor</b> (povno)</td><td>{exact}</td><td>Prědvidženje je <b>identično</b> oficialnoj variantnoj lemmě, znak-v-znak.</td></tr>
+    <tr><td><b>normalizovano — pŕvy izbor</b></td><td>{norm1}</td><td>Identično <b>po složenju</b> oběh v standardny alfavit (ě=e, ć=č…). Glavna měrka i porog stalnoj integracije.</td></tr>
     <tr><td>skelet pŕvy izbor</td><td>—</td><td>Identično po agresivnom ASCII-složenju (bez diakritiky, složene sibilanty). Najslabějše sito.</td></tr>
-    <tr><td><b>normalizovano pŕve 3 / pŕve 5</b></td><td>60,48% / 63,12%</td><td>Nekotory od prvyh 3 / 5 rangovanyh kandidatov sovpadaje (normalizovano).</td></tr>
-    <tr><td><b>srědnja pravopisna distancija</b></td><td>0,224</td><td>Srědnja normalizovana Levenshtein-distancija (0 = identično, 1 = vpolno različno).</td></tr>
+    <tr><td><b>normalizovano pŕve 3 / pŕve 5</b></td><td>{norm3} / {norm5}</td><td>Nekotory od prvyh 3 / 5 rangovanyh kandidatov sovpadaje (normalizovano).</td></tr>
+    <tr><td><b>srědnja pravopisna distancija</b></td><td>{dist}</td><td>Srědnja normalizovana Levenshtein-distancija (0 = identično, 1 = vpolno različno).</td></tr>
     </tbody>
   </table>
 
   <h2 id='ladder'>Lěstvica odstranjenja</h2>
-  <p>Točnosť raste od <b>osnovy</b> (27,52% točno — prvobytny prototip) do <b>produkcije</b> (41,65%). Vsaky stųpenj dodavaje <b>točno jedno</b> pravilo, tako že jego dělta je pripisiva. Pravila, ktore izměrjeno <b>uhudšajųt</b> točnosť, sųt odbrošene i zapisane kako „odbrošene eksperimenty“. Polny izvěsť: <code>candidate-generation-report.md</code>.</p>
+  <p>Točnosť raste od <b>osnovy</b> ({base} točno — prvobytny prototip) do <b>produkcije</b> ({exact}). Vsaky stųpenj dodavaje <b>točno jedno</b> pravilo, tako že jego dělta je pripisiva. Pravila, ktore izměrjeno <b>uhudšajųt</b> točnosť, sųt odbrošene i zapisane kako „odbrošene eksperimenty“. Polny izvěsť: <code>candidate-generation-report.md</code>.</p>
 
   <h2 id='razbivka'>Děljeńje po kategorijah</h2>
   <ul>
@@ -1006,7 +1165,14 @@ pub(super) fn metrics_page(cal: Option<&crate::calibrate::Calibration>) -> Strin
     <li><b>Po pokrytju větvi</b> — koliko od trěh větvi (iztok / zapad / jug) potvŕđaje formu; više pokrytja = viša točnosť.</li>
     <li><b>Po věrodostojnosti</b> — vidi niže.</li>
   </ul>
-"##;
+"##,
+        exact = bench.exact,
+        norm1 = bench.norm1,
+        norm3 = bench.norm3,
+        norm5 = bench.norm5,
+        dist = bench.dist,
+        base = bench.base,
+    );
     // Live confidence-calibration section: fitted provenance, holdout ECE and
     // both measured operating points come straight from the persisted struct.
     let mut calib = String::from("<h2 id='kalibracija'>Kalibracija věrodostojnosti</h2>\n");
@@ -1030,9 +1196,10 @@ pub(super) fn metrics_page(cal: Option<&crate::calibrate::Calibration>) -> Strin
         ),
     }
     calib.push_str("  <p>Podrobna kalibracija oficialno-redkovogo modela (decilna tablica, ECE i Brier) je v <code>methodology.md</code>. Korpusny model potrěbuje svoju vlastnu holdout-validovanu kalibraciju prěd publikovanjem věrojętnostij ili predloženj.</p>\n");
-    let tail = r##"
+    let tail = format!(
+        r##"
   <h2 id='corpus'>Sajtovy pųť (corpus-eval)</h2>
-  <p>Sajt koristi ne glavny proces, a svoj <b>put srodnyh množin</b> (<code>corpus::generate_set</code>), měrjeny odděljeno: <b>58,31% točno / 62,84% normalizovano</b> na 7&nbsp;398 zapisah s znanym prědkom. Više od glavne linije, potomu što ocěnjaje tȯlko slova, ktore sajt izvodi iz znanogo prědka. Komanda: <code>corpus-eval</code>.</p>
+  <p>Sajt koristi ne glavny proces, a svoj <b>put srodnyh množin</b> (<code>corpus::generate_set</code>), měrjeny odděljeno: <b>{corpus_exact} točno / {corpus_norm} normalizovano</b> na {corpus_n} zapisah s znanym prědkom. Više od glavne linije, potomu što ocěnjaje tȯlko slova, ktore sajt izvodi iz znanogo prědka. Komanda: <code>corpus-eval</code>.</p>
 
   <h2 id='proto'>Praslovjansky stroj (proto-eval)</h2>
   <p>Praslovjansky pravilny stroj izměrjeny izolovano od povęzanja, ranga i konsensusa:</p>
@@ -1066,49 +1233,22 @@ pub(super) fn metrics_page(cal: Option<&crate::calibrate::Calibration>) -> Strin
   <h2 id='synonym'>Sinonimno-svěstna točnosť (synonym-eval)</h2>
   <p>Strogo testovo množstvo pytaje „sovpadaje li s <b>jedinoju</b> oficialnoju lemmoju?“, ale medžuslovjansky imaje mnogo validnyh slov na jedno značenje, a slovnik zapisuje samo jedno. Ta měrka pripisuje prědvidženju, ktore reproduktuje <b>kojukoli</b> oficialnu lemmu s tym že značenjem (iz sinonimnogo tezaurusa):</p>
   <table class='wikitable'><thead><tr><th>Měrka</th><th>pŕvy izbor</th></tr></thead>
-  <tbody><tr><td>točno</td><td>41,65%</td></tr><tr><td>normalizovano (strogo)</td><td>49,59%</td></tr><tr><td><b>sinonimno-vključno</b></td><td><b>55,76%</b></td></tr></tbody></table>
-  <p>Děljeńje strogih grěšek: <b>12,2% validny sinonim</b> (druga oficialna lemma, isto značenje), 7,9% druga oficialna lemma (drugo značenje), 79,8% ne-oficialna forma (nova ili prava greška — nerazlučima bez tezaurusa maternjego govoritelja). Komanda: <code>synonym-eval</code>.</p>
+  <tbody><tr><td>točno</td><td>{exact}</td></tr><tr><td>normalizovano (strogo)</td><td>{norm1}</td></tr><tr><td><b>sinonimno-vključno</b></td><td><b>{syn}</b></td></tr></tbody></table>
+  <p>Děljeńje strogih grěšek: <b>{miss_syn} validny sinonim</b> (druga oficialna lemma, isto značenje), {miss_other} druga oficialna lemma (drugo značenje), {miss_novel} ne-oficialna forma (nova ili prava greška — nerazlučima bez tezaurusa maternjego govoritelja). Komanda: <code>synonym-eval</code>.</p>
 
   <h2 id='artefakty'>Artefakty</h2>
-  <p>Vse měrjenja sųt zapisane v <code>target/eval/</code>: <code>candidate-generation-report.md</code>, <code>stage-attribution.md</code>, <code>oracle-ladder.md</code>, <code>cluster-selection.md</code>, <code>rep-selection.md</code>, <code>synonym-accuracy.md</code>, <code>methodology.md</code> (razděl razvoj/kontrola bez prěučenja, značimosť stupnjev, bootstrap-intervaly, kalibracija), <code>predictions.csv</code> (vse prědvidženja). Vsaka je reproducibilna jednoju komandoju.</p>
-</article>"##;
+  <p>Vse měrjenja sųt zapisane v <code>reports/</code>: <code>candidate-generation-report.md</code>, <code>stage-attribution.md</code>, <code>oracle-ladder.md</code>, <code>cluster-selection.md</code>, <code>rep-selection.md</code>, <code>synonym-accuracy.md</code>, <code>methodology.md</code> (razděl razvoj/kontrola bez prěučenja, značimosť stupnjev, bootstrap-intervaly, kalibracija), <code>predictions.csv</code> (vse prědvidženja). Vsaka je reproducibilna jednoju komandoju.</p>
+</article>"##,
+        exact = bench.exact,
+        norm1 = bench.norm1,
+        syn = bench.syn,
+        miss_syn = bench.miss_syn,
+        miss_other = bench.miss_other,
+        miss_novel = bench.miss_novel,
+        corpus_exact = bench.corpus_exact,
+        corpus_norm = bench.corpus_norm,
+        corpus_n = bench.corpus_n,
+    );
     let body = format!("{head}\n  {calib}{tail}");
     page("Statistiky točnosti — medžuslovjansky", &body, 0)
-}
-
-pub(super) fn about_page(n: usize, norm_rate: f32, exact_rate: f32, top3: f32) -> String {
-    let body = format!(
-        "<article class='entry'>
-           <h1>O metodě</h1>
-           <p class='lede'>Toj slovnik ne je rųčno napisany — vsaka forma je <b>generovana</b> iz slovjanskyh dokazov i měrjena protiv oficialnogo medžuslovjanskogo slovnika.</p>
-
-           <h2>Dvostupnjovy model</h2>
-           <p>Za vsaky smysl:</p>
-           <ol>
-             <li><b>Konsensus izbira korenj.</b> Iz srodnyh slov v {langs} slovjanskyh językah glasujemo po <i>větvah</i> (izток / zapad / jug), da najveći język ne dominuje. Šest poddialektnyh grup s populacijnym vagom rěša, kotory korenj je najbolje medžuslovjansky.</li>
-             <li><b>Praslovjansko pravilo davaje formu.</b> Kǫda smysl je bez utečki povezany s praslovjanskoju rekonstrukcijeju (*word) črěz naslědnikov + glosų, determinističny stroj izvodi formų s pravilnymi variantnymi znakami (ě, ć/đ, å, ȯ, y), kotoryh moderne refleksy ne mogųt vȯzstanoviti.</li>
-           </ol>
-
-           <h2>Točnost (měrjeno)</h2>
-           <div class='statgrid'>
-             <div class='stat ok'><div class='statnum'>{exact:.1}%</div><div class='statlbl'>povno točno</div></div>
-             <div class='stat'><div class='statnum'>{norm:.1}%</div><div class='statlbl'>normalizovano — pŕvy izbor</div></div>
-             <div class='stat'><div class='statnum'>{top3:.1}%</div><div class='statlbl'>pŕve 3</div></div>
-           </div>
-           <p class='muted'>Testovo množstvo: {n} zapisov s ≥2 modernymi srodnymi slovami. Generator nikǫda ne vidi oficialnų formų — jedino srodne slova + čęsť rěči + glosų — tako da měrjenje je bez propuščanja. Vsako pravilo je zadŕžano jedino ako je izměrjeno pobolšanje (lěstvica odstranjenja).</p>
-
-           <h2>Poznaty prědel</h2>
-           <p>Okolo 38% ostatnyh razlik sųt <i>redakcijne</i> izbory (medžuslovjansky komitet izbral menšinny korenj) kotore se ne mogųt vȯzstanoviti iz modernyh srodnyh slov. Čestny algoritmičny prědel je okolo 45–48% točno.</p>
-
-           <h2>Izvory i licencija</h2>
-           <p>Oficialny slovnik: interslavic-dictionary.com. Praslovjanske rekonstrukcije: Wiktionary (CC BY-SA). Formy prěgibanja: interslavic-rs. Kod: <a href='{repo}'>MIT</a>.</p>
-         </article>",
-        langs = 11,
-        exact = exact_rate,
-        norm = norm_rate,
-        top3 = top3,
-        n = compact(n),
-        repo = REPO_URL,
-    );
-    page("O metodě — medžuslovjansky generator", &body, 0)
 }

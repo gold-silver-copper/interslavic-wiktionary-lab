@@ -20,43 +20,9 @@ pub const MAX_PER_LANG: usize = 5;
 /// Max gloss tokens rendered per entry.
 pub const MAX_TOKENS: usize = 6;
 
-/// English stop / grammatical words that carry no cross-lingual meaning.
-const STOP: &[&str] = &[
-    "to",
-    "the",
-    "a",
-    "an",
-    "of",
-    "or",
-    "and",
-    "esp",
-    "e.g.",
-    "i.e.",
-    "etc",
-    "etc.",
-    "vocative",
-    "accusative",
-    "genitive",
-    "dative",
-    "locative",
-    "instrumental",
-    "nominative",
-    "singular",
-    "plural",
-    "imperfective",
-    "perfective",
-    "diminutive",
-    "augmentative",
-    "someone",
-    "something",
-    "one",
-    "used",
-    "form",
-    "variant",
-    "alternative",
-    "obsolete",
-    "archaic",
-];
+// STOP and head_tokens moved verbatim to crate::gloss (V15 item 4); the
+// public path glossxref::head_tokens stays valid.
+pub use crate::gloss::head_tokens;
 
 /// Reverse index: English gloss head-token → the `(lang, word)` lemmas glossed
 /// with it.
@@ -120,38 +86,6 @@ impl GlossXref {
         }
         out
     }
-
-    pub fn token_count(&self) -> usize {
-        self.by_token.len()
-    }
-}
-
-/// Extract the head-synonym tokens of a gloss list: for each gloss element take
-/// the text before the first `(` (the synonym list, dropping parenthetical
-/// explanations), split on `, ; /` and " or ", strip a leading "to " verb
-/// marker, lowercase, and keep 2..=32-char content words that are not stopwords
-/// or `"... of ..."` phrases. Deduplicated, order-preserving.
-pub fn head_tokens(glosses: &[String]) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    for g in glosses {
-        let head = g.split('(').next().unwrap_or("");
-        for part in head.split([',', ';', '/']).flat_map(|p| p.split(" or ")) {
-            let mut t = part.trim().trim_matches('.').trim().to_lowercase();
-            if let Some(rest) = t.strip_prefix("to ") {
-                t = rest.trim().to_string();
-            }
-            let n = t.chars().count();
-            if (2..=32).contains(&n)
-                && !t.ends_with(" etc")
-                && !t.contains(" of ")
-                && !STOP.contains(&t.as_str())
-                && !out.contains(&t)
-            {
-                out.push(t);
-            }
-        }
-    }
-    out
 }
 
 #[cfg(test)]

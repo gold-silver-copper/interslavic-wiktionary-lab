@@ -19,12 +19,25 @@
 /// repartitioned index.
 pub use interslavic::orthography::to_standard;
 
+/// The crate-wide fold-to-key idiom, named ONCE (V15 item 5): lowercase,
+/// then the pinned standard-orthography fold. Every keying path must call
+/// this instead of hand-composing the two steps.
+pub fn fold_key(s: &str) -> String {
+    to_standard(&s.to_lowercase())
+}
+
+/// Combining diacritical mark (U+0300–U+036F)? The hand-inlined range
+/// predicate appeared ten times crate-wide; this is the one copy.
+pub fn is_combining_mark(c: char) -> bool {
+    ('\u{0300}'..='\u{036F}').contains(&c)
+}
+
 /// Aggressive ASCII skeleton: strip *all* diacritics and fold the phonemically
 /// close consonant classes together. Used to align cognates across languages
 /// and as a looser matching key. Preserves the y/i and hard/soft distinctions
 /// only where they survive as separate ASCII letters.
 pub fn ascii_skeleton(word: &str) -> String {
-    let std = to_standard(&word.to_lowercase());
+    let std = fold_key(word);
     let mut out = String::with_capacity(std.len());
     for ch in std.chars() {
         match ch {
@@ -104,7 +117,7 @@ pub fn exact_match(a: &str, b: &str) -> bool {
 
 /// Match after folding both sides to the standard alphabet.
 pub fn normalized_match(a: &str, b: &str) -> bool {
-    to_standard(&a.trim().to_lowercase()) == to_standard(&b.trim().to_lowercase())
+    fold_key(a.trim()) == fold_key(b.trim())
 }
 
 /// Match on the aggressive ASCII skeleton (loosest).
@@ -138,8 +151,8 @@ pub fn levenshtein(a: &str, b: &str) -> usize {
 /// Normalized edit distance in `[0, 1]`: edit distance over the standard spelling
 /// divided by the longer length.
 pub fn normalized_edit_distance(a: &str, b: &str) -> f32 {
-    let sa = to_standard(&a.to_lowercase());
-    let sb = to_standard(&b.to_lowercase());
+    let sa = fold_key(a);
+    let sb = fold_key(b);
     let d = levenshtein(&sa, &sb);
     let len = sa.chars().count().max(sb.chars().count()).max(1);
     d as f32 / len as f32

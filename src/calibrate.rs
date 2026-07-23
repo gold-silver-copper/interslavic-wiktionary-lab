@@ -1,7 +1,7 @@
 //! Score calibration shared between the benchmark and the site.
 //!
 //! The raw candidate score is a *ranking* key, not a probability — measured
-//! systematically overconfident (ECE 0.185; see `target/eval/methodology.md`).
+//! systematically overconfident (ECE 0.185; see `reports/methodology.md`).
 //! `evaluate` fits an isotonic (monotone) score→probability map on the DEV
 //! split only, validates it on the untouched holdout (ECE 0.195→0.013), and
 //! persists it for consumers of that same official-row pipeline score as
@@ -112,17 +112,17 @@ pub fn fit_wilson_isotonic_deciles(samples: &[(f32, bool)]) -> [f64; 10] {
         }
         pools.push((*n as f64, crate::derive::wilson_lower(*hits, *n)));
         while pools.len() >= 2 && pools[pools.len() - 2].1 > pools[pools.len() - 1].1 {
-            let (w2, m2) = pools.pop().unwrap();
-            let (w1, m1) = pools.pop().unwrap();
+            let (w2, m2) = pools.pop().expect("len >= 2 loop guard");
+            let (w1, m1) = pools.pop().expect("len >= 2 loop guard");
             pools.push((w1 + w2, (w1 * m1 + w2 * m2) / (w1 + w2)));
         }
     }
     let mut iso = [0.0f64; 10];
     let mut pi = 0usize;
-    let mut left = pools.first().map(|p| p.0).unwrap_or(0.0);
+    let mut left = pools.first().map_or(0.0, |p| p.0);
     for (b, (n, _)) in bins.iter().enumerate() {
         if *n == 0 {
-            iso[b] = pools.get(pi).map(|p| p.1).unwrap_or(0.0);
+            iso[b] = pools.get(pi).map_or(0.0, |p| p.1);
             continue;
         }
         iso[b] = pools[pi].1;
@@ -139,9 +139,6 @@ pub fn fit_wilson_isotonic_deciles(samples: &[(f32, bool)]) -> [f64; 10] {
 }
 /// Score semantics accepted by the official-row pipeline calibrator.
 pub const PIPELINE_SCORE_DOMAIN: &str = "pipeline-candidate-score-v1";
-/// Reserved domain for a future calibrator fitted on cognate-set coverage
-/// scores. Those scores are not compatible with [`PIPELINE_SCORE_DOMAIN`].
-pub const CORPUS_COVERAGE_SCORE_DOMAIN: &str = "corpus-coverage-score-v1";
 
 /// Novel-word bucket thresholds on the calibrated probability. The measured
 /// precision/recall AT these cutoffs is persisted in [`Calibration`] by every
@@ -184,17 +181,17 @@ pub fn fit_isotonic_deciles(samples: &[(f32, bool)]) -> [f64; 10] {
         }
         pools.push((*n as f64, *hits as f64 / *n as f64));
         while pools.len() >= 2 && pools[pools.len() - 2].1 > pools[pools.len() - 1].1 {
-            let (w2, m2) = pools.pop().unwrap();
-            let (w1, m1) = pools.pop().unwrap();
+            let (w2, m2) = pools.pop().expect("len >= 2 loop guard");
+            let (w1, m1) = pools.pop().expect("len >= 2 loop guard");
             pools.push((w1 + w2, (w1 * m1 + w2 * m2) / (w1 + w2)));
         }
     }
     let mut iso = [0.0f64; 10];
     let mut pi = 0usize;
-    let mut left = pools.first().map(|p| p.0).unwrap_or(0.0);
+    let mut left = pools.first().map_or(0.0, |p| p.0);
     for (b, (n, _)) in bins.iter().enumerate() {
         if *n == 0 {
-            iso[b] = pools.get(pi).map(|p| p.1).unwrap_or(0.0);
+            iso[b] = pools.get(pi).map_or(0.0, |p| p.1);
             continue;
         }
         iso[b] = pools[pi].1;
@@ -316,7 +313,7 @@ mod tests {
         assert!(Calibration::load_for_domain(&path, PIPELINE_SCORE_DOMAIN)
             .unwrap()
             .is_some());
-        let err = Calibration::load_for_domain(&path, CORPUS_COVERAGE_SCORE_DOMAIN)
+        let err = Calibration::load_for_domain(&path, "some-other-domain-v9")
             .unwrap_err()
             .to_string();
         assert!(err.contains("score domain"), "{err}");

@@ -21,12 +21,6 @@ pub struct Generation {
     pub reconstruction: Option<Reconstruction>,
 }
 
-impl Generation {
-    pub fn top(&self) -> Option<&Candidate> {
-        self.candidates.first()
-    }
-}
-
 fn official_status_and_display(
     candidates: &[Candidate],
     official_forms: &[&str],

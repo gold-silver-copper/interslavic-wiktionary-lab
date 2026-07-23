@@ -42,7 +42,8 @@ impl Phonotactics {
                         continue;
                     }
                     p.initials.insert(chars[0]);
-                    p.finals.insert(*chars.last().unwrap());
+                    p.finals
+                        .insert(*chars.last().expect("emptiness checked above"));
                     for w in chars.windows(2) {
                         p.bigrams.insert((w[0], w[1]));
                     }
@@ -259,11 +260,8 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
 
     // Axis 2: collision with the existing lexicon (same index as check-text;
     // novel-word proposals included so a coinage can't shadow one).
-    let index = crate::check::build_index(
-        &entries,
-        Some(Path::new("data/novel-words.tsv")),
-        Default::default(),
-    );
+    let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+    let index = crate::check::build_index(&entries, &novel, Default::default());
     let collisions: Vec<serde_json::Value> = index
         .by_key
         .get(&folded)
@@ -289,8 +287,17 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
         .unwrap_or_default();
 
     // Axis 3: false-friend readings across the ten languages' caches.
-    let evidence = crate::dump::LemmaCorpus::load(Path::new(crate::DEFAULT_LEMMA_CACHE)).ok();
-    let raw = crate::dump::RawSlavicCorpus::load(Path::new(crate::DEFAULT_RAW_LEMMA_CACHE)).ok();
+    // load_optional contract (V15 item 2): the false-friend axis may run
+    // without the caches, but a corrupt cache must fail loudly — a silently
+    // empty axis would pass coinages it should have flagged.
+    let evidence = crate::dump::load_optional(
+        Path::new(crate::DEFAULT_LEMMA_CACHE),
+        crate::dump::LemmaCorpus::load,
+    )?;
+    let raw = crate::dump::load_optional(
+        Path::new(crate::DEFAULT_RAW_LEMMA_CACHE),
+        crate::dump::RawSlavicCorpus::load,
+    )?;
     let readings = crate::falsefriends::surface_readings(word, evidence.as_ref(), raw.as_ref());
 
     // Axis 4: declinability. The GUESS comes from the ending (POS) and the
@@ -306,10 +313,9 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
     );
     // The crate's guessed gender/animacy for the noun reading (what
     // `interslavic::noun_forms` would silently do).
-    let guess = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let guess = crate::forms::catch_inflect(std::panic::AssertUnwindSafe(|| {
         interslavic::noun_forms(word)
     }))
-    .ok()
     .map(|p| {
         (
             gender_label(p.gender),
@@ -426,7 +432,7 @@ pub fn run(official_path: &Path, word: &str, json: bool, overrides: &Overrides) 
                 "effective_pos": pos.code(),
                 "guessed_gender": guessed_gender,
                 "guessed_animacy": guessed_animate.map(|a| if a { "anim" } else { "inanim" }),
-                "declared_pos": overrides.pos.map(|p| p.code()),
+                "declared_pos": overrides.pos.map(super::model::Pos::code),
                 "declared_gender": overrides.gender.map(model_gender_label),
                 "declared_animacy": if overrides.indeclinable { Some("indecl") } else { overrides.animate.map(|a| if a { "anim" } else { "inanim" }) },
                 "divergences": divergences,
@@ -606,7 +612,7 @@ mod tests {
         assert!(v.iter().any(|m| m.contains("illegal letter 'x'")), "{v:?}");
         assert!(v.iter().any(|m| m.contains("unattested")), "{v:?}");
         // Deliberate collision: 'voda' exists as an official lemma.
-        let index = crate::check::build_index(&entries, None, Default::default());
+        let index = crate::check::build_index(&entries, &[], Default::default());
         assert!(index
             .by_key
             .get("voda")
@@ -672,7 +678,7 @@ mod tests {
     /// with an error, not panic on `rows[0]`.
     #[test]
     fn lexicon_row_rejects_comment_shaped_word() {
-        let index = crate::check::build_index(&[], None, Default::default());
+        let index = crate::check::build_index(&[], &[], Default::default());
         let err = validated_lexicon_row(&index, "#foo\tnoun\tm\tanim\ttest".to_string(), "#foo")
             .unwrap_err();
         assert!(
@@ -743,11 +749,8 @@ mod tests {
     #[test]
     fn collision_axis_shows_every_homograph_concept() {
         let entries = official::load(Path::new(crate::DEFAULT_OFFICIAL)).unwrap();
-        let index = crate::check::build_index(
-            &entries,
-            Some(Path::new("data/novel-words.tsv")),
-            Default::default(),
-        );
+        let novel = crate::novel::load_or_warn(Path::new(crate::novel::DEFAULT_NOVEL_WORDS));
+        let index = crate::check::build_index(&entries, &novel, Default::default());
         let recs = index.by_key.get("tur").expect("tur proposals");
         let glosses: std::collections::BTreeSet<&str> = recs
             .iter()

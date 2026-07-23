@@ -78,9 +78,7 @@ pub fn normalize_cell(lang_code: &str, cell: &str) -> Vec<NormForm> {
 
 /// Convert one attested form to phonemic Latin.
 pub fn to_phonemic_latin(lang_code: &str, form: &str) -> String {
-    let script = lang_info(lang_code)
-        .map(|l| l.script)
-        .unwrap_or(Script::Latin);
+    let script = lang_info(lang_code).map_or(Script::Latin, |l| l.script);
     let lower = form.trim().to_lowercase();
     // Dispatch on the word's ACTUAL script, not only the registry default:
     // en.wiktionary files some languages in either alphabet (the sh macro-code
@@ -126,7 +124,7 @@ pub fn translit_greek(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.trim().to_lowercase().chars() {
         // Combining marks (tonos/psili/dasia written combining) drop.
-        if ('\u{0300}'..='\u{036F}').contains(&c) {
+        if crate::orthography::is_combining_mark(c) {
             continue;
         }
         let repl: &str = match c {
@@ -218,7 +216,7 @@ pub fn fold_deep_token(s: &str) -> String {
         .trim_start_matches('*')
         .trim_end_matches(['.', ',', ';', ':', '!', '?', '"', '\''])
         .chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .flat_map(char::to_lowercase)
         .collect()
 }
@@ -454,7 +452,7 @@ pub fn desc_skeleton(lang: &str, word: &str) -> String {
     // Drop combining accent marks left by stress notation (вода́ → voda).
     let stripped: String = latin
         .chars()
-        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| !crate::orthography::is_combining_mark(*c))
         .collect();
     crate::orthography::ascii_skeleton(&stripped)
 }

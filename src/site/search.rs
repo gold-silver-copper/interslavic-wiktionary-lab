@@ -3,7 +3,7 @@
 //! Shard writing remains here because file names, manifest metadata, row
 //! encoding, and client lookup logic form one compatibility-sensitive schema.
 
-use super::layout::{compact, conf_class, esc, json_str, pos_code_label, status_pill, truncate};
+use super::layout::{conf_class, json_str};
 use crate::model::{Candidate, Confidence, MatchStatus};
 use crate::official::OfficialEntry;
 use anyhow::Result;
@@ -76,86 +76,6 @@ pub(super) fn strength_cell(conf: Confidence, prob: Option<f64>, raw_score: f32)
         num
     )
 }
-
-pub(super) fn home_page(
-    n: usize,
-    n_match: usize,
-    n_diff: usize,
-    n_none: usize,
-    norm_rate: f32,
-    exact_rate: f32,
-    top_rows: &[HomeRow],
-) -> String {
-    let mut list = String::from("<table class='wikitable'><thead><tr><th>Kandidat</th><th>Čęst rěči</th><th>Anglijski smysl</th><th>Sila dogadki</th><th>Stav</th></tr></thead><tbody>");
-    for r in top_rows.iter().take(300) {
-        let _ = write!(
-            list,
-            "<tr><td><a href='entry/{}.html'><b>{}</b></a></td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-            r.id,
-            esc(&r.form),
-            esc(&pos_code_label(&r.pos)),
-            esc(&truncate(&r.gloss, 55)),
-            strength_cell(r.conf, r.prob, r.score),
-            status_pill(r.status)
-        );
-    }
-    list.push_str("</tbody></table>");
-
-    let body = format!(
-        "<section class='home-heading'>
-           <h1 class='firstHeading'>Medžuslovjansky generator</h1>
-           <p class='muted'>Naučno obosnovany generator medžuslovjanskyh slov iz slovjanskyh dokazov, s ocěnkoju točnosti protiv oficialnogo slovnika.</p>
-           <div class='searchbox'><input id='q' type='search' placeholder='Iskaj po kandidatu ili anglijskom smyslu…' autocomplete='off'><div id='results' class='results'></div></div>
-         </section>
-         <section class='wiki-layout'>
-           <article class='wiki-main-list'>
-             <h2>Najčęstěje slova</h2>
-             <p class='muted'>Najčęstějih 300 od <b>{total}</b> zapisov; iskaj gore za vse. „Sila dogadki“ = modelovy kȯšik uvěrjenosti + syrova ocěna.</p>
-             {list}
-           </article>
-           <aside class='wiki-sidebar'>
-             <div class='portal-box'><h3>Slučajno slovo</h3>
-               <div id='spotlight'><p class='muted'>Nakladajě sę…</p></div>
-               <button id='randbtn' type='button'>Drugo slovo</button>
-             </div>
-             <div class='portal-box stats-portal'><h3>Slovnik i točnosť</h3>
-               <table class='wikitable compact-table'>
-                 <tr><th>Zapisov</th><td>{total}</td></tr>
-                 <tr><th>Odgovara oficialnomu</th><td>{n_match} ({norm:.1}%)</td></tr>
-                 <tr><th>Razlikuje sę</th><td>{n_diff}</td></tr>
-                 <tr><th>Točno (povno)</th><td>{exact:.1}%</td></tr>
-                 <tr><th>Bez oficialnoj</th><td>{n_none}</td></tr>
-               </table>
-             </div>
-             <div class='portal-box'><h3>Kako radi</h3><ul class='compact-list'>
-               <li>Medžuvětvovy konsensus (6 podgrup) izbira korenj.</li>
-               <li>Praslovjansko pravilo davaje variantnu formu.</li>
-               <li>Sila dogadki = modelovy kȯšik uvěrjenosti; bez sovmestimoj kalibracije to ne jest věrojętnosť.</li>
-               <li><a href='about.html'>O metodě →</a></li>
-             </ul></div>
-             <div class='portal-box'><h3>Legenda</h3>
-               <p>{ok} — generovana forma = oficialna.</p>
-               <p>{warn} — razlikuje sę od oficialnoj.</p>
-               <p>{info} — nema oficialnoj.</p>
-             </div>
-           </aside>
-         </section>
-         <script>{js}</script>",
-        total = compact(n),
-        list = list,
-        n_match = compact(n_match),
-        norm = norm_rate,
-        n_diff = compact(n_diff),
-        exact = exact_rate,
-        n_none = compact(n_none),
-        ok = status_pill(MatchStatus::OfficialMatch),
-        warn = status_pill(MatchStatus::DiffersFromOfficial),
-        info = status_pill(MatchStatus::NoOfficialEntry),
-        js = search_js(),
-    );
-    page("Medžuslovjansky generator", &body, 0)
-}
-
 // ---------------------------------------------------------------------------
 // Sharded search index (issue #71). The monolithic search.json grew to 44 MB,
 // so the index is written as first-letter shards: a query fetches a few-KB
@@ -272,7 +192,7 @@ pub(super) const CLIENT_FOLD_PAIRS: &[(char, &str)] = &[
 pub(super) fn client_fold(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.to_lowercase().chars() {
-        if ('\u{0300}'..='\u{036F}').contains(&c) {
+        if crate::orthography::is_combining_mark(c) {
             continue;
         }
         match CLIENT_FOLD_PAIRS.iter().find(|(f, _)| *f == c) {
@@ -428,7 +348,7 @@ pub(super) fn write_search_index(out_dir: &Path, rows: &[SearchRow]) -> Result<(
         "totalRows": rows.len(),
         "browse": "browse.json",
         "spotlight": "spotlight.json",
-        "splits": splits.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
+        "splits": splits.iter().map(std::string::ToString::to_string).collect::<Vec<_>>(),
         "shards": manifest_shards,
     });
     let mut mbytes = serde_json::to_vec(&manifest)?;

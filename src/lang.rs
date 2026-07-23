@@ -261,7 +261,7 @@ pub fn branch_of(code: &str) -> Option<Branch> {
 }
 
 pub fn lang_name(code: &str) -> &'static str {
-    lang_info(code).map(|l| l.name).unwrap_or("slovjansky")
+    lang_info(code).map_or("slovjansky", |l| l.name)
 }
 
 /// The Slavic columns of the official dictionary, in branch order, with the

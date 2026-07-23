@@ -226,23 +226,13 @@ pub fn read_csv_records(text: &str) -> Vec<Vec<String>> {
     records
 }
 
-/// Detect the delimiter (comma for the full export, tab for the metadata TSV).
-fn looks_like_tsv(header: &str) -> bool {
-    header.contains('\t') && !header.starts_with("id,")
-}
-
 pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
     let text = std::fs::read_to_string(path)
         .with_context(|| format!("read official dictionary {}", path.display()))?;
-    let first_line = text.lines().next().unwrap_or("");
 
-    let records: Vec<Vec<String>> = if looks_like_tsv(first_line) {
-        text.lines()
-            .map(|l| l.split('\t').map(|s| s.to_string()).collect())
-            .collect()
-    } else {
-        read_csv_records(&text)
-    };
+    // The undocumented TSV branch is gone (V15 item 1): it had no in-repo
+    // caller and used a quote-blind splitter beside the real RFC-4180 parser.
+    let records: Vec<Vec<String>> = read_csv_records(&text);
 
     let mut it = records.into_iter();
     let header = it.next().context("empty dictionary file")?;
@@ -251,6 +241,18 @@ pub fn load(path: &Path) -> Result<Vec<OfficialEntry>> {
         .enumerate()
         .map(|(i, h)| (h.trim().to_lowercase(), i))
         .collect();
+    // Loud failure on a wrong-delimiter file (V15.1 item 3): a TSV or
+    // semicolon export parses as a one-column CSV whose header has no
+    // `isv` key, and every row then silently yielded an empty lemma —
+    // check-text classified everything "unknown" with no visible cause.
+    anyhow::ensure!(
+        col.contains_key("isv"),
+        "{}: no `isv` column in the header — the loader reads comma-separated CSV only \
+         (got {} header column(s); first cell {:?})",
+        path.display(),
+        header.len(),
+        header.first().map_or("", String::as_str)
+    );
 
     let get = |rec: &[String], name: &str| -> String {
         col.get(name)
@@ -384,5 +386,22 @@ mod tests {
         assert_eq!(forms("pęt na desęte"), vec!["pęt na desęte"]);
         assert_eq!(forms("pozirati (na)"), vec!["pozirati"]);
         assert_eq!(forms("dobry, #dobrějši, !dobrěje, *dobro"), vec!["dobry"]);
+    }
+
+    /// V15.1 item 3: a tab-separated export must fail loudly, not parse as
+    /// a one-column CSV that silently classifies every token unknown.
+    #[test]
+    fn tsv_input_is_rejected_with_a_diagnosis() {
+        let dir = std::env::temp_dir().join(format!("slovowiki-tsv-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("official.tsv");
+        std::fs::write(&path, "id\tisv\tpartOfSpeech\ten\n1\tslovo\tn.\tword\n").unwrap();
+        let err = load(&path).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("no `isv` column") && msg.contains("comma-separated"),
+            "{msg}"
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

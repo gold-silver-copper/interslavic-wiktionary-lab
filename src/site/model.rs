@@ -152,8 +152,7 @@ impl BuildMeta {
         let generated = match env_override("SOURCE_DATE_EPOCH")? {
             Some(stamp) => format_source_date_epoch(&stamp)?,
             None => git_output(&["show", "-s", "--format=%ct", "HEAD"])
-                .map(|stamp| format!("{stamp} UNIX"))
-                .unwrap_or_else(|| "0 UNIX".to_string()),
+                .map_or_else(|| "0 UNIX".to_string(), |stamp| format!("{stamp} UNIX")),
         };
         Ok(Self {
             git,
@@ -203,6 +202,7 @@ pub(super) struct RenderContext<'a> {
     pub(super) raw_xref: &'a crate::enrich::Xref,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct CorpusEntryInput<'a> {
     pub(super) id: usize,
     pub(super) generated: &'a crate::corpus::GeneratedWord,
@@ -222,6 +222,7 @@ pub(super) struct CorpusEntryInput<'a> {
     pub(super) context: &'a RenderContext<'a>,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct OfficialEntryInput<'a> {
     pub(super) isv: &'a str,
     pub(super) entry: &'a crate::official::OfficialEntry,
@@ -235,6 +236,7 @@ pub(super) struct OfficialEntryInput<'a> {
     pub(super) context: &'a RenderContext<'a>,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct RawEntryInput<'a> {
     pub(super) display: &'a str,
     pub(super) lemma: &'a crate::dump::RawSlavicLemma,
@@ -263,8 +265,7 @@ pub(super) struct SiteEntryInput<'a> {
 }
 
 pub(super) fn slug(value: &str) -> String {
-    let folded =
-        crate::orthography::ascii_skeleton(&crate::orthography::to_standard(&value.to_lowercase()));
+    let folded = crate::orthography::ascii_skeleton(value);
     let mut out = String::new();
     let mut dash = false;
     for ch in folded.chars() {
@@ -328,7 +329,7 @@ pub(super) fn family_key(set: &crate::corpus::CognateSet) -> Option<String> {
 pub(super) fn proto_stem(word: &str) -> Option<String> {
     let word: String = word
         .chars()
-        .filter(|ch| !('\u{0300}'..='\u{036F}').contains(ch))
+        .filter(|ch| !crate::orthography::is_combining_mark(*ch))
         .collect();
     const SUFFIXES: &[&str] = &[
         "ovati", "irati", "nǫti", "ostь", "išče", "ьje", "ica", "ina", "ьcь", "ъka", "ъkъ", "ьnъ",

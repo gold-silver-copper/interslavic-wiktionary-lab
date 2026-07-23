@@ -17,7 +17,7 @@ use std::path::Path;
 pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
     use crate::model::{Gender, Pos};
     let entries = crate::official::load(official_path)?;
-    let fold = |x: &str| crate::orthography::to_standard(&x.trim().to_lowercase());
+    let fold = |x: &str| crate::orthography::fold_key(x.trim());
 
     let (mut n_words, mut n_cells, mut n_blank) = (0usize, 0usize, 0usize);
     // The dictionary has ~950 duplicated headwords (homograph rows); each
@@ -73,7 +73,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // panic-guarded single-cell getters above, cell for cell, over
                 // every lemma — a build-time upgrade of the unit-scale
                 // noun_paradigm_roundtrip_matches_cells test.
-                let struct_ok = std::panic::catch_unwind(|| {
+                let struct_ok = crate::forms::catch_inflect(|| {
                     let f = crate::forms::noun_paradigm_forms(bare, e.noun_traits.gender);
                     let mut v = Vec::new();
                     for (_, case) in crate::forms::CASES {
@@ -82,7 +82,6 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                     }
                     v
                 })
-                .ok()
                 .is_some_and(|v| {
                     v.len() == cells.len() && v.iter().zip(&cells).all(|(a, (b, _))| a == b)
                 });
@@ -157,7 +156,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
                 // Full-corpus guard (issue #20): the AdjParadigm path adj_table
                 // AND the API records render from, compared cell-for-cell to the
                 // panic-guarded getter over every lemma.
-                let struct_forms = std::panic::catch_unwind(|| interslavic::adj_forms(bare)).ok();
+                let struct_forms = crate::forms::catch_inflect(|| interslavic::adj_forms(bare));
                 let mut adj_struct_ok = struct_forms.is_some();
                 for (_, case) in crate::forms::CASES {
                     for (g, a) in [
@@ -238,7 +237,7 @@ pub fn run_inflect_eval(official_path: &Path, out_dir: &Path) -> Result<()> {
             }
             Pos::Verb => {
                 n_words += 1;
-                let ok = std::panic::catch_unwind(|| interslavic::verb_forms(bare)).is_ok();
+                let ok = crate::forms::catch_inflect(|| interslavic::verb_forms(bare)).is_some();
                 // One "cell" per paradigm: the crate returns the whole set.
                 n_cells += 1;
                 n_blank += !ok as usize;

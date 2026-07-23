@@ -96,7 +96,7 @@ fn adj_reflex_long(r: &str) -> bool {
     let mut it = r.chars().rev();
     match it.next() {
         Some(c) if is_full_vowel(c) => true,
-        Some('j') => it.next().map(is_full_vowel).unwrap_or(false),
+        Some('j') => it.next().is_some_and(is_full_vowel),
         _ => false,
     }
 }
@@ -117,7 +117,7 @@ fn clean(input: &str, trace: &mut Vec<RuleStep>) -> String {
         // Drop combining accent marks (Proto-Slavic prosody notation) and the
         // parentheses Wiktionary wraps optional letters in (*(j)azъ → jazъ): keep
         // the letter, drop the brackets. Also drop syllable dots / hyphens.
-        if ('\u{0300}'..='\u{036F}').contains(&ch)
+        if crate::orthography::is_combining_mark(ch)
             || matches!(ch, '`' | '´' | '(' | ')' | '·' | '.' | '‑')
         {
             continue;
@@ -734,7 +734,7 @@ fn is_full_vowel(ch: char) -> bool {
 }
 
 fn ends_cons(s: &str) -> bool {
-    s.chars().last().map(is_cons).unwrap_or(false)
+    s.chars().last().is_some_and(is_cons)
 }
 
 /// True when the stem ends in a soft (palatal/palatalized) consonant, which takes
