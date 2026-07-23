@@ -105,17 +105,25 @@ jobs:
             grep -q '^data/refresh-changelog.md$' /tmp/changed-files.txt \
               || { echo "::error::data/official-isv.csv changed without a refresh-changelog entry (see docs/DATA-REFRESH.md)"; exit 1; }
           fi
-      # V15 item 9: the floor reads the machine-readable summary the run
-      # already writes (runs[-1] is the shipped production rung) instead of
-      # grep/awk over stdout formatting.
+      # V15 item 9 / V15.1 item 1: the floor reads the machine-readable
+      # summary the run just rewrote. Fail-closed: pipefail keeps a broken
+      # evaluator from silently passing on the STALE committed summary, and
+      # the production-rung marker is asserted rather than trusted
+      # positionally. The ::error:: goes to stdout so GitHub renders it.
       - name: Accuracy regression floor (exact top-1 must stay >= 39.5%)
         run: |
+          set -euo pipefail
           cargo run --release -- evaluate | tail -12
           python3 - <<'PY'
-          import json
+          import json, sys
           run = json.load(open("reports/candidate-generation-summary.json"))["runs"][-1]
+          if not run["name"].endswith("(production)"):
+              print(f"::error::ladder no longer ends at the production rung (got {run['name']!r}) — fix eval.rs ordering or this check")
+              sys.exit(1)
           exact = 100.0 * run["exact_top1"]
           print(f"measured exact top-1 = {exact:.2f}% ({run['name']})")
-          assert exact >= 39.5, f"::error::exact top-1 {exact:.2f}% fell below the 39.5% regression floor"
+          if exact < 39.5:
+              print(f"::error::exact top-1 {exact:.2f}% fell below the 39.5% regression floor")
+              sys.exit(1)
           PY
-          git diff --exit-code -- data/score-calibration.json reports/methodology.md
+          git diff --exit-code -- data/score-calibration.json reports/methodology.md reports/candidate-generation-summary.json
